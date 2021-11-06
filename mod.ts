@@ -1,3 +1,3 @@
 export function placeholder(): string {
-    return "placeholder";
+  return "placeholder";
 }
