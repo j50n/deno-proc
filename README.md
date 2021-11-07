@@ -2,10 +2,9 @@
 
 Abstractions for running processes in Deno.
 
-This is currently just an idea I have, and just getting started. I decided to
-try creating the repository and publishing it right from the get-go, so the
-entire development history will be captured. As of the first release, it doesn't
-actually do anything. It is in active development though.
+This is still very early. Things are going to change. A lot. Functionality is limited. The API is unstable.
+
+Deno has all the right parts for working with processes, but I really want something that is a better version of what I get in `bash` scripts. I want `stdin` and `stdout` pipes, decent default error handling, and minimal need to manually close things. I want all this to work with a fluent API.
 
 ## `stdout` from a process as lines
 
