@@ -10,6 +10,12 @@ something that is a better version of what I get in `bash` scripts. I want
 `stdin` and `stdout` pipes, decent default error handling, and minimal need to
 manually close things. I want all this to work with a fluent API.
 
+## documentation
+
+```bash
+deno doc -q https://deno.land/x/proc/mod.ts 
+```
+
 ## `stdout` from a process as lines
 
 ```ts

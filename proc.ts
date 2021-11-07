@@ -74,6 +74,9 @@ export class Proc implements Deno.Closer {
     return that;
   }
 
+  /**
+   * Return `stdout` as lines of text, lazily. 
+   */
   async *stdoutLines(): AsyncIterableIterator<string> {
     try {
       const reader = new TextProtoReader(new BufReader(this.stdout));
