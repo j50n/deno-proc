@@ -4,30 +4,43 @@ import { BufReader, BufWriter } from "./deps/io.ts";
 import { TextProtoReader } from "./deps/textproto.ts";
 
 export interface ProcParams {
+  /** The command to run. */
   cmd: string[];
 }
 
 export class ProcessExitError extends ChainedError {
 }
 
+/**
+ * Run a child process.
+ * @param params Process parameters.
+ * @returns The child process.
+ */
 export function run(params: ProcParams): Proc {
-  return Proc.run(params);
+  return new Proc(params);
 }
 
+/**
+ * A child process. Requires `--allow-run` permissions.
+ */
 export class Proc implements Deno.Closer {
-  protected upstreamError: Error | undefined;
+  private upstreamError: Error | undefined;
 
-  protected processClosed = false;
-  protected process: Deno.Process;
+  private processClosed = false;
+  private process: Deno.Process;
 
-  protected _status: Deno.ProcessStatus | null = null;
+  private _status: Deno.ProcessStatus | undefined;
 
-  get status(): Deno.ProcessStatus | null {
+  /**
+   * The current status of this process. If the process has not yet
+   * completed, the status will be `undefined`.
+   */
+  get status(): Deno.ProcessStatus | undefined {
     return this._status;
   }
 
-  readonly stdout: Deno.Reader & Deno.Closer;
-  readonly stdin: Deno.Writer & Deno.Closer;
+  private readonly stdout: Deno.Reader & Deno.Closer;
+  private readonly stdin: Deno.Writer & Deno.Closer;
 
   constructor(protected readonly params: ProcParams) {
     this.process = Deno.run({
@@ -40,11 +53,7 @@ export class Proc implements Deno.Closer {
     this.stdin = new MultiCloseWriter(this.process.stdin!);
   }
 
-  static run(params: ProcParams): Proc {
-    return new Proc(params);
-  }
-
-  protected async closeProcess(): Promise<void> {
+  private async closeProcess(): Promise<void> {
     if (!this.processClosed) {
       this._status = await this.process.status();
       this.processClosed = true;
@@ -63,6 +72,11 @@ export class Proc implements Deno.Closer {
     }
   }
 
+  /**
+   * Close the process and all open streams in or out. You should not
+   * need to call this explicitly in most cases. It is safe to close
+   * a process multiple times.
+   */
   async close(): Promise<void> {
     this.stdout.close();
     this.stdin.close();
@@ -79,6 +93,11 @@ export class Proc implements Deno.Closer {
     this.stdin.close();
   }
 
+  /**
+   * Pipe `stdout` of this process into `stdin` of that process.
+   * @param that That process.
+   * @returns That process, for chaining.
+   */
   pipe(that: Proc): Proc {
     (async () => {
       await this.pump(this.stdout, that.stdin);
@@ -112,7 +131,7 @@ export class Proc implements Deno.Closer {
     }
   }
 
-  protected async pump(
+  private async pump(
     input: Deno.Reader & Deno.Closer,
     output: Deno.Writer & Deno.Closer,
   ): Promise<void> {

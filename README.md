@@ -19,7 +19,7 @@ deno doc -q https://deno.land/x/proc/mod.ts
 ## `stdout` from a process as lines
 
 ```ts
-for await (const line of new Proc({ cmd: ["ls", "-la"] }).stdoutLines()) {
+for await (const line of run({ cmd: ["ls", "-la"] }).stdoutLines()) {
   console.log(line);
 }
 ```
@@ -34,6 +34,8 @@ const fileCount = await first(
 );
 
 console.info(
-  `Total number of files and folders in ${resolve(".")} is ${parseInt(fileCount!, 10)}.`,
+  `Total number of files and folders in ${resolve(".")} is ${
+    parseInt(fileCount!, 10)
+  }.`,
 );
 ```
