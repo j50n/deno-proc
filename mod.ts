@@ -1,3 +1,1 @@
-export function placeholder(): string {
-  return "placeholder";
-}
+export * from "./proc.ts";
