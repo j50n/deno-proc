@@ -1,3 +1,4 @@
+import { ChainedError } from "./chained-error.ts";
 import { MultiCloseReader, MultiCloseWriter } from "./closers.ts";
 import { BufReader, BufWriter } from "./deps/io.ts";
 import { TextProtoReader } from "./deps/textproto.ts";
@@ -6,8 +7,15 @@ export interface ProcParams {
   cmd: string[];
 }
 
+export class ProcessExitError extends ChainedError {
+}
+
+export function run(params: ProcParams): Proc {
+  return Proc.run(params);
+}
+
 export class Proc implements Deno.Closer {
-  protected upstreamError: Error | null = null;
+  protected upstreamError: Error | undefined;
 
   protected processClosed = false;
   protected process: Deno.Process;
@@ -21,7 +29,7 @@ export class Proc implements Deno.Closer {
   readonly stdout: Deno.Reader & Deno.Closer;
   readonly stdin: Deno.Writer & Deno.Closer;
 
-  constructor(params: ProcParams) {
+  constructor(protected readonly params: ProcParams) {
     this.process = Deno.run({
       cmd: params.cmd,
       stdout: "piped",
@@ -32,14 +40,26 @@ export class Proc implements Deno.Closer {
     this.stdin = new MultiCloseWriter(this.process.stdin!);
   }
 
+  static run(params: ProcParams): Proc {
+    return new Proc(params);
+  }
+
   protected async closeProcess(): Promise<void> {
     if (!this.processClosed) {
       this._status = await this.process.status();
       this.processClosed = true;
       this.process.close();
     }
+
     if (this.status?.code) {
-      throw new Error(`process exited with error code ${this.status?.code}`);
+      throw new Error(
+        `process exited with error code ${this.status?.code} [${
+          this.params.cmd.join(" ")
+        }]`,
+        this.upstreamError,
+      );
+    } else if (this.upstreamError) {
+      throw this.upstreamError;
     }
   }
 
@@ -75,7 +95,7 @@ export class Proc implements Deno.Closer {
   }
 
   /**
-   * Return `stdout` as lines of text, lazily. 
+   * Return `stdout` as lines of text, lazily.
    */
   async *stdoutLines(): AsyncIterableIterator<string> {
     try {
