@@ -39,3 +39,9 @@ console.info(
   }.`,
 );
 ```
+
+## process `stderr` lines
+
+I've implemented `.stderrLines()` to allow access to the standard error stream. To gain access to this, you have to pass in `pipeStderr: true` when you create the process. 
+
+I don't like this need for a-priori knowledge, and use of this is still more awkward than I would like. I am putting it in because it solves the problem, but expect API changes around this.

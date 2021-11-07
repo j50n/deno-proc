@@ -6,6 +6,9 @@ import { TextProtoReader } from "./deps/textproto.ts";
 export interface ProcParams {
   /** The command to run. */
   cmd: string[];
+
+  /** A hack to allow `stderr` to be piped. */
+  pipeStderr?: boolean;
 }
 
 export class ProcessExitError extends ChainedError {
@@ -41,23 +44,31 @@ export class Proc implements Deno.Closer {
 
   private readonly stdout: Deno.Reader & Deno.Closer;
   private readonly stdin: Deno.Writer & Deno.Closer;
+  private readonly stderr: undefined | Deno.Reader & Deno.Closer;
 
   constructor(protected readonly params: ProcParams) {
     this.process = Deno.run({
       cmd: params.cmd,
       stdout: "piped",
-      stderr: "inherit",
+      stderr: params.pipeStderr ? "piped" : "inherit",
       stdin: "piped",
     });
     this.stdout = new MultiCloseReader(this.process.stdout!);
     this.stdin = new MultiCloseWriter(this.process.stdin!);
+    this.stderr = params.pipeStderr
+      ? new MultiCloseReader(this.process.stderr!)
+      : undefined;
   }
 
   private async closeProcess(): Promise<void> {
     if (!this.processClosed) {
       this._status = await this.process.status();
       this.processClosed = true;
-      this.process.close();
+      try {
+        this.process.close();
+      } catch (e) {
+        console.debug(`process close failed: ${e}`);
+      }
     }
 
     if (this.status?.code) {
@@ -80,6 +91,7 @@ export class Proc implements Deno.Closer {
   async close(): Promise<void> {
     this.stdout.close();
     this.stdin.close();
+    this.stderr?.close();
     await this.closeProcess();
   }
 
@@ -91,6 +103,7 @@ export class Proc implements Deno.Closer {
     }
     this.stdout.close();
     this.stdin.close();
+    this.stderr?.close();
   }
 
   /**
@@ -119,6 +132,28 @@ export class Proc implements Deno.Closer {
   async *stdoutLines(): AsyncIterableIterator<string> {
     try {
       const reader = new TextProtoReader(new BufReader(this.stdout));
+      while (true) {
+        const line = await reader.readLine();
+        if (line === null) {
+          break;
+        }
+        yield line;
+      }
+    } finally {
+      await this.close();
+    }
+  }
+
+  /**
+   * Return `stderr` as lines of text, lazily.
+   */
+  async *stderrLines(): AsyncIterableIterator<string> {
+    if (!this.stderr) {
+      throw new Error("stderr is undefined; set pipeStderr flag");
+    }
+
+    try {
+      const reader = new TextProtoReader(new BufReader(this.stderr));
       while (true) {
         const line = await reader.readLine();
         if (line === null) {
