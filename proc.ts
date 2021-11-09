@@ -9,6 +9,9 @@ export interface ProcParams {
 
   /** A hack to allow `stderr` to be piped. */
   pipeStderr?: boolean;
+
+  /** Set the current working directory for the process. */
+  cwd?: string;
 }
 
 export class ProcessExitError extends ChainedError {
@@ -49,6 +52,7 @@ export class Proc implements Deno.Closer {
   constructor(protected readonly params: ProcParams) {
     this.process = Deno.run({
       cmd: params.cmd,
+      cwd: params.cwd,
       stdout: "piped",
       stderr: params.pipeStderr ? "piped" : "inherit",
       stdin: "piped",
