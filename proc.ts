@@ -12,6 +12,9 @@ export interface ProcParams {
 
   /** Set the current working directory for the process. */
   cwd?: string;
+
+  /** Defines the environment passed to the process. */
+  env?: {[key: string]: string}
 }
 
 export class ProcessExitError extends ChainedError {
@@ -53,6 +56,7 @@ export class Proc implements Deno.Closer {
     this.process = Deno.run({
       cmd: params.cmd,
       cwd: params.cwd,
+      env: params.env,
       stdout: "piped",
       stderr: params.pipeStderr ? "piped" : "inherit",
       stdin: "piped",
