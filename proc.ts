@@ -14,7 +14,7 @@ export interface ProcParams {
   cwd?: string;
 
   /** Defines the environment passed to the process. */
-  env?: {[key: string]: string}
+  env?: { [key: string]: string };
 }
 
 export class ProcessExitError extends ChainedError {
