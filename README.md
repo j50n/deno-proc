@@ -1,14 +1,10 @@
 # deno-proc
 
-Abstractions for running processes in Deno.
-
-This is still very early. Things are going to change. A lot. Functionality is
-limited. The API is unstable.
-
-Deno has all the right parts for working with processes, but I really want
-something that is a better version of what I get in `bash` scripts. I want
-`stdin` and `stdout` pipes, decent default error handling, and minimal need to
-manually close things. I want all this to work with a fluent API.
+My main motivation for writing `proc` is to allow me to replace my sketchy
+`bash` scripts with Deno. I want `stdin` and `stdout` pipes, decent default
+error handling, and minimal or no need to manually close things. Code written
+using `proc` should be obvious and easy to read. I want the documentation to
+cover both what can and can't be done like `bash`, with examples and recipes.
 
 ## documentation
 
