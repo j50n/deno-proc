@@ -2,4 +2,4 @@
 
 deno fmt
 deno lint
-deno test --allow-run
+deno test --reload --allow-run
