@@ -6,6 +6,12 @@ error handling, and minimal or no need to manually close things. Code written
 using `proc` should be obvious and easy to read. I want the documentation to
 cover both what can and can't be done like `bash`, with examples and recipes.
 
+## Notes
+
+I would love to have something where close is automatic. I might experiment with
+the garbage collector later, but for now, I just want to have something where I
+can control what it happening. Document with examples.
+
 ## documentation
 
 ```bash

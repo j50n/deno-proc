@@ -19,24 +19,23 @@ interface RunOptions {
   };
 }
 
-
 interface Process {
-    process: Deno.Process;
-    stdin: Stdin;
-    stdout: Stdout;
-    stderr: Stderr;
+  process: Deno.Process;
+  stdin: Stdin;
+  stdout: Stdout;
+  stderr: Stderr;
 }
 
 export class ProcessGroup implements Deno.Closer {
-    protected processes: Process[] = [];
+  protected processes: Process[] = [];
 
   close(): void {
-    while(this.processes.length > 0){
-        const p = this.processes.pop()!;
-        p.stdin.close();
-        p.stdout.close();
-        p.stderr.close();
-        p.process.close();
+    while (this.processes.length > 0) {
+      const p = this.processes.pop()!;
+      p.stdin.close();
+      p.stdout.close();
+      p.stderr.close();
+      p.process.close();
     }
   }
 
@@ -57,7 +56,7 @@ export class ProcessGroup implements Deno.Closer {
     const stdout = new MultiCloseReader(process.stdout);
     const stderr = new MultiCloseReader(process.stderr);
 
-    this.processes.push({process, stdin, stdout, stderr});
+    this.processes.push({ process, stdin, stdout, stderr });
 
     fnInput(input, stdin);
     return await fnOutput(stdout, stderr, process);
