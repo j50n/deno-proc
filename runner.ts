@@ -1,3 +1,5 @@
+import { MultiCloseReader, MultiCloseWriter } from "./closers.ts";
+
 type Stdin = Deno.Writer & Deno.Closer;
 type Stdout = Deno.Reader & Deno.Closer;
 type Stderr = Stdout;
@@ -6,7 +8,7 @@ type FnInput<A> = (input: A, stdin: Stdin) => Promise<void>;
 type FnOutput<B> = (
   stdout: Stdout,
   stderr: Stderr,
-  exitCode: Promise<Deno.ProcessStatus>,
+  process: Deno.Process,
 ) => Promise<B>;
 
 interface RunOptions {
@@ -17,9 +19,25 @@ interface RunOptions {
   };
 }
 
-export class ProcGroup implements Deno.Closer {
+
+interface Process {
+    process: Deno.Process;
+    stdin: Stdin;
+    stdout: Stdout;
+    stderr: Stderr;
+}
+
+export class ProcessGroup implements Deno.Closer {
+    protected processes: Process[] = [];
+
   close(): void {
-    throw new Error("Method not implemented.");
+    while(this.processes.length > 0){
+        const p = this.processes.pop()!;
+        p.stdin.close();
+        p.stdout.close();
+        p.stderr.close();
+        p.process.close();
+    }
   }
 
   async run<A, B>(
@@ -28,14 +46,20 @@ export class ProcGroup implements Deno.Closer {
     input: A,
     options: RunOptions,
   ): Promise<B> {
-    const p = Deno.run({
+    const process = Deno.run({
       ...options,
       stdin: "piped",
       stdout: "piped",
       stderr: "piped",
     });
 
-    fnInput(input, p.stdin);
-    return await fnOutput(p.stdout, p.stderr, p.status());
+    const stdin = new MultiCloseWriter(process.stdin);
+    const stdout = new MultiCloseReader(process.stdout);
+    const stderr = new MultiCloseReader(process.stderr);
+
+    this.processes.push({process, stdin, stdout, stderr});
+
+    fnInput(input, stdin);
+    return await fnOutput(stdout, stderr, process);
   }
 }
