@@ -4,10 +4,6 @@ import {
   MultiCloseWriter,
 } from "./closers.ts";
 
-// export type Stdin = Deno.Writer & Deno.Closer;
-// export type Stdout = Deno.Reader & Deno.Closer;
-// export type Stderr = Stdout;
-
 type FnInput<A> = (input: A, stdin: MultiCloseWriter) => Promise<void>;
 type FnOutput<B> = (
   stdout: MultiCloseReader,
@@ -34,7 +30,30 @@ interface Process {
 export class ProcessGroup implements Deno.Closer {
   protected processes: Process[] = [];
 
+  /**
+   * Event handler registered to call close if we exit without explicitly closing.
+   * @param _e The event.
+   */
+  private closer(_e: Event): void {
+    try {
+      this.close();
+    } catch (e) {
+      // Ignore.
+      console.error(e);
+    }
+  }
+
+  constructor() {
+    self.addEventListener("unload", this.closer);
+  }
+
   close(): void {
+    try {
+      self.removeEventListener("unload", this.closer);
+    } catch {
+      // Ignore.
+    }
+
     while (this.processes.length > 0) {
       const p = this.processes.pop()!;
       p.stdin.close();
