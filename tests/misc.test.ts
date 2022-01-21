@@ -1,4 +1,6 @@
-import { ProcessGroup, stdinNull, stdoutLines } from "../runner.ts";
+import { stdinNull } from "../inputs.ts";
+import { stdoutLines } from "../outputs.ts";
+import { ProcessGroup } from "../runner.ts";
 
 Deno.test({
   name:
