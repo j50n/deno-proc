@@ -80,11 +80,11 @@ export class ProcessGroup implements Deno.Closer {
     const stdout = new MultiCloseReader(process.stdout);
     const stderr = new MultiCloseReader(process.stderr);
 
-    const mcp = new MultiCloseProcess(process);
+    const processWrapper = new MultiCloseProcess(process);
+    this.processes.push({ process: processWrapper, stdin, stdout, stderr });
 
-    this.processes.push({ process: mcp, stdin, stdout, stderr });
+    const inputResult = fnInput(input, stdin);
 
-    const inputPromise = fnInput(input, stdin);
-    return await fnOutput(stdout, stderr, mcp, inputPromise);
+    return await fnOutput(stdout, stderr, processWrapper, inputResult);
   }
 }
