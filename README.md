@@ -1,5 +1,13 @@
 # deno-proc
 
+Running subprocesses in Deno should be easier.
+
+- it is difficult to ensure that your script doesn't leave orphan subprocesses
+- you have to manually close the process, stdin, stdout, and stderr ... 
+  - or you will leak resources 
+  - and there are real problems with extra defensive calls to `close()`
+
+
 My main motivation for writing `proc` is to allow me to replace my sketchy
 `bash` scripts with Deno. I want `stdin` and `stdout` pipes, decent default
 error handling, and minimal or no need to manually close things. Code written

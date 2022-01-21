@@ -39,3 +39,25 @@ export class MultiCloseWriter implements Deno.Writer, Deno.Closer {
     }
   }
 }
+
+/**
+ * Wrapper for a Deno process that ensures it is only closed once, even though we may try
+ * to close it multiple times.
+ */
+export class MultiCloseProcess implements Deno.Closer {
+  private closed = false;
+
+  constructor(private readonly process: Deno.Process) {
+  }
+
+  async status(): Promise<Deno.ProcessStatus> {
+    return await this.process.status();
+  }
+
+  close(): void {
+    if (!this.closed) {
+      this.closed = true;
+      this.process.close();
+    }
+  }
+}

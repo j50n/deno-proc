@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+deno fmt
+deno lint
+# deno cache --reload ./deps/*.ts
+deno test --allow-run ./tests
