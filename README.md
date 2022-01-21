@@ -1,3 +1,8 @@
+_I am completely reworking this API. What is here works, mostly. It's useful.
+The new API will address the issues I found while creating this one. It is a lot
+more ambitious in scope. I will release something as soon as it feels like it is
+starting to gel. Checkout feature branch 9 for progress._
+
 # deno-proc
 
 Abstractions for running processes in Deno.
