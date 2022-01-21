@@ -1,5 +1,4 @@
-import { TextProtoReader } from "https://deno.land/std@0.121.0/textproto/mod.ts";
-import { BufReader, BufWriter } from "./v1/deps/io.ts";
+import { BufReader, BufWriter, TextProtoReader } from "./deps.ts";
 
 export async function pump(
   input: Deno.Reader & Deno.Closer,
