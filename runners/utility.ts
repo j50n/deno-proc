@@ -25,7 +25,7 @@ export async function pump(
   }
 }
 
-export async function* reader2Lines(
+export async function* readerToLines(
   input: Deno.Reader & Deno.Closer,
 ): AsyncIterableIterator<string> {
   try {

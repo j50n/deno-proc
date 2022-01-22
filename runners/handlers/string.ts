@@ -4,8 +4,9 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
-import { InputHandler, OutputHandler } from "../process-group.ts";
-import { pump, reader2Lines } from "../utility.ts";
+import { InputHandler } from "../process-group.ts";
+import { pump } from "../utility.ts";
+import { AbstractTextOutputHandler } from "./abstract-text-output-handler.ts";
 
 /**
  * Source `stdin` from a `string`. `stdin` is closed once the text data is written.
@@ -23,12 +24,13 @@ export class StringInput implements InputHandler<string> {
 /**
  * Return `stdout` as a `string`.
  */
-export class StringOutput implements OutputHandler<string> {
+export class StringOutput extends AbstractTextOutputHandler<string> {
   constructor(
-    public processStderr: (
+    processStderr: (
       lines: AsyncIterableIterator<string>,
     ) => Promise<unknown | string[]>,
   ) {
+    super(processStderr);
   }
 
   async processOutput(
@@ -42,60 +44,5 @@ export class StringOutput implements OutputHandler<string> {
       lines.push(line);
     }
     return lines.join("\n");
-  }
-
-  protected async handleStderr(
-    stderr: MultiCloseReader,
-  ): Promise<string[] | unknown> {
-    let stderrLines: string[] | unknown;
-
-    try {
-      stderrLines = await this.processStderr(reader2Lines(stderr));
-    } catch (e) {
-      if (e instanceof Deno.errors.Interrupted) {
-        // Ignore.
-      } else {
-        throw e;
-      }
-    } finally {
-      stderr.close();
-    }
-
-    return stderrLines;
-  }
-
-  protected async *process(
-    stdout: MultiCloseReader,
-    stderr: MultiCloseReader,
-    process: MultiCloseProcess,
-    input: Promise<void>,
-  ): AsyncIterableIterator<string> {
-    try {
-      const se = this.handleStderr(stderr);
-
-      for await (const line of reader2Lines(stdout)) {
-        yield line;
-      }
-
-      await input;
-      const stderrLines: string[] | unknown = await se;
-
-      const status = await process.status();
-
-      //TODO: This won't work for all cases, if error code isn't standard.
-      if (!status.success) {
-        //TODO: Specialize error; add signal
-        let errMessage = [`process exited with code: ${status.code}`];
-        if (Array.isArray(stderrLines)) {
-          errMessage = errMessage.concat(
-            stderrLines.map((line) => `\t${line}`),
-          );
-        }
-        throw new Error(errMessage.join("\n"));
-      }
-    } finally {
-      stdout.close();
-      process.close();
-    }
   }
 }

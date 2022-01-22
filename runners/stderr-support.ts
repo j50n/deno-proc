@@ -3,7 +3,7 @@
  * @param lines `stderr` lines.
  */
 export async function stderrLinesToConsoleError(
-  lines: AsyncIterableIterator<string>,
+  lines: AsyncIterable<string>,
 ): Promise<void> {
   for await (const line of lines) {
     console.error(line);
@@ -15,7 +15,7 @@ export async function stderrLinesToConsoleError(
  * @param _lines `stderr` lines.
  */
 export async function stderrLinesToNull(
-  _lines: AsyncIterableIterator<string>,
+  _lines: AsyncIterable<string>,
 ): Promise<void> {
 }
 
@@ -25,8 +25,8 @@ export async function stderrLinesToNull(
  */
 export function stderrLinesToErrorMessage(
   tail: number,
-): (lines: AsyncIterableIterator<string>) => Promise<string[]> {
-  return async (lines: AsyncIterableIterator<string>): Promise<string[]> => {
+): (lines: AsyncIterable<string>) => Promise<string[]> {
+  return async (lines: AsyncIterable<string>): Promise<string[]> => {
     let droppedLines = false;
 
     const linesArray = [];
