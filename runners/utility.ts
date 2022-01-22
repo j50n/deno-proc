@@ -1,4 +1,4 @@
-import { BufReader, BufWriter, TextProtoReader } from "./deps.ts";
+import { BufReader, BufWriter, TextProtoReader } from "../deps.ts";
 
 export async function pump(
   input: Deno.Reader & Deno.Closer,

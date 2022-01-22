@@ -5,4 +5,4 @@ set -e
 deno fmt
 deno lint
 # deno cache --reload ./deps/*.ts
-deno test --allow-run --reload ./tests
+deno test --allow-run --reload ./runners

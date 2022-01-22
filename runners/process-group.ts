@@ -4,13 +4,25 @@ import {
   MultiCloseWriter,
 } from "./closers.ts";
 
-type FnInput<A> = (input: A, stdin: MultiCloseWriter) => Promise<void>;
-type FnOutput<B> = (
-  stdout: MultiCloseReader,
-  stderr: MultiCloseReader,
-  process: MultiCloseProcess,
-  input: Promise<void>,
-) => B | Promise<B>;
+export interface InputHandler<A> {
+  processInput: (input: A, stdin: MultiCloseWriter) => Promise<void>;
+}
+
+// type FnOutput<B> = (
+//   stdout: MultiCloseReader,
+//   stderr: MultiCloseReader,
+//   process: MultiCloseProcess,
+//   input: Promise<void>,
+// ) => B | Promise<B>;
+
+export interface OutputHandler<B> {
+  processOutput: (
+    stdout: MultiCloseReader,
+    stderr: MultiCloseReader,
+    process: MultiCloseProcess,
+    input: Promise<void>,
+  ) => B | Promise<B>;
+}
 
 interface RunOptions {
   cmd: string[] | [URL, ...string[]];
@@ -64,8 +76,8 @@ export class ProcessGroup implements Deno.Closer {
   }
 
   async run<A, B>(
-    fnInput: FnInput<A>,
-    fnOutput: FnOutput<B>,
+    inputHandler: InputHandler<A>,
+    outputHandler: OutputHandler<B>,
     input: A,
     options: RunOptions,
   ): Promise<B> {
@@ -83,8 +95,13 @@ export class ProcessGroup implements Deno.Closer {
     const processWrapper = new MultiCloseProcess(process);
     this.processes.push({ process: processWrapper, stdin, stdout, stderr });
 
-    const inputResult = fnInput(input, stdin);
+    const inputResult = inputHandler.processInput(input, stdin);
 
-    return await fnOutput(stdout, stderr, processWrapper, inputResult);
+    return await outputHandler.processOutput(
+      stdout,
+      stderr,
+      processWrapper,
+      inputResult,
+    );
   }
 }

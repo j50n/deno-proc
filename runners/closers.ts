@@ -1,3 +1,5 @@
+import { StringReader } from "../deps.ts";
+
 /**
  * Wrapper for a `Reader & Closer` that allows you to safely call {@link close()} multiple times.
  */
@@ -59,5 +61,18 @@ export class MultiCloseProcess implements Deno.Closer {
       this.closed = true;
       this.process.close();
     }
+  }
+}
+
+/**
+ * A standard {@link StringReader} with a noop `close()`.
+ */
+export class ClosableStringReader extends StringReader implements Deno.Closer {
+  constructor(input: string) {
+    super(input);
+  }
+
+  close(): void {
+    // Noop.
   }
 }
