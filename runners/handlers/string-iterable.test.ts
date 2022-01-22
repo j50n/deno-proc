@@ -1,7 +1,10 @@
 import { assertEquals, asyncIter } from "../../deps-test.ts";
 import { ProcessGroup } from "../process-group.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
-import { StringIterableInput, StringIterableOutput } from "./iterable.ts";
+import {
+  StringIterableInput,
+  StringIterableOutput,
+} from "./string-iterable.ts";
 
 Deno.test({
   name:
@@ -14,8 +17,8 @@ Deno.test({
     const proc = new ProcessGroup();
     try {
       const stdout = await proc.run(
-        new StringIterableInput(),
-        new StringIterableOutput(stderrLinesToErrorMessage(20)),
+        StringIterableInput(),
+        StringIterableOutput(stderrLinesToErrorMessage(20)),
         asyncIter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).map((n) => `${n}`),
         { cmd: ["grep", "1"] },
       );

@@ -4,13 +4,26 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
-import { InputHandler } from "../process-group.ts";
+import { InputHandler, OutputHandler } from "../process-group.ts";
+import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { AbstractTextOutputHandler } from "./abstract-text-output-handler.ts";
+
+export function StringIterableInput(): InputHandler<AsyncIterable<string>> {
+  return new StringIterableInputHandler();
+}
+
+export function StringIterableOutput(
+  processStderr: (
+    lines: AsyncIterable<string>,
+  ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
+): OutputHandler<AsyncIterable<string>> {
+  return new StringIterableOutputHandler(processStderr);
+}
 
 /**
  * Source `stdin` from an iterable of lines.
  */
-export class StringIterableInput
+export class StringIterableInputHandler
   implements InputHandler<AsyncIterable<string>> {
   async processInput(
     input: AsyncIterable<string>,
@@ -35,12 +48,12 @@ export class StringIterableInput
 /**
  * Return `stdout` as an iterable over the lines.
  */
-export class StringIterableOutput
+export class StringIterableOutputHandler
   extends AbstractTextOutputHandler<AsyncIterable<string>> {
   constructor(
     processStderr: (
       lines: AsyncIterable<string>,
-    ) => Promise<unknown | string[]>,
+    ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
   ) {
     super(processStderr);
   }

@@ -4,14 +4,27 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
-import { InputHandler } from "../process-group.ts";
+import { InputHandler, OutputHandler } from "../process-group.ts";
+import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { pump } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-text-output-handler.ts";
+
+export function StringInput(): InputHandler<string> {
+  return new StringInputHandler();
+}
+
+export function StringOutput(
+  processStderr: (
+    lines: AsyncIterable<string>,
+  ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
+): OutputHandler<string> {
+  return new StringOutputHandler(processStderr);
+}
 
 /**
  * Source `stdin` from a `string`. `stdin` is closed once the text data is written.
  */
-export class StringInput implements InputHandler<string> {
+export class StringInputHandler implements InputHandler<string> {
   async processInput(input: string, stdin: MultiCloseWriter): Promise<void> {
     try {
       await pump(new ClosableStringReader(input), stdin);
@@ -24,10 +37,10 @@ export class StringInput implements InputHandler<string> {
 /**
  * Return `stdout` as a `string`.
  */
-export class StringOutput extends AbstractTextOutputHandler<string> {
+export class StringOutputHandler extends AbstractTextOutputHandler<string> {
   constructor(
     processStderr: (
-      lines: AsyncIterableIterator<string>,
+      lines: AsyncIterable<string>,
     ) => Promise<unknown | string[]>,
   ) {
     super(processStderr);

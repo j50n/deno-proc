@@ -8,17 +8,17 @@ Deno.test({
     "I can run a command with stdin specified as a string, and get the result as a string.",
   async fn() {
     /*
-     * I am passing
+     * I am passing in some lines (split by line-feeds) to grep and verifying that the filtering works.
      */
     const proc = new ProcessGroup();
     try {
       const result = await proc.run(
-        new StringInput(),
-        new StringOutput(stderrLinesToErrorMessage(20)),
-        "a\nb\nc\n",
+        StringInput(),
+        StringOutput(stderrLinesToErrorMessage(20)),
+        "a\nb\nbc\nd\n",
         { cmd: ["grep", "b"] },
       );
-      assertEquals(result, "b");
+      assertEquals(result, "b\nbc");
     } finally {
       proc.close();
     }
