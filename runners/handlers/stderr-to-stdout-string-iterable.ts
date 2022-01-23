@@ -3,12 +3,19 @@ import { OutputHandler } from "../process-group.ts";
 import { readerToLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
 
+/**
+ * Redirect `stderr` into `stdout` so that you get both, as lines, for output.
+ *
+ * The order of the lines is not guaranteed. The timing of the lines is not guaranteed.
+ *
+ * @returns `stdout` and `stderr` lines as an `AsyncIterable`.
+ */
 export function StderrToStdoutStringIterableOutput() {
   return new StderrToStdoutStringIterableOutputHandler();
 }
 
 /**
- * Abstract class for handling text output.
+ * Redirect `stderr` into `stdout`.
  */
 export class StderrToStdoutStringIterableOutputHandler
   implements OutputHandler<AsyncIterable<string>> {

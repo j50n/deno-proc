@@ -44,3 +44,23 @@ export async function* readerToLines(
     input.close();
   }
 }
+
+export async function* readerToBytes(
+  input: Deno.Reader & Deno.Closer,
+  bufSize = DEFAULT_BUFFER_SIZE,
+): AsyncIterableIterator<Uint8Array> {
+  try {
+    const reader = new BufReader(input, bufSize);
+    const buffer = new Uint8Array(bufSize);
+
+    while(true){
+      const len = await reader.read(buffer);
+      if(len === null){
+        break;
+      }
+      yield buffer.slice(0, len);
+    }
+  } finally {
+    input.close();
+  }
+}

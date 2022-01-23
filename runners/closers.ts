@@ -1,4 +1,4 @@
-import { StringReader } from "../deps.ts";
+import { Deferred, deferred, StringReader } from "../deps.ts";
 
 /**
  * Wrapper for a `Reader & Closer` that allows you to safely call {@link close()} multiple times.
@@ -6,18 +6,32 @@ import { StringReader } from "../deps.ts";
 export class MultiCloseReader implements Deno.Reader, Deno.Closer {
   private closed = false;
 
+  private _done: Deferred<void> = deferred();
+
   constructor(private readonly reader: Deno.Reader & Deno.Closer) {
   }
 
   async read(p: Uint8Array): Promise<number | null> {
-    return await this.reader.read(p);
+    const data = await this.reader.read(p);
+    if (data === null) {
+      this._done.resolve();
+    }
+    return data;
   }
 
   close(): void {
     if (!this.closed) {
-      this.closed = true;
-      this.reader.close();
+      try {
+        this.closed = true;
+        this.reader.close();
+      } finally {
+        this._done.resolve();
+      }
     }
+  }
+
+  get done(): Promise<void> {
+    return this._done;
   }
 }
 
