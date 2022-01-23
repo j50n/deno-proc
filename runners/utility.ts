@@ -79,3 +79,29 @@ export async function* readerToBytes(
     reader.close();
   }
 }
+
+export function concat(arrays: Uint8Array[]) {
+  if (!arrays.length) return new Uint8Array(0);
+
+  const totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
+  const result = new Uint8Array(totalLength);
+
+  let length = 0;
+  for (const array of arrays) {
+    result.set(array, length);
+    length += array.length;
+  }
+
+  return result;
+}
+
+export function randomString(length: number): string {
+  const chs = "abcdefghijklmnopqrstuvwxyz";
+
+  const result: string[] = [];
+  for (let i = 0; i < length; i++) {
+    result.push(chs[Math.floor(Math.random() * chs.length)]);
+  }
+
+  return result.join("");
+}

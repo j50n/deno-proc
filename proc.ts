@@ -5,6 +5,13 @@ import {
   RunOptions,
 } from "./runners/proc-group.ts";
 
+export function proc<A, B>(
+  input: InputHandler<A>,
+  output: OutputHandler<B>,
+): Proc<A, B> {
+  return new Proc(input, output);
+}
+
 export class Proc<A, B> {
   constructor(
     public readonly input: InputHandler<A>,

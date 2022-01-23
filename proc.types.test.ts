@@ -9,14 +9,15 @@ import {
 
 /**
  * Demonstrate the subtleties of type handling.
- * 
+ *
  * - Input is optional and checked at runtime, as this is the best I can do with the limitations of optional parameters.
  * - When the output is an `AsyncIterable`, that is returned without the `Promise` wrapper.
  * - When the output is some other type, that is returned with a `Promise` wrapper.
  */
 
 Deno.test({
-  name: "When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Input is a string, so I specify the string.",
+  name:
+    "When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Input is a string, so I specify the string.",
   async fn() {
     const proc = new ProcGroup();
     try {
