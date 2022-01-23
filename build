@@ -4,5 +4,5 @@ set -e
 
 deno fmt
 deno lint
-# deno cache --reload ./deps/*.ts
-deno test --allow-run 
+
+deno test --allow-run --reload
