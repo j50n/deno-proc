@@ -1,7 +1,10 @@
 import { BufWriter } from "../../deps.ts";
-import { MultiCloseProcess, MultiCloseReader, MultiCloseWriter } from "../closers.ts";
+import {
+  MultiCloseProcess,
+  MultiCloseReader,
+  MultiCloseWriter,
+} from "../closers.ts";
 import { InputHandler } from "../process-group.ts";
-import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractBytesOutputHandler } from "./abstract-handlers.ts";
 
@@ -38,22 +41,22 @@ export class BytesIterableInputHandler
 /**
  * Return `stdout` as an iterable over the lines.
  */
- export class BytesIterableOutputHandler
- extends AbstractBytesOutputHandler<AsyncIterable<Uint8Array>> {
- constructor(
-   processStderr: (
-     lines: AsyncIterable<string>,
-   ) => Promise<unknown | string[]> ,
- ) {
-   super(processStderr);
- }
+export class BytesIterableOutputHandler
+  extends AbstractBytesOutputHandler<AsyncIterable<Uint8Array>> {
+  constructor(
+    processStderr: (
+      lines: AsyncIterable<string>,
+    ) => Promise<unknown | string[]>,
+  ) {
+    super(processStderr);
+  }
 
- processOutput(
-   stdout: MultiCloseReader,
-   stderr: MultiCloseReader,
-   process: MultiCloseProcess,
-   input: Promise<void>,
- ): AsyncIterable<Uint8Array> {
-   return this.process(stdout, stderr, process, input);
- }
+  processOutput(
+    stdout: MultiCloseReader,
+    stderr: MultiCloseReader,
+    process: MultiCloseProcess,
+    input: Promise<void>,
+  ): AsyncIterable<Uint8Array> {
+    return this.process(stdout, stderr, process, input);
+  }
 }

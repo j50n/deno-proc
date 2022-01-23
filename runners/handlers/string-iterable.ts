@@ -62,7 +62,7 @@ export class StringIterableOutputHandler
   constructor(
     processStderr: (
       lines: AsyncIterable<string>,
-    ) => Promise<unknown | string[]> ,
+    ) => Promise<unknown | string[]>,
   ) {
     super(processStderr);
   }
