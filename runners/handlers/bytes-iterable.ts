@@ -4,7 +4,8 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
-import { InputHandler } from "../process-group.ts";
+import { InputHandler, OutputHandler } from "../process-group.ts";
+import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractBytesOutputHandler } from "./abstract-handlers.ts";
 
@@ -12,6 +13,14 @@ export function BytesIterableInput(
   autoflush = true,
 ): InputHandler<AsyncIterable<Uint8Array>> {
   return new BytesIterableInputHandler(autoflush);
+}
+
+export function BytesIterableOutput(
+  processStderr: (
+    lines: AsyncIterable<string>,
+  ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
+): OutputHandler<AsyncIterable<Uint8Array>> {
+  return new BytesIterableOutputHandler(processStderr);
 }
 
 /**
