@@ -2,65 +2,80 @@ import { BufReader, BufWriter, TextProtoReader } from "../deps.ts";
 
 export const DEFAULT_BUFFER_SIZE = 4096;
 
+/**
+ * Efficiently pump data from a reader to a writer.
+ * @param reader The reader.
+ * @param writer The writer.
+ */
 export async function pump(
-  input: Deno.Reader & Deno.Closer,
-  output: Deno.Writer & Deno.Closer,
+  reader: Deno.Reader & Deno.Closer,
+  writer: Deno.Writer & Deno.Closer,
 ): Promise<void> {
   try {
     try {
-      const reader = new BufReader(input, DEFAULT_BUFFER_SIZE);
-      const writer = new BufWriter(output, DEFAULT_BUFFER_SIZE);
+      const bufferedReader = new BufReader(reader, DEFAULT_BUFFER_SIZE);
+      const bufferedWriter = new BufWriter(writer, DEFAULT_BUFFER_SIZE);
       const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
       while (true) {
-        const len = await reader.read(buffer);
+        const len = await bufferedReader.read(buffer);
         if (len === null) {
           break;
         }
-        await writer.write(buffer.slice(0, len));
+        await bufferedWriter.write(buffer.slice(0, len));
       }
-      await writer.flush();
+      await bufferedWriter.flush();
     } finally {
-      input.close();
+      reader.close();
     }
   } finally {
-    output.close();
+    writer.close();
   }
 }
 
+/**
+ * Transform a `Reader` to an `AsyncIterableIterator<string>`, separated into lines.
+ * @param reader The reader.
+ * @param bufSize The buffer size.
+ */
 export async function* readerToLines(
-  input: Deno.Reader & Deno.Closer,
+  reader: Deno.Reader & Deno.Closer,
   bufSize = DEFAULT_BUFFER_SIZE,
 ): AsyncIterableIterator<string> {
   try {
-    const reader = new TextProtoReader(new BufReader(input, bufSize));
+    const textReader = new TextProtoReader(new BufReader(reader, bufSize));
     while (true) {
-      const line = await reader.readLine();
+      const line = await textReader.readLine();
       if (line === null) {
         break;
       }
       yield line;
     }
   } finally {
-    input.close();
+    reader.close();
   }
 }
 
+/**
+ * Efficiently transform a `Reader` to an `AsyncIterableIterator<Uint8Array>`.
+ * @param reader The reader.
+ * @param bufSize The buffer size.
+ */
 export async function* readerToBytes(
-  input: Deno.Reader & Deno.Closer,
+  reader: Deno.Reader & Deno.Closer,
   bufSize = DEFAULT_BUFFER_SIZE,
 ): AsyncIterableIterator<Uint8Array> {
   try {
-    const reader = new BufReader(input, bufSize);
+    const bufferedReader = new BufReader(reader, bufSize);
     const buffer = new Uint8Array(bufSize);
 
-    while(true){
-      const len = await reader.read(buffer);
-      if(len === null){
+    while (true) {
+      const len = await bufferedReader.read(buffer);
+      if (len === null) {
         break;
       }
       yield buffer.slice(0, len);
     }
   } finally {
-    input.close();
+    reader.close();
   }
 }

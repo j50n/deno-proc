@@ -1,11 +1,11 @@
 import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
 import { OutputHandler } from "../process-group.ts";
-import { readerToLines } from "../utility.ts";
+import { readerToBytes, readerToLines } from "../utility.ts";
 
 /**
  * Abstract class for handling text output.
  */
-export abstract class AbstractTextOutputHandler<B> implements OutputHandler<B> {
+abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
   constructor(
     public processStderr: (
       lines: AsyncIterableIterator<string>,
@@ -40,16 +40,20 @@ export abstract class AbstractTextOutputHandler<B> implements OutputHandler<B> {
     return stderrLines;
   }
 
+  protected abstract transformReader(
+    reader: MultiCloseReader,
+  ): AsyncIterableIterator<C>;
+
   protected async *process(
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
     input: Promise<void>,
-  ): AsyncIterableIterator<string> {
+  ): AsyncIterableIterator<C> {
     try {
       const se = this.handleStderr(stderr);
 
-      yield* readerToLines(stdout);
+      yield* this.transformReader(stdout);
 
       await input;
       const stderrLines: string[] | unknown = await se;
@@ -71,5 +75,23 @@ export abstract class AbstractTextOutputHandler<B> implements OutputHandler<B> {
       stdout.close();
       process.close();
     }
+  }
+}
+
+export abstract class AbstractTextOutputHandler<B>
+  extends AbstractOutputHandler<B, string> {
+  protected async *transformReader(
+    reader: MultiCloseReader,
+  ): AsyncIterableIterator<string> {
+    yield* readerToLines(reader);
+  }
+}
+
+export abstract class AbstractBytesOutputHandler<B>
+  extends AbstractOutputHandler<B, Uint8Array> {
+  protected async *transformReader(
+    reader: MultiCloseReader,
+  ): AsyncIterableIterator<Uint8Array> {
+    yield* readerToBytes(reader);
   }
 }

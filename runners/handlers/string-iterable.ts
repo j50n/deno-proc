@@ -7,7 +7,7 @@ import {
 import { InputHandler, OutputHandler } from "../process-group.ts";
 import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
-import { AbstractTextOutputHandler } from "./abstract-text-output-handler.ts";
+import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
 
 export function StringIterableInput(
   autoflush = true,
@@ -62,7 +62,7 @@ export class StringIterableOutputHandler
   constructor(
     processStderr: (
       lines: AsyncIterable<string>,
-    ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
+    ) => Promise<unknown | string[]> ,
   ) {
     super(processStderr);
   }

@@ -7,7 +7,7 @@ import {
 import { InputHandler, OutputHandler } from "../process-group.ts";
 import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { pump } from "../utility.ts";
-import { AbstractTextOutputHandler } from "./abstract-text-output-handler.ts";
+import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
 
 export function StringInput(): InputHandler<string> {
   return new StringInputHandler();
