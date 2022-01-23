@@ -1,5 +1,5 @@
 import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
-import { OutputHandler } from "../process-group.ts";
+import { OutputHandler } from "../proc-group.ts";
 import { readerToLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
 

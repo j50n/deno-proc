@@ -1,5 +1,5 @@
 import { assertEquals, asynciter } from "../../deps-test.ts";
-import { ProcessGroup } from "../process-group.ts";
+import { ProcGroup } from "../proc-group.ts";
 import { EmptyInput } from "./empty.ts";
 import { StderrToStdoutStringIterableOutput } from "./stderr-to-stdout-string-iterable.ts";
 
@@ -9,7 +9,7 @@ Deno.test({
     /*
      *
      */
-    const proc = new ProcessGroup();
+    const proc = new ProcGroup();
     try {
       const output = await proc.run(
         EmptyInput(),
@@ -18,7 +18,6 @@ Deno.test({
         {
           cmd: [
             "bash",
-            "--login",
             "-c",
             `set -e
                 echo "This is to stdout."

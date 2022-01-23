@@ -4,7 +4,7 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
-import { InputHandler, OutputHandler } from "../process-group.ts";
+import { InputHandler, OutputHandler } from "../proc-group.ts";
 import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { pump } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
@@ -25,6 +25,10 @@ export function StringOutput(
  * Source `stdin` from a `string`. `stdin` is closed once the text data is written.
  */
 export class StringInputHandler implements InputHandler<string> {
+  get failOnEmptyInput(): boolean {
+    return true;
+  }
+
   async processInput(input: string, stdin: MultiCloseWriter): Promise<void> {
     try {
       await pump(new ClosableStringReader(input), stdin);

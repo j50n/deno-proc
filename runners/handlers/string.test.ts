@@ -1,5 +1,5 @@
 import { assertEquals } from "../../deps-test.ts";
-import { ProcessGroup } from "../process-group.ts";
+import { ProcGroup } from "../proc-group.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import { StringInput, StringOutput } from "./string.ts";
 
@@ -10,7 +10,7 @@ Deno.test({
     /*
      * I am passing in some lines (split by line-feeds) to grep and verifying that the filtering works.
      */
-    const proc = new ProcessGroup();
+    const proc = new ProcGroup();
     try {
       const result = await proc.run(
         StringInput(),

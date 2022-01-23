@@ -1,5 +1,5 @@
 import { assertEquals, asynciter } from "../../deps-test.ts";
-import { ProcessGroup } from "../process-group.ts";
+import { ProcGroup } from "../proc-group.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import {
   StringIterableInput,
@@ -14,7 +14,7 @@ Deno.test({
      * I am passing some numbers as test to `grep` and using it to filter out just a few.
      * I am using `asynciter` to transform to and from numbers.
      */
-    const proc = new ProcessGroup();
+    const proc = new ProcGroup();
     try {
       const stdout = await proc.run(
         StringIterableInput(),

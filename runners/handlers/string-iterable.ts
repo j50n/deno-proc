@@ -4,7 +4,7 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
-import { InputHandler, OutputHandler } from "../process-group.ts";
+import { InputHandler, OutputHandler } from "../proc-group.ts";
 import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
@@ -29,6 +29,10 @@ export function StringIterableOutput(
 export class StringIterableInputHandler
   implements InputHandler<AsyncIterable<string>> {
   constructor(public readonly autoflush: boolean) {
+  }
+
+  get failOnEmptyInput(): boolean {
+    return true;
   }
 
   async processInput(

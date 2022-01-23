@@ -5,15 +5,9 @@ import {
 } from "./closers.ts";
 
 export interface InputHandler<A> {
+  get failOnEmptyInput(): boolean;
   processInput: (input: A, stdin: MultiCloseWriter) => Promise<void>;
 }
-
-// type FnOutput<B> = (
-//   stdout: MultiCloseReader,
-//   stderr: MultiCloseReader,
-//   process: MultiCloseProcess,
-//   input: Promise<void>,
-// ) => B | Promise<B>;
 
 export interface OutputHandler<B> {
   processOutput: (
@@ -24,7 +18,7 @@ export interface OutputHandler<B> {
   ) => B | Promise<B>;
 }
 
-interface RunOptions {
+export interface RunOptions {
   cmd: string[] | [URL, ...string[]];
   cwd?: string;
   env?: {
@@ -39,7 +33,7 @@ interface Process {
   stderr: MultiCloseReader;
 }
 
-export class ProcessGroup implements Deno.Closer {
+export class ProcGroup implements Deno.Closer {
   protected processes: Process[] = [];
 
   /**
@@ -75,12 +69,12 @@ export class ProcessGroup implements Deno.Closer {
     }
   }
 
-  async run<A, B>(
+  run<A, B>(
     inputHandler: InputHandler<A>,
     outputHandler: OutputHandler<B>,
     input: A,
     options: RunOptions,
-  ): Promise<B> {
+  ): B | Promise<B> {
     const process = Deno.run({
       ...options,
       stdin: "piped",
@@ -97,7 +91,7 @@ export class ProcessGroup implements Deno.Closer {
 
     const inputResult = inputHandler.processInput(input, stdin);
 
-    return await outputHandler.processOutput(
+    return outputHandler.processOutput(
       stdout,
       stderr,
       processWrapper,
