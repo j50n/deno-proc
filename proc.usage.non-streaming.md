@@ -2,6 +2,10 @@ _Development Notes_
 
 # Proc Usage with Non-Streaming Input and Output
 
+This is a test that lets me get some early reps on the new API for the simple
+case, which is non-streaming. Passing strings and byte-arrays to and from
+processes.
+
 With non-streaming input and output, I can hide the use of `ProcGroup` because
 everything starts in memory and ends in memory.
 
