@@ -1,4 +1,4 @@
-import { assertEquals, asyncIter } from "../../deps-test.ts";
+import { assertEquals, asynciter } from "../../deps-test.ts";
 import { ProcessGroup } from "../process-group.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import {
@@ -19,11 +19,11 @@ Deno.test({
       const stdout = await proc.run(
         StringIterableInput(),
         StringIterableOutput(stderrLinesToErrorMessage(20)),
-        asyncIter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).map((n) => `${n}`),
+        asynciter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).map((n) => `${n}`),
         { cmd: ["grep", "1"] },
       );
       assertEquals(
-        await asyncIter(stdout).map((line) => parseInt(line, 10)).collect(),
+        await asynciter(stdout).map((line) => parseInt(line, 10)).collect(),
         [1, 10, 11],
       );
     } finally {

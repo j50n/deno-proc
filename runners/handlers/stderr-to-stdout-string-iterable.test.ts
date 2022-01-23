@@ -1,4 +1,4 @@
-import { assertEquals, asyncIter } from "../../deps-test.ts";
+import { assertEquals, asynciter } from "../../deps-test.ts";
 import { ProcessGroup } from "../process-group.ts";
 import { EmptyInput } from "./empty.ts";
 import { StderrToStdoutStringIterableOutput } from "./stderr-to-stdout-string-iterable.ts";
@@ -30,7 +30,7 @@ Deno.test({
         },
       );
 
-      const outputLines = await asyncIter(output).collect();
+      const outputLines = await asynciter(output).collect();
 
       assertEquals(
         new Set(outputLines),
