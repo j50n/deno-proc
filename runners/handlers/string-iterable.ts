@@ -6,10 +6,13 @@ import {
 } from "../closers.ts";
 import { InputHandler, OutputHandler } from "../process-group.ts";
 import { stderrLinesToConsoleError } from "../stderr-support.ts";
+import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-text-output-handler.ts";
 
-export function StringIterableInput(): InputHandler<AsyncIterable<string>> {
-  return new StringIterableInputHandler();
+export function StringIterableInput(
+  autoflush = true,
+): InputHandler<AsyncIterable<string>> {
+  return new StringIterableInputHandler(autoflush);
 }
 
 export function StringIterableOutput(
@@ -25,6 +28,9 @@ export function StringIterableOutput(
  */
 export class StringIterableInputHandler
   implements InputHandler<AsyncIterable<string>> {
+  constructor(public readonly autoflush: boolean) {
+  }
+
   async processInput(
     input: AsyncIterable<string>,
     stdin: MultiCloseWriter,
@@ -33,12 +39,15 @@ export class StringIterableInputHandler
       const encoder = new TextEncoder();
       const cr = encoder.encode("\n");
 
-      const bw = new BufWriter(stdin, 16384);
+      const bw = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
       for await (const line of input) {
         await bw.write(encoder.encode(line));
         await bw.write(cr);
-        await bw.flush();
+        if (this.autoflush) {
+          await bw.flush();
+        }
       }
+      await bw.flush();
     } finally {
       stdin.close();
     }

@@ -1,32 +1,31 @@
 import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
 import { OutputHandler } from "../process-group.ts";
 import { readerToLines } from "../utility.ts";
+import { MuxAsyncIterator } from "../../deps.ts";
+
+export function StderrToStdoutStringIterableOutput() {
+  return new StderrToStdoutStringIterableOutputHandler();
+}
 
 /**
  * Abstract class for handling text output.
  */
-export abstract class AbstractTextOutputHandler<B> implements OutputHandler<B> {
-  constructor(
-    public processStderr: (
-      lines: AsyncIterableIterator<string>,
-    ) => Promise<unknown | string[]>,
-  ) {
-  }
-
-  abstract processOutput(
+export class StderrToStdoutStringIterableOutputHandler
+  implements OutputHandler<AsyncIterable<string>> {
+  processOutput(
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
     input: Promise<void>,
-  ): B | Promise<B>;
+  ): AsyncIterable<string> {
+    return this.process(stdout, stderr, process, input);
+  }
 
-  protected async handleStderr(
+  protected async *handleStderr(
     stderr: MultiCloseReader,
-  ): Promise<string[] | unknown> {
-    let stderrLines: string[] | unknown;
-
+  ): AsyncIterableIterator<string> {
     try {
-      stderrLines = await this.processStderr(readerToLines(stderr));
+      yield* readerToLines(stderr);
     } catch (e) {
       if (e instanceof Deno.errors.Interrupted) {
         // Ignore.
@@ -36,8 +35,6 @@ export abstract class AbstractTextOutputHandler<B> implements OutputHandler<B> {
     } finally {
       stderr.close();
     }
-
-    return stderrLines;
   }
 
   protected async *process(
@@ -47,25 +44,20 @@ export abstract class AbstractTextOutputHandler<B> implements OutputHandler<B> {
     input: Promise<void>,
   ): AsyncIterableIterator<string> {
     try {
-      const se = this.handleStderr(stderr);
+      const mux = new MuxAsyncIterator<string>();
+      mux.add(this.handleStderr(stderr));
+      mux.add(readerToLines(stdout));
 
-      yield* readerToLines(stdout);
+      yield* mux;
 
       await input;
-      const stderrLines: string[] | unknown = await se;
 
       const status = await process.status();
 
       //TODO: This won't work for all cases, if error code isn't standard.
       if (!status.success) {
         //TODO: Specialize error; add signal
-        let errMessage = [`process exited with code: ${status.code}`];
-        if (Array.isArray(stderrLines)) {
-          errMessage = errMessage.concat(
-            stderrLines.map((line) => `\t${line}`),
-          );
-        }
-        throw new Error(errMessage.join("\n"));
+        throw new Error(`process exited with code: ${status.code}`);
       }
     } finally {
       stdout.close();
