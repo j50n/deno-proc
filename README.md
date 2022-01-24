@@ -53,11 +53,12 @@ Streamed byte data is the fastest, so if we are just piping bytes from one
 process to another, we would use `BytesIterableOutput()` for `stdout` of process
 #1 and `BytesIterableInput()` for `stdin` of process #2.
 
-If you have a small
-amount of data (it can be kept in memory), `StringInput()` and `StringOutput()`
-let you work with `string` data. For text data that is too big to fit in memory,
-or if you just want to work with real-time streamed text data, use
-`StringIterableInput()` and `StringIterableOutput()`. There is some overhead associated with processing streamed bytes into text lines, but this is how you will interact with process input and output much of the time. 
+If you have a small amount of data (it can be kept in memory), `StringInput()`
+and `StringOutput()` let you work with `string` data. For text data that is too
+big to fit in memory, or if you just want to work with real-time streamed text
+data, use `StringIterableInput()` and `StringIterableOutput()`. There is some
+overhead associated with processing streamed bytes into text lines, but this is
+how you will interact with process input and output much of the time.
 
 This example shows how `proc(...)` is used to generate a process definition. In
 this case, I am going to pass in a `string` and get back a `Uint8Array`. `gzip`
