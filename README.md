@@ -60,6 +60,8 @@ data, use `StringIterableInput()` and `StringIterableOutput()`. There is some
 overhead associated with processing streamed bytes into text lines, but this is
 how you will interact with process input and output much of the time.
 
+#### An Example
+
 This example shows how `proc(...)` is used to generate a process definition. In
 this case, I am going to pass in a `string` and get back a `Uint8Array`. `gzip`
 is just getting a stream of bytes in both cases of course. Our definition is
