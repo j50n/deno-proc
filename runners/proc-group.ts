@@ -33,6 +33,10 @@ interface Process {
   stderr: MultiCloseReader;
 }
 
+export function procgroup(): ProcGroup {
+  return new ProcGroup();
+}
+
 export class ProcGroup implements Deno.Closer {
   protected processes: Process[] = [];
 

@@ -1,5 +1,5 @@
 import { MultiCloseWriter } from "../closers.ts";
-import { InputHandler } from "../process-group.ts";
+import { InputHandler } from "../proc-group.ts";
 import { pump } from "../utility.ts";
 
 export function ReaderInput(): InputHandler<Deno.Reader & Deno.Closer> {
@@ -11,6 +11,9 @@ export function ReaderInput(): InputHandler<Deno.Reader & Deno.Closer> {
  */
 export class ReaderInputHandler
   implements InputHandler<Deno.Reader & Deno.Closer> {
+  get failOnEmptyInput(): boolean {
+    return true;
+  }
   async processInput(
     input: Deno.Reader & Deno.Closer,
     stdin: MultiCloseWriter,
