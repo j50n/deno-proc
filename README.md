@@ -1,5 +1,5 @@
-_This the new API. It is still under development, under-tested, and buggy. The
-API should be considered unstable._
+_This the new API. It is still under development, under-tested, and over-buggy. The
+API should be considered unstable. The documentation is incomplete. Enjoy the bleeding edge now if you are so inclined, or check back later._
 
 # deno-proc
 
