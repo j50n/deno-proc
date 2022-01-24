@@ -57,3 +57,24 @@ Deno.test({
     }
   },
 });
+
+Deno.test({
+  name: "README: Examples | Run an Inline Bash Script",
+  async fn() {
+    const pg = procgroup();
+    try {
+      console.log(
+        await proc(EmptyInput(), StringOutput()).run(pg, {
+          cmd: [
+            "/bin/bash",
+            "--login",
+            "-c",
+            "echo 'Hello, Deno.'",
+          ],
+        }),
+      );
+    } finally {
+      pg.close();
+    }
+  },
+});

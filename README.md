@@ -1,8 +1,10 @@
-_This is a completely rewritten API and is still under development._
+_This the new API. It is still under development, under-tested, and buggy. The
+API should be considered unstable._
 
 # deno-proc
 
-Running child processes should not be difficult. `proc` attempts to bring the ease of `bash` scripting to Deno.
+Running child processes should not be difficult. `proc` attempts to bring the
+ease of `bash` scripting to Deno.
 
 ## documentation
 
@@ -122,36 +124,25 @@ process.
 
 # Examples
 
-## `stdout` from a process as lines
+## Run an Inline Bash Script
+
+Starting with something simple yet useful, this is an example of running a
+`bash` script using `proc`.
 
 ```ts
-for await (const line of run({ cmd: ["ls", "-la"] }).stdoutLines()) {
-  console.log(line);
+const pg = procgroup();
+try {
+  console.log(
+    await proc(EmptyInput(), StringOutput()).run(pg, {
+      cmd: [
+        "/bin/bash",
+        "--login",
+        "-c",
+        "echo 'Hello, Deno.'",
+      ],
+    }),
+  );
+} finally {
+  pg.close();
 }
 ```
-
-## pipe `stdout` to `stdin`
-
-```ts
-const fileCount = await first(
-  run({ cmd: ["ls", "-1"] })
-    .pipe(run({ cmd: ["wc", "-l"] }))
-    .stdoutLines(),
-);
-
-console.info(
-  `Total number of files and folders in ${resolve(".")} is ${
-    parseInt(fileCount!, 10)
-  }.`,
-);
-```
-
-## process `stderr` lines
-
-I've implemented `.stderrLines()` to allow access to the standard error stream.
-To gain access to this, you have to pass in `pipeStderr: true` when you create
-the process.
-
-I don't like this need for a-priori knowledge, and use of this is still more
-awkward than I would like. I am putting it in because it solves the problem, but
-expect API changes around this.
