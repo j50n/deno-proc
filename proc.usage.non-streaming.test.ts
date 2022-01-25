@@ -32,7 +32,7 @@ async function gunzip(bytes: Uint8Array): Promise<string> {
 }
 
 Deno.test({
-  name: "I can compress and decompress data using gzip, non-streaming.",
+  name: "[USAGE] I can compress and decompress data using gzip, non-streaming.",
   async fn() {
     const expected = "Hello, world.";
     assertEquals(await gunzip(await gzip(expected)), expected);
@@ -41,7 +41,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "I can compress and decompress data using gzip, non-streaming. Large data.",
+    "[USAGE] I can compress and decompress data using gzip, non-streaming. Large data.",
   async fn() {
     const expected = randomString(1_000_000);
     assertEquals(await gunzip(await gzip(expected)), expected);

@@ -10,6 +10,10 @@ export interface InputHandler<A> {
 }
 
 export interface OutputHandler<B> {
+  /**
+   * Handle the output (stdout, stderr, and exit status) of a process.
+   * @throws ProcessExitError A process returned an exit code that indicated that an error occurred.
+   */
   processOutput: (
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,

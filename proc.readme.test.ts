@@ -9,7 +9,7 @@ import {
 } from "./mod.ts";
 
 Deno.test({
-  name: "README: Key Concepts | Leaking Resources",
+  name: "[README] Key Concepts | Leaking Resources",
   async fn() {
     const pg = procgroup();
     try {
@@ -25,7 +25,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "README: Input and Output Types",
+  name: "[README] Input and Output Types",
   async fn() {
     /**
      * Use `gzip` to compress some text.
@@ -59,7 +59,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "README: Examples | Run an Inline Bash Script",
+  name: "[README] Examples | Run an Inline Bash Script",
   async fn() {
     const pg = procgroup();
     try {

@@ -5,7 +5,8 @@ import { EmptyInput } from "./empty.ts";
 import { StringOutput } from "./string.ts";
 
 Deno.test({
-  name: "I can connect processes together with AsyncIterable<Uint8Array>.",
+  name:
+    "[HAPPY-PATH] I can connect processes together with AsyncIterable<Uint8Array>.",
   async fn() {
     /*
      * I am compressing some text with gzip, then uncompressing it. There are three

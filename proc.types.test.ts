@@ -1,3 +1,4 @@
+import { assertEquals, asynciter } from "./deps-test.ts";
 import {
   EmptyInput,
   Proc,
@@ -17,7 +18,7 @@ import {
 
 Deno.test({
   name:
-    "When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Input is a string, so I specify the string.",
+    "[TYPES] When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Input is a string, so I specify the string.",
   async fn() {
     const proc = new ProcGroup();
     try {
@@ -28,9 +29,8 @@ Deno.test({
         },
         "a\nb\nbb\nc\n",
       );
-      for await (const result of p1) {
-        console.log(result);
-      }
+
+      assertEquals(await asynciter(p1).collect(), ["b", "bb"]);
     } finally {
       proc.close();
     }
@@ -39,7 +39,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Empty input, so I don't specify input.",
+    "[TYPES] When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Empty input, so I don't specify input.",
   async fn() {
     const proc = new ProcGroup();
     try {
@@ -49,9 +49,8 @@ Deno.test({
           cmd: ["bash", "-c", "echo 'Hello.'"],
         },
       );
-      for await (const result of p1) {
-        console.log(result);
-      }
+
+      assertEquals(await asynciter(p1).collect(), ["Hello."]);
     } finally {
       proc.close();
     }
@@ -60,7 +59,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "When the output is a string (not iterable), I get back a promise. Empty input so I don't specify input.",
+    "[TYPES] When the output is a string (not iterable), I get back a promise. Empty input so I don't specify input.",
   async fn() {
     const proc = new ProcGroup();
     try {
@@ -71,7 +70,7 @@ Deno.test({
         },
       );
 
-      console.log(hello);
+      assertEquals(hello, "Hello.");
     } finally {
       proc.close();
     }

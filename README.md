@@ -1,11 +1,13 @@
-_This the new API. It is still under development, under-tested, and over-buggy.
-The API should be considered unstable. The documentation is incomplete. Enjoy
-the bleeding edge now if you are so inclined, or check back later._
+_This should still be considered **pre-release**. I expect there will be some
+minor changes to the API before it completely stabilizes. The documentation is
+incomplete, but the tests are coming along and serve as good examples for the
+time being. Functionality is incomplete, but what is available appears to be
+working._
 
 # deno-proc
 
 Running child processes should not be difficult. `proc` attempts to bring the
-ease of `bash` scripting to Deno.
+power of shell scripting into Deno.
 
 ## documentation
 

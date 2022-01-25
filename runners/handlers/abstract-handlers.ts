@@ -1,5 +1,6 @@
 import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
 import { OutputHandler } from "../proc-group.ts";
+import { ProcessExitError } from "../process-exit-error.ts";
 import { readerToBytes, readerToLines } from "../utility.ts";
 
 /**
@@ -62,14 +63,17 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
 
       //TODO: This won't work for all cases, if error code isn't standard.
       if (!status.success) {
-        //TODO: Specialize error; add signal
-        let errMessage = [`process exited with code: ${status.code}`];
+        let details: string | undefined = undefined;
         if (Array.isArray(stderrLines)) {
-          errMessage = errMessage.concat(
-            stderrLines.map((line) => `\t${line}`),
-          );
+          details = stderrLines.map((line) => `\t${line}`).join("\n");
         }
-        throw new Error(errMessage.join("\n"));
+
+        throw new ProcessExitError(
+          `process exited with code: ${status.code}`,
+          status.code,
+          status.signal,
+          details,
+        );
       }
     } finally {
       stdout.close();

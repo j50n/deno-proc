@@ -2,6 +2,7 @@ import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
 import { OutputHandler } from "../proc-group.ts";
 import { readerToLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
+import { ProcessExitError } from "../process-exit-error.ts";
 
 /**
  * Redirect `stderr` into `stdout` so that you get both, as lines, for output.
@@ -55,19 +56,25 @@ export class StderrToStdoutStringIterableOutputHandler
       mux.add(this.handleStderr(stderr));
       mux.add(readerToLines(stdout));
 
-      yield* mux;
+      try {
+        yield* mux;
+      } finally {
+        stderr.close();
+        stdout.close();
+      }
 
       await input;
-
       const status = await process.status();
 
       //TODO: This won't work for all cases, if error code isn't standard.
       if (!status.success) {
-        //TODO: Specialize error; add signal
-        throw new Error(`process exited with code: ${status.code}`);
+        throw new ProcessExitError(
+          `process exited with code: ${status.code}`,
+          status.code,
+          status.signal,
+        );
       }
     } finally {
-      stdout.close();
       process.close();
     }
   }
