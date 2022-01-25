@@ -33,10 +33,10 @@ with the group.
 `proc` requires that all processes it manages are associated with a `ProcGroup`.
 
 ```ts
-const pg = procgroup();
+const pg = procGroup();
 try {
   console.log(
-    await proc(EmptyInput(), StringOutput()).run(pg, {
+    await proc(emptyInput(), stringOutput()).run(pg, {
       cmd: ["ls", "-la"],
     }),
   );
@@ -76,12 +76,12 @@ translating for us.
  * @return The text compressed into bytes.
  */
 async function gzip(text: string): Promise<Uint8Array> {
-  const pg = procgroup();
+  const pg = procGroup();
   try {
     /* I am using a string for input and a Uint8Array (bytes) for output. */
     const processDef: Proc<string, Uint8Array> = proc(
-      StringInput(),
-      BytesOutput(),
+      stringInput(),
+      bytesOutput(),
     );
 
     return await processDef.run(pg, {
@@ -92,7 +92,7 @@ async function gzip(text: string): Promise<Uint8Array> {
   }
 }
 
-const pg = procgroup();
+const pg = procGroup();
 try {
   console.dir(await gzip("Hello, world."));
 } finally {
@@ -136,10 +136,10 @@ Starting with something simple yet useful, this is an example of running a
 `bash` script using `proc`.
 
 ```ts
-const pg = procgroup();
+const pg = procGroup();
 try {
   console.log(
-    await proc(EmptyInput(), StringOutput()).run(pg, {
+    await proc(emptyInput(), stringOutput()).run(pg, {
       cmd: [
         "/bin/bash",
         "--login",

@@ -1,17 +1,17 @@
 import { assertEquals } from "../../deps-test.ts";
 import { ClosableStringReader } from "../closers.ts";
-import { procgroup } from "../proc-group.ts";
-import { ReaderInput } from "./reader.ts";
-import { StringOutput } from "./string.ts";
+import { procGroup } from "../proc-group.ts";
+import { readerInput } from "./reader.ts";
+import { stringOutput } from "./string.ts";
 
 Deno.test({
   name: "[HAPPY-PATH] I can read stdin from a reader.",
   async fn() {
-    const proc = procgroup();
+    const proc = procGroup();
     try {
       const result = await proc.run(
-        ReaderInput(),
-        StringOutput(),
+        readerInput(),
+        stringOutput(),
         new ClosableStringReader("Hello,\nDeno."),
         { cmd: ["grep", "-P", "."] },
       );

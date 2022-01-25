@@ -1,8 +1,8 @@
 import { assertEquals } from "../../deps-test.ts";
 import { ProcGroup } from "../proc-group.ts";
-import { BytesIterableInput, BytesIterableOutput } from "./bytes-iterable.ts";
-import { EmptyInput } from "./empty.ts";
-import { StringOutput } from "./string.ts";
+import { bytesIterableInput, bytesIterableOutput } from "./bytes-iterable.ts";
+import { emptyInput } from "./empty.ts";
+import { stringOutput } from "./string.ts";
 
 Deno.test({
   name:
@@ -15,18 +15,18 @@ Deno.test({
     const proc = new ProcGroup();
     try {
       const out1 = await proc.run(
-        EmptyInput(),
-        BytesIterableOutput(),
+        emptyInput(),
+        bytesIterableOutput(),
         undefined,
         { cmd: ["bash", "-c", "echo 'Hello, world.'"] },
       );
       const out2 = await proc.run(
-        BytesIterableInput(),
-        BytesIterableOutput(),
+        bytesIterableInput(),
+        bytesIterableOutput(),
         out1,
         { cmd: ["gzip", "-c"] },
       );
-      const out3 = await proc.run(BytesIterableInput(), StringOutput(), out2, {
+      const out3 = await proc.run(bytesIterableInput(), stringOutput(), out2, {
         cmd: ["gzip", "-cd"],
       });
 

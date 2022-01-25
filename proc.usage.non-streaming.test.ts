@@ -1,18 +1,18 @@
 import { assertEquals } from "./deps-test.ts";
 import {
-  BytesInput,
-  BytesOutput,
+  bytesInput,
+  bytesOutput,
   proc,
-  ProcGroup,
-  StringInput,
-  StringOutput,
+  procGroup,
+  stringInput,
+  stringOutput,
 } from "./mod.ts";
 import { randomString } from "./runners/utility.ts";
 
 async function gzip(text: string): Promise<Uint8Array> {
-  const pg = new ProcGroup();
+  const pg = procGroup();
   try {
-    return await proc(StringInput(), BytesOutput()).run(pg, {
+    return await proc(stringInput(), bytesOutput()).run(pg, {
       cmd: ["gzip", "-c"],
     }, text);
   } finally {
@@ -21,9 +21,9 @@ async function gzip(text: string): Promise<Uint8Array> {
 }
 
 async function gunzip(bytes: Uint8Array): Promise<string> {
-  const pg = new ProcGroup();
+  const pg = procGroup();
   try {
-    return await proc(BytesInput(), StringOutput()).run(pg, {
+    return await proc(bytesInput(), stringOutput()).run(pg, {
       cmd: ["gzip", "-cd"],
     }, bytes);
   } finally {

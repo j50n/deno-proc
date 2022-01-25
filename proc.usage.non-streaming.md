@@ -17,9 +17,9 @@ defined, but - aside from `ProcGroup` boilerplate - nothing extra.
 
 ```ts
 async function gzip(text: string): Promise<Uint8Array> {
-  const pg = new ProcGroup();
+  const pg = procGroup();
   try {
-    return await proc(StringInput(), BytesOutput()).run(pg, {
+    return await proc(stringInput(), bytesOutput()).run(pg, {
       cmd: ["gzip", "-c"],
     }, text);
   } finally {

@@ -2,10 +2,10 @@ import { assertEquals, asynciter, fail } from "../../deps-test.ts";
 import { ProcGroup } from "../proc-group.ts";
 import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
-import { EmptyInput } from "./empty.ts";
+import { emptyInput } from "./empty.ts";
 import {
-  StringIterableInput,
-  StringIterableOutput,
+  stringIterableInput,
+  stringIterableOutput,
 } from "./string-iterable.ts";
 
 Deno.test({
@@ -19,8 +19,8 @@ Deno.test({
     const proc = new ProcGroup();
     try {
       const stdout = await proc.run(
-        StringIterableInput(),
-        StringIterableOutput(stderrLinesToErrorMessage(20)),
+        stringIterableInput(),
+        stringIterableOutput(stderrLinesToErrorMessage(20)),
         asynciter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).map((n) => `${n}`),
         { cmd: ["grep", "1"] },
       );
@@ -44,8 +44,8 @@ Deno.test({
     try {
       try {
         const a = await proc.run(
-          EmptyInput(),
-          StringIterableOutput(),
+          emptyInput(),
+          stringIterableOutput(),
           undefined,
           {
             cmd: [

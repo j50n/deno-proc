@@ -9,11 +9,11 @@ import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { concat } from "../utility.ts";
 import { AbstractBytesOutputHandler } from "./abstract-handlers.ts";
 
-export function BytesInput(): InputHandler<Uint8Array> {
+export function bytesInput(): InputHandler<Uint8Array> {
   return new BytesInputHandler();
 }
 
-export function BytesOutput(
+export function bytesOutput(
   processStderr: (
     lines: AsyncIterable<string>,
   ) => Promise<unknown | string[]> = stderrLinesToConsoleError,

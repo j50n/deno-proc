@@ -2,8 +2,8 @@ import { assertEquals, fail } from "../../deps-test.ts";
 import { ProcGroup } from "../proc-group.ts";
 import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
-import { EmptyInput } from "./empty.ts";
-import { StringInput, StringOutput } from "./string.ts";
+import { emptyInput } from "./empty.ts";
+import { stringInput, stringOutput } from "./string.ts";
 
 Deno.test({
   name:
@@ -15,8 +15,8 @@ Deno.test({
     const proc = new ProcGroup();
     try {
       const result = await proc.run(
-        StringInput(),
-        StringOutput(stderrLinesToErrorMessage(20)),
+        stringInput(),
+        stringOutput(stderrLinesToErrorMessage(20)),
         "a\nb\nbc\nd\n",
         { cmd: ["grep", "b"] },
       );
@@ -35,8 +35,8 @@ Deno.test({
     try {
       try {
         await proc.run(
-          EmptyInput(),
-          StringOutput(stderrLinesToErrorMessage(20)),
+          emptyInput(),
+          stringOutput(stderrLinesToErrorMessage(20)),
           undefined,
           { cmd: ["bash", "-c", "exit 17"] },
         );

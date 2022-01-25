@@ -1,7 +1,7 @@
 import { MultiCloseWriter } from "../closers.ts";
 import { InputHandler } from "../proc-group.ts";
 
-export function EmptyInput() {
+export function emptyInput() {
   return new EmptyInputHandler();
 }
 

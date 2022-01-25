@@ -2,7 +2,7 @@ import { MultiCloseWriter } from "../closers.ts";
 import { InputHandler } from "../proc-group.ts";
 import { pump } from "../utility.ts";
 
-export function ReaderInput(): InputHandler<Deno.Reader & Deno.Closer> {
+export function readerInput(): InputHandler<Deno.Reader & Deno.Closer> {
   return new ReaderInputHandler();
 }
 

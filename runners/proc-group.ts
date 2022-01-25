@@ -37,7 +37,7 @@ interface Process {
   stderr: MultiCloseReader;
 }
 
-export function procgroup(): ProcGroup {
+export function procGroup(): ProcGroup {
   return new ProcGroup();
 }
 

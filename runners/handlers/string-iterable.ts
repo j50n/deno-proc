@@ -9,13 +9,13 @@ import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
 
-export function StringIterableInput(
+export function stringIterableInput(
   autoflush = true,
 ): InputHandler<AsyncIterable<string>> {
   return new StringIterableInputHandler(autoflush);
 }
 
-export function StringIterableOutput(
+export function stringIterableOutput(
   processStderr: (
     lines: AsyncIterable<string>,
   ) => Promise<unknown | string[]> = stderrLinesToConsoleError,

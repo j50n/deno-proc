@@ -11,7 +11,7 @@ import { ProcessExitError } from "../process-exit-error.ts";
  *
  * @returns `stdout` and `stderr` lines as an `AsyncIterable`.
  */
-export function StderrToStdoutStringIterableOutput() {
+export function stderrToStdoutStringIterableOutput() {
   return new StderrToStdoutStringIterableOutputHandler();
 }
 

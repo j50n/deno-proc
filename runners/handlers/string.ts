@@ -9,11 +9,11 @@ import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { pump } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
 
-export function StringInput(): InputHandler<string> {
+export function stringInput(): InputHandler<string> {
   return new StringInputHandler();
 }
 
-export function StringOutput(
+export function stringOutput(
   processStderr: (
     lines: AsyncIterable<string>,
   ) => Promise<unknown | string[]> = stderrLinesToConsoleError,

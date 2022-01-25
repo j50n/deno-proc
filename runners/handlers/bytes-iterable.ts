@@ -9,13 +9,13 @@ import { stderrLinesToConsoleError } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractBytesOutputHandler } from "./abstract-handlers.ts";
 
-export function BytesIterableInput(
+export function bytesIterableInput(
   autoflush = true,
 ): InputHandler<AsyncIterable<Uint8Array>> {
   return new BytesIterableInputHandler(autoflush);
 }
 
-export function BytesIterableOutput(
+export function bytesIterableOutput(
   processStderr: (
     lines: AsyncIterable<string>,
   ) => Promise<unknown | string[]> = stderrLinesToConsoleError,

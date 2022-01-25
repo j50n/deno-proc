@@ -1,11 +1,11 @@
 import { assertEquals, asynciter } from "./deps-test.ts";
 import {
-  EmptyInput,
-  Proc,
-  ProcGroup,
-  StringInput,
-  StringIterableOutput,
-  StringOutput,
+  emptyInput,
+  proc,
+  procGroup,
+  stringInput,
+  stringIterableOutput,
+  stringOutput,
 } from "./mod.ts";
 
 /**
@@ -20,10 +20,10 @@ Deno.test({
   name:
     "[TYPES] When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Input is a string, so I specify the string.",
   async fn() {
-    const proc = new ProcGroup();
+    const pg = procGroup();
     try {
-      const p1 = new Proc(StringInput(), StringIterableOutput()).run(
-        proc,
+      const p1 = proc(stringInput(), stringIterableOutput()).run(
+        pg,
         {
           cmd: ["grep", "b"],
         },
@@ -32,7 +32,7 @@ Deno.test({
 
       assertEquals(await asynciter(p1).collect(), ["b", "bb"]);
     } finally {
-      proc.close();
+      pg.close();
     }
   },
 });
@@ -41,10 +41,10 @@ Deno.test({
   name:
     "[TYPES] When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Empty input, so I don't specify input.",
   async fn() {
-    const proc = new ProcGroup();
+    const pg = procGroup();
     try {
-      const p1 = new Proc(EmptyInput(), StringIterableOutput()).run(
-        proc,
+      const p1 = proc(emptyInput(), stringIterableOutput()).run(
+        pg,
         {
           cmd: ["bash", "-c", "echo 'Hello.'"],
         },
@@ -52,7 +52,7 @@ Deno.test({
 
       assertEquals(await asynciter(p1).collect(), ["Hello."]);
     } finally {
-      proc.close();
+      pg.close();
     }
   },
 });
@@ -61,10 +61,10 @@ Deno.test({
   name:
     "[TYPES] When the output is a string (not iterable), I get back a promise. Empty input so I don't specify input.",
   async fn() {
-    const proc = new ProcGroup();
+    const pg = procGroup();
     try {
-      const hello = await new Proc(EmptyInput(), StringOutput()).run(
-        proc,
+      const hello = await proc(emptyInput(), stringOutput()).run(
+        pg,
         {
           cmd: ["bash", "-c", "echo 'Hello.'"],
         },
@@ -72,7 +72,7 @@ Deno.test({
 
       assertEquals(hello, "Hello.");
     } finally {
-      proc.close();
+      pg.close();
     }
   },
 });

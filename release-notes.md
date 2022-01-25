@@ -1,5 +1,7 @@
 # Release Notes
 
+## 0.3.0 _Prerelease_
+
 ## 0.2.0 _Prerelease_
 
 There are no breaking API changes in this release.
