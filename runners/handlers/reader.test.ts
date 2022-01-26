@@ -1,5 +1,5 @@
+import { StringReader } from "../../deps.ts";
 import { assertEquals } from "../../deps-test.ts";
-import { ClosableStringReader } from "../closers.ts";
 import { procGroup } from "../proc-group.ts";
 import { readerInput } from "./reader.ts";
 import { stringOutput } from "./string.ts";
@@ -12,7 +12,7 @@ Deno.test({
       const result = await proc.run(
         readerInput(),
         stringOutput(),
-        new ClosableStringReader("Hello,\nDeno."),
+        new StringReader("Hello,\nDeno."),
         { cmd: ["grep", "-P", "."] },
       );
       assertEquals(result, "Hello,\nDeno.");

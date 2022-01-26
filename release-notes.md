@@ -1,10 +1,17 @@
 # Release Notes
 
+## 0.4.0 _Prerelease_
+
+This release contains breaking changes. 
+
+- **fix** `ReaderInputHandler` no longer requires the input reader to implement `Deno.Closer`. It just uses a plain `Deno.Reader` now. 
+
 ## 0.3.0 _Prerelease_
 
-This release contains breaking changes. There are trivial changes to the case of factory functions to match the style guide. 
+This release contains breaking changes. There are trivial changes to the case of
+factory functions to match the style guide.
 
-- **fix** Case change on factory functions to match the style guide. 
+- **fix** Case change on factory functions to match the style guide.
 
 ## 0.2.0 _Prerelease_
 

@@ -1,8 +1,9 @@
+import { StringReader } from "../../deps.ts";
 import {
-  ClosableStringReader,
   MultiCloseProcess,
   MultiCloseReader,
   MultiCloseWriter,
+  NoCloseReader,
 } from "../closers.ts";
 import { InputHandler, OutputHandler } from "../proc-group.ts";
 import { stderrLinesToConsoleError } from "../stderr-support.ts";
@@ -31,7 +32,7 @@ export class StringInputHandler implements InputHandler<string> {
 
   async processInput(input: string, stdin: MultiCloseWriter): Promise<void> {
     try {
-      await pump(new ClosableStringReader(input), stdin);
+      await pump(new NoCloseReader(new StringReader(input)), stdin);
     } finally {
       stdin.close();
     }

@@ -1,4 +1,4 @@
-import { Deferred, deferred, StringReader } from "../deps.ts";
+import { Deferred, deferred } from "../deps.ts";
 
 /**
  * Wrapper for a `Reader & Closer` that allows you to safely call {@link close()} multiple times.
@@ -79,14 +79,30 @@ export class MultiCloseProcess implements Deno.Closer {
 }
 
 /**
- * A standard {@link StringReader} with a noop `close()`.
+ * A `Reader`/`Closer` that suppresses the `close()` method on the underlying reader.
  */
-export class ClosableStringReader extends StringReader implements Deno.Closer {
-  constructor(input: string) {
-    super(input);
+export class NoCloseReader implements Deno.Reader, Deno.Closer {
+  constructor(public readonly reader: Deno.Reader) {
+  }
+
+  read(p: Uint8Array): Promise<number | null> {
+    return this.reader.read(p);
   }
 
   close(): void {
-    // Noop.
+    //Noop.
   }
 }
+
+// /**
+//  * A standard {@link StringReader} with a noop `close()`.
+//  */
+// export class ClosableStringReader extends StringReader implements Deno.Closer {
+//   constructor(input: string) {
+//     super(input);
+//   }
+
+//   close(): void {
+//     // Noop.
+//   }
+// }
