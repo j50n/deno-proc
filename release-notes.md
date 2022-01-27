@@ -1,5 +1,7 @@
 # Release Notes
 
+## 0.5.0 _Prerelease_
+
 ## 0.4.0 _Prerelease_
 
 This release contains breaking changes.

@@ -21,14 +21,21 @@ deno doc -q https://deno.land/x/proc/mod.ts
 
 One of the challenges of working with processes in Deno is that you _must_
 manually close every process resource - readers, writers, and the process
-itself. Additionally, it is an error (with real consequences) to attempt to try
-to close an already closed resource again. This can make working with even one
-process somewhat awkward and tricky. With more than one process, it is confusing
-and maybe a bit dangerous.
+itself.
 
-To help with this problem, `proc` introduces `ProcGroup`. A `ProcGroup` is a
-`Deno.Closer`, and when you close it, you also close all resources associated
-with the group.
+There are other complications as well. You can't close a resource more than
+once, so you can't have optional/defensive calls to close things. If you fail to
+close a child process before you exit with `Deno.exit()`, the child process will
+live on - but child processes are automatically closed if you exit with
+`CTRL-c`.
+
+This isn't just complicated to use. It is really difficult to write correct code
+with the Deno process runner.
+
+To solve these resource-management problems, we can run processes with a
+`ProcGroup`. A `ProcGroup` is a `Deno.Closer`, and when you close it, you tidy
+up all the resources and processes associated with the group. `ProcGroup` also
+makes sure things get cleaned up properly when the Deno process exits.
 
 `proc` requires that all processes it manages are associated with a `ProcGroup`.
 
