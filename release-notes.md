@@ -2,9 +2,13 @@
 
 ## 0.4.0 _Prerelease_
 
-This release contains breaking changes. 
+This release contains breaking changes.
 
-- **fix** `ReaderInputHandler` no longer requires the input reader to implement `Deno.Closer`. It just uses a plain `Deno.Reader` now. 
+- **fix** `ReaderInputHandler` no longer requires the input reader to implement
+  `Deno.Closer`. It just uses a plain `Deno.Reader` now.
+- **fix** `ProcGroup` unload events are now being called on exit. Long running
+  child processes are now correctly shut down when the Deno process exits due to
+  a call to `Deno.exit()`.
 
 ## 0.3.0 _Prerelease_
 

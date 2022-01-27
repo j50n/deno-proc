@@ -3,6 +3,24 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "./closers.ts";
+import { debug } from "./debugging.ts";
+import { randomString } from "./utility.ts";
+
+const procGroupRegistry = new Map<string, ProcGroup>();
+
+function closeProcGroupsEvent(_e: Event): void {
+  if (debug()) console.error(`event: closing proc-groups`);
+
+  for (const pg of procGroupRegistry.values()) {
+    try {
+      pg.close();
+    } catch (e) {
+      if (debug()) console.error(e);
+    }
+  }
+}
+
+self.addEventListener("unload", closeProcGroupsEvent);
 
 export interface InputHandler<A> {
   get failOnEmptyInput(): boolean;
@@ -43,33 +61,20 @@ export function procGroup(): ProcGroup {
 
 export class ProcGroup implements Deno.Closer {
   protected processes: Process[] = [];
-
-  /**
-   * Event handler registered to call close if we exit without explicitly closing.
-   * @param _e The event.
-   */
-  private closer(_e: Event): void {
-    try {
-      this.close();
-    } catch (e) {
-      // Ignore.
-      console.error(e);
-    }
-  }
+  public readonly id = randomString(10);
 
   constructor() {
-    self.addEventListener("unload", this.closer);
+    procGroupRegistry.set(this.id, this);
   }
 
   close(): void {
-    try {
-      self.removeEventListener("unload", this.closer);
-    } catch {
-      // Ignore.
-    }
+    if (debug()) console.error(`close proc-group ${this.processes}`);
+
+    procGroupRegistry.delete(this.id);
 
     while (this.processes.length > 0) {
       const p = this.processes.pop()!;
+      if (debug()) console.error("closing process");
       p.stdin.close();
       p.stdout.close();
       p.stderr.close();
