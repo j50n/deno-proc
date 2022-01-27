@@ -99,7 +99,7 @@ export class Group implements Deno.Closer {
     const stdout = new MultiCloseReader(process.stdout);
     const stderr = new MultiCloseReader(process.stderr);
 
-    const processWrapper = new MultiCloseProcess(process);
+    const processWrapper = new MultiCloseProcess(process, options);
     this.processes.push({ process: processWrapper, stdin, stdout, stderr });
 
     const inputResult = inputHandler.processInput(input, stdin);

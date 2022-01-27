@@ -71,6 +71,7 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
         throw new ProcessExitError(
           `process exited with code: ${status.code}`,
           status.code,
+          process.options,
           status.signal,
           details,
         );

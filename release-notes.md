@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.6.0 _Prerelease_
+
+`#13` **fix** The error message returned from a failed process has been fixed.
+
 ## 0.5.0 _Prerelease_
 
 This release contains breaking changes.

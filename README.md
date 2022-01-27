@@ -6,26 +6,6 @@ There are a few nice-to-have features that are still missing._
 
 An easy way to run processes like a shell script in Deno.
 
-## How Does It Work?
-
-## What is It For?
-
-Shell scripts are everywhere. If you need something done _right now_, you fire
-up `vim`, pound out a quick script, and run it. Problem solved.
-
-But shell scripts are dangerous. Error handling is tricky, and there is
-edge-case behaviour everywhere. Moreover, you are often running these things as
-`root`, right? What is to stop you from accidentally running `rm -rf /` (written
-as `rm -rf "$SAFE_TO_DELETE_DIR"` in your script) and wiping your server?
-
-Enter Deno. It is scriptish (roots in JavaScript), but not as much as `bash`.
-Unlike `bash`, it is type checked and has reasonable and predicatable error
-handling.
-
-The most compelling feature to me is the sandbox. Even if I don't make my code
-100% hack-proof, the sandbox lets me define bounds around what my program can or
-can't do. For the times when I can't test your code, this is very comforting.
-
 ## documentation
 
 ```bash

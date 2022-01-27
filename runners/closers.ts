@@ -1,4 +1,5 @@
 import { Deferred, deferred } from "../deps.ts";
+import { RunOptions } from "./proc-group.ts";
 
 /**
  * Wrapper for a `Reader & Closer` that allows you to safely call {@link close()} multiple times.
@@ -63,7 +64,10 @@ export class MultiCloseWriter implements Deno.Writer, Deno.Closer {
 export class MultiCloseProcess implements Deno.Closer {
   private closed = false;
 
-  constructor(private readonly process: Deno.Process) {
+  constructor(
+    private readonly process: Deno.Process,
+    public readonly options: RunOptions,
+  ) {
   }
 
   async status(): Promise<Deno.ProcessStatus> {

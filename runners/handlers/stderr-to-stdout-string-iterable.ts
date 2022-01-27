@@ -71,6 +71,7 @@ export class StderrToStdoutStringIterableOutputHandler
         throw new ProcessExitError(
           `process exited with code: ${status.code}`,
           status.code,
+          process.options,
           status.signal,
         );
       }
