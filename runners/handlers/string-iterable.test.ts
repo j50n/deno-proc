@@ -1,5 +1,5 @@
 import { assertEquals, asynciter, fail } from "../../deps-test.ts";
-import { ProcGroup } from "../proc-group.ts";
+import { Group } from "../proc-group.ts";
 import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import { emptyInput } from "./empty.ts";
@@ -16,7 +16,7 @@ Deno.test({
      * I am passing some numbers as test to `grep` and using it to filter out just a few.
      * I am using `asynciter` to transform to and from numbers.
      */
-    const proc = new ProcGroup();
+    const proc = new Group();
     try {
       const stdout = await proc.run(
         stringIterableInput(),
@@ -38,7 +38,7 @@ Deno.test({
   name:
     "[ERROR] If a process exits with a code that indicates failure, I get an error. Stdout data is available for processing.",
   async fn() {
-    const proc = new ProcGroup();
+    const proc = new Group();
 
     const acc: number[] = [];
     try {

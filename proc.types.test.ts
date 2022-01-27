@@ -1,8 +1,8 @@
 import { assertEquals, asynciter } from "./deps-test.ts";
 import {
   emptyInput,
-  proc,
-  procGroup,
+  group,
+  runner,
   stringInput,
   stringIterableOutput,
   stringOutput,
@@ -20,9 +20,9 @@ Deno.test({
   name:
     "[TYPES] When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Input is a string, so I specify the string.",
   async fn() {
-    const pg = procGroup();
+    const pg = group();
     try {
-      const p1 = proc(stringInput(), stringIterableOutput()).run(
+      const p1 = runner(stringInput(), stringIterableOutput()).run(
         pg,
         {
           cmd: ["grep", "b"],
@@ -41,9 +41,9 @@ Deno.test({
   name:
     "[TYPES] When the output is iterable, I get back an AsyncIterator without the Promise wrapper. Empty input, so I don't specify input.",
   async fn() {
-    const pg = procGroup();
+    const pg = group();
     try {
-      const p1 = proc(emptyInput(), stringIterableOutput()).run(
+      const p1 = runner(emptyInput(), stringIterableOutput()).run(
         pg,
         {
           cmd: ["bash", "-c", "echo 'Hello.'"],
@@ -61,9 +61,9 @@ Deno.test({
   name:
     "[TYPES] When the output is a string (not iterable), I get back a promise. Empty input so I don't specify input.",
   async fn() {
-    const pg = procGroup();
+    const pg = group();
     try {
-      const hello = await proc(emptyInput(), stringOutput()).run(
+      const hello = await runner(emptyInput(), stringOutput()).run(
         pg,
         {
           cmd: ["bash", "-c", "echo 'Hello.'"],

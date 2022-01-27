@@ -6,12 +6,12 @@ import {
 import { debug } from "./debugging.ts";
 import { randomString } from "./utility.ts";
 
-const procGroupRegistry = new Map<string, ProcGroup>();
+const groupRegistry = new Map<string, Group>();
 
-function closeProcGroupsEvent(_e: Event): void {
+function closeGroupsEvent(_e: Event): void {
   if (debug()) console.error(`event: closing proc-groups`);
 
-  for (const pg of procGroupRegistry.values()) {
+  for (const pg of groupRegistry.values()) {
     try {
       pg.close();
     } catch (e) {
@@ -20,7 +20,7 @@ function closeProcGroupsEvent(_e: Event): void {
   }
 }
 
-self.addEventListener("unload", closeProcGroupsEvent);
+self.addEventListener("unload", closeGroupsEvent);
 
 export interface InputHandler<A> {
   get failOnEmptyInput(): boolean;
@@ -55,22 +55,22 @@ interface Process {
   stderr: MultiCloseReader;
 }
 
-export function procGroup(): ProcGroup {
-  return new ProcGroup();
+export function group(): Group {
+  return new Group();
 }
 
-export class ProcGroup implements Deno.Closer {
+export class Group implements Deno.Closer {
   protected processes: Process[] = [];
   public readonly id = randomString(10);
 
   constructor() {
-    procGroupRegistry.set(this.id, this);
+    groupRegistry.set(this.id, this);
   }
 
   close(): void {
     if (debug()) console.error(`close proc-group ${this.processes}`);
 
-    procGroupRegistry.delete(this.id);
+    groupRegistry.delete(this.id);
 
     while (this.processes.length > 0) {
       const p = this.processes.pop()!;

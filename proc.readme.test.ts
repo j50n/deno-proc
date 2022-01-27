@@ -1,9 +1,9 @@
 import {
   bytesOutput,
   emptyInput,
-  Proc,
-  proc,
-  procGroup,
+  group,
+  Runner,
+  runner,
   stringInput,
   stringOutput,
 } from "./mod.ts";
@@ -11,10 +11,10 @@ import {
 Deno.test({
   name: "[README] Key Concepts | Leaking Resources",
   async fn() {
-    const pg = procGroup();
+    const pg = group();
     try {
       console.log(
-        await proc(emptyInput(), stringOutput()).run(pg, {
+        await runner(emptyInput(), stringOutput()).run(pg, {
           cmd: ["ls", "-la"],
         }),
       );
@@ -33,10 +33,10 @@ Deno.test({
      * @return The text compressed into bytes.
      */
     async function gzip(text: string): Promise<Uint8Array> {
-      const pg = procGroup();
+      const pg = group();
       try {
         /* I am using a string for input and a Uint8Array (bytes) for output. */
-        const processDef: Proc<string, Uint8Array> = proc(
+        const processDef: Runner<string, Uint8Array> = runner(
           stringInput(),
           bytesOutput(),
         );
@@ -49,7 +49,7 @@ Deno.test({
       }
     }
 
-    const pg = procGroup();
+    const pg = group();
     try {
       console.dir(await gzip("Hello, world."));
     } finally {
@@ -61,10 +61,10 @@ Deno.test({
 Deno.test({
   name: "[README] Examples | Run an Inline Bash Script",
   async fn() {
-    const pg = procGroup();
+    const pg = group();
     try {
       console.log(
-        await proc(emptyInput(), stringOutput()).run(pg, {
+        await runner(emptyInput(), stringOutput()).run(pg, {
           cmd: [
             "/bin/bash",
             "--login",

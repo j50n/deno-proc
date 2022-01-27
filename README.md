@@ -1,13 +1,30 @@
-_This should still be considered **pre-release**. I expect there will be some
-minor changes to the API before it completely stabilizes. The documentation is
-incomplete, but the tests are coming along and serve as good examples for the
-time being. Functionality is incomplete, but what is available appears to be
-working._
+_This should still be considered **pre-release**. The API is stabilizing. If you
+can't find something in the documentation, check out the test for examples.
+There are a few nice-to-have features that are still missing._
 
 # deno-proc
 
-Running child processes should not be difficult. `proc` attempts to bring the
-power of shell scripting into Deno.
+An easy way to run processes like a shell script in Deno.
+
+## How Does It Work?
+
+## What is It For?
+
+Shell scripts are everywhere. If you need something done _right now_, you fire
+up `vim`, pound out a quick script, and run it. Problem solved.
+
+But shell scripts are dangerous. Error handling is tricky, and there is
+edge-case behaviour everywhere. Moreover, you are often running these things as
+`root`, right? What is to stop you from accidentally running `rm -rf /` (written
+as `rm -rf "$SAFE_TO_DELETE_DIR"` in your script) and wiping your server?
+
+Enter Deno. It is scriptish (roots in JavaScript), but not as much as `bash`.
+Unlike `bash`, it is type checked and has reasonable and predicatable error
+handling.
+
+The most compelling feature to me is the sandbox. Even if I don't make my code
+100% hack-proof, the sandbox lets me define bounds around what my program can or
+can't do. For the times when I can't test your code, this is very comforting.
 
 ## documentation
 
@@ -33,17 +50,17 @@ This isn't just complicated to use. It is really difficult to write correct code
 with the Deno process runner.
 
 To solve these resource-management problems, we can run processes with a
-`ProcGroup`. A `ProcGroup` is a `Deno.Closer`, and when you close it, you tidy
-up all the resources and processes associated with the group. `ProcGroup` also
-makes sure things get cleaned up properly when the Deno process exits.
+`Group`. A `Group` is a `Deno.Closer`, and when you close it, you tidy up all
+the resources and processes associated with the group. `Group` also makes sure
+things get cleaned up properly when the Deno process exits.
 
-`proc` requires that all processes it manages are associated with a `ProcGroup`.
+Proc requires that all processes it manages are associated with a `Group`.
 
 ```ts
-const pg = procGroup();
+const pg = group();
 try {
   console.log(
-    await proc(emptyInput(), stringOutput()).run(pg, {
+    await runner(emptyInput(), stringOutput()).run(pg, {
       cmd: ["ls", "-la"],
     }),
   );
@@ -71,10 +88,10 @@ how you will interact with process input and output much of the time.
 
 #### An Example
 
-This example shows how `proc(...)` is used to generate a process definition. In
-this case, I am going to pass in a `string` and get back a `Uint8Array`. `gzip`
-is just getting a stream of bytes in both cases of course. Our definition is
-translating for us.
+This example shows how `runner(...)` is used to generate a process definition.
+In this case, I am going to pass in a `string` and get back a `Uint8Array`.
+`gzip` is just getting a stream of bytes in both cases of course. Our definition
+is translating for us.
 
 ```ts
 /**
@@ -83,10 +100,10 @@ translating for us.
  * @return The text compressed into bytes.
  */
 async function gzip(text: string): Promise<Uint8Array> {
-  const pg = procGroup();
+  const pg = group();
   try {
     /* I am using a string for input and a Uint8Array (bytes) for output. */
-    const processDef: Proc<string, Uint8Array> = proc(
+    const processDef: Runner<string, Uint8Array> = runner(
       stringInput(),
       bytesOutput(),
     );
@@ -99,7 +116,7 @@ async function gzip(text: string): Promise<Uint8Array> {
   }
 }
 
-const pg = procGroup();
+const pg = group();
 try {
   console.dir(await gzip("Hello, world."));
 } finally {
@@ -140,13 +157,13 @@ process.
 ## Run an Inline Bash Script
 
 Starting with something simple yet useful, this is an example of running a
-`bash` script using `proc`.
+`bash` script using `runner`.
 
 ```ts
-const pg = procGroup();
+const pg = group();
 try {
   console.log(
-    await proc(emptyInput(), stringOutput()).run(pg, {
+    await runner(emptyInput(), stringOutput()).run(pg, {
       cmd: [
         "/bin/bash",
         "--login",

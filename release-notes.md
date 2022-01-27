@@ -2,6 +2,11 @@
 
 ## 0.5.0 _Prerelease_
 
+This release contains breaking changes.
+
+- **fix** Renamed `ProcGroup` to `Group`.
+- **fix** Renamed `Proc` to `Runner`.
+
 ## 0.4.0 _Prerelease_
 
 This release contains breaking changes.

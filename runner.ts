@@ -1,7 +1,7 @@
 import {
+  Group,
   InputHandler,
   OutputHandler,
-  ProcGroup,
   RunOptions,
 } from "./runners/proc-group.ts";
 
@@ -11,16 +11,16 @@ import {
  * @param output Handler for the output from the process.
  * @returns A process runner.
  */
-export function proc<A, B>(
+export function runner<A, B>(
   input: InputHandler<A>,
   output: OutputHandler<B>,
-): Proc<A, B> {
-  return new Proc(input, output);
+): Runner<A, B> {
+  return new Runner(input, output);
 }
 
 type PromiseOrIterable<B> = B extends AsyncIterable<unknown> ? B : Promise<B>;
 
-export class Proc<A, B> {
+export class Runner<A, B> {
   constructor(
     public readonly input: InputHandler<A>,
     public readonly output: OutputHandler<B>,
@@ -28,7 +28,7 @@ export class Proc<A, B> {
   }
 
   run(
-    group: ProcGroup,
+    group: Group,
     options: RunOptions,
     input?: A,
   ): PromiseOrIterable<B> {

@@ -1,5 +1,5 @@
 import { assertEquals, fail } from "../../deps-test.ts";
-import { ProcGroup } from "../proc-group.ts";
+import { Group } from "../proc-group.ts";
 import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import { emptyInput } from "./empty.ts";
@@ -12,7 +12,7 @@ Deno.test({
     /*
      * I am passing in some lines (split by line-feeds) to grep and verifying that the filtering works.
      */
-    const proc = new ProcGroup();
+    const proc = new Group();
     try {
       const result = await proc.run(
         stringInput(),
@@ -31,7 +31,7 @@ Deno.test({
   name:
     "[ERROR] If a process exits with a code that indicates failure, I get an error.",
   async fn() {
-    const proc = new ProcGroup();
+    const proc = new Group();
     try {
       try {
         await proc.run(
