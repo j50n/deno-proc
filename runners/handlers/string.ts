@@ -5,8 +5,12 @@ import {
   MultiCloseWriter,
   NoCloseReader,
 } from "../closers.ts";
+import { defaultErrorHandling, ErrorHandler } from "../error-support.ts";
 import { InputHandler, OutputHandler } from "../proc-group.ts";
-import { stderrLinesToConsoleError } from "../stderr-support.ts";
+import {
+  stderrLinesToConsoleError,
+  StderrProcessor,
+} from "../stderr-support.ts";
 import { pump } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
 
@@ -15,11 +19,10 @@ export function stringInput(): InputHandler<string> {
 }
 
 export function stringOutput(
-  processStderr: (
-    lines: AsyncIterable<string>,
-  ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
+  processStderr: StderrProcessor = stderrLinesToConsoleError,
+  errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<string> {
-  return new StringOutputHandler(processStderr);
+  return new StringOutputHandler(processStderr, errorHandler);
 }
 
 /**
@@ -44,11 +47,10 @@ export class StringInputHandler implements InputHandler<string> {
  */
 export class StringOutputHandler extends AbstractTextOutputHandler<string> {
   constructor(
-    processStderr: (
-      lines: AsyncIterable<string>,
-    ) => Promise<unknown | string[]>,
+    public readonly processStderr: StderrProcessor,
+    public readonly errorHandler: ErrorHandler,
   ) {
-    super(processStderr);
+    super(processStderr, errorHandler);
   }
 
   async processOutput(

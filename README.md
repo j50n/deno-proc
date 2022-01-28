@@ -1,6 +1,4 @@
-_This should still be considered **pre-release**. The API is stabilizing. If you
-can't find something in the documentation, check out the test for examples.
-There are a few nice-to-have features that are still missing._
+_This is a **pre-release**. The API is unstable._
 
 # deno-proc
 

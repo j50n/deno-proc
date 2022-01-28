@@ -1,4 +1,5 @@
 import { Deferred, deferred } from "../deps.ts";
+import { GroupImpl } from "./proc-group-impl.ts";
 import { RunOptions } from "./proc-group.ts";
 
 /**
@@ -67,11 +68,16 @@ export class MultiCloseProcess implements Deno.Closer {
   constructor(
     private readonly process: Deno.Process,
     public readonly options: RunOptions,
+    public readonly group: GroupImpl,
   ) {
   }
 
   async status(): Promise<Deno.ProcessStatus> {
     return await this.process.status();
+  }
+
+  get pid(): number {
+    return this.process.pid;
   }
 
   close(): void {

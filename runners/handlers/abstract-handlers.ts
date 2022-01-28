@@ -1,6 +1,7 @@
 import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
-import { OutputHandler } from "../proc-group.ts";
-import { ProcessExitError } from "../process-exit-error.ts";
+import { type ErrorHandler } from "../error-support.ts";
+import { type OutputHandler } from "../proc-group.ts";
+import { type StderrProcessor } from "../stderr-support.ts";
 import { readerToBytes, readerToLines } from "../utility.ts";
 
 /**
@@ -8,9 +9,8 @@ import { readerToBytes, readerToLines } from "../utility.ts";
  */
 abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
   constructor(
-    public processStderr: (
-      lines: AsyncIterableIterator<string>,
-    ) => Promise<unknown | string[]>,
+    public readonly processStderr: StderrProcessor,
+    public readonly errorHandler: ErrorHandler,
   ) {
   }
 
@@ -61,24 +61,11 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
 
       const status = await process.status();
 
-      //TODO: This won't work for all cases, if error code isn't standard.
-      if (!status.success) {
-        let details: string | undefined = undefined;
-        if (Array.isArray(stderrLines)) {
-          details = stderrLines.map((line) => `\t${line}`).join("\n");
-        }
-
-        throw new ProcessExitError(
-          `process exited with code: ${status.code}`,
-          status.code,
-          process.options,
-          status.signal,
-          details,
-        );
-      }
+      this.errorHandler(process.options, status, stderrLines);
     } finally {
       stdout.close();
       process.close();
+      process.group.processes.delete(process.pid);
     }
   }
 }

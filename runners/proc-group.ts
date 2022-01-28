@@ -3,24 +3,7 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "./closers.ts";
-import { debug } from "./debugging.ts";
-import { randomString } from "./utility.ts";
-
-const groupRegistry = new Map<string, Group>();
-
-function closeGroupsEvent(_e: Event): void {
-  if (debug()) console.error(`event: closing proc-groups`);
-
-  for (const pg of groupRegistry.values()) {
-    try {
-      pg.close();
-    } catch (e) {
-      if (debug()) console.error(e);
-    }
-  }
-}
-
-self.addEventListener("unload", closeGroupsEvent);
+import { GroupImpl } from "./proc-group-impl.ts";
 
 export interface InputHandler<A> {
   get failOnEmptyInput(): boolean;
@@ -48,67 +31,15 @@ export interface RunOptions {
   };
 }
 
-interface Process {
-  process: MultiCloseProcess;
-  stdin: MultiCloseWriter;
-  stdout: MultiCloseReader;
-  stderr: MultiCloseReader;
-}
-
 export function group(): Group {
-  return new Group();
+  return new GroupImpl();
 }
 
-export class Group implements Deno.Closer {
-  protected processes: Process[] = [];
-  public readonly id = randomString(10);
-
-  constructor() {
-    groupRegistry.set(this.id, this);
-  }
-
-  close(): void {
-    if (debug()) console.error(`close proc-group ${this.processes}`);
-
-    groupRegistry.delete(this.id);
-
-    while (this.processes.length > 0) {
-      const p = this.processes.pop()!;
-      if (debug()) console.error("closing process");
-      p.stdin.close();
-      p.stdout.close();
-      p.stderr.close();
-      p.process.close();
-    }
-  }
-
+export interface Group extends Deno.Closer {
   run<A, B>(
     inputHandler: InputHandler<A>,
     outputHandler: OutputHandler<B>,
     input: A,
     options: RunOptions,
-  ): B | Promise<B> {
-    const process = Deno.run({
-      ...options,
-      stdin: "piped",
-      stdout: "piped",
-      stderr: "piped",
-    });
-
-    const stdin = new MultiCloseWriter(process.stdin);
-    const stdout = new MultiCloseReader(process.stdout);
-    const stderr = new MultiCloseReader(process.stderr);
-
-    const processWrapper = new MultiCloseProcess(process, options);
-    this.processes.push({ process: processWrapper, stdin, stdout, stderr });
-
-    const inputResult = inputHandler.processInput(input, stdin);
-
-    return outputHandler.processOutput(
-      stdout,
-      stderr,
-      processWrapper,
-      inputResult,
-    );
-  }
+  ): B | Promise<B>;
 }

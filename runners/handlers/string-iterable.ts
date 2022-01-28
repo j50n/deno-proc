@@ -4,8 +4,12 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
+import { defaultErrorHandling, ErrorHandler } from "../error-support.ts";
 import { InputHandler, OutputHandler } from "../proc-group.ts";
-import { stderrLinesToConsoleError } from "../stderr-support.ts";
+import {
+  stderrLinesToConsoleError,
+  StderrProcessor,
+} from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
 
@@ -16,11 +20,10 @@ export function stringIterableInput(
 }
 
 export function stringIterableOutput(
-  processStderr: (
-    lines: AsyncIterable<string>,
-  ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
+  processStderr: StderrProcessor = stderrLinesToConsoleError,
+  errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<string>> {
-  return new StringIterableOutputHandler(processStderr);
+  return new StringIterableOutputHandler(processStderr, errorHandler);
 }
 
 /**
@@ -64,11 +67,10 @@ export class StringIterableInputHandler
 export class StringIterableOutputHandler
   extends AbstractTextOutputHandler<AsyncIterable<string>> {
   constructor(
-    processStderr: (
-      lines: AsyncIterable<string>,
-    ) => Promise<unknown | string[]>,
+    public readonly processStderr: StderrProcessor,
+    public readonly errorHandler: ErrorHandler,
   ) {
-    super(processStderr);
+    super(processStderr, errorHandler);
   }
 
   processOutput(

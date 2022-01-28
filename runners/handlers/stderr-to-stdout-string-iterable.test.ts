@@ -1,5 +1,5 @@
 import { assert, assertEquals, asynciter, fail } from "../../deps-test.ts";
-import { Group } from "../proc-group.ts";
+import { group } from "../proc-group.ts";
 import { ProcessExitError } from "../process-exit-error.ts";
 import { emptyInput } from "./empty.ts";
 import { stderrToStdoutStringIterableOutput } from "./stderr-to-stdout-string-iterable.ts";
@@ -7,7 +7,7 @@ import { stderrToStdoutStringIterableOutput } from "./stderr-to-stdout-string-it
 Deno.test({
   name: "[HAPPY-PATH] I can interleave stderr lines into stdout.",
   async fn() {
-    const proc = new Group();
+    const proc = group();
     try {
       const output = await proc.run(
         emptyInput(),
@@ -48,7 +48,7 @@ Deno.test({
   name:
     "[EDGE-CASE] I can grab just one line and everything closes automatically.",
   async fn() {
-    const proc = new Group();
+    const proc = group();
     try {
       const output = await proc.run(
         emptyInput(),
@@ -80,7 +80,7 @@ Deno.test({
   name:
     "[ERROR] If a process exits with a code that indicates failure, I get an error. Stdout and stderr data are combined and available.",
   async fn() {
-    const proc = new Group();
+    const proc = group();
 
     const acc: number[] = [];
     try {

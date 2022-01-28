@@ -1,5 +1,5 @@
 import { assertEquals } from "../../deps-test.ts";
-import { Group } from "../proc-group.ts";
+import { group } from "../proc-group.ts";
 import { bytesIterableInput, bytesIterableOutput } from "./bytes-iterable.ts";
 import { emptyInput } from "./empty.ts";
 import { stringOutput } from "./string.ts";
@@ -12,7 +12,7 @@ Deno.test({
      * I am compressing some text with gzip, then uncompressing it. There are three
      * external processes being orchestrated here.
      */
-    const proc = new Group();
+    const proc = group();
     try {
       const out1 = await proc.run(
         emptyInput(),

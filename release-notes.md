@@ -2,7 +2,11 @@
 
 ## 0.6.0 _Prerelease_
 
+This release contains breaking changes.
+
 `#13` **fix** The error message returned from a failed process has been fixed.
+`#12` **feature** Runners can be defined with custom error handling.
+`#10` **feature** Processes are removed from their group when they close naturally (output is exhausted).
 
 ## 0.5.0 _Prerelease_
 

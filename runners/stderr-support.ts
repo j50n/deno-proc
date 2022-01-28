@@ -1,3 +1,7 @@
+export type StderrProcessor = (
+  lines: AsyncIterableIterator<string>,
+) => Promise<unknown | string[]>;
+
 /**
  * Write `stderr` lines to `console.error()`.
  * @param lines `stderr` lines.

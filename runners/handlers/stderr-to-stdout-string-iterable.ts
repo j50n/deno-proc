@@ -2,17 +2,20 @@ import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
 import { OutputHandler } from "../proc-group.ts";
 import { readerToLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
-import { ProcessExitError } from "../process-exit-error.ts";
+import { defaultErrorHandling, ErrorHandler } from "../error-support.ts";
 
 /**
  * Redirect `stderr` into `stdout` so that you get both, as lines, for output.
  *
  * The order of the lines is not guaranteed. The timing of the lines is not guaranteed.
  *
+ * @param errorHandler Error handler.
  * @returns `stdout` and `stderr` lines as an `AsyncIterable`.
  */
-export function stderrToStdoutStringIterableOutput() {
-  return new StderrToStdoutStringIterableOutputHandler();
+export function stderrToStdoutStringIterableOutput(
+  errorHandler: ErrorHandler = defaultErrorHandling,
+) {
+  return new StderrToStdoutStringIterableOutputHandler(errorHandler);
 }
 
 /**
@@ -20,6 +23,10 @@ export function stderrToStdoutStringIterableOutput() {
  */
 export class StderrToStdoutStringIterableOutputHandler
   implements OutputHandler<AsyncIterable<string>> {
+  constructor(
+    public readonly errorHandler: ErrorHandler,
+  ) {}
+
   processOutput(
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
@@ -66,17 +73,10 @@ export class StderrToStdoutStringIterableOutputHandler
       await input;
       const status = await process.status();
 
-      //TODO: This won't work for all cases, if error code isn't standard.
-      if (!status.success) {
-        throw new ProcessExitError(
-          `process exited with code: ${status.code}`,
-          status.code,
-          process.options,
-          status.signal,
-        );
-      }
+      this.errorHandler(process.options, status, undefined);
     } finally {
       process.close();
+      process.group.processes.delete(process.pid);
     }
   }
 }

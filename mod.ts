@@ -6,3 +6,4 @@ export * from "./runners/handlers/string-iterable.ts";
 export * from "./runners/handlers/empty.ts";
 export * from "./runners/closers.ts";
 export * from "./runners/process-exit-error.ts";
+export * from "./runners/stderr-support.ts";

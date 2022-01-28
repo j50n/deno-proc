@@ -4,8 +4,12 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
+import { defaultErrorHandling, ErrorHandler } from "../error-support.ts";
 import { InputHandler, OutputHandler } from "../proc-group.ts";
-import { stderrLinesToConsoleError } from "../stderr-support.ts";
+import {
+  stderrLinesToConsoleError,
+  StderrProcessor,
+} from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractBytesOutputHandler } from "./abstract-handlers.ts";
 
@@ -16,11 +20,10 @@ export function bytesIterableInput(
 }
 
 export function bytesIterableOutput(
-  processStderr: (
-    lines: AsyncIterable<string>,
-  ) => Promise<unknown | string[]> = stderrLinesToConsoleError,
+  processStderr: StderrProcessor = stderrLinesToConsoleError,
+  errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<Uint8Array>> {
-  return new BytesIterableOutputHandler(processStderr);
+  return new BytesIterableOutputHandler(processStderr, errorHandler);
 }
 
 /**
@@ -57,11 +60,10 @@ export class BytesIterableInputHandler
 export class BytesIterableOutputHandler
   extends AbstractBytesOutputHandler<AsyncIterable<Uint8Array>> {
   constructor(
-    processStderr: (
-      lines: AsyncIterable<string>,
-    ) => Promise<unknown | string[]>,
+    public readonly processStderr: StderrProcessor,
+    public readonly errorHandler: ErrorHandler,
   ) {
-    super(processStderr);
+    super(processStderr, errorHandler);
   }
 
   processOutput(
