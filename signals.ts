@@ -4,6 +4,10 @@
  * This ensures that unload events are called reliably on most signals
  * that terminate the process. SIGKILL cannot be intercepted.
  *
+ * When Deno exits due to a signal, the OS closes child processes
+ * automatically. It is only necessary to use this if unload events
+ * *must* be processed.
+ *
  * This uses unstable APIs.
  */
 export function exitOnSignal(): void {
