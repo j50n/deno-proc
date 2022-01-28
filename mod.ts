@@ -10,3 +10,4 @@ export * from "./runners/handlers/stderr-to-stdout-string-iterable.ts";
 export * from "./runners/closers.ts";
 export * from "./runners/process-exit-error.ts";
 export * from "./runners/stderr-support.ts";
+export { sleep } from "./runners/utility.ts";
