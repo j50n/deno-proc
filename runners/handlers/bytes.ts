@@ -61,7 +61,7 @@ export class BytesOutputHandler extends AbstractBytesOutputHandler<Uint8Array> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ): Promise<Uint8Array> {
     const bytes: Uint8Array[] = [];
     for await (const b of this.process(stdout, stderr, process, input)) {

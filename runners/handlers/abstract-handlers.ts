@@ -1,4 +1,8 @@
-import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
+import {
+  MultiCloseProcess,
+  MultiCloseReader,
+  MultiCloseWriter,
+} from "../closers.ts";
 import { type ErrorHandler } from "../error-support.ts";
 import { type OutputHandler } from "../proc-group.ts";
 import { type StderrProcessor } from "../stderr-support.ts";
@@ -18,7 +22,7 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ): B | Promise<B>;
 
   protected async handleStderr(
@@ -49,22 +53,24 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ): AsyncIterableIterator<C> {
     try {
       const se = this.handleStderr(stderr);
 
       yield* this.transformReader(stdout);
 
-      await input;
+      await input.handlerResult;
       const stderrLines: string[] | unknown = await se;
-
       const status = await process.status();
 
       this.errorHandler(process.options, status, stderrLines);
     } finally {
+      input.stdin.close();
       stdout.close();
+      stderr.close();
       process.close();
+
       process.group.processes.delete(process.pid);
     }
   }

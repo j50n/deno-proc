@@ -19,7 +19,7 @@ export interface OutputHandler<B> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ) => B | Promise<B>;
 }
 

@@ -1,4 +1,8 @@
-import { MultiCloseProcess, MultiCloseReader } from "../closers.ts";
+import {
+  MultiCloseProcess,
+  MultiCloseReader,
+  MultiCloseWriter,
+} from "../closers.ts";
 import { OutputHandler } from "../proc-group.ts";
 import { readerToLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
@@ -31,7 +35,7 @@ export class StderrToStdoutStringIterableOutputHandler
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ): AsyncIterable<string> {
     return this.process(stdout, stderr, process, input);
   }
@@ -56,7 +60,7 @@ export class StderrToStdoutStringIterableOutputHandler
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ): AsyncIterableIterator<string> {
     try {
       const mux = new MuxAsyncIterator<string>();
@@ -75,7 +79,11 @@ export class StderrToStdoutStringIterableOutputHandler
 
       this.errorHandler(process.options, status, undefined);
     } finally {
+      input.stdin.close();
+      stdout.close();
+      stderr.close();
       process.close();
+
       process.group.processes.delete(process.pid);
     }
   }

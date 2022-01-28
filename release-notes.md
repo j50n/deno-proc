@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.7.0 _Prerelease_
+
+ - **fix** Added defensive close to all process resources on process exit in output handlers.
+
+
 ## 0.6.1 _Prerelease_
 
 This release contains breaking changes.

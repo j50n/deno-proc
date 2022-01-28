@@ -55,6 +55,12 @@ export class StringIterableInputHandler
         }
       }
       await bw.flush();
+    } catch (e) {
+      if (e instanceof Deno.errors.BrokenPipe) {
+        // Ignore.
+      } else {
+        throw e;
+      }
     } finally {
       stdin.close();
     }
@@ -77,7 +83,7 @@ export class StringIterableOutputHandler
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ): AsyncIterable<string> {
     return this.process(stdout, stderr, process, input);
   }

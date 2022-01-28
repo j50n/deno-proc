@@ -89,7 +89,7 @@ export class GroupImpl implements Group {
       stdout,
       stderr,
       processWrapper,
-      inputResult,
+      { stdin, handlerResult: inputResult },
     );
   }
 }

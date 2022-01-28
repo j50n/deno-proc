@@ -57,7 +57,7 @@ export class StringOutputHandler extends AbstractTextOutputHandler<string> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: Promise<void>,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
   ): Promise<string> {
     const lines = [];
     for await (const line of this.process(stdout, stderr, process, input)) {
