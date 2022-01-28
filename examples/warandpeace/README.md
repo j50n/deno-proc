@@ -41,7 +41,10 @@ This is what we are trying to do in Deno.
 ```
 
 This version makes a great example because it does a little bit of everything,
-but it is starting to get cluttered and is a little hard to read.
+but it is starting to get cluttered and is a little hard to read. It
+demonstrates that you can _simultaneously_ stream a large amount of data between
+a large number of different processing steps, one of them being in your Deno
+process.
 
 ## Version #2
 
@@ -54,5 +57,5 @@ but it is starting to get cluttered and is a little hard to read.
 ```
 
 This version is more practical, easier to read, and quite a bit faster than the
-first. Rather than shelling out individual commands, it shells out `bash`
-scripts to do those things.
+first (see code comments). Rather than shelling out individual commands, it
+shells out `bash` scripts that run several processes together.
