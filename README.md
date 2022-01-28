@@ -10,6 +10,10 @@ An easy way to run processes like a shell script in Deno.
 deno doc -q https://deno.land/x/proc/mod.ts
 ```
 
+## Examples
+
+- [Count Unique Words in _War and Peace_](./examples/warandpeace/README.md)
+
 # Key Concepts
 
 ## Leaking Resources

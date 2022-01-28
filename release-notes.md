@@ -3,7 +3,8 @@
 ## 0.7.0 _Prerelease_
 
 - **fix** Added defensive close to all process resources on process exit in
-  output handlers.
+  output handlers. **fix** Added additional error traps for
+  `Deno.errors.Interrupted`. **example** Added _War and Peace_ example.
 
 ## 0.6.1 _Prerelease_
 
