@@ -1,16 +1,16 @@
 #!/usr/bin/env -S deno run --quiet --allow-run=bash
 
-import {asynciter} from "https://deno.land/x/asynciter@0.0.7/mod.ts";
+import { asynciter } from "https://deno.land/x/asynciter@0.0.7/mod.ts";
 import * as proc from "../../mod.ts";
 
 /**
  * This is a better implementation.
- * 
- * I am using `bash` to manage some of the pipes. This cleans up the 
+ *
+ * I am using `bash` to manage some of the pipes. This cleans up the
  * code, but it also shifts that processing out of my Deno process.
- * 
+ *
  * I added a redundant `sort|uniq` after the greps. This makes the code
- * run about 8 times faster than the first Typescript version, and almost 
+ * run about 8 times faster than the first Typescript version, and almost
  * as fast as the pure shell version.
  */
 

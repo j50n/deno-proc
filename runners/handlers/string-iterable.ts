@@ -56,7 +56,10 @@ export class StringIterableInputHandler
       }
       await bw.flush();
     } catch (e) {
-      if (e instanceof Deno.errors.BrokenPipe || e instanceof Deno.errors.Interrupted) {
+      if (
+        e instanceof Deno.errors.BrokenPipe ||
+        e instanceof Deno.errors.Interrupted
+      ) {
         // Ignore.
       } else {
         throw e;
