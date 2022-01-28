@@ -7,7 +7,8 @@ This release contains breaking changes.
 - **fix** Added defensive close to all process resources on process exit in
   output handlers.
 - **fix** Added additional error traps for `Deno.errors.Interrupted`.
-- **fix** Pulled some classes out of `mod.ts`. These are still available to be imported but will not be visible through `mod.ts`.
+- **fix** Pulled some classes out of `mod.ts`. These are still available to be
+  imported but will not be visible through `mod.ts`.
 - **example** Added _War and Peace_ example.
 
 ## 0.6.1 _Prerelease_
