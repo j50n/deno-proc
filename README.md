@@ -5,7 +5,7 @@ construction. The project is usable._
 
 An easy way to run processes like a shell script in Deno.
 
-`proc` lets you write process-handling code in readable, idiomatic Typescript
+`proc` lets me write process-handling code in readable, idiomatic Typescript
 using `async/await` and `AsyncIterator` promisy goodness.
 
 My goal in writing `proc` was to put Deno process handling on par with `bash`.
@@ -14,9 +14,9 @@ things are added. I'd like to be able to replace some of my old `bash` scripts
 with something more robust, and Deno is the first scripting language I've found
 that feels like it could work for this.
 
-**First**, there is Deno's "Secure by default." This is huge when you are
-writing admin scripts, where if you make a mistake you can wipe the server. The
-ability to define security boundaries from the command-line is a game changer.
+**First**, there is Deno's "Secure by default." This is huge when I am writing
+admin scripts, where if I make a mistake, I can wipe out a server. The ability
+to define security boundaries from the command-line is a game changer to me.
 **Second**, there is Deno's approach to package management, which means I can
 just import what I want and use it without required project infrastructure. I
 can just write a script and run it. **Third**, there is tight coupling with
@@ -25,10 +25,10 @@ to catch my mistakes, but I also want to code as fast as possible.
 
 But there is still the nagging problem of the process API in Deno. It feels a
 little bit like I am dropping down into a poorly abstracted C library. It is
-hard to use processes _correctly_ in Deno with this API. You end up leaking
-resources or leaving orphaned processes hanging around. However, if you use the
-Deno process API correctly, it is very reliable, has predictable behavior, and
-it is _fast_.
+hard to use processes _correctly_ in Deno with this API. I find that I often end
+up leaking resources or - sometimes - leaving orphaned processes hanging around.
+However, when I use the Deno process API correctly, it is very reliable, has
+predictable behavior, and it is _fast_.
 
 `proc` provides a reasonable solution to the leaky resource problem and - at the
 same time - redefines the API to feel more like modern JavaScript. I hope you
@@ -51,11 +51,10 @@ Processes really just deal with one type of data - bytes, in streams. Many
 programs will take this one step further and internally translate to and from
 text data, processing this data one line at a time.
 
-`proc` lets you treat process data as either `Uint8Array` or
-`AsyncIterable<Uint8Array>` if you are working with bytes, or `string` or
-`AsyncIterable<string>` (as lines of text) if you are working with text. It
-defines a set of standard input and output handlers that provide both type
-information and data handling behavior to the runner.
+`proc` treats process data as either `Uint8Array` or `AsyncIterable<Uint8Array>`
+for byte data, or `string` or `AsyncIterable<string>` (as lines of text) for
+text. It defines a set of standard input and output handlers that provide both
+type information and data handling behavior to the runner.
 
 #### An Example
 
@@ -145,8 +144,7 @@ JavaScript introduced the `AsyncIterable` as part of the 2015 spec. This is an
 asynchronous protocol, so it works well with the streamed data to and from a
 process.
 
-`proc` heavily relies on `AsyncIterable`. If you haven't used this much before
-now, you are in for a treat.
+`proc` heavily relies on `AsyncIterable`.
 
 See
 [JavaScript Iteration Protocols (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols).
@@ -158,7 +156,7 @@ handling. We have to take special care to close each process, and we also have
 to close all the resources associated with each process - `stdin`, `stdout`, and
 `stderr`. Also, depending on how a Deno process shuts down, it may leave behind
 orphan child processes in certain cases (this behavior is well documented but
-annoying nonetheless) if you don't specifically prevent this.
+annoying nonetheless) if measures aren't taken specifically to prevent this.
 
 In other words, working with Deno's process API is more complicated than it
 looks.
