@@ -2,6 +2,8 @@
 
 ## 0.8.0 _Prerelease_
 
+This release contains breaking changes.
+
 - **documentation** Added additional examples.
 - **fix** Organized files at the top folder level.
 
