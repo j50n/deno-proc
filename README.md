@@ -34,7 +34,7 @@ predictable behavior, and it is _fast_.
 same time - redefines the API to feel more like modern JavaScript. I hope you
 find it useful and enjoyable!
 
-## documentation
+## Documentation
 
 ```bash
 deno doc -q https://deno.land/x/proc/mod.ts
