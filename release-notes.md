@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.9.2 _Prerelease_
+
+There are no breaking API changes in this release.
+
+- **documentation** Multiple changes to the `README.md`.
+
 ## 0.9.1 _Prerelease_
 
 This release contains breaking changes.
