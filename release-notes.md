@@ -1,6 +1,6 @@
 # Release Notes
 
-## 0.8.0 _Prerelease_ 
+## 0.8.0 _Prerelease_
 
 - **documentation** Added additional examples.
 - **fix** Organized files at the top folder level.
