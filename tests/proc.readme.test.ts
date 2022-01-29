@@ -32,7 +32,7 @@ Deno.test({
      * @param text The text to compress.
      * @return The text compressed into bytes.
      */
-    function gzip(text: string): Promise<Uint8Array> {
+    async function gzip(text: string): Promise<Uint8Array> {
       const pg = group();
       try {
         /* I am using a string for input and a Uint8Array (bytes) for output. */
@@ -41,7 +41,7 @@ Deno.test({
           bytesOutput(),
         )(pg);
 
-        return pr.run({
+        return await pr.run({
           cmd: ["gzip", "-c"],
         }, text);
       } finally {

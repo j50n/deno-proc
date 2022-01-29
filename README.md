@@ -1,9 +1,38 @@
 _This is a **pre-release**. The API is stabilizing. The documentation is under
 construction. The project is usable._
 
-# deno-proc
+# proc
 
 An easy way to run processes like a shell script in Deno.
+
+`proc` lets you write process-handling code in readable, idiomatic Typescript
+using `async/await` and `AsyncIterator` promisy goodness.
+
+My goal in writing `proc` was to put Deno process handling on par with `bash`.
+Simple `bash` scripts are wonderful, but they tend to grow unwieldy over time as
+things are added. I'd like to be able to replace some of my old `bash` scripts
+with something more robust, and Deno is the first scripting language I've found
+that feels like it could work for this.
+
+**First**, there is Deno's "Secure by default." This is huge when you are
+writing admin scripts, where if you make a mistake you can wipe the server. The
+ability to define security boundaries from the command-line is a game changer.
+**Second**, there is Deno's approach to package management, which means I can
+just import what I want and use it without required project infrastructure. I
+can just write a script and run it. **Third**, there is tight coupling with
+Typescript, which means I get strongly typed dynamic programming. I want someone
+to catch my mistakes, but I also want to code as fast as possible.
+
+But there is still the nagging problem of the process API in Deno. It feels a
+little bit like I am dropping down into a poorly abstracted C library. It is
+hard to use processes _correctly_ in Deno with this API. You end up leaking
+resources or leaving orphaned processes hanging around. However, if you use the
+Deno process API correctly, it is very reliable, has predictable behavior, and
+it is _fast_.
+
+`proc` provides a reasonable solution to the leaky resource problem and - at the
+same time - redefines the API to feel more like modern JavaScript. I hope you
+find it useful and enjoyable!
 
 ## documentation
 
@@ -16,24 +45,17 @@ deno doc -q https://deno.land/x/proc/mod.ts
 - [Simple Examples for Input and Output Handlers](./runners/handlers/README.md)
 - [Count Unique Words in _War and Peace_](./examples/warandpeace/README.md)
 
-
 # Input and Output Types
 
-Raw `stdin`, `stdout`, and `stderr` from a process are streamed byte data. This
-is a simple definition, but it is not very useful. We need to be able to
-interpret data differently in different circumstances.
+Processes really just deal with one type of data - bytes, in streams. Many
+programs will take this one step further and internally translate to and from
+text data, processing this data one line at a time.
 
-Streamed byte data is the fastest, so if we are just piping bytes from one
-process to another, we would use `BytesIterableOutput()` for `stdout` of process
-#1 and `BytesIterableInput()` for `stdin` of process #2.
-
-If you have a small amount of data (it can be kept in memory),
-`proc.stringInput()` and `proc.stringOutput()` let you work with `string` data.
-For text data that is too big to fit in memory, or if you just want to work with
-real-time streamed text data, use `proc.stringIterableInput()` and
-`proc.stringIterableOutput()`. There is some overhead associated with processing
-streamed bytes into text lines, but this is how you will interact with process
-input and output much of the time.
+`proc` lets you treat process data as either `Uint8Array` or
+`AsyncIterable<Uint8Array>` if you are working with bytes, or `string` or
+`AsyncIterable<string>` (as lines of text) if you are working with text. It
+defines a set of standard input and output handlers that provide both type
+information and data handling behavior to the runner.
 
 #### An Example
 
@@ -47,7 +69,7 @@ function.
  * @param text The text to compress.
  * @return The text compressed into bytes.
  */
-function gzip(text: string): Promise<Uint8Array> {
+async function gzip(text: string): Promise<Uint8Array> {
   const pg = group();
   try {
     /* I am using a string for input and a Uint8Array (bytes) for output. */
@@ -56,9 +78,7 @@ function gzip(text: string): Promise<Uint8Array> {
       bytesOutput(),
     )(pg);
 
-    return pr.run({
-      cmd: ["gzip", "-c"],
-    }, text);
+    return await pr.run({ cmd: ["gzip", "-c"] }, text);
   } finally {
     pg.close();
   }
@@ -72,12 +92,12 @@ console.dir(await gzip("Hello, world."));
 
 | Name                        | Description                                      |
 | :-------------------------- | :----------------------------------------------- |
-| `EmptyInput()`              | There is no process input.                       |
-| `StringInput()`             | Process input is a `string`.                     |
-| `BytesInput()`              | Process input is a `Uint8Array`.                 |
-| `ReaderInput()`<sup>*</sup> | Process input is a `Deno.Reader & Deno.Closer`.  |
-| `StringIterableInput()`     | Process input is an `AsyncIterable<string>`.     |
-| `BytesIterableInput()`      | Process input is an `AsyncIterable<Uint8Array>`. |
+| `emptyInput()`              | There is no process input.                       |
+| `stringInput()`             | Process input is a `string`.                     |
+| `bytesInput()`              | Process input is a `Uint8Array`.                 |
+| `readerInput()`<sup>*</sup> | Process input is a `Deno.Reader & Deno.Closer`.  |
+| `stringIterableInput()`     | Process input is an `AsyncIterable<string>`.     |
+| `bytesIterableInput()`      | Process input is an `AsyncIterable<Uint8Array>`. |
 
 <sup>*</sup> - `ReaderInput` is a special input type that does not have a
 corresponding output type. It is not useful for piping data from process to
@@ -87,31 +107,70 @@ process.
 
 | Name                                               | Description                                                                            |
 | :------------------------------------------------- | :------------------------------------------------------------------------------------- |
-| `StringOutput()`                                   | Process output is a `string`.                                                          |
-| `BytesOutput()`                                    | Process output is a `Uint8Array`.                                                      |
-| `StringIterableOutput()`                           | Process output is an `AsyncIterable<string>`.                                          |
-| `BytesIterableOutput()`                            | Process output is an `AsyncIterable<Uint8Array>`.                                      |
-| `StderrToStdoutStringIterableOutput()`<sup>*</sup> | `stdout` and `stderr` are converted to text lines (`string`) and multiplexed together. |
+| `stringOutput()`                                   | Process output is a `string`.                                                          |
+| `bytesOutput()`                                    | Process output is a `Uint8Array`.                                                      |
+| `stringIterableOutput()`                           | Process output is an `AsyncIterable<string>`.                                          |
+| `bytesIterableOutput()`                            | Process output is an `AsyncIterable<Uint8Array>`.                                      |
+| `stderrToStdoutStringIterableOutput()`<sup>*</sup> | `stdout` and `stderr` are converted to text lines (`string`) and multiplexed together. |
 
 <sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.
 `stdout` must be text data.
 
-
 # Key Concepts
+
+## Process Basics
+
+Processes accept input through `stdin` and output data to `stdout`. These two
+streams may be interpreted either as byte data or as text data, depending on the
+use case.
+
+There is another output stream called `stderr`. This is typically used for
+logging and/or details about any errors that occur. `stderr` is always
+interpreted as text. In most cases it just gets dumped to the `stderr` stream of
+the parent process, but you have some control over how it is handled.
+
+In some cases (Java processes come to mind), `stdout` and `stderr` are roughly
+interchangable, with logging and error messages written to either output stream
+in a sloppy manner. The `stderrToStdoutStringIterableOutput()` output handler
+gives you an option for handling both streams together.
+
+Processes return a numeric exit code when they exit. `0` means success, and any
+other number means something went wrong. `proc` deals with error conditions on
+process exit by throwing a `ProcessExitError`. You should never have to poll for
+process status.
 
 ## Asynchronous Iterables
 
+JavaScript introduced the `AsyncIterable` as part of the 2015 spec. This is an
+asynchronous protocol, so it works well with the streamed data to and from a
+process.
 
+`proc` heavily relies on `AsyncIterable`. If you haven't used this much before
+now, you are in for a treat.
 
-## Prevent Resource Leakage
+See
+[JavaScript Iteration Protocols (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols).
 
-Processes are system resources, like file handles. This means they need special handling. We have to take special care to close each process, and we also have to close all the resources associated with each process - `stdin`, `stdout`, and `stderr`. Special care has to be given to process resources not to close them more than once. Also, depending on how a Deno process shuts down, it may leave behind orphan child processes in certain cases (this behavior is well documented but annoying nonetheless). 
+## Preventing Resource Leakage
 
-In other words, it is complicated.
+Processes are system resources, like file handles. This means they need special
+handling. We have to take special care to close each process, and we also have
+to close all the resources associated with each process - `stdin`, `stdout`, and
+`stderr`. Also, depending on how a Deno process shuts down, it may leave behind
+orphan child processes in certain cases (this behavior is well documented but
+annoying nonetheless) if you don't specifically prevent this.
 
-To address the problem of leakage, `proc` uses `group()` to group related process lifetimes. When you are done using a group of processes, you just close the group. This cleans up everything all at once.
+In other words, working with Deno's process API is more complicated than it
+looks.
 
-If you forget to close a group, or if your Deno process exits while you have some processes open, the group takes care of cleaning things up in that case too. _Note that a group cannot be garbage-collected until it is explicitly closed._
+To address the problem of leakage, `proc` uses `group()` to group related
+process lifetimes. When you are done using a group of processes, you just close
+the group. This cleans up everything all at once. It's easy. It's foolproof.
+
+If you forget to close a group, or if your Deno process exits while you have
+some processes open, the group takes care of cleaning things up in that case
+too. _Note that a group cannot be garbage-collected until it is explicitly
+closed._
 
 ```ts
 const pr = runner(emptyInput(), stringOutput());

@@ -47,7 +47,13 @@ export class MultiCloseWriter implements Deno.Writer, Deno.Closer {
   }
 
   async write(p: Uint8Array): Promise<number> {
-    return await this.writer.write(p);
+    if (!this.closed) {
+      return await this.writer.write(p);
+    } else {
+      throw new Deno.errors.BadResource(
+        "write failed; resource has already been closed",
+      );
+    }
   }
 
   close(): void {
