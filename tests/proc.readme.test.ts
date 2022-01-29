@@ -6,7 +6,7 @@ import {
   runner,
   stringInput,
   stringOutput,
-} from "./mod.ts";
+} from "../mod.ts";
 
 Deno.test({
   name: "[README] Key Concepts | Leaking Resources",

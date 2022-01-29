@@ -1,4 +1,4 @@
-import { assertEquals } from "./deps-test.ts";
+import { assertEquals } from "../deps-test.ts";
 import {
   bytesInput,
   bytesOutput,
@@ -6,8 +6,8 @@ import {
   runner,
   stringInput,
   stringOutput,
-} from "./mod.ts";
-import { randomString } from "./runners/utility.ts";
+} from "../mod.ts";
+import { randomString } from "../runners/utility.ts";
 
 async function gzip(text: string): Promise<Uint8Array> {
   const pg = group();

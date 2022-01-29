@@ -1,5 +1,5 @@
-import { assert, asynciter } from "./deps-test.ts";
-import * as proc from "./mod.ts";
+import { assert, asynciter } from "../deps-test.ts";
+import * as proc from "../mod.ts";
 
 /**
  * Counts up from 0 to infinity.

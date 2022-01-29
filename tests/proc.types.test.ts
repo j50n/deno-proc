@@ -1,4 +1,4 @@
-import { assertEquals, asynciter } from "./deps-test.ts";
+import { assertEquals, asynciter } from "../deps-test.ts";
 import {
   emptyInput,
   group,
@@ -6,7 +6,7 @@ import {
   stringInput,
   stringIterableOutput,
   stringOutput,
-} from "./mod.ts";
+} from "../mod.ts";
 
 /**
  * Demonstrate the subtleties of type handling.

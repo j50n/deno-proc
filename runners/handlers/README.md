@@ -4,7 +4,8 @@
 
 ### Byte Arrays (`Uint8Array`)
 
-Byte arrays (`Uint8Array`) may be used as input or returned as output from a process.
+Byte arrays (`Uint8Array`) may be used as input or returned as output from a
+process.
 
 ```ts
 const pr = proc.runner(proc.bytesInput(), proc.bytesOutput());
