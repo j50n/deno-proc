@@ -12,6 +12,7 @@ deno doc -q https://deno.land/x/proc/mod.ts
 
 ## Examples
 
+- [Simple Examples for Input and Output Handlers](./runners/handlers/README.md)
 - [Count Unique Words in _War and Peace_](./examples/warandpeace/README.md)
 
 # Key Concepts
