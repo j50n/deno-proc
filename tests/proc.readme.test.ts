@@ -1,7 +1,6 @@
 import {
   bytesOutput,
   emptyInput,
-  Group,
   group,
   Runner,
   runner,
@@ -33,16 +32,16 @@ Deno.test({
      * @param text The text to compress.
      * @return The text compressed into bytes.
      */
-    async function gzip(text: string): Promise<Uint8Array> {
+    function gzip(text: string): Promise<Uint8Array> {
       const pg = group();
       try {
         /* I am using a string for input and a Uint8Array (bytes) for output. */
-        const processDef: (group: Group) => Runner<string, Uint8Array> = runner(
+        const pr: Runner<string, Uint8Array> = runner(
           stringInput(),
           bytesOutput(),
-        );
+        )(pg);
 
-        return await processDef(pg).run({
+        return pr.run({
           cmd: ["gzip", "-c"],
         }, text);
       } finally {
@@ -50,12 +49,7 @@ Deno.test({
       }
     }
 
-    const pg = group();
-    try {
-      console.dir(await gzip("Hello, world."));
-    } finally {
-      pg.close();
-    }
+    console.dir(await gzip("Hello, world."));
   },
 });
 

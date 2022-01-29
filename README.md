@@ -16,42 +16,6 @@ deno doc -q https://deno.land/x/proc/mod.ts
 - [Simple Examples for Input and Output Handlers](./runners/handlers/README.md)
 - [Count Unique Words in _War and Peace_](./examples/warandpeace/README.md)
 
-# Key Concepts
-
-## Leaking Resources
-
-One of the challenges of working with processes in Deno is that you _must_
-manually close every process resource - readers, writers, and the process
-itself.
-
-There are other complications as well. You can't close a resource more than
-once, so you can't have optional/defensive calls to close things. If you fail to
-close a child process before you exit with `Deno.exit()`, the child process will
-live on - but child processes are automatically closed if you exit with
-`CTRL-c`.
-
-This isn't just complicated to use. It is really difficult to write correct code
-with the Deno process runner.
-
-To solve these resource-management problems, we can run processes with a
-`Group`. A `Group` is a `Deno.Closer`, and when you close it, you tidy up all
-the resources and processes associated with the group. `Group` also makes sure
-things get cleaned up properly when the Deno process exits.
-
-Proc requires that all processes it manages are associated with a `Group`.
-
-```ts
-const pg = group();
-try {
-  console.log(
-    await runner(emptyInput(), stringOutput())(pg).run({
-      cmd: ["ls", "-la"],
-    }),
-  );
-} finally {
-  pg.close();
-}
-```
 
 # Input and Output Types
 
@@ -63,19 +27,19 @@ Streamed byte data is the fastest, so if we are just piping bytes from one
 process to another, we would use `BytesIterableOutput()` for `stdout` of process
 #1 and `BytesIterableInput()` for `stdin` of process #2.
 
-If you have a small amount of data (it can be kept in memory), `StringInput()`
-and `StringOutput()` let you work with `string` data. For text data that is too
-big to fit in memory, or if you just want to work with real-time streamed text
-data, use `StringIterableInput()` and `StringIterableOutput()`. There is some
-overhead associated with processing streamed bytes into text lines, but this is
-how you will interact with process input and output much of the time.
+If you have a small amount of data (it can be kept in memory),
+`proc.stringInput()` and `proc.stringOutput()` let you work with `string` data.
+For text data that is too big to fit in memory, or if you just want to work with
+real-time streamed text data, use `proc.stringIterableInput()` and
+`proc.stringIterableOutput()`. There is some overhead associated with processing
+streamed bytes into text lines, but this is how you will interact with process
+input and output much of the time.
 
 #### An Example
 
-This example shows how `runner(...)` is used to generate a process definition.
-In this case, I am going to pass in a `string` and get back a `Uint8Array`.
-`gzip` is just getting a stream of bytes in both cases of course. Our definition
-is translating for us.
+To get you started, here is a simple example where we pass a `string` to a
+process and get back a `Uint8Array`. The group is hidden in the `gzip(...)`
+function.
 
 ```ts
 /**
@@ -83,16 +47,16 @@ is translating for us.
  * @param text The text to compress.
  * @return The text compressed into bytes.
  */
-async function gzip(text: string): Promise<Uint8Array> {
+function gzip(text: string): Promise<Uint8Array> {
   const pg = group();
   try {
     /* I am using a string for input and a Uint8Array (bytes) for output. */
-    const processDef: (group: Group) => Runner<string, Uint8Array> = runner(
+    const pr: Runner<string, Uint8Array> = runner(
       stringInput(),
       bytesOutput(),
-    );
+    )(pg);
 
-    return await processDef(pg).run({
+    return pr.run({
       cmd: ["gzip", "-c"],
     }, text);
   } finally {
@@ -100,12 +64,8 @@ async function gzip(text: string): Promise<Uint8Array> {
   }
 }
 
-const pg = group();
-try {
-  console.dir(await gzip("Hello, world."));
-} finally {
-  pg.close();
-}
+console.dir(await gzip("Hello, world."));
+/* prints an array of bytes to console. */
 ```
 
 ## Input Types
@@ -136,24 +96,30 @@ process.
 <sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.
 `stdout` must be text data.
 
-# Examples
 
-## Run an Inline Bash Script
+# Key Concepts
 
-Starting with something simple yet useful, this is an example of running a
-`bash` script using `runner`.
+## Asynchronous Iterables
+
+
+
+## Prevent Resource Leakage
+
+Processes are system resources, like file handles. This means they need special handling. We have to take special care to close each process, and we also have to close all the resources associated with each process - `stdin`, `stdout`, and `stderr`. Special care has to be given to process resources not to close them more than once. Also, depending on how a Deno process shuts down, it may leave behind orphan child processes in certain cases (this behavior is well documented but annoying nonetheless). 
+
+In other words, it is complicated.
+
+To address the problem of leakage, `proc` uses `group()` to group related process lifetimes. When you are done using a group of processes, you just close the group. This cleans up everything all at once.
+
+If you forget to close a group, or if your Deno process exits while you have some processes open, the group takes care of cleaning things up in that case too. _Note that a group cannot be garbage-collected until it is explicitly closed._
 
 ```ts
+const pr = runner(emptyInput(), stringOutput());
 const pg = group();
 try {
   console.log(
-    await runner(emptyInput(), stringOutput())(pg).run({
-      cmd: [
-        "/bin/bash",
-        "--login",
-        "-c",
-        "echo 'Hello, Deno.'",
-      ],
+    await pr(pg).run({
+      cmd: ["ls", "-la"],
     }),
   );
 } finally {
