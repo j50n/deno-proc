@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.8.0 _Prerelease_ 
+
+- **documentation** Added additional examples.
+- **fix** Organized files at the top folder level.
+
 ## 0.7.0 _Prerelease_
 
 This release contains breaking changes.

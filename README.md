@@ -1,4 +1,4 @@
-_This is a **pre-release**. The API is unstable._
+_This is a **pre-release**. The API is stabilizing. The documentation is under construction. The project is usable._
 
 # deno-proc
 
