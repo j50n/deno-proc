@@ -4,8 +4,9 @@
 
 This release contains breaking changes.
 
-- **feature** Usability. Moved the `Group` reference that was previously in the `run(...)` call to a bind call from the `runner` definition. Seems small, but makes a difference in readability.
-
+- **feature** Usability. Moved the `Group` reference that was previously in the
+  `run(...)` call to a bind call from the `runner` definition. Seems small, but
+  makes a difference in readability.
 
 ## 0.8.0 _Prerelease_
 
