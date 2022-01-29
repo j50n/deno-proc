@@ -87,7 +87,7 @@ async function gzip(text: string): Promise<Uint8Array> {
   const pg = group();
   try {
     /* I am using a string for input and a Uint8Array (bytes) for output. */
-    const processDef: Runner<string, Uint8Array> = runner(
+    const processDef: (group: Group) => Runner<string, Uint8Array> = runner(
       stringInput(),
       bytesOutput(),
     );
