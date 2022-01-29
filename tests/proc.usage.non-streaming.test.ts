@@ -12,7 +12,7 @@ import { randomString } from "../runners/utility.ts";
 async function gzip(text: string): Promise<Uint8Array> {
   const pg = group();
   try {
-    return await runner(stringInput(), bytesOutput()).run(pg, {
+    return await runner(stringInput(), bytesOutput())(pg).run({
       cmd: ["gzip", "-c"],
     }, text);
   } finally {
@@ -23,7 +23,7 @@ async function gzip(text: string): Promise<Uint8Array> {
 async function gunzip(bytes: Uint8Array): Promise<string> {
   const pg = group();
   try {
-    return await runner(bytesInput(), stringOutput()).run(pg, {
+    return await runner(bytesInput(), stringOutput())(pg).run({
       cmd: ["gzip", "-cd"],
     }, bytes);
   } finally {

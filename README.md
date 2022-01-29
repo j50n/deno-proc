@@ -44,7 +44,7 @@ Proc requires that all processes it manages are associated with a `Group`.
 const pg = group();
 try {
   console.log(
-    await runner(emptyInput(), stringOutput()).run(pg, {
+    await runner(emptyInput(), stringOutput())(pg).run({
       cmd: ["ls", "-la"],
     }),
   );
@@ -92,7 +92,7 @@ async function gzip(text: string): Promise<Uint8Array> {
       bytesOutput(),
     );
 
-    return await processDef.run(pg, {
+    return await processDef(pg).run({
       cmd: ["gzip", "-c"],
     }, text);
   } finally {
@@ -147,7 +147,7 @@ Starting with something simple yet useful, this is an example of running a
 const pg = group();
 try {
   console.log(
-    await runner(emptyInput(), stringOutput()).run(pg, {
+    await runner(emptyInput(), stringOutput())(pg).run({
       cmd: [
         "/bin/bash",
         "--login",

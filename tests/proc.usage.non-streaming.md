@@ -19,7 +19,7 @@ defined, but - aside from `Group` boilerplate - nothing extra.
 async function gzip(text: string): Promise<Uint8Array> {
   const pg = group();
   try {
-    return await runner(stringInput(), bytesOutput()).run(pg, {
+    return await runner(stringInput(), bytesOutput())(pg).run({
       cmd: ["gzip", "-c"],
     }, text);
   } finally {

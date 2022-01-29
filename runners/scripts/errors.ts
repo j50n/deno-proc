@@ -3,7 +3,7 @@ import * as proc from "../../mod.ts";
 
 const pg = proc.group();
 try {
-  await proc.runner(proc.emptyInput(), proc.stringOutput()).run(pg, {
+  await proc.runner(proc.emptyInput(), proc.stringOutput())(pg).run({
     cmd: ["bash", "-c", "exit 1"],
   });
 } catch (e) {

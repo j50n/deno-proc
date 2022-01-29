@@ -24,8 +24,7 @@ try {
   const uncompressedDoc = proc.runner(
     proc.readerInput(),
     proc.bytesIterableOutput(),
-  ).run(
-    pg,
+  )(pg).run(
     {
       cmd: ["gunzip"],
     },
@@ -38,8 +37,7 @@ try {
   const rawWords = proc.runner(
     proc.bytesIterableInput(),
     proc.bytesIterableOutput(),
-  ).run(
-    pg,
+  )(pg).run(
     {
       cmd: ["grep", "-o", "-E", "(\\w|')+"],
     },
@@ -52,8 +50,7 @@ try {
   const nonNumericWords = proc.runner(
     proc.bytesIterableInput(),
     proc.stringIterableOutput(),
-  ).run(
-    pg,
+  )(pg).run(
     {
       cmd: ["grep", "-v", "-P", "^\\d"],
     },
@@ -78,8 +75,7 @@ try {
   const sortedWords = proc.runner(
     proc.stringIterableInput(),
     proc.bytesIterableOutput(),
-  ).run(
-    pg,
+  )(pg).run(
     { cmd: ["sort"] },
     lowercaseWords,
   );
@@ -90,8 +86,7 @@ try {
   const uniqWords = proc.runner(
     proc.bytesIterableInput(),
     proc.bytesIterableOutput(),
-  ).run(
-    pg,
+  )(pg).run(
     { cmd: ["uniq"] },
     sortedWords,
   );
@@ -102,11 +97,11 @@ try {
    */
   const countOfWords = parseInt(
     await asynciter(
-      proc.runner(proc.bytesIterableInput(), proc.stringIterableOutput()).run(
-        pg,
-        { cmd: ["wc", "-l"] },
-        uniqWords,
-      ),
+      proc.runner(proc.bytesIterableInput(), proc.stringIterableOutput())(pg)
+        .run(
+          { cmd: ["wc", "-l"] },
+          uniqWords,
+        ),
     ).first() || "0",
     10,
   );

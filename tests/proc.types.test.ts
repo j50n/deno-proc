@@ -22,8 +22,7 @@ Deno.test({
   async fn() {
     const pg = group();
     try {
-      const p1 = runner(stringInput(), stringIterableOutput()).run(
-        pg,
+      const p1 = runner(stringInput(), stringIterableOutput())(pg).run(
         {
           cmd: ["grep", "b"],
         },
@@ -43,8 +42,7 @@ Deno.test({
   async fn() {
     const pg = group();
     try {
-      const p1 = runner(emptyInput(), stringIterableOutput()).run(
-        pg,
+      const p1 = runner(emptyInput(), stringIterableOutput())(pg).run(
         {
           cmd: ["bash", "-c", "echo 'Hello.'"],
         },
@@ -63,8 +61,7 @@ Deno.test({
   async fn() {
     const pg = group();
     try {
-      const hello = await runner(emptyInput(), stringOutput()).run(
-        pg,
+      const hello = await runner(emptyInput(), stringOutput())(pg).run(
         {
           cmd: ["bash", "-c", "echo 'Hello.'"],
         },

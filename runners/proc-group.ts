@@ -31,6 +31,19 @@ export interface RunOptions {
   };
 }
 
+/**
+ * Create a new `Group` for running processes.
+ * 
+ * Note that a `Group` cannot be garbage-collected 
+ * until it is explicitly closed. If you don't close 
+ * a group, its processes will be cleaned up when the
+ * Deno process exits. However, if you create a large
+ * number of groups without closing them, be aware 
+ * that this will leak memory and potentially leak
+ * resources as well.
+ *  
+ * @returns A new `Group` instance.
+ */
 export function group(): Group {
   return new GroupImpl();
 }

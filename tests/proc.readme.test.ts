@@ -1,6 +1,7 @@
 import {
   bytesOutput,
   emptyInput,
+  Group,
   group,
   Runner,
   runner,
@@ -14,7 +15,7 @@ Deno.test({
     const pg = group();
     try {
       console.log(
-        await runner(emptyInput(), stringOutput()).run(pg, {
+        await runner(emptyInput(), stringOutput())(pg).run({
           cmd: ["ls", "-la"],
         }),
       );
@@ -36,12 +37,12 @@ Deno.test({
       const pg = group();
       try {
         /* I am using a string for input and a Uint8Array (bytes) for output. */
-        const processDef: Runner<string, Uint8Array> = runner(
+        const processDef: (group: Group) => Runner<string, Uint8Array> = runner(
           stringInput(),
           bytesOutput(),
         );
 
-        return await processDef.run(pg, {
+        return await processDef(pg).run({
           cmd: ["gzip", "-c"],
         }, text);
       } finally {
@@ -64,7 +65,7 @@ Deno.test({
     const pg = group();
     try {
       console.log(
-        await runner(emptyInput(), stringOutput()).run(pg, {
+        await runner(emptyInput(), stringOutput())(pg).run({
           cmd: [
             "/bin/bash",
             "--login",

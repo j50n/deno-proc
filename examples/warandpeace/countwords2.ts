@@ -19,8 +19,7 @@ try {
   const nonNumericWords = proc.runner(
     proc.readerInput(),
     proc.stringIterableOutput(),
-  ).run(
-    pg,
+  )(pg).run(
     {
       cmd: [
         "bash",
@@ -41,8 +40,7 @@ try {
       proc.runner(
         proc.stringIterableInput(),
         proc.stringIterableOutput(),
-      ).run(
-        pg,
+      )(pg).run(
         {
           cmd: [
             "bash",

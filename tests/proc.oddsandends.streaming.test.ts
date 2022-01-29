@@ -24,8 +24,7 @@ Deno.test({
     const pg = proc.group();
     try {
       await asynciter(
-        p.run(
-          pg,
+        p(pg).run(
           { cmd: ["head", "-n", "3"] },
           asynciter(counter()).map((n) => `${n}`),
         ),
@@ -48,8 +47,7 @@ Deno.test({
     const pg = proc.group();
     try {
       await asynciter(
-        p.run(
-          pg,
+        p(pg).run(
           { cmd: ["head", "-n", "3"] },
           /*
            * Note the LF in the map of the number.
@@ -68,7 +66,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "blah2",
+  name: "[HAPPY-PATH] I can count the unique words in some text.",
   async fn() {
     const pr = proc.runner(
       proc.stringIterableInput(),
@@ -89,8 +87,7 @@ Deno.test({
 
     const pg = proc.group();
     try {
-      const rawWords = pr.run(
-        pg,
+      const rawWords = pr(pg).run(
         {
           cmd: ["grep", "-o", "-E", "(\\w|')+"],
         },
@@ -102,14 +99,12 @@ Deno.test({
         w.toLocaleLowerCase()
       );
 
-      const sortedWords = pr.run(
-        pg,
+      const sortedWords = pr(pg).run(
         { cmd: ["sort"] },
         lowercaseWords,
       );
 
-      const uniqWords = pr.run(
-        pg,
+      const uniqWords = pr(pg).run(
         { cmd: ["uniq"] },
         sortedWords,
       );
