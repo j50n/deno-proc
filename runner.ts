@@ -6,10 +6,16 @@ import {
   RunOptions,
 } from "./runners/proc-group.ts";
 
+/** Something that is either a promise or an iterable. */
 export type PromiseOrIterable<B> = B extends AsyncIterable<unknown> ? B
   : Promise<B>;
 
 export interface Runner<A, B> {
+  /**
+   * Run a command.
+   * @param options Run options.
+   * @param input Input data.
+   */
   run(
     options: RunOptions,
     input?: A,
