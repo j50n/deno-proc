@@ -37,7 +37,7 @@ you find it useful and enjoyable!
 ## Documentation
 
 ```bash
-deno doc -q https://deno.land/x/proc/mod.ts
+deno doc --reload https://deno.land/x/proc/mod.ts
 ```
 
 ## Examples
