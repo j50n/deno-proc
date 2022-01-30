@@ -9,12 +9,18 @@ import {
   BytesIterableOutputHandler,
 } from "./bytes-iterable-handlers.ts";
 
-export function bytesIterableInput(
-  autoflush = true,
-): InputHandler<AsyncIterable<Uint8Array>> {
-  return new BytesIterableInputHandler(autoflush);
+/**
+ * A handler for `AsyncIterable<Uint8Array>` input.
+ */
+export function bytesIterableInput(): InputHandler<AsyncIterable<Uint8Array>> {
+  return new BytesIterableInputHandler();
 }
 
+/**
+ * A hander for `AsyncIterable<Uint8Array>` output.
+ * @param processStderr A custom processor for `stderr`.
+ * @param errorHandler A custom error handler.
+ */
 export function bytesIterableOutput(
   processStderr: StderrProcessor = stderrLinesToConsoleError,
   errorHandler: ErrorHandler = defaultErrorHandling,

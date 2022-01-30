@@ -15,7 +15,7 @@ import { AbstractBytesOutputHandler } from "./abstract-handlers.ts";
  */
 export class BytesIterableInputHandler
   implements InputHandler<AsyncIterable<Uint8Array>> {
-  constructor(public readonly autoflush: boolean) {
+  constructor() {
   }
 
   get failOnEmptyInput(): boolean {

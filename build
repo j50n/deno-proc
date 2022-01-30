@@ -9,7 +9,7 @@ deno test --allow-run --reload
 
 cd ./examples/warandpeace && (
     set -x 
-    ./countwords.sh < ./warandpeace.txt.gz
-    ./countwords.ts < ./warandpeace.txt.gz
-    ./countwords2.ts < ./warandpeace.txt.gz
+    time ./countwords.sh < ./warandpeace.txt.gz
+    time ./countwords.ts < ./warandpeace.txt.gz
+    time ./countwords2.ts < ./warandpeace.txt.gz
 )

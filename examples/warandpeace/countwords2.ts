@@ -10,7 +10,7 @@ import * as proc from "../../mod.ts";
  * code, but it also shifts that processing out of my Deno process.
  *
  * I added a redundant `sort|uniq` after the greps. This makes the code
- * run about 8 times faster than the first Typescript version, and almost
+ * run several times faster than the first Typescript version, and almost
  * as fast as the pure shell version.
  */
 
