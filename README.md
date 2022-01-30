@@ -119,7 +119,7 @@ process.
 <sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.
 `stdout` must be text data.
 
-## Putting It All Together
+## Running a Command
 
 `proc` is easiest to use with a wildcard import.
 
@@ -138,7 +138,7 @@ Next, create a _runner_ by binding the template to a group.
 
 ```ts
 const pg = proc.group();
-const runner = template(pg);
+const runner: proc.Runner<void, string> = template(pg);
 ```
 
 Finally, use the runner to execute a command.

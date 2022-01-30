@@ -13,8 +13,9 @@ Deno.test({
   async fn() {
     const pg = group();
     try {
+      const pr: Runner<void, string> = runner(emptyInput(), stringOutput())(pg);
       console.log(
-        await runner(emptyInput(), stringOutput())(pg).run({
+        await pr.run({
           cmd: ["ls", "-la"],
         }),
       );
