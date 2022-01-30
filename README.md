@@ -31,8 +31,8 @@ However, when I use the Deno process API correctly, it is very reliable, has
 predictable behavior, and it is _fast_.
 
 `proc` provides a reasonable solution to the leaky resource problem and - at the
-same time - redefines the API to feel more like modern JavaScript. I hope you
-find it useful and enjoyable!
+same time - redefines the API to be more in line with modern JavaScript. I hope
+you find it useful and enjoyable!
 
 ## Documentation
 
@@ -44,6 +44,10 @@ deno doc -q https://deno.land/x/proc/mod.ts
 
 - [Simple Examples for Input and Output Handlers](./runners/handlers/README.md)
 - [Count Unique Words in _War and Peace_](./examples/warandpeace/README.md)
+
+## Related Projects
+
+- [deno-asynciter](https://github.com/j50n/deno-asynciter)
 
 # Input and Output Types
 
@@ -114,6 +118,40 @@ process.
 
 <sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.
 `stdout` must be text data.
+
+## Putting It All Together
+
+`proc` is easiest to use with a wildcard import.
+
+```ts
+import * as proc from "https://deno.land/x/proc@0.0.0/mod.ts";
+```
+
+First, create a template. The template is a static definition and may be reused.
+The input and output handlers determine the data types used by your runner.
+
+```ts
+const template = proc.runner(proc.emptyInput(), proc.stringOutput());
+```
+
+Next, create a _runner_ by binding the template to a group.
+
+```ts
+const pg = proc.group();
+const runner = template(pg);
+```
+
+Finally, use the runner to execute a command.
+
+```ts
+try {
+  console.log(
+    runner.run({cmd: ["ls", "-la"]});
+  );
+} finally {
+  pg.close();
+}
+```
 
 # Key Concepts
 
