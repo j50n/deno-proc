@@ -1,3 +1,4 @@
+/** A processor for `stderr`. */
 export type StderrProcessor = (
   lines: AsyncIterableIterator<string>,
 ) => Promise<unknown | string[]>;

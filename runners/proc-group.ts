@@ -46,14 +46,13 @@ export interface OutputHandler<B> {
 
 /**
  * Command options.
- *
- * @param cmd The command to be run.
- * @param cwd The current working directory.
- * @param env The process environment.
  */
 export interface RunOptions {
+  /** The command to be run. */
   cmd: string[] | [URL, ...string[]];
+  /** The current working directory. */
   cwd?: string;
+  /** The process environment. */
   env?: {
     [key: string]: string;
   };
