@@ -121,6 +121,8 @@ process.
 <sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.
 `stdout` must be text data.
 
+> ℹ️ **You must fully consume `Iterable` outputs.** If you only partially consume `Iterable`s, process errors will not propagate properly. For correct behavior, we have to return all the data from the process streams before we can propagate an error. 
+
 ## Running a Command
 
 `proc` is easiest to use with a wildcard import.
