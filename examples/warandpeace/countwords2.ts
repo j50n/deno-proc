@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --quiet --allow-run=bash
+#!/usr/bin/env -S deno run --quiet --allow-run=bash,gunzip
 
 import { asynciter } from "https://deno.land/x/asynciter@0.0.7/mod.ts";
 import * as proc from "../../mod.ts";
@@ -16,46 +16,62 @@ import * as proc from "../../mod.ts";
 
 const pg = proc.group();
 try {
-  const nonNumericWords = proc.runner(
+  /*
+   * Bash squashes errors that occur in pipes. I really want to trap an error that
+   * occurs in my gzip uncompress call, indicating bad data. That way, I can exit
+   * my Deno process with an error. So I need to run gzip by itself.
+   *
+   * This is the kind of thing you realize when you actually run the code.
+   */
+  const uncompressedText = proc.runner(
     proc.readerInput(),
+    proc.bytesIterableOutput(proc.stderrLinesToErrorMessage(20)),
+  )(pg).run({ cmd: ["gunzip"] }, Deno.stdin);
+
+  const nonNumericWords = proc.runner(
+    proc.bytesIterableInput(),
     proc.stringIterableOutput(),
   )(pg).run(
     {
       cmd: [
         "bash",
         "-c",
-        `set -e
-          cat - | gunzip | grep -o -E "(\\w|')+" | grep -v -P '^\\d' | sort | uniq `,
+        `cat - | grep -o -E "(\\w|')+" | grep -v -P '^\\d' | sort | uniq `,
       ],
     },
-    Deno.stdin,
+    uncompressedText,
   );
 
+  /*
+   * Convert the words to lowercase in-process.
+   */
   const lowercaseWords = asynciter(nonNumericWords).map((w) =>
     w.toLocaleLowerCase()
   );
 
-  const countOfWords = parseInt(
-    await asynciter(
-      proc.runner(
+  const wordCount = parseInt(
+    (
+      await proc.runner(
         proc.stringIterableInput(),
-        proc.stringIterableOutput(),
+        proc.stringArrayOutput(),
       )(pg).run(
         {
           cmd: [
             "bash",
             "-c",
-            `set -e
-              cat - | sort | uniq | wc -l `,
+            `cat - | sort | uniq | wc -l `,
           ],
         },
         lowercaseWords,
-      ),
-    ).first() || "0",
+      )
+    )[0],
     10,
   );
 
-  console.log(`${countOfWords}`);
+  console.log(`${wordCount}`);
+} catch (e) {
+  console.dir(e);
+  Deno.exit(1);
 } finally {
   pg.close();
 }

@@ -1,10 +1,13 @@
 # Release Notes
 
-## 0.9.3 _Prerelease_
+## 0.10.0 _Prerelease_
 
-There are no breaking API changes in this release.
+This release contains breaking changes.
 
 - **documentation** Multiple changes to the `README.md`.
+- **feature** Added input and output support for `string[]`.
+- **fix** Errors are chained through multiple connected processes.
+- **fix** Errors are correctly proagated in examples.
 
 ## 0.9.2 _Prerelease_
 

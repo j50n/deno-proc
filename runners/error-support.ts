@@ -13,17 +13,12 @@ export function defaultErrorHandling(
   stderrLines?: string[] | unknown,
 ): void {
   if (!status.success) {
-    let details: string | undefined = undefined;
-    if (Array.isArray(stderrLines)) {
-      details = stderrLines.map((line) => `\t${line}`).join("\n");
-    }
-
     throw new ProcessExitError(
       `process exited with code: ${status.code}`,
       status.code,
       options,
       status.signal,
-      details,
+      Array.isArray(stderrLines) ? stderrLines : undefined,
     );
   }
 }

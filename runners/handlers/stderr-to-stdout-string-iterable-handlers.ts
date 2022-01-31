@@ -7,6 +7,7 @@ import { OutputHandler } from "../proc-group.ts";
 import { readerToLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
 import { ErrorHandler } from "../error-support.ts";
+import { ChainedError } from "../chained-error.ts";
 
 /**
  * Redirect `stderr` into `stdout`.
@@ -21,7 +22,7 @@ export class StderrToStdoutStringIterableOutputHandler
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
   ): AsyncIterable<string> {
     return this.process(stdout, stderr, process, input);
   }
@@ -46,7 +47,7 @@ export class StderrToStdoutStringIterableOutputHandler
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
   ): AsyncIterableIterator<string> {
     try {
       const mux = new MuxAsyncIterator<string>();
@@ -60,7 +61,14 @@ export class StderrToStdoutStringIterableOutputHandler
         stdout.close();
       }
 
-      await input;
+      const error = await input.handlerResult;
+      if (error !== null) {
+        throw new ChainedError(
+          `${this.constructor.name}.process ${process.options.cmd.join(" ")}`,
+          error,
+        );
+      }
+
       const status = await process.status();
 
       this.errorHandler(process.options, status, undefined);

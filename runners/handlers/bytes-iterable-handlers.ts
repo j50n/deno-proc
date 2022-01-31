@@ -1,3 +1,4 @@
+import { ChainedError } from "../chained-error.ts";
 import { BufWriter } from "../../deps.ts";
 import {
   MultiCloseProcess,
@@ -26,8 +27,8 @@ export class BytesIterableInputHandler
     input: AsyncIterable<Uint8Array>,
     stdin: MultiCloseWriter,
   ): Promise<void> {
+    const bw = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
     try {
-      const bw = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
       for await (const byteArray of input) {
         await bw.write(byteArray);
       }
@@ -39,7 +40,7 @@ export class BytesIterableInputHandler
       ) {
         // Ignore.
       } else {
-        throw e;
+        throw new ChainedError(`${this.constructor.name}.processInput`, e);
       }
     } finally {
       stdin.close();
@@ -53,18 +54,18 @@ export class BytesIterableInputHandler
 export class BytesIterableOutputHandler
   extends AbstractBytesOutputHandler<AsyncIterable<Uint8Array>> {
   constructor(
-    public readonly processStderr: StderrProcessor,
-    public readonly errorHandler: ErrorHandler,
+    processStderr: StderrProcessor,
+    errorHandler: ErrorHandler,
   ) {
     super(processStderr, errorHandler);
   }
 
-  processOutput(
+  async *processOutput(
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
   ): AsyncIterable<Uint8Array> {
-    return this.process(stdout, stderr, process, input);
+    yield* this.process(stdout, stderr, process, input);
   }
 }

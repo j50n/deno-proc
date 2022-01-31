@@ -1,3 +1,4 @@
+import { ChainedError } from "../chained-error.ts";
 import {
   MultiCloseProcess,
   MultiCloseReader,
@@ -22,7 +23,7 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
   ): B | Promise<B>;
 
   protected async handleStderr(
@@ -53,14 +54,21 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
   ): AsyncIterableIterator<C> {
     try {
       const se = this.handleStderr(stderr);
 
       yield* this.transformReader(stdout);
 
-      await input.handlerResult;
+      const error = await input.handlerResult;
+      if (error !== null) {
+        throw new ChainedError(
+          `${this.constructor.name}.process  ${process.options.cmd.join(" ")}`,
+          error,
+        );
+      }
+
       const stderrLines: string[] | unknown = await se;
       const status = await process.status();
 

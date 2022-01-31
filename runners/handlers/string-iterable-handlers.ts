@@ -1,4 +1,5 @@
 import { BufWriter } from "../../deps.ts";
+import { ChainedError } from "../chained-error.ts";
 import {
   MultiCloseProcess,
   MultiCloseReader,
@@ -46,7 +47,7 @@ export class StringIterableInputHandler
       ) {
         // Ignore.
       } else {
-        throw e;
+        throw new ChainedError(`${this.constructor.name}.processInput`, e);
       }
     } finally {
       stdin.close();
@@ -60,18 +61,18 @@ export class StringIterableInputHandler
 export class StringIterableOutputHandler
   extends AbstractTextOutputHandler<AsyncIterable<string>> {
   constructor(
-    public readonly processStderr: StderrProcessor,
-    public readonly errorHandler: ErrorHandler,
+    processStderr: StderrProcessor,
+    errorHandler: ErrorHandler,
   ) {
     super(processStderr, errorHandler);
   }
 
-  processOutput(
+  async *processOutput(
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
-  ): AsyncIterable<string> {
-    return this.process(stdout, stderr, process, input);
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
+  ): AsyncIterableIterator<string> {
+    yield* this.process(stdout, stderr, process, input);
   }
 }

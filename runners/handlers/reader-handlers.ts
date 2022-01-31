@@ -1,3 +1,4 @@
+import { ChainedError } from "../chained-error.ts";
 import { MultiCloseWriter, NoCloseReader } from "../closers.ts";
 import { InputHandler } from "../proc-group.ts";
 import { pump } from "../utility.ts";
@@ -14,6 +15,10 @@ export class ReaderInputHandler implements InputHandler<Deno.Reader> {
     input: Deno.Reader,
     stdin: MultiCloseWriter,
   ): Promise<void> {
-    await pump(new NoCloseReader(input), stdin);
+    try {
+      await pump(new NoCloseReader(input), stdin);
+    } catch (e) {
+      throw new ChainedError(`${this.constructor.name}.processInput`, e);
+    }
   }
 }

@@ -96,17 +96,18 @@ try {
    * The first line of output is the count from `wc`. I grab this line and convert it to integer.
    */
   const countOfWords = parseInt(
-    await asynciter(
-      proc.runner(proc.bytesIterableInput(), proc.stringIterableOutput())(pg)
-        .run(
-          { cmd: ["wc", "-l"] },
-          uniqWords,
-        ),
-    ).first() || "0",
+    (await proc.runner(proc.bytesIterableInput(), proc.stringArrayOutput())(pg)
+      .run(
+        { cmd: ["wc", "-l"] },
+        uniqWords,
+      ))[0],
     10,
   );
 
   console.log(`${countOfWords}`);
+} catch (e) {
+  console.dir(e);
+  Deno.exit(1);
 } finally {
   pg.close();
 }

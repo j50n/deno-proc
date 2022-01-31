@@ -97,6 +97,7 @@ console.dir(await gzip("Hello, world."));
 | :-------------------------- | :----------------------------------------------- |
 | `emptyInput()`              | There is no process input.                       |
 | `stringInput()`             | Process input is a `string`.                     |
+| `stringArrayInput()`        | Process input is a `string[]`.                   |
 | `bytesInput()`              | Process input is a `Uint8Array`.                 |
 | `readerInput()`<sup>*</sup> | Process input is a `Deno.Reader & Deno.Closer`.  |
 | `stringIterableInput()`     | Process input is an `AsyncIterable<string>`.     |
@@ -111,6 +112,7 @@ process.
 | Name                                               | Description                                                                            |
 | :------------------------------------------------- | :------------------------------------------------------------------------------------- |
 | `stringOutput()`                                   | Process output is a `string`.                                                          |
+| `stringArrayOutput()`                              | Process output is a `string[]`.                                                        |
 | `bytesOutput()`                                    | Process output is a `Uint8Array`.                                                      |
 | `stringIterableOutput()`                           | Process output is an `AsyncIterable<string>`.                                          |
 | `bytesIterableOutput()`                            | Process output is an `AsyncIterable<Uint8Array>`.                                      |

@@ -83,7 +83,14 @@ export class GroupImpl implements Group {
       stderr,
     });
 
-    const inputResult = inputHandler.processInput(input, stdin);
+    const inputResult: Promise<null | Error> = (async () => {
+      try {
+        await inputHandler.processInput(input, stdin);
+        return null;
+      } catch (e) {
+        return e as Error;
+      }
+    })();
 
     return outputHandler.processOutput(
       stdout,

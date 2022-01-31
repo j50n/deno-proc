@@ -37,8 +37,8 @@ export class BytesInputHandler implements InputHandler<Uint8Array> {
  */
 export class BytesOutputHandler extends AbstractBytesOutputHandler<Uint8Array> {
   constructor(
-    public readonly processStderr: StderrProcessor,
-    public readonly errorHandler: ErrorHandler,
+    processStderr: StderrProcessor,
+    errorHandler: ErrorHandler,
   ) {
     super(processStderr, errorHandler);
   }
@@ -47,7 +47,7 @@ export class BytesOutputHandler extends AbstractBytesOutputHandler<Uint8Array> {
     stdout: MultiCloseReader,
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
-    input: { stdin: MultiCloseWriter; handlerResult: Promise<void> },
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
   ): Promise<Uint8Array> {
     const bytes: Uint8Array[] = [];
     for await (const b of this.process(stdout, stderr, process, input)) {

@@ -1,6 +1,6 @@
 /** A processor for `stderr`. */
 export type StderrProcessor = (
-  lines: AsyncIterableIterator<string>,
+  lines: AsyncIterable<string>,
 ) => Promise<unknown | string[]>;
 
 /**
@@ -26,12 +26,14 @@ export async function stderrLinesToNull(
 
 /**
  * Write `stderr` lines to the error message, if the process fails; otherwise, `stderr` is suppressed.
- * @param tail The number of lines to keep.
+ * @param tail The number of lines at the end of `stderr` to keep.
  */
 export function stderrLinesToErrorMessage(
-  tail: number,
+  tail = 20,
 ): (lines: AsyncIterable<string>) => Promise<string[]> {
-  return async (lines: AsyncIterable<string>): Promise<string[]> => {
+  async function stderrLinesToErrorMessageLimited(
+    lines: AsyncIterable<string>,
+  ): Promise<string[]> {
     let droppedLines = false;
 
     const linesArray = [];
@@ -48,5 +50,7 @@ export function stderrLinesToErrorMessage(
     }
 
     return linesArray;
-  };
+  }
+
+  return stderrLinesToErrorMessageLimited;
 }

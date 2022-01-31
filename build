@@ -12,4 +12,5 @@ cd ./examples/warandpeace && (
     time ./countwords.sh < ./warandpeace.txt.gz
     time ./countwords.ts < ./warandpeace.txt.gz
     time ./countwords2.ts < ./warandpeace.txt.gz
+    echo "a b c d" | ./countwords2.ts
 )
