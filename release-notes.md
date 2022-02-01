@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.11.0
+
+- `#14` **feature** Chained errors are optional and off by default.
+
 ## 0.10.0 _Prerelease_
 
 This release contains breaking changes.

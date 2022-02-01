@@ -168,13 +168,18 @@ process.
 See
 [JavaScript Iteration Protocols (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols).
 
-Streaming code executes differently than you may be used to. Errors work differently too, being passed from iterable to iterable rather than failing directly. Bugs in this kind of code can be difficult to figure out. To help with this, `proc` can chain its errors. You can turn this feature on by calling a function:
+Streaming code executes differently than you may be used to. Errors work
+differently too, being passed from iterable to iterable rather than failing
+directly. Bugs in this kind of code can be difficult to figure out. To help with
+this, `proc` can chain its errors. You can turn this feature on by calling a
+function:
 
 ```ts
 proc.enableChaining(true);
 ```
 
-This can produce some really long error chains that you may not want to work with in production, so this feature is turned off by default. 
+This can produce some really long error chains that you may not want to work
+with in production, so this feature is turned off by default.
 
 ## Preventing Resource Leakage
 
