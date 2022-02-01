@@ -3,6 +3,9 @@
 import { asynciter } from "https://deno.land/x/asynciter@0.0.7/mod.ts";
 import * as proc from "../../mod.ts";
 
+/* Chain errors. */
+proc.enableChaining(true);
+
 /**
  * This is a better implementation.
  *

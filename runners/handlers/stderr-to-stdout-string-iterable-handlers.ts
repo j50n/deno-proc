@@ -7,7 +7,7 @@ import { OutputHandler } from "../proc-group.ts";
 import { readerToLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
 import { ErrorHandler } from "../error-support.ts";
-import { ChainedError } from "../chained-error.ts";
+import { optionalChain } from "../chained-error.ts";
 
 /**
  * Redirect `stderr` into `stdout`.
@@ -63,7 +63,7 @@ export class StderrToStdoutStringIterableOutputHandler
 
       const error = await input.handlerResult;
       if (error !== null) {
-        throw new ChainedError(
+        throw optionalChain(
           `${this.constructor.name}.process ${process.options.cmd.join(" ")}`,
           error,
         );

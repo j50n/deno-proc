@@ -8,32 +8,6 @@ An easy way to run processes like a shell script in Deno.
 `proc` lets me write process-handling code in readable, idiomatic Typescript
 using `async/await` and `AsyncIterator` promisy goodness.
 
-My goal in writing `proc` was to put Deno process handling on par with `bash`.
-Simple `bash` scripts are wonderful, but they tend to grow unwieldy over time as
-things are added. I'd like to be able to replace some of my old `bash` scripts
-with something more robust, and Deno is the first scripting language I've found
-that feels like it could work for this.
-
-**First**, there is Deno's "Secure by default." This is huge when I am writing
-admin scripts, where if I make a mistake, I can wipe out a server. The ability
-to define security boundaries from the command-line is a game changer to me.
-**Second**, there is Deno's approach to package management, which means I can
-just import what I want and use it without required project infrastructure. I
-can just write a script and run it. **Third**, there is tight coupling with
-Typescript, which means I get strongly typed dynamic programming. I want someone
-to catch my mistakes, but I also want to code as fast as possible.
-
-But there is still the nagging problem of the process API in Deno. It feels a
-little bit like I am dropping down into a poorly abstracted C library. It is
-hard to use processes _correctly_ in Deno with this API. I find that I often end
-up leaking resources or - sometimes - leaving orphaned processes hanging around.
-However, when I use the Deno process API correctly, it is very reliable, has
-predictable behavior, and it is _fast_.
-
-`proc` provides a reasonable solution to the leaky resource problem and - at the
-same time - redefines the API to be more in line with modern JavaScript. I hope
-you find it useful and enjoyable!
-
 ## Documentation
 
 ```bash
@@ -121,7 +95,10 @@ process.
 <sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.
 `stdout` must be text data.
 
-> ℹ️ **You must fully consume `Iterable` outputs.** If you only partially consume `Iterable`s, process errors will not propagate properly. For correct behavior, we have to return all the data from the process streams before we can propagate an error. 
+> ℹ️ **You must fully consume `Iterable` outputs.** If you only partially
+> consume `Iterable`s, process errors will not propagate properly. For correct
+> behavior, we have to return all the data from the process streams before we
+> can propagate an error.
 
 ## Running a Command
 
@@ -190,6 +167,14 @@ process.
 
 See
 [JavaScript Iteration Protocols (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols).
+
+Streaming code executes differently than you may be used to. Errors work differently too, being passed from iterable to iterable rather than failing directly. Bugs in this kind of code can be difficult to figure out. To help with this, `proc` can chain its errors. You can turn this feature on by calling a function:
+
+```ts
+proc.enableChaining(true);
+```
+
+This can produce some really long error chains that you may not want to work with in production, so this feature is turned off by default. 
 
 ## Preventing Resource Leakage
 

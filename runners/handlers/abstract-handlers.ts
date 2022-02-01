@@ -1,4 +1,4 @@
-import { ChainedError } from "../chained-error.ts";
+import { optionalChain } from "../chained-error.ts";
 import {
   MultiCloseProcess,
   MultiCloseReader,
@@ -63,7 +63,7 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
 
       const error = await input.handlerResult;
       if (error !== null) {
-        throw new ChainedError(
+        throw optionalChain(
           `${this.constructor.name}.process  ${process.options.cmd.join(" ")}`,
           error,
         );

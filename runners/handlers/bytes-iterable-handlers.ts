@@ -1,4 +1,4 @@
-import { ChainedError } from "../chained-error.ts";
+import { optionalChain } from "../chained-error.ts";
 import { BufWriter } from "../../deps.ts";
 import {
   MultiCloseProcess,
@@ -40,7 +40,7 @@ export class BytesIterableInputHandler
       ) {
         // Ignore.
       } else {
-        throw new ChainedError(`${this.constructor.name}.processInput`, e);
+        throw optionalChain(`${this.constructor.name}.processInput`, e);
       }
     } finally {
       stdin.close();

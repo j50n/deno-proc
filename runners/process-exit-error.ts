@@ -17,7 +17,7 @@ export class ProcessExitError extends Error {
     /** Details (optionally scraped from `stderr`). */
     public readonly details?: string[],
   ) {
-    super(`${message} ${JSON.stringify(options.cmd)}`);
+    super(message);
     this.name = this.constructor.name;
   }
 }

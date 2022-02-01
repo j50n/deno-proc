@@ -1,5 +1,5 @@
 import { StringReader } from "../../deps.ts";
-import { ChainedError } from "../chained-error.ts";
+import { optionalChain } from "../chained-error.ts";
 import {
   MultiCloseProcess,
   MultiCloseReader,
@@ -24,7 +24,7 @@ export class StringInputHandler implements InputHandler<string> {
     try {
       await pump(new NoCloseReader(new StringReader(input)), stdin);
     } catch (e) {
-      throw new ChainedError(`${this.constructor.name}.processInput`, e);
+      throw optionalChain(`${this.constructor.name}.processInput`, e);
     } finally {
       stdin.close();
     }

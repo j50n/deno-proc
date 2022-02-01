@@ -13,8 +13,18 @@ export function defaultErrorHandling(
   stderrLines?: string[] | unknown,
 ): void {
   if (!status.success) {
+    let message = `process exited with code: ${status.code} `;
+    if (status.signal !== undefined) {
+      message += `(signal: ${status.signal})`;
+    }
+
+    message += ` [${options.cmd.join(" ")}]`;
+    if (options.cwd !== undefined) {
+      message += "@${cwd}";
+    }
+
     throw new ProcessExitError(
-      `process exited with code: ${status.code}`,
+      message,
       status.code,
       options,
       status.signal,
