@@ -1,6 +1,3 @@
-_This is a **pre-release**. The API is stabilizing. The documentation is under
-construction. The project is usable._
-
 # proc
 
 An easy way to run processes like a shell script in Deno.
