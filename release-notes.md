@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.12.0
+
+- `#17` **fix** `stringArrayInput()` performance.
+
 ## 0.11.0
 
 - `#14` **feature** Chained errors are optional and off by default.
