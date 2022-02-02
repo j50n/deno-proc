@@ -1,3 +1,4 @@
+import { BufWriter } from "../../deps.ts";
 import { optionalChain } from "../chained-error.ts";
 import {
   MultiCloseProcess,
@@ -7,6 +8,7 @@ import {
 import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
+import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
 
 /**
@@ -21,9 +23,15 @@ export class StringArrayInputHandler implements InputHandler<string[]> {
     try {
       const encoder = new TextEncoder();
       const lf = encoder.encode("\n");
-      for (const line of input) {
-        await stdin.write(encoder.encode(line));
-        await stdin.write(lf);
+
+      const buf = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
+      try {
+        for (const line of input) {
+          await buf.write(encoder.encode(line));
+          await buf.write(lf);
+        }
+      } finally {
+        await buf.flush();
       }
     } catch (e) {
       throw optionalChain(`${this.constructor.name}.processInput`, e);
