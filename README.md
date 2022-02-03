@@ -228,7 +228,8 @@ the next process, so commands run this way run one at a time.
 When you have a lot of data, the fastest way to run processes is to connect them
 together with `AsyncIterable<Uint8Array>`s or to pipe them together using a
 `bash` script - though you give up some ability to capture error conditions with
-the later.
+the later. `AsyncIterable<Uint8Array>` is iterable/streaming byte data, so
+commands can run in parallel and there is no overhead for text/line conversion.
 
 `AsyncIterable<string>` is reasonably fast, and useful if you want to process
 string data in the Deno process. This data has to be converted from lines of
