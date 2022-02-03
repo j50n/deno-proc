@@ -1,6 +1,6 @@
 # Release Notes
 
-## 0.12.0
+## 0.11.1
 
 - `#17` **fix** `stringArrayInput()` performance.
 - **maint** Dependency maintenance.
