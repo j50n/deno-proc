@@ -212,3 +212,15 @@ try {
   pg.close();
 }
 ```
+
+## Performance Considerations
+
+In general, `Uint8Array`s are faster than `string`s. This is because text has to be converted to and from `UTF-8`, and lines of text tend to be smaller than then ideal byte buffer size (there is a bit of overhead for every line or buffer passed).
+
+Iterable (or streaming) data allows commands to run in parallel, streaming data from one to the next as soon as it becomes available. Non-streaming data (bytes, string, or arrays of these) has to be fully resolved before it can be passed to the next process, so commands run this way run one at a time.  
+
+When you have a lot of data, the fastest way to run processes is to connect them together with `AsyncIterable<Uint8Array>`s or to pipe them together using a `bash` script - though you give up some ability to capture error conditions with the later. 
+
+`AsyncIterable<string>` is reasonably fast, and useful if you want to process string data in the Deno process. This data has to be converted from lines of text to bytes into and out of the process, so there is significant amount of overhead.
+
+If you don't have a lot of data to process, it doesn't really matter which form you use. 
