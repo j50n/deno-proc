@@ -3,6 +3,7 @@
 ## 0.12.0
 
 - `#17` **fix** `stringArrayInput()` performance.
+- **maint** Dependency maintenance.
 
 ## 0.11.0
 

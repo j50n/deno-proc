@@ -32,14 +32,17 @@ export class StringIterableInputHandler
       const cr = encoder.encode("\n");
 
       const bw = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
-      for await (const line of input) {
-        await bw.write(encoder.encode(line));
-        await bw.write(cr);
-        if (this.autoflush) {
-          await bw.flush();
+      try {
+        for await (const line of input) {
+          await bw.write(encoder.encode(line));
+          await bw.write(cr);
+          if (this.autoflush) {
+            await bw.flush();
+          }
         }
+      } finally {
+        await bw.flush();
       }
-      await bw.flush();
     } catch (e) {
       if (
         e instanceof Deno.errors.BrokenPipe ||

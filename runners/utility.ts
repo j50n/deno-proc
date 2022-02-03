@@ -15,15 +15,18 @@ export async function pump(
     try {
       const bufferedReader = new BufReader(reader, DEFAULT_BUFFER_SIZE);
       const bufferedWriter = new BufWriter(writer, DEFAULT_BUFFER_SIZE);
-      const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
-      while (true) {
-        const len = await bufferedReader.read(buffer);
-        if (len === null) {
-          break;
+      try {
+        const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
+        while (true) {
+          const len = await bufferedReader.read(buffer);
+          if (len === null) {
+            break;
+          }
+          await bufferedWriter.write(buffer.slice(0, len));
         }
-        await bufferedWriter.write(buffer.slice(0, len));
+      } finally {
+        await bufferedWriter.flush();
       }
-      await bufferedWriter.flush();
     } finally {
       reader.close();
     }
