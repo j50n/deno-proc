@@ -9,7 +9,10 @@ import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
-import { AbstractBytesOutputHandler } from "./abstract-handlers.ts";
+import {
+  AbstractBytesOutputHandler,
+  AbstractBytesUnbufferedOutputHandler,
+} from "./abstract-handlers.ts";
 
 /**
  * Source `stdin` from an iterable of byte arrays.
@@ -53,6 +56,28 @@ export class BytesIterableInputHandler
  */
 export class BytesIterableOutputHandler
   extends AbstractBytesOutputHandler<AsyncIterable<Uint8Array>> {
+  constructor(
+    processStderr: StderrProcessor,
+    errorHandler: ErrorHandler,
+  ) {
+    super(processStderr, errorHandler);
+  }
+
+  async *processOutput(
+    stdout: MultiCloseReader,
+    stderr: MultiCloseReader,
+    process: MultiCloseProcess,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
+  ): AsyncIterable<Uint8Array> {
+    yield* this.process(stdout, stderr, process, input);
+  }
+}
+
+/**
+ * Return `stdout` as an iterable over the lines, unbuffered.
+ */
+export class BytesIterableUnbufferedOutputHandler
+  extends AbstractBytesUnbufferedOutputHandler<AsyncIterable<Uint8Array>> {
   constructor(
     processStderr: StderrProcessor,
     errorHandler: ErrorHandler,

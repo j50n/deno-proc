@@ -7,6 +7,7 @@ import {
 import {
   BytesIterableInputHandler,
   BytesIterableOutputHandler,
+  BytesIterableUnbufferedOutputHandler,
 } from "./bytes-iterable-handlers.ts";
 
 /**
@@ -26,4 +27,16 @@ export function bytesIterableOutput(
   errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<Uint8Array>> {
   return new BytesIterableOutputHandler(processStderr, errorHandler);
+}
+
+/**
+ * A hander for `AsyncIterable<Uint8Array>` output, unbuffered.
+ * @param processStderr A custom processor for `stderr`.
+ * @param errorHandler A custom error handler.
+ */
+export function bytesIterableUnbufferedOutput(
+  processStderr: StderrProcessor = stderrLinesToConsoleError,
+  errorHandler: ErrorHandler = defaultErrorHandling,
+): OutputHandler<AsyncIterable<Uint8Array>> {
+  return new BytesIterableUnbufferedOutputHandler(processStderr, errorHandler);
 }

@@ -87,6 +87,7 @@ process.
 | `bytesOutput()`                                    | Process output is a `Uint8Array`.                                                      |
 | `stringIterableOutput()`                           | Process output is an `AsyncIterable<string>`.                                          |
 | `bytesIterableOutput()`                            | Process output is an `AsyncIterable<Uint8Array>`.                                      |
+| `bytesIterableUnbufferedOutput()`                  | Process output is an `AsyncIterable<Uint8Array>`, unbuffered.                          |
 | `stderrToStdoutStringIterableOutput()`<sup>*</sup> | `stdout` and `stderr` are converted to text lines (`string`) and multiplexed together. |
 
 <sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.

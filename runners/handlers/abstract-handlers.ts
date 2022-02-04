@@ -7,7 +7,12 @@ import {
 import { type ErrorHandler } from "../error-support.ts";
 import { type OutputHandler } from "../proc-group.ts";
 import { type StderrProcessor } from "../stderr-support.ts";
-import { readerToBytes, readerToLines } from "../utility.ts";
+import {
+  readerToBytes,
+  readerToBytesUnbuffered,
+  readerToLines,
+  toLines,
+} from "../utility.ts";
 
 /**
  * Abstract class for handling text output.
@@ -32,7 +37,9 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
     let stderrLines: string[] | unknown;
 
     try {
-      stderrLines = await this.processStderr(readerToLines(stderr));
+      stderrLines = await this.processStderr(
+        toLines(readerToBytesUnbuffered(stderr)),
+      );
     } catch (e) {
       if (e instanceof Deno.errors.Interrupted) {
         // Ignore.
@@ -99,5 +106,14 @@ export abstract class AbstractBytesOutputHandler<B>
     reader: MultiCloseReader,
   ): AsyncIterableIterator<Uint8Array> {
     yield* readerToBytes(reader);
+  }
+}
+
+export abstract class AbstractBytesUnbufferedOutputHandler<B>
+  extends AbstractOutputHandler<B, Uint8Array> {
+  protected async *transformReader(
+    reader: MultiCloseReader,
+  ): AsyncIterableIterator<Uint8Array> {
+    yield* readerToBytesUnbuffered(reader);
   }
 }
