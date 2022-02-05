@@ -1,6 +1,11 @@
 import { assertEquals } from "../../deps-test.ts";
 import { group } from "../proc-group.ts";
-import { bytesIterableInput, bytesIterableOutput } from "./bytes-iterable.ts";
+import {
+  bytesIterableInput,
+  bytesIterableOutput,
+  bytesIterableUnbufferedInput,
+  bytesIterableUnbufferedOutput,
+} from "./bytes-iterable.ts";
 import { emptyInput } from "./empty.ts";
 import { stringOutput } from "./string.ts";
 
@@ -29,6 +34,40 @@ Deno.test({
       const out3 = await proc.run(bytesIterableInput(), stringOutput(), out2, {
         cmd: ["gzip", "-cd"],
       });
+
+      assertEquals(out3, "Hello, world.");
+    } finally {
+      proc.close();
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "[HAPPY-PATH] I can connect processes together with AsyncIterable<Uint8Array>, unbuffered.",
+  async fn() {
+    const proc = group();
+    try {
+      const out1 = await proc.run(
+        emptyInput(),
+        bytesIterableUnbufferedOutput(),
+        undefined,
+        { cmd: ["bash", "-c", "echo 'Hello, world.'"] },
+      );
+      const out2 = await proc.run(
+        bytesIterableUnbufferedInput(),
+        bytesIterableUnbufferedOutput(),
+        out1,
+        { cmd: ["gzip", "-c"] },
+      );
+      const out3 = await proc.run(
+        bytesIterableUnbufferedInput(),
+        stringOutput(),
+        out2,
+        {
+          cmd: ["gzip", "-cd"],
+        },
+      );
 
       assertEquals(out3, "Hello, world.");
     } finally {

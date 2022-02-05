@@ -52,6 +52,41 @@ export class BytesIterableInputHandler
 }
 
 /**
+ * Source `stdin` from an iterable of byte arrays, unbuffered.
+ */
+export class BytesIterableUnbufferedInputHandler
+  implements InputHandler<AsyncIterable<Uint8Array>> {
+  constructor() {
+  }
+
+  get failOnEmptyInput(): boolean {
+    return true;
+  }
+
+  async processInput(
+    input: AsyncIterable<Uint8Array>,
+    stdin: MultiCloseWriter,
+  ): Promise<void> {
+    try {
+      for await (const byteArray of input) {
+        await stdin.write(byteArray);
+      }
+    } catch (e) {
+      if (
+        e instanceof Deno.errors.BrokenPipe ||
+        e instanceof Deno.errors.Interrupted
+      ) {
+        // Ignore.
+      } else {
+        throw optionalChain(`${this.constructor.name}.processInput`, e);
+      }
+    } finally {
+      stdin.close();
+    }
+  }
+}
+
+/**
  * Return `stdout` as an iterable over the lines.
  */
 export class BytesIterableOutputHandler

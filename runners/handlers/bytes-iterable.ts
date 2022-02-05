@@ -7,6 +7,7 @@ import {
 import {
   BytesIterableInputHandler,
   BytesIterableOutputHandler,
+  BytesIterableUnbufferedInputHandler,
   BytesIterableUnbufferedOutputHandler,
 } from "./bytes-iterable-handlers.ts";
 
@@ -15,6 +16,15 @@ import {
  */
 export function bytesIterableInput(): InputHandler<AsyncIterable<Uint8Array>> {
   return new BytesIterableInputHandler();
+}
+
+/**
+ * A handler for `AsyncIterable<Uint8Array>` input, unbuffered.
+ */
+export function bytesIterableUnbufferedInput(): InputHandler<
+  AsyncIterable<Uint8Array>
+> {
+  return new BytesIterableUnbufferedInputHandler();
 }
 
 /**

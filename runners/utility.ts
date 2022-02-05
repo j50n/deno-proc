@@ -73,7 +73,7 @@ export async function* toLines(
     const line = concat(currentLine);
     if (line.length > 0 && line[line.length - 1] === 0x0C) {
       /* Strip the carriage return. */
-      return decoder.decode(line.slice(0, line.length - 1));
+      return decoder.decode(line.slice(0, line.length - 1), {});
     } else {
       return decoder.decode(line);
     }

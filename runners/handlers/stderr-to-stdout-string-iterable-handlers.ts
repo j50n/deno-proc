@@ -4,13 +4,14 @@ import {
   MultiCloseWriter,
 } from "../closers.ts";
 import { OutputHandler } from "../proc-group.ts";
-import { readerToBytesUnbuffered, readerToLines, toLines } from "../utility.ts";
+import { readerToBytesUnbuffered, toLines } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
 import { ErrorHandler } from "../error-support.ts";
 import { optionalChain } from "../chained-error.ts";
 
 /**
- * Redirect `stderr` into `stdout`.
+ * Redirect `stderr` into `stdout`. This handler is always unbuffered so that
+ * the lines come out as close to real-time as possible.
  */
 export class StderrToStdoutStringIterableOutputHandler
   implements OutputHandler<AsyncIterable<string>> {
@@ -52,7 +53,7 @@ export class StderrToStdoutStringIterableOutputHandler
     try {
       const mux = new MuxAsyncIterator<string>();
       mux.add(this.handleStderr(stderr));
-      mux.add(readerToLines(stdout));
+      mux.add(toLines(readerToBytesUnbuffered(stdout)));
 
       try {
         yield* mux;
