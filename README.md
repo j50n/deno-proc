@@ -1,9 +1,13 @@
 # proc
 
-An easy way to run processes like a shell script in Deno.
+An easy way to run processes like a shell script - in Deno.
 
-`proc` lets me write process-handling code in readable, idiomatic Typescript
-using `async/await` and `AsyncIterator` promisy goodness.
+`proc` lets you write process-handling code in readable, idiomatic Typescript
+using `async/await` and `AsyncIterator` promisy goodness. It provides a variety
+of powerful and flexible input and output handlers, making using processes
+comfortable and intuitive. And `proc` handles closing and shutting down
+process-related resources in a sane manner - because you have enough to worry
+about, right?
 
 ## Documentation
 
