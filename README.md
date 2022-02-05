@@ -64,20 +64,20 @@ console.dir(await gzip("Hello, world."));
 
 ## Input Types
 
-| Name                             | Description                                                  |
-| :------------------------------- | :----------------------------------------------------------- |
-| `emptyInput()`                   | There is no process input.                                   |
-| `stringInput()`                  | Process input is a `string`.                                 |
-| `stringArrayInput()`             | Process input is a `string[]`.                               |
-| `bytesInput()`                   | Process input is a `Uint8Array`.                             |
-| `readerInput()`<sup>*</sup>      | Process input is a `Deno.Reader & Deno.Closer`.              |
-| `stringIterableInput()`          | Process input is an `AsyncIterable<string>`.                 |
-| `bytesIterableInput()`           | Process input is an `AsyncIterable<Uint8Array>`.             |
-| `bytesIterableUnbufferedInput()` | Process input is an `AsyncIterable<Uint8Array>`, unbuffered. |
+| Name                                  | Description                                                  |
+| :------------------------------------ | :----------------------------------------------------------- |
+| `emptyInput()`                        | There is no process input.                                   |
+| `stringInput()`                       | Process input is a `string`.                                 |
+| `stringArrayInput()`                  | Process input is a `string[]`.                               |
+| `bytesInput()`                        | Process input is a `Uint8Array`.                             |
+| `readerInput()`<sup>*</sup>           | Process input is a `Deno.Reader & Deno.Closer`.              |
+| `readerUnbufferedInput()`<sup>*</sup> | Process input is a `Deno.Reader & Deno.Closer`, unbuffered.  |
+| `stringIterableInput()`               | Process input is an `AsyncIterable<string>`.                 |
+| `bytesIterableInput()`                | Process input is an `AsyncIterable<Uint8Array>`.             |
+| `bytesIterableUnbufferedInput()`      | Process input is an `AsyncIterable<Uint8Array>`, unbuffered. |
 
-<sup>*</sup> - `ReaderInput` is a special input type that does not have a
-corresponding output type. It is not useful for piping data from process to
-process.
+<sup>*</sup> - `readerInput()` and `readerUnbufferedInput()` are special input
+types that do not have corresponding output types.
 
 ## Output Types
 

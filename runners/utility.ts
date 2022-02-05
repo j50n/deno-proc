@@ -36,6 +36,33 @@ export async function pump(
 }
 
 /**
+ * Pump data from a reader to a writer, unbuffered.
+ * @param reader The reader.
+ * @param writer The writer.
+ */
+export async function pumpUnbuffered(
+  reader: Deno.Reader & Deno.Closer,
+  writer: Deno.Writer & Deno.Closer,
+): Promise<void> {
+  try {
+    try {
+      const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
+      while (true) {
+        const len = await reader.read(buffer);
+        if (len === null) {
+          break;
+        }
+        await writer.write(buffer.slice(0, len));
+      }
+    } finally {
+      reader.close();
+    }
+  } finally {
+    writer.close();
+  }
+}
+
+/**
  * Transform a `Reader` to an `AsyncIterableIterator<string>`, separated into lines.
  * @param reader The reader.
  * @param bufSize The buffer size.
