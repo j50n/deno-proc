@@ -7,6 +7,8 @@ import {
 import {
   StringIterableInputHandler,
   StringIterableOutputHandler,
+  StringIterableUnbufferedInputHandler,
+  StringIterableUnbufferedOutputHandler,
 } from "./string-iterable-handlers.ts";
 
 /**
@@ -20,6 +22,15 @@ export function stringIterableInput(
 }
 
 /**
+ * A handler for `AsyncIterable<string>` input, unbuffered.
+ */
+export function stringIterableUnbufferedInput(): InputHandler<
+  AsyncIterable<string>
+> {
+  return new StringIterableUnbufferedInputHandler();
+}
+
+/**
  * A hander for `AsyncIterable<string>` output.
  * @param processStderr A custom processor for `stderr`.
  * @param errorHandler A custom error handler.
@@ -29,4 +40,16 @@ export function stringIterableOutput(
   errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<string>> {
   return new StringIterableOutputHandler(processStderr, errorHandler);
+}
+
+/**
+ * A hander for `AsyncIterable<string>` output, unbuffered.
+ * @param processStderr A custom processor for `stderr`.
+ * @param errorHandler A custom error handler.
+ */
+export function stringIterableUnbufferedOutput(
+  processStderr: StderrProcessor = stderrLinesToConsoleError,
+  errorHandler: ErrorHandler = defaultErrorHandling,
+): OutputHandler<AsyncIterable<string>> {
+  return new StringIterableUnbufferedOutputHandler(processStderr, errorHandler);
 }

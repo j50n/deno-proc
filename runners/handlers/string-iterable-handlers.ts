@@ -8,8 +8,11 @@ import {
 import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
-import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
-import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
+import { concat, DEFAULT_BUFFER_SIZE } from "../utility.ts";
+import {
+  AbstractTextOutputHandler,
+  AbstractTextUnbufferedOutputHandler,
+} from "./abstract-handlers.ts";
 
 /**
  * Source `stdin` from an iterable of lines.
@@ -59,10 +62,70 @@ export class StringIterableInputHandler
 }
 
 /**
+ * Source `stdin` from an iterable of lines, unbuffered.
+ */
+export class StringIterableUnbufferedInputHandler
+  implements InputHandler<AsyncIterable<string>> {
+  constructor() {
+  }
+
+  get failOnEmptyInput(): boolean {
+    return true;
+  }
+
+  async processInput(
+    input: AsyncIterable<string>,
+    stdin: MultiCloseWriter,
+  ): Promise<void> {
+    try {
+      const encoder = new TextEncoder();
+      const cr = encoder.encode("\n");
+
+      for await (const line of input) {
+        await stdin.write(concat([encoder.encode(line), cr]));
+      }
+    } catch (e) {
+      if (
+        e instanceof Deno.errors.BrokenPipe ||
+        e instanceof Deno.errors.Interrupted
+      ) {
+        // Ignore.
+      } else {
+        throw optionalChain(`${this.constructor.name}.processInput`, e);
+      }
+    } finally {
+      stdin.close();
+    }
+  }
+}
+
+/**
  * Return `stdout` as an iterable over the lines.
  */
 export class StringIterableOutputHandler
   extends AbstractTextOutputHandler<AsyncIterable<string>> {
+  constructor(
+    processStderr: StderrProcessor,
+    errorHandler: ErrorHandler,
+  ) {
+    super(processStderr, errorHandler);
+  }
+
+  async *processOutput(
+    stdout: MultiCloseReader,
+    stderr: MultiCloseReader,
+    process: MultiCloseProcess,
+    input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
+  ): AsyncIterableIterator<string> {
+    yield* this.process(stdout, stderr, process, input);
+  }
+}
+
+/**
+ * Return `stdout` as an iterable over the lines, unbuffered.
+ */
+export class StringIterableUnbufferedOutputHandler
+  extends AbstractTextUnbufferedOutputHandler<AsyncIterable<string>> {
   constructor(
     processStderr: StderrProcessor,
     errorHandler: ErrorHandler,

@@ -73,6 +73,7 @@ console.dir(await gzip("Hello, world."));
 | `readerInput()`<sup>*</sup>           | Process input is a `Deno.Reader & Deno.Closer`.              |
 | `readerUnbufferedInput()`<sup>*</sup> | Process input is a `Deno.Reader & Deno.Closer`, unbuffered.  |
 | `stringIterableInput()`               | Process input is an `AsyncIterable<string>`.                 |
+| `stringIterableUnbufferedInput()`     | Process input is an `AsyncIterable<string>`, unbuffered.     |
 | `bytesIterableInput()`                | Process input is an `AsyncIterable<Uint8Array>`.             |
 | `bytesIterableUnbufferedInput()`      | Process input is an `AsyncIterable<Uint8Array>`, unbuffered. |
 
@@ -87,12 +88,14 @@ types that do not have corresponding output types.
 | `stringArrayOutput()`                              | Process output is a `string[]`.                                                        |
 | `bytesOutput()`                                    | Process output is a `Uint8Array`.                                                      |
 | `stringIterableOutput()`                           | Process output is an `AsyncIterable<string>`.                                          |
+| `stringIterableUnbufferedOutput()`                 | Process output is an `AsyncIterable<string>`, unbuffered.                              |
 | `bytesIterableOutput()`                            | Process output is an `AsyncIterable<Uint8Array>`.                                      |
 | `bytesIterableUnbufferedOutput()`                  | Process output is an `AsyncIterable<Uint8Array>`, unbuffered.                          |
 | `stderrToStdoutStringIterableOutput()`<sup>*</sup> | `stdout` and `stderr` are converted to text lines (`string`) and multiplexed together. |
 
-<sup>*</sup> - Special output type that mixes `stdout` and `stderr` together.
-`stdout` must be text data.
+<sup>*</sup> - Special output handler that mixes `stdout` and `stderr` together.
+`stdout` must be text data. `stdout` is unbuffered to allow the text lines to be
+multiplexed as accurately as possible.
 
 > ℹ️ **You must fully consume `Iterable` outputs.** If you only partially
 > consume `Iterable`s, process errors will not propagate properly. For correct
@@ -227,16 +230,22 @@ from one to the next as soon as it becomes available. Non-streaming data (bytes,
 string, or arrays of these) has to be fully resolved before it can be passed to
 the next process, so commands run this way run one at a time.
 
-When you have a lot of data, the fastest way to run processes is to connect them
-together with `AsyncIterable<Uint8Array>`s or to pipe them together using a
-`bash` script - though you give up some ability to capture error conditions with
-the later. `AsyncIterable<Uint8Array>` is iterable/streaming byte data, so
-commands can run in parallel and there is no overhead for text/line conversion.
+Buffered data is sometimes a _lot_ faster than unbuffered data, but it really
+depends on how your processes behave. As a general rule, use the buffered
+handlers if you want the best performance. If you need output from the process
+as it is available, that is when you would normally use unbuffered data.
+
+To sum it all up, when you have a lot of data, the fastest way to run processes
+is to connect them together with `AsyncIterable<Uint8Array>`s or to pipe them
+together using a `bash` script - though you give up some ability to capture
+error conditions with the later. `AsyncIterable<Uint8Array>` is
+iterable/streaming buffered byte data, so commands can run in parallel, chunk
+size is optimal, and there is no overhead for text/line conversion.
 
 `AsyncIterable<string>` is reasonably fast, and useful if you want to process
 string data in the Deno process. This data has to be converted from lines of
 text to bytes into and out of the process, so there is significant amount of
-overhead.
+overhead. Iterating over lots of very small strings does not perform well.
 
 If you don't have a lot of data to process, it doesn't really matter which form
 you use.

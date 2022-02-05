@@ -1,4 +1,4 @@
-import { BufReader, BufWriter, TextProtoReader } from "../deps.ts";
+import { BufReader, BufWriter } from "../deps.ts";
 
 export const DEFAULT_BUFFER_SIZE = 4096;
 
@@ -59,29 +59,6 @@ export async function pumpUnbuffered(
     }
   } finally {
     writer.close();
-  }
-}
-
-/**
- * Transform a `Reader` to an `AsyncIterableIterator<string>`, separated into lines.
- * @param reader The reader.
- * @param bufSize The buffer size.
- */
-export async function* readerToLines(
-  reader: Deno.Reader & Deno.Closer,
-  bufSize = DEFAULT_BUFFER_SIZE,
-): AsyncIterableIterator<string> {
-  try {
-    const textReader = new TextProtoReader(new BufReader(reader, bufSize));
-    while (true) {
-      const line = await textReader.readLine();
-      if (line === null) {
-        break;
-      }
-      yield line;
-    }
-  } finally {
-    reader.close();
   }
 }
 
