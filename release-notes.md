@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.12.1
+
+- **maint** Dependency maintenance.
+
 ## 0.12.0
 
 - `#19` **enhancement** support for unbuffered input/output handlers (optional).
