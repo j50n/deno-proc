@@ -4,6 +4,7 @@ import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import { emptyInput } from "./empty.ts";
 import { stringInput, stringOutput } from "./string.ts";
+import * as proc from "../../mod.ts";
 
 Deno.test({
   name:
@@ -51,5 +52,35 @@ Deno.test({
     } finally {
       proc.close();
     }
+  },
+});
+
+Deno.test({
+  name: "[README] I can use proc to write a wrapper for cowsay.",
+  async fn() {
+    const cowsay = async (text: string): Promise<string> => {
+      const pg = proc.group();
+      try {
+        return await proc.runner(proc.stringInput(), proc.stringOutput())(pg)
+          .run({ cmd: ["cowsay"] }, text);
+      } finally {
+        pg.close();
+      }
+    };
+
+    const whatTheCowSaid = await cowsay("*proc* is pretty cool!");
+
+    console.log(whatTheCowSaid);
+
+    /*
+     *  ________________________
+     * < *proc* is pretty cool! >
+     *  ------------------------
+     *        \   ^__^
+     *         \  (oo)\_______
+     *            (__)\       )\/\
+     *                ||----w |
+     *                ||     ||
+     */
   },
 });
