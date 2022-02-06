@@ -30,9 +30,9 @@ try {
 
 Text can be used as input or output.
 
-This example shows how you can wrap/hide a call to a process in a function. Since we
-are not dealing with `AsyncIterable` data, we can create and close the `Group`
-immediately.
+This example shows how you can wrap/hide a call to a process in a function.
+Since we are not dealing with `AsyncIterable` data, we can create and close the
+`Group` immediately.
 
 It is a well known fact that people instinctively find things said by cows to be
 more credible than things not said by cows, so you may want to use this in your
@@ -77,4 +77,55 @@ console.log(whatTheCowSaid);
 
 ## Unbuffered Handlers
 
-### Text (`AsyncIterable<string>`)
+### Text (`AsyncIterable<string>`) - Unbuffered
+
+Unbuffered text can be used as input or output.
+
+If you use buffered output, lines won't be processed until a buffer (usually
+4,092 bytes) is completely full. For output that is meant to be read by a person
+at the terminal, this can make the process look like it is hung. By using
+unbuffered output, each line is printed as soon as it is ready - instant
+feedback.
+
+This example demonstrates unbuffered output. I am going to run `deno doc` and
+decorate both `stderr` and `stdout` streams.
+
+Note that you can define a custom `stderr` handler function in the
+`runner(...)`, and `stderr` is always unbuffered - because it is often used for
+real-time feedback at the console.
+
+The program is getting a line at a time, as it is ready (no buffering), from
+both streams - asynchronously. These lines are immediately written to console
+with either a red timestamp or a blue timestamp to indicate the stream of
+origin.
+
+```ts
+const pg = proc.group();
+try {
+  for await (
+    const line of proc.runner(
+      proc.emptyInput(),
+      proc.stringIterableUnbufferedOutput(async (stderr) => {
+        for await (const line of stderr) {
+          console.error(
+            `${red(`${new Date().getTime()}`)} -> ${stripColor(line)}`,
+          );
+        }
+      }),
+    )(pg).run({
+      cmd: [
+        "deno",
+        "doc",
+        "--reload",
+        "https://deno.land/x/proc/mod.ts",
+      ],
+    })
+  ) {
+    console.log(
+      `${blue(`${new Date().getTime()}`)} -> ${stripColor(line)}`,
+    );
+  }
+} finally {
+  pg.close();
+}
+```

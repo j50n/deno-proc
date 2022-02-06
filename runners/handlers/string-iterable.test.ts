@@ -1,4 +1,11 @@
-import { assertEquals, asynciter, fail } from "../../deps-test.ts";
+import {
+  assertEquals,
+  asynciter,
+  blue,
+  fail,
+  red,
+  stripColor,
+} from "../../deps-test.ts";
 import { group } from "../proc-group.ts";
 import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
@@ -9,6 +16,8 @@ import {
   stringIterableUnbufferedInput,
   stringIterableUnbufferedOutput,
 } from "./string-iterable.ts";
+import * as proc from "../../mod.ts";
+import { sleep } from "../../mod.ts";
 
 Deno.test({
   name:
@@ -108,6 +117,42 @@ Deno.test({
       assertEquals(acc, [1, 2, 3]);
     } finally {
       proc.close();
+    }
+  },
+});
+
+Deno.test({
+  name: "[README] An example using unbuffered output.",
+  async fn() {
+    const pg = proc.group();
+    try {
+      for await (
+        const line of proc.runner(
+          proc.emptyInput(),
+          proc.stringIterableUnbufferedOutput(async (stderr) => {
+            for await (const line of stderr) {
+              // await sleep(1);
+              console.error(
+                `${red(`${new Date().getTime()}`)} -> ${stripColor(line)}`,
+              );
+            }
+          }),
+        )(pg).run({
+          cmd: [
+            "deno",
+            "doc",
+            "--reload",
+            "https://deno.land/x/proc/mod.ts",
+          ],
+        })
+      ) {
+        // await sleep(1);
+        console.log(
+          `${blue(`${new Date().getTime()}`)} -> ${stripColor(line)}`,
+        );
+      }
+    } finally {
+      pg.close();
     }
   },
 });
