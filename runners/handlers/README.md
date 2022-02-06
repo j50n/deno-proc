@@ -4,7 +4,7 @@
 
 ### Bytes (`Uint8Array`)
 
-Bytes (`Uint8Array`) can be used as input or output.
+Bytes can be used as input or output.
 
 In this example, we pass some bytes to `gzip` to compress them and then pass
 those bytes to `gunzip` to decompress.
@@ -28,7 +28,7 @@ try {
 
 ### Text (`string`)
 
-Text (`string`) can be used as input or output.
+Text can be used as input or output.
 
 This example shows how you can wrap/hide a call to a process in a function. Since we
 are not dealing with `AsyncIterable` data, we can create and close the `Group`
@@ -65,4 +65,16 @@ console.log(whatTheCowSaid);
  */
 ```
 
+### Text (`string[]`)
+
 ## Streaming Handlers
+
+### Bytes (`Reader`) - Input Only
+
+### Bytes (`AsyncIterable<Uint8Array>`)
+
+### Text (`AsyncIterable<string>`)
+
+## Unbuffered Handlers
+
+### Text (`AsyncIterable<string>`)
