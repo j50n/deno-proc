@@ -1,4 +1,5 @@
 import { RunnerImpl } from "./runner-impl.ts";
+import { emptyInput, emptyOutput } from "./runners/handlers/empty.ts";
 import {
   Group,
   InputHandler,
@@ -33,4 +34,13 @@ export function runner<A, B>(
   output: OutputHandler<B>,
 ): (group: Group) => Runner<A, B> {
   return (group: Group) => new RunnerImpl(group, input, output);
+}
+
+/**
+ * A simple runner. `stdin` is empty. `stdout` and `stderr` are directed to the parent.
+ * Note that `stdout` is treated is assumed to be text and not byte data.
+ * @returns A process runner.
+ */
+export function simpleRunner(group: Group): Runner<void, void> {
+  return new RunnerImpl(group, emptyInput(), emptyOutput());
 }

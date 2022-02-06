@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.13.0
+
+- `#15` **feature** Added `simpleRunner`.
+
 ## 0.12.2
 
 - `#16` **documentation** Continuing work on various examples.

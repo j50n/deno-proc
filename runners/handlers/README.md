@@ -1,4 +1,42 @@
-# Handlers
+# Examples
+
+## Easy
+
+### Just Run a Command
+
+If you just want to run a command, try `simpleRunner()`. This works when `stdin`
+is empty, and `stdout` and `stderr` can be streamed to the parent.
+
+In this example, I am wrapping the whole thing in a function so I can open and
+close the `Group` locally.
+
+`spd-say` is installed by default on Ubuntu.
+
+```ts
+async function say(text: string): Promise<void> {
+  const pg = proc.group();
+  try {
+    await proc.simpleRunner(pg).run({
+      cmd: [
+        "spd-say",
+        "-w",
+        "-t",
+        "female3",
+        text,
+      ],
+    });
+  } finally {
+    pg.close();
+  }
+}
+
+await say(
+  "moo moo farms are the best cow farms ever. They say moo, " +
+    "they don't pollute the earth, and they give milk. Visit " +
+    "moo moo farms today for only twelve easy payments of seventeen " +
+    "ninety five weekly!",
+);
+```
 
 ## Non-Streaming Handlers
 
@@ -34,9 +72,14 @@ This example shows how you can wrap/hide a call to a process in a function.
 Since we are not dealing with `AsyncIterable` data, we can create and close the
 `Group` immediately.
 
+`cowsay` needs to be installed:
+
+```sh
+sudo apt install cowsay
+```
+
 It is a well known fact that people instinctively find things said by cows to be
-more credible than things not said by cows, so you may want to use this in your
-own code.
+more credible than things not said by cows. Feel free to steal this code.
 
 ```ts
 const cowsay = async (text: string): Promise<string> => {
