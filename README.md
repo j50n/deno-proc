@@ -224,32 +224,35 @@ try {
 
 ## Performance Considerations
 
-In general, `Uint8Array`s are faster than `string`s. This is because text has to
-be converted to and from `UTF-8`, and lines of text tend to be smaller than then
-ideal byte buffer size (there is a bit of overhead for every line or buffer
+In general, `Uint8Array`s are faster than `string`s. This is because processes
+really just deal with bytes, so text in JavaScript has to be converted to and
+from `UTF-8` both coming and going. Also, lines of text tend to be smaller than
+the ideal byte buffer size (there is a bit of overhead for every line or buffer
 passed).
 
 Iterable (or streaming) data allows commands to run in parallel, streaming data
 from one to the next as soon as it becomes available. Non-streaming data (bytes,
 string, or arrays of these) has to be fully resolved before it can be passed to
-the next process, so commands run this way run one at a time.
+the next process, so commands run this way run one at a time - serially.
 
 Buffered data is sometimes a _lot_ faster than unbuffered data, but it really
-depends on how your processes behave. As a general rule, use the buffered
-handlers if you want the best performance. If you need output from the process
-as it is available, that is when you would normally use unbuffered data.
+depends. As a general rule, use the buffered handlers if you want the best
+performance. If you need output from the process as soon as it is available,
+that is when you would normally use unbuffered data.
 
 To sum it all up, when you have a lot of data, the fastest way to run processes
-is to connect them together with `AsyncIterable<Uint8Array>`s or to pipe them
-together using a `bash` script - though you give up some ability to capture
-error conditions with the later. `AsyncIterable<Uint8Array>` is
-iterable/streaming buffered byte data, so commands can run in parallel, chunk
-size is optimal, and there is no overhead for text/line conversion.
+is to connect them together with buffered `AsyncIterable<Uint8Array>`s or to
+pipe them together using a `bash` script - though you give up some ability to
+capture error conditions with the later. `AsyncIterable<Uint8Array>` (default
+buffered) is iterable/streaming buffered byte data, so commands can run in
+parallel, chunk size is optimal, and there is no overhead for text/line
+conversion.
 
-`AsyncIterable<string>` is reasonably fast, and useful if you want to process
-string data in the Deno process. This data has to be converted from lines of
-text to bytes into and out of the process, so there is significant amount of
-overhead. Iterating over lots of very small strings does not perform well.
+`AsyncIterable<string>` is reasonably fast, and you'll use it if you want to
+process string data in the Deno process. This data has to be converted from
+lines of text to bytes into and out of the process, so there is significant
+amount of overhead. Iterating over lots of very small strings does not perform
+well.
 
 If you don't have a lot of data to process, it doesn't really matter which form
 you use.

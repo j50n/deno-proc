@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.12.2
+
+- `#16` **documentation** Continuing work on various examples.
+- `#18` **documentation** Example showing decorating `stderr` and `stdout` in
+  real time.
+
 ## 0.12.1
 
 - **maint** Dependency maintenance.

@@ -17,7 +17,6 @@ import {
   stringIterableUnbufferedOutput,
 } from "./string-iterable.ts";
 import * as proc from "../../mod.ts";
-import { sleep } from "../../mod.ts";
 
 Deno.test({
   name:
