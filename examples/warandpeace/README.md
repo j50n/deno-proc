@@ -85,4 +85,4 @@ uses more memory, but hey - it runs.
 zcat ./warandpeace.txt.gz | ./read.ts
 ```
 
-I've never read _War and Peace_, but now my computer has.
+I've never read _War and Peace_, but now my computer has!
