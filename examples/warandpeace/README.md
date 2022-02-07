@@ -74,3 +74,15 @@ This version is written without streaming. This is more of a fun
 proof-of-concept than practical solution. Each step runs and completes before
 the next begins. This takes a lot longer to run than the other versions, and it
 uses more memory, but hey - it runs.
+
+## Bonus: A Text-to-Speech Reader
+
+[read.ts](./read.ts)
+
+**Example**
+
+```sh
+zcat ./warandpeace.txt.gz | ./read.ts
+```
+
+I've never read _War and Peace_, but now my computer has.

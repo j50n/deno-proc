@@ -12,4 +12,9 @@ export * from "./runners/closers.ts";
 export * from "./runners/process-exit-error.ts";
 export * from "./runners/chained-error.ts";
 export * from "./runners/stderr-support.ts";
-export { sleep } from "./runners/utility.ts";
+export {
+  readerToBytes,
+  readerToBytesUnbuffered,
+  sleep,
+  toLines,
+} from "./runners/utility.ts";
