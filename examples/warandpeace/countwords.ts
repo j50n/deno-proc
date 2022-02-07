@@ -12,7 +12,6 @@ import * as proc from "../../mod.ts";
  * (the lowercase conversion).
  */
 
-const pg = proc.group();
 try {
   /*
      * `stdin` will be from a gzipped text file. So the first thing we need to do is
@@ -24,7 +23,7 @@ try {
   const uncompressedDoc = proc.runner(
     proc.readerInput(),
     proc.bytesIterableOutput(),
-  )(pg).run(
+  )().run(
     {
       cmd: ["gunzip"],
     },
@@ -37,7 +36,7 @@ try {
   const rawWords = proc.runner(
     proc.bytesIterableInput(),
     proc.bytesIterableOutput(),
-  )(pg).run(
+  )().run(
     {
       cmd: ["grep", "-o", "-E", "(\\w|')+"],
     },
@@ -50,7 +49,7 @@ try {
   const nonNumericWords = proc.runner(
     proc.bytesIterableInput(),
     proc.stringIterableOutput(),
-  )(pg).run(
+  )().run(
     {
       cmd: ["grep", "-v", "-P", "^\\d"],
     },
@@ -75,7 +74,7 @@ try {
   const sortedWords = proc.runner(
     proc.stringIterableInput(),
     proc.bytesIterableOutput(),
-  )(pg).run(
+  )().run(
     { cmd: ["sort"] },
     lowercaseWords,
   );
@@ -86,7 +85,7 @@ try {
   const uniqWords = proc.runner(
     proc.bytesIterableInput(),
     proc.bytesIterableOutput(),
-  )(pg).run(
+  )().run(
     { cmd: ["uniq"] },
     sortedWords,
   );
@@ -96,7 +95,7 @@ try {
    * The first line of output is the count from `wc`. I grab this line and convert it to integer.
    */
   const countOfWords = parseInt(
-    (await proc.runner(proc.bytesIterableInput(), proc.stringArrayOutput())(pg)
+    (await proc.runner(proc.bytesIterableInput(), proc.stringArrayOutput())()
       .run(
         { cmd: ["wc", "-l"] },
         uniqWords,
@@ -108,6 +107,4 @@ try {
 } catch (e) {
   console.dir(e);
   Deno.exit(1);
-} finally {
-  pg.close();
 }

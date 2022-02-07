@@ -2,10 +2,13 @@ import { RunnerImpl } from "./runner-impl.ts";
 import { emptyInput, emptyOutput } from "./runners/handlers/empty.ts";
 import {
   Group,
+  group,
   InputHandler,
   OutputHandler,
   RunOptions,
 } from "./runners/proc-group.ts";
+
+const globalGroup = group();
 
 /** Something that is either a promise or an iterable. */
 export type PromiseOrIterable<B> = B extends AsyncIterable<unknown> ? B
@@ -32,8 +35,8 @@ export interface Runner<A, B> {
 export function runner<A, B>(
   input: InputHandler<A>,
   output: OutputHandler<B>,
-): (group: Group) => Runner<A, B> {
-  return (group: Group) => new RunnerImpl(group, input, output);
+): (group?: Group) => Runner<A, B> {
+  return (group?: Group) => new RunnerImpl(group || globalGroup, input, output);
 }
 
 /**
@@ -41,6 +44,6 @@ export function runner<A, B>(
  * Note that `stdout` is treated is assumed to be text and not byte data.
  * @returns A process runner.
  */
-export function simpleRunner(group: Group): Runner<void, void> {
-  return new RunnerImpl(group, emptyInput(), emptyOutput());
+export function simpleRunner(group?: Group): Runner<void, void> {
+  return new RunnerImpl(group || globalGroup, emptyInput(), emptyOutput());
 }

@@ -6,14 +6,13 @@ import * as proc from "../../mod.ts";
  * This is a rewrite of the first example, but using non-streaming mode, just for fun.
  */
 
-const pg = proc.group();
 try {
   console.error(`${new Date()} Starting.`);
 
   const uncompressedDoc = await proc.runner(
     proc.readerInput(),
     proc.stringOutput(),
-  )(pg).run(
+  )().run(
     {
       cmd: ["gunzip"],
     },
@@ -27,7 +26,7 @@ try {
   const rawWords = await proc.runner(
     proc.stringInput(),
     proc.stringArrayOutput(),
-  )(pg).run(
+  )().run(
     {
       cmd: ["grep", "-o", "-E", "(\\w|')+"],
     },
@@ -41,7 +40,7 @@ try {
   const nonNumericWords = await proc.runner(
     proc.stringArrayInput(),
     proc.stringArrayOutput(),
-  )(pg).run(
+  )().run(
     {
       cmd: ["grep", "-v", "-P", "^\\d"],
     },
@@ -59,7 +58,7 @@ try {
   const sortedWords = await proc.runner(
     proc.stringArrayInput(),
     proc.stringArrayOutput(),
-  )(pg).run(
+  )().run(
     { cmd: ["sort"] },
     lowercaseWords,
   );
@@ -69,7 +68,7 @@ try {
   const uniqWords = await proc.runner(
     proc.stringArrayInput(),
     proc.stringArrayOutput(),
-  )(pg).run(
+  )().run(
     { cmd: ["uniq"] },
     sortedWords,
   );
@@ -79,7 +78,7 @@ try {
   );
 
   const countOfWords = parseInt(
-    (await proc.runner(proc.stringArrayInput(), proc.stringArrayOutput())(pg)
+    (await proc.runner(proc.stringArrayInput(), proc.stringArrayOutput())()
       .run(
         { cmd: ["wc", "-l"] },
         uniqWords,
@@ -92,6 +91,4 @@ try {
 } catch (e) {
   console.dir(e);
   Deno.exit(1);
-} finally {
-  pg.close();
 }

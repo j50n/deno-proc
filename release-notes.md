@@ -3,6 +3,8 @@
 ## 0.13.0
 
 - `#15` **feature** Added `simpleRunner`.
+- `#21` **feature** Supports a global process group by default; allows omitting
+  group create/close boilerplate in most cases.
 
 ## 0.12.2
 

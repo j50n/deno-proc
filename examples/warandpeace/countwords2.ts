@@ -17,7 +17,6 @@ proc.enableChaining(true);
  * as fast as the pure shell version.
  */
 
-const pg = proc.group();
 try {
   /*
    * Bash squashes errors that occur in pipes. I really want to trap an error that
@@ -29,12 +28,12 @@ try {
   const uncompressedText = proc.runner(
     proc.readerInput(),
     proc.bytesIterableOutput(proc.stderrLinesToErrorMessage(20)),
-  )(pg).run({ cmd: ["gunzip"] }, Deno.stdin);
+  )().run({ cmd: ["gunzip"] }, Deno.stdin);
 
   const nonNumericWords = proc.runner(
     proc.bytesIterableInput(),
     proc.stringIterableOutput(),
-  )(pg).run(
+  )().run(
     {
       cmd: [
         "bash",
@@ -57,7 +56,7 @@ try {
       await proc.runner(
         proc.stringIterableInput(),
         proc.stringArrayOutput(),
-      )(pg).run(
+      )().run(
         {
           cmd: [
             "bash",
@@ -75,6 +74,4 @@ try {
 } catch (e) {
   console.dir(e);
   Deno.exit(1);
-} finally {
-  pg.close();
 }

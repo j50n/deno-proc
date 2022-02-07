@@ -38,8 +38,7 @@ type information and data handling behavior to the runner.
 #### An Example
 
 To get you started, here is a simple example where we pass a `string` to a
-process and get back a `Uint8Array`. The group is hidden in the `gzip(...)`
-function.
+process and get back a `Uint8Array`.
 
 ```ts
 /**
@@ -48,18 +47,13 @@ function.
  * @return The text compressed into bytes.
  */
 async function gzip(text: string): Promise<Uint8Array> {
-  const pg = group();
-  try {
-    /* I am using a string for input and a Uint8Array (bytes) for output. */
-    const pr: Runner<string, Uint8Array> = runner(
-      stringInput(),
-      bytesOutput(),
-    )(pg);
+  /* I am using a string for input and a Uint8Array (bytes) for output. */
+  const pr: Runner<string, Uint8Array> = runner(
+    stringInput(),
+    bytesOutput(),
+  )();
 
-    return await pr.run({ cmd: ["gzip", "-c"] }, text);
-  } finally {
-    pg.close();
-  }
+  return await pr.run({ cmd: ["gzip", "-c"] }, text);
 }
 
 console.dir(await gzip("Hello, world."));
@@ -221,6 +215,10 @@ try {
   pg.close();
 }
 ```
+
+If you don't specify a group when running a command, the global group will be
+used. This is fine if the processes you run are all "well behaved" and/or if you
+are doing a short run of just a few processes.
 
 ## Performance Considerations
 
