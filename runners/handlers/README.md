@@ -4,8 +4,10 @@
 
 ### Just Run a Command
 
-If you just want to run a command, try `simpleRunner()`. This works when `stdin`
-is empty, and `stdout` and `stderr` can be streamed to the parent.
+If you just want to run a command, try `simpleRunner()`. It is a specialized,
+one-off solution, but this use case comes up a lot. It works when `stdin` is
+empty, and you don't really care about `stdout` and `stderr` (they are written
+to `stdout` and `stderr` of the parent process).
 
 In this example, I am wrapping the whole thing in a function so I can open and
 close the `Group` locally.

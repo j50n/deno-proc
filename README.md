@@ -137,8 +137,7 @@ specify a group, `proc` will use the global `Group` that exists for the lifetime
 of the Deno process.
 
 ```ts
-const template = proc.runner(proc.emptyInput(), proc.stringOutput());
-const runner: proc.Runner<void, string> = template(); // No Group is specified.
+const runner = proc.runner(proc.emptyInput(), proc.stringOutput())();
 console.log(runner.run({ cmd: ["ls", "-la"] }));
 ```
 
