@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.13.2
+
+- **documentation** Example with global `Group`.
+
 ## 0.13.1
 
 - **feature** Minor refactor of line split code.
