@@ -85,4 +85,7 @@ uses more memory, but hey - it runs.
 zcat ./warandpeace.txt.gz | ./read.ts
 ```
 
-I've never read _War and Peace_, but now my computer has!
+I've never read _War and Peace_, but now my computer has! It may make your ears
+bleed, but this script will read out the entire series of four volumes - over a
+few days - reliably. It is a nice reminder that not everything that seems like a
+good idea is actually a good idea. Enjoy!
