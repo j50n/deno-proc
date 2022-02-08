@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.13.3
+
+- **documentation** Moved the _Key Concepts_ section.
+
 ## 0.13.2
 
 - **documentation** Example with global `Group`.

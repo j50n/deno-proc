@@ -150,4 +150,3 @@ a process. This will result in resource leakage. If your program is short and
 does not start many processes, or if you are sure that the way you are using
 processes is well behaved (either non-streaming output or all output data is
 fully consumed), you can use the short form safely.
-
