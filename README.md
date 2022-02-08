@@ -122,13 +122,32 @@ Finally, use the runner to execute a command.
 
 ```ts
 try {
-  console.log(
-    runner.run({cmd: ["ls", "-la"]});
-  );
+  console.log(runner.run({ cmd: ["ls", "-la"] }));
 } finally {
   pg.close();
 }
 ```
+
+### A Simpler Alternative - The Global Group
+
+It is not strictly necessary to create and close a local `Group`. If you don't
+specify a group, `proc` will use the global `Group` that exists for the lifetime
+of the Deno process.
+
+```ts
+const template = proc.runner(proc.emptyInput(), proc.stringOutput());
+const runner: proc.Runner<void, string> = template(); // No Group is specified.
+console.log(runner.run({ cmd: ["ls", "-la"] }));
+```
+
+Most of the time, `proc` can automatically clean up processes. In some cases
+where the output of one process feeds into the input of another, the first
+process won't be fully processed and therefore cannot be automatically shut
+down. This can also happen if you don't fully process `AsyncIterable` output of
+a process. This will result in resource leakage. If your program is short and
+does not start many processes, or if you are sure that the way you are using
+processes is well behaved (either non-streaming output or all output data is
+fully consumed), you can use the short form safely.
 
 # Key Concepts
 
