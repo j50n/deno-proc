@@ -71,15 +71,28 @@ export async function* toLines(
 ): AsyncIterableIterator<string> {
   const decoder = new TextDecoder();
 
+  for await (const line of toByteLines(buffs)) {
+    yield decoder.decode(line);
+  }
+}
+
+/**
+ * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array>`
+ * split on `lf` and suppressing trailing `cr`.
+ * @param buffs The iterable bytes.
+ */
+export async function* toByteLines(
+  buffs: AsyncIterable<Uint8Array>,
+): AsyncIterableIterator<Uint8Array> {
   let currentLine: Uint8Array[] = [];
 
-  const createLine = (): string => {
+  const createLine = (): Uint8Array => {
     const line = concat(currentLine);
     if (line.length > 0 && line[line.length - 1] === 0x0C) {
       /* Strip the carriage return. */
-      return decoder.decode(line.slice(0, line.length - 1), {});
+      return line.slice(0, line.length - 1);
     } else {
-      return decoder.decode(line);
+      return line;
     }
   };
 

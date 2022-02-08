@@ -47,13 +47,9 @@ process and get back a `Uint8Array`.
  * @return The text compressed into bytes.
  */
 async function gzip(text: string): Promise<Uint8Array> {
-  /* I am using a string for input and a Uint8Array (bytes) for output. */
-  const pr: Runner<string, Uint8Array> = runner(
-    stringInput(),
-    bytesOutput(),
-  )();
-
-  return await pr.run({ cmd: ["gzip", "-c"] }, text);
+  return await runner(stringInput(), bytesOutput())().run({
+    cmd: ["gzip", "-c"],
+  }, text);
 }
 
 console.dir(await gzip("Hello, world."));
