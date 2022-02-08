@@ -37,8 +37,8 @@ type information and data handling behavior to the runner.
 
 #### An Example
 
-To get you started, here is a simple example where we pass a `string` to a
-process and get back a `Uint8Array`.
+To get you started, here is a simple example where we pass a text `string` to a
+process and get back a `Uint8Array` - text compressed to bytes using `gzip`.
 
 ```ts
 /**

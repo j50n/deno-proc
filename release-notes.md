@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.13.1
+
+- **feature** Minor refactor of line split code.
+- **documentation** Simplified the initial example.
+
 ## 0.13.0
 
 - `#15` **feature** Added `simpleRunner`.
