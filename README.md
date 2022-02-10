@@ -141,6 +141,10 @@ const runner = proc.runner(proc.emptyInput(), proc.stringOutput())();
 console.log(runner.run({ cmd: ["ls", "-la"] }));
 ```
 
+Notice the empty parentheses at the end of the first line in the second example.
+This is using the implicit global `Group` (which you don't need to close
+manually).
+
 Most of the time, `proc` can automatically clean up processes. In some cases
 where the output of one process feeds into the input of another, the first
 process won't be fully processed and therefore cannot be automatically shut

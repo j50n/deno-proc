@@ -166,6 +166,9 @@ console.log(cowSaysMoo.join("\n"));
 In all seriousness, this is a pretty nifty way to distinguish important error
 messages from background noise in long log output.
 
+The above script is the equivalent of typing in `figlet "MOO!" | cowsay -n` in
+the terminal.
+
 ## Streaming Handlers
 
 ### Bytes (`Reader`) - Input Only
