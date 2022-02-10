@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.13.5
+
+- `#16` **documentation** Minor documentation edits.
+
 ## 0.13.4
 
 - `#16` **documentation** Example for string arrays.
