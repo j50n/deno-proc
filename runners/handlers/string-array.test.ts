@@ -4,6 +4,7 @@ import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import { emptyInput } from "./empty.ts";
 import { stringArrayInput, stringArrayOutput } from "./string-array.ts";
+import * as proc from "../../mod.ts";
 
 Deno.test({
   name:
@@ -51,5 +52,45 @@ Deno.test({
     } finally {
       proc.close();
     }
+  },
+});
+
+Deno.test({
+  name: "[README] I can write out big letters with figlet.",
+  async fn() {
+    const moo = await proc.runner(proc.emptyInput(), proc.stringArrayOutput())()
+      .run({ cmd: ["figlet", "MOO!"] });
+
+    console.log(moo.join("\n"));
+
+    /*  __  __  ___   ___  _
+     * |  \/  |/ _ \ / _ \| |
+     * | |\/| | | | | | | | |
+     * | |  | | |_| | |_| |_|
+     * |_|  |_|\___/ \___/(_)
+     */
+
+    const cowSaysMoo = await proc.runner(
+      stringArrayInput(),
+      stringArrayOutput(),
+    )().run({ cmd: ["cowsay", "-n"] }, moo);
+
+    console.log(cowSaysMoo.join("\n"));
+
+    /*
+     *  ________________________
+     * /  __  __  ___   ___  _  \
+     * | |  \/  |/ _ \ / _ \| | |
+     * | | |\/| | | | | | | | | |
+     * | | |  | | |_| | |_| |_| |
+     * | |_|  |_|\___/ \___/(_) |
+     * \                        /
+     *  ------------------------
+     *         \   ^__^
+     *          \  (oo)\_______
+     *             (__)\       )\/\
+     *                 ||----w |
+     *                 ||     ||
+     */
   },
 });

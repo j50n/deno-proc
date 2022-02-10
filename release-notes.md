@@ -1,4 +1,8 @@
 # Release Notes
+## 0.13.4
+
+- `#16` **documentation** Example for string arrays.
+
 
 ## 0.13.3
 

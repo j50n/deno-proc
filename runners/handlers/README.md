@@ -112,6 +112,60 @@ console.log(whatTheCowSaid);
 
 ### Text (`string[]`)
 
+When it comes to cows, go **BIG** or go home. Also, this demonstrates using
+`string[]` for input and output.
+
+`figlet` is a utility that prints letters as ASCII art. For more features and
+fonts, check out `toilet`.
+
+`figlet` needs to be installed:
+
+```sh
+sudo apt install figlet
+```
+
+This cow is very loud.
+
+```ts
+const moo = await proc.runner(proc.emptyInput(), proc.stringArrayOutput())()
+  .run({ cmd: ["figlet", "MOO!"] });
+
+console.log(moo.join("\n"));
+
+/*  __  __  ___   ___  _
+ * |  \/  |/ _ \ / _ \| |
+ * | |\/| | | | | | | | |
+ * | |  | | |_| | |_| |_|
+ * |_|  |_|\___/ \___/(_)
+ */
+
+const cowSaysMoo = await proc.runner(
+  stringArrayInput(),
+  stringArrayOutput(),
+)().run({ cmd: ["cowsay", "-n"] }, moo);
+
+console.log(cowSaysMoo.join("\n"));
+
+/*
+ *  ________________________
+ * /  __  __  ___   ___  _  \
+ * | |  \/  |/ _ \ / _ \| | |
+ * | | |\/| | | | | | | | | |
+ * | | |  | | |_| | |_| |_| |
+ * | |_|  |_|\___/ \___/(_) |
+ * \                        /
+ *  ------------------------
+ *         \   ^__^
+ *          \  (oo)\_______
+ *             (__)\       )\/\
+ *                 ||----w |
+ *                 ||     ||
+ */
+```
+
+In all seriousness, this is a pretty nifty way to distinguish important error
+messages from background noise in long log output.
+
 ## Streaming Handlers
 
 ### Bytes (`Reader`) - Input Only
