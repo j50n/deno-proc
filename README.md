@@ -182,5 +182,6 @@ This doesn't come up very often, but occasionally you may not want to treat all
 non-zero exit codes as an error. You also may want to throw your own error
 rather than the standard `ProcessExitError`.
 
-The default error handling definition is defined in [./runner/error-support.ts].
-Refer to this code if you want to create a custom error handler.
+The default error handling definition is defined in
+[error-support.ts](./runner/error-support.ts). Refer to this code if you want to
+create a custom error handler.
