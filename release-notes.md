@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.13.8
+
+- **documentation** Fixed links in documentation.
+
 ## 0.13.7
 
 - **documentation** Fixed a typo.
