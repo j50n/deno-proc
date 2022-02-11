@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.13.7
+
+- **documentation** Fixed a typo.
+
 ## 0.13.6
 
 - **documentation** Added _Direct Control Over `stderr`_ section.
