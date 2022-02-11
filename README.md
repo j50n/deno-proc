@@ -153,3 +153,24 @@ a process. This will result in resource leakage. If your program is short and
 does not start many processes, or if you are sure that the way you are using
 processes is well behaved (either non-streaming output or all output data is
 fully consumed), you can use the short form safely.
+
+### Direct Control Over `stderr`
+
+For most of the output handlers, the first argument is optional and allows you to pass a function to process `stderr` yourself.
+
+- The function is passed one argument - an `AsyncIterator<string>` of `stderr` lines in text form (unbuffered)
+- You can optionally return a `string[]` of lines from this function; these are attached to the `ProcessExitError` if the process returns a non-zero error code
+- You can throw an error from this function; this allows you to scrape `stderr` and do special error handling
+
+The examples use this feature a couple of times.
+
+See [stderr-support.ts](./runner/stderr-support.ts) for some functions that provide non-default `stderr` bahaviors. You can use these directly, and they also serve as good working examples.
+
+### Overriding the Default Exit-Code Error Handling Behavior
+
+For most of the output handlers, the second argument is optional and allows you to redefine the way that `proc` raises errors based on the process exit code.
+
+This doesn't come up very often, but occasionally you may not want to treat all non-zero exit codes as an error. You also may want to throw your own error rather than the standard `ProcessExitError`. 
+
+The default error handling definition is defined in [./runner/error-support.ts]. Refer to this code if you want to create a custom error handler.
+
