@@ -169,7 +169,7 @@ to pass a function to process `stderr` yourself.
 
 The examples use this feature a couple of times.
 
-See [stderr-support.ts](./runner/stderr-support.ts) for some functions that
+See [stderr-support.ts](./runners/stderr-support.ts) for some functions that
 provide non-default `stderr` bahaviors. You can use these directly, and they
 also serve as good working examples.
 
@@ -183,5 +183,5 @@ non-zero exit codes as an error. You also may want to throw your own error
 rather than the standard `ProcessExitError`.
 
 The default error handling definition is defined in
-[error-support.ts](./runner/error-support.ts). Refer to this code if you want to
-create a custom error handler.
+[error-support.ts](./runners/error-support.ts). Refer to this code if you want
+to create a custom error handler.
