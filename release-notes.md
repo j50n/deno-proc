@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.14.0
+
+- **feature** Support workers with `PushIterable`; includes example.
+
 ## 0.13.8
 
 - **documentation** Fixed links in documentation.
