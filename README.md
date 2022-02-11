@@ -21,6 +21,7 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 
 - [Simple Examples for Input and Output Handlers](./runners/handlers/README.md)
 - [Count Unique Words in _War and Peace_](./examples/warandpeace/README.md)
+- [Use `PushIterable` to Implement Workers](./examples/pushiterable/README.md)
 
 ## Related Projects
 
