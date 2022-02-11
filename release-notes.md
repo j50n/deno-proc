@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.13.6
+
+- **documentation** Added _Direct Control Over `stderr`_ section.
+- **documentation** Added _Overriding the Default Exit-Code Error Handling
+  Behavior_ section.
+
 ## 0.13.5
 
 - `#16` **documentation** Minor documentation edits.
