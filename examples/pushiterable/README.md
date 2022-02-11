@@ -1,11 +1,14 @@
 # Use `PushIterable` to Implement Workers
 
 `proc` can be used to manage persistent child processes that accept messages
-from your parent process and respond back with messages of their own. This is
-simlar to web workers but with fewer limitations.
+from your parent process and respond back with messages of their own. In order
+to "push" messages to a process, you need to use a
+[PushIterable](../../runners/push-iterable.ts). This technique is simlar to web
+workers but with fewer limitations.
 
-Note that this isn't limited to processes that run Deno. You could just as
-easily run something like `grep` or `awk` or something written in Python.
+Note that this isn't limited to processes that run Deno, even though that is our
+example. You could just as easily run something like `grep` or `awk` or
+something written in Python as a child process that is managed this way.
 
 ## Run the Example
 
