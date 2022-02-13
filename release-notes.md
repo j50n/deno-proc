@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.14.2
+
+- **fix** Removed file.
+
 ## 0.14.1
 
 - `#16` **documentation** Demonstrate using `aplay` to play `.wav` files.
