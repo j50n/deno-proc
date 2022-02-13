@@ -20,11 +20,11 @@ async function getSoundFile(name: string): Promise<Uint8Array> {
 async function play(sound: Uint8Array): Promise<void> {
   /*
    * The local group isn't strictly necessary here, but it guarantees my
-   * calls to `aplay` will be cleaned up as soon as the sound is done 
-   * playing. In this case, the processes should clean themselves up 
-   * correctly anyway, so there should not be any leaks in any case. 
-   * 
-   * Belt-and-braces approach. 
+   * calls to `aplay` will be cleaned up as soon as the sound is done
+   * playing. In this case, the processes should clean themselves up
+   * correctly anyway, so there should not be any leaks in any case.
+   *
+   * Belt-and-braces approach.
    */
   const pg = proc.group();
   try {
