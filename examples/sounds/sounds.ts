@@ -18,13 +18,26 @@ async function getSoundFile(name: string): Promise<Uint8Array> {
  * @param sound A WAV file.
  */
 async function play(sound: Uint8Array): Promise<void> {
-  for await (
-    const line of proc.runner(
-      proc.bytesInput(),
-      proc.stringIterableUnbufferedOutput(),
-    )().run({ cmd: ["aplay"] }, sound)
-  ) {
-    console.log(line);
+  /*
+   * The local group isn't strictly necessary here, but it guarantees my
+   * calls to `aplay` will be cleaned up as soon as the sound is done 
+   * playing. In this case, the processes should clean themselves up 
+   * correctly anyway, so there should not be any leaks in any case. 
+   * 
+   * Belt-and-braces approach. 
+   */
+  const pg = proc.group();
+  try {
+    for await (
+      const line of proc.runner(
+        proc.bytesInput(),
+        proc.stringIterableUnbufferedOutput(),
+      )(pg).run({ cmd: ["aplay"] }, sound)
+    ) {
+      console.log(line);
+    }
+  } finally {
+    pg.close();
   }
 }
 
