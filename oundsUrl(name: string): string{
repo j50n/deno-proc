@@ -1,0 +1,212 @@
+APLAY(1)                                             General Commands Manual                                             APLAY(1)
+
+NNAAMMEE
+       arecord, aplay - command-line sound recorder and player for ALSA soundcard driver
+
+SSYYNNOOPPSSIISS
+       aarreeccoorrdd [_f_l_a_g_s] [filename]
+       aappllaayy [_f_l_a_g_s] [filename [filename]] ...
+
+DDEESSCCRRIIPPTTIIOONN
+       aarreeccoorrdd  is a command-line soundfile recorder for the ALSA soundcard driver. It supports several file formats and multiple
+       soundcards with multiple devices. If recording with interleaved mode samples the file is automatically  split  before  the
+       2GB filesize.
+
+       aappllaayy is much the same, only it plays instead of recording. For supported soundfile formats, the sampling rate, bit depth,
+       and so forth can be automatically determined from the soundfile header.
+
+       If filename is not specified, the standard output or input is used. The aappllaayy utility accepts multiple filenames.
+
+OOPPTTIIOONNSS
+       _-_h_, _-_-_h_e_l_p
+              Help: show syntax.
+
+       _-_-_v_e_r_s_i_o_n
+              Print current version.
+
+       _-_l_, _-_-_l_i_s_t_-_d_e_v_i_c_e_s
+              List all soundcards and digital audio devices
+
+       _-_L_, _-_-_l_i_s_t_-_p_c_m_s
+              List all PCMs defined
+
+       _-_D_, _-_-_d_e_v_i_c_e_=_N_A_M_E
+              Select PCM by name
+
+       _-_q _-_-_q_u_i_e_t
+              Quiet mode. Suppress messages (not sound :))
+
+       _-_t_, _-_-_f_i_l_e_-_t_y_p_e _T_Y_P_E
+              File type (voc, wav, raw or au).  If this parameter is omitted the WAVE format is used.
+
+       _-_c_, _-_-_c_h_a_n_n_e_l_s_=_#
+              The number of channels.  The default is one channel.  Valid values are 1 through 32.
+
+       _-_f _-_-_f_o_r_m_a_t_=_F_O_R_M_A_T
+              Sample format
+              Recognized sample formats are: S8 U8 S16_LE S16_BE U16_LE U16_BE S24_LE S24_BE U24_LE U24_BE S32_LE  S32_BE  U32_LE
+              U32_BE  FLOAT_LE  FLOAT_BE  FLOAT64_LE FLOAT64_BE IEC958_SUBFRAME_LE IEC958_SUBFRAME_BE MU_LAW A_LAW IMA_ADPCM MPEG
+              GSM SPECIAL S24_3LE S24_3BE U24_3LE U24_3BE S20_3LE S20_3BE U20_3LE U20_3BE S18_3LE S18_3BE U18_3LE
+              Some of these may not be available on selected hardware
+              The available format shortcuts are:
+              -f cd (16 bit little endian, 44100, stereo) [-f S16_LE -c2 -r44100]
+              -f cdr (16 bit big endian, 44100, stereo) [-f S16_BE -c2 -f44100]
+              -f dat (16 bit little endian, 48000, stereo) [-f S16_LE -c2 -r48000]
+              If no format is given U8 is used.
+
+       _-_r_, _-_-_r_a_t_e_=_#_<_H_z_>
+              Sampling rate in Hertz. The default rate is 8000 Hertz.  If the value specified is less than 300, it  is  taken  as
+              the rate in kilohertz.  Valid values are 2000 through 192000 Hertz.
+
+       _-_d_, _-_-_d_u_r_a_t_i_o_n_=_#
+              Interrupt after # seconds.  A value of zero means infinity.  The default is zero, so if this option is omitted then
+              the record/playback process will run until it is killed.  Either '-d' or '-s' option is available exclusively.
+
+       _-_s_, _-_-_s_a_m_p_l_e_s_=_#
+              Interrupt after tranmission of # PCM frames.  A value of zero means infinity.  The default is zero, so if this  op‐
+              tions  is  omitted  then  the  record/playback  process will run until it is killed.  Either '-d' or '-s' option is
+              available exclusively.
+
+       _-_M_, _-_-_m_m_a_p
+              Use memory-mapped (mmap) I/O mode for the audio stream.  If this option is not set, the read/write I/O mode will be
+              used.
+
+       _-_N_, _-_-_n_o_n_b_l_o_c_k
+              Open  the  audio device in non-blocking mode. If the device is busy the program will exit immediately.  If this op‐
+              tion is not set the program will block until the audio device is available again.
+
+       _-_F_, _-_-_p_e_r_i_o_d_-_t_i_m_e_=_#
+              Distance between interrupts is # microseconds.  If no period time and no period size is given then a quarter of the
+              buffer time is set.
+
+       _-_B_, _-_-_b_u_f_f_e_r_-_t_i_m_e_=_#
+              Buffer  duration  is  #  microseconds If no buffer time and no buffer size is given then the maximal allowed buffer
+              time but not more than 500ms is set.
+
+       _-_-_p_e_r_i_o_d_-_s_i_z_e_=_#
+              Distance between interrupts is # frames If no period size and no period time is given then a quarter of the  buffer
+              size is set.
+
+       _-_-_b_u_f_f_e_r_-_s_i_z_e_=_#
+              Buffer  duration is # frames If no buffer time and no buffer size is given then the maximal allowed buffer time but
+              not more than 500ms is set.
+
+       _-_A_, _-_-_a_v_a_i_l_-_m_i_n_=_#
+              Min available space for wakeup is # microseconds
+
+       _-_R_, _-_-_s_t_a_r_t_-_d_e_l_a_y_=_#
+              Delay for automatic PCM start is # microseconds (relative to buffer size if <= 0)
+
+       _-_T_, _-_-_s_t_o_p_-_d_e_l_a_y_=_#
+              Delay for automatic PCM stop is # microseconds from xrun
+
+       _-_v_, _-_-_v_e_r_b_o_s_e
+              Show PCM structure and setup.  This option is accumulative.  The VU meter is displayed when this is given twice  or
+              three times.
+
+       _-_V_, _-_-_v_u_m_e_t_e_r_=_T_Y_P_E
+              Specifies  the  VU-meter  type,  either _s_t_e_r_e_o or _m_o_n_o.  The stereo VU-meter is available only for 2-channel stereo
+              samples with interleaved format.
+
+       _-_I_, _-_-_s_e_p_a_r_a_t_e_-_c_h_a_n_n_e_l_s
+              One file for each channel.  This option disables max-file-time and use-strftime, and ignores SIGUSR1.   The  stereo
+              VU meter is not available with separate channels.
+
+       _-_P     Playback.  This is the default if the program is invoked by typing aplay.
+
+       _-_C     Record.  This is the default if the program is invoked by typing arecord.
+
+       _-_i_, _-_-_i_n_t_e_r_a_c_t_i_v_e
+              Allow interactive operation via stdin.  Currently only pause/resume via space or enter key is implemented.
+
+       _-_m_, _-_-_c_h_m_a_p_=_c_h_1_,_c_h_2_,_._._.
+              Give the channel map to override or follow.  Pass channel position strings like _F_L, _F_R, etc.
+
+              If  a  device  supports  the override of the channel map, aappllaayy tries to pass the given channel map.  If it doesn't
+              support the channel map override but still it provides the channel map information, aappllaayy tries  to  rearrange  the
+              channel order in the buffer to match with the returned channel map from the device.
+
+       _-_-_d_i_s_a_b_l_e_-_r_e_s_a_m_p_l_e
+              Disable automatic rate resample.
+
+       _-_-_d_i_s_a_b_l_e_-_c_h_a_n_n_e_l_s
+              Disable automatic channel conversions.
+
+       _-_-_d_i_s_a_b_l_e_-_f_o_r_m_a_t
+              Disable automatic format conversions.
+
+       _-_-_d_i_s_a_b_l_e_-_s_o_f_t_v_o_l
+              Disable software volume control (softvol).
+
+       _-_-_t_e_s_t_-_p_o_s_i_t_i_o_n
+              Test ring buffer position.
+
+       _-_-_t_e_s_t_-_c_o_e_f_=_<_c_o_e_f_>
+              Test  coefficient  for ring buffer position; default is 8.  Expression for validation is: coef * (buffer_size / 2).
+              Minimum value is 1.
+
+       _-_-_t_e_s_t_-_n_o_w_a_i_t
+              Do not wait for the ring buffer ‐ eats the whole CPU.
+
+       _-_-_m_a_x_-_f_i_l_e_-_t_i_m_e
+              While recording, when the output file has been accumulating sound for this long, close it and  open  a  new  output
+              file.  Default is the maximum size supported by the file format: 2 GiB for WAV files.  This option has no effect if
+              --separate-channels is specified.
+
+       _-_-_p_r_o_c_e_s_s_-_i_d_-_f_i_l_e _<_f_i_l_e _n_a_m_e_>
+              aplay writes its process ID here, so other programs can send signals to it.
+
+       _-_-_u_s_e_-_s_t_r_f_t_i_m_e
+              When recording, interpret %-codes in the file name parameter using the strftime facility whenever the  output  file
+              is opened.  The important strftime codes are: %Y is the year, %m month, %d day of the month, %H hour, %M minute and
+              %S second.  In addition, %v is the file number, starting at 1.  When this option is specified, intermediate  direc‐
+              tories  for  the output file are created automatically.  This option has no effect if --separate-channels is speci‐
+              fied.
+
+       _-_-_d_u_m_p_-_h_w_-_p_a_r_a_m_s
+              Dump hw_params of the device preconfigured status to stderr. The dump lists capabilities  of  the  selected  device
+              such  as  supported formats, sampling rates, numbers of channels, period and buffer bytes/sizes/times.  For raw de‐
+              vice hw:X this option basically lists hardware capabilities of the soundcard.
+
+       _-_-_f_a_t_a_l_-_e_r_r_o_r_s
+              Disables recovery attempts when errors (e.g. xrun) are encountered; the aplay process instead aborts immediately.
+
+SSIIGGNNAALLSS
+       When recording, SIGINT, SIGTERM and SIGABRT will close the output file and exit.  SIGUSR1 will close the output file, open
+       a new one, and continue recording.  However, SIGUSR1 does not work with --separate-channels.
+
+EEXXAAMMPPLLEESS
+       aappllaayy --cc 11 --tt rraaww --rr 2222005500 --ff mmuu__llaaww ffoooobbaarr
+              will play the raw file "foobar" as a 22050-Hz, mono, 8-bit, Mu-Law .au file.
+
+       aarreeccoorrdd --dd 1100 --ff ccdd --tt wwaavv --DD ccooppyy ffoooobbaarr..wwaavv
+              will  record  foobar.wav  as a 10-second, CD-quality wave file, using the PCM "copy" (which might be defined in the
+              user's .asoundrc file as:
+              pcm.copy {
+                type plug
+                slave {
+                  pcm hw
+                }
+                route_policy copy
+              }
+
+       aarreeccoorrdd --tt wwaavv ----mmaaxx--ffiillee--ttiimmee 3300 mmoonn..wwaavv
+              Record from the default audio source in monaural, 8,000 samples per second, 8 bits per sample.  Start  a  new  file
+              every  30  seconds.   File  names  are  mon-nn.wav,  where  nn  increases  from  01.   The file after mon-99.wav is
+              mon-100.wav.
+
+       aarreeccoorrdd --ff ccdd --tt wwaavv ----mmaaxx--ffiillee--ttiimmee 33660000 ----uussee--ssttrrffttiimmee %%YY//%%mm//%%dd//lliisstteenn--%%HH--%%MM--%%vv..wwaavv
+              Record in stereo from the default audio source.  Create a new file every hour.  The files are placed in directories
+              based on their start dates and have names which include their start times and file numbers.
+
+SSEEEE AALLSSOO
+        aallssaammiixxeerr((11)),, aammiixxeerr((11))
+
+BBUUGGSS
+       Note that .aiff files are not currently supported.
+
+AAUUTTHHOORR
+       aarreeccoorrdd  and aappllaayy are by Jaroslav Kysela <perex@perex.cz> This document is by Paul Winkler <zarmzarm@erols.com>.  Updated
+       for Alsa 0.9 by James Tappin <james@xena.uklinux.net>
+
+                                                          1 January 2010                                                 APLAY(1)

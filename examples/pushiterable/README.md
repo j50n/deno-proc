@@ -1,5 +1,8 @@
 # Use `PushIterable` to Implement Workers
 
+This example takes a fundamentally different approach to running child
+processes, flipping the direction of the data on the input (`stdin`) side.
+
 `proc` can be used to manage persistent child processes that accept messages
 from your parent process and respond back with messages of their own. In order
 to "push" messages to a process, you need to use a

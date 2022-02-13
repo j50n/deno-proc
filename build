@@ -22,3 +22,7 @@ cd "$HERE/examples/warandpeace" && (
 cd "$HERE/examples/pushiterable" && (
     PATH=".:$PATH" ./example-of-pushiterable.ts
 )
+
+cd "$HERE/examples/sounds" && (
+    ./sounds.ts
+)

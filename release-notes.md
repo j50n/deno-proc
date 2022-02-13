@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.14.1
+
+- `#16` **documentation** Demonstrate using `aplay` to play `.wav` files.
+
 ## 0.14.0
 
 - **feature** Support workers with `PushIterable`; includes example.

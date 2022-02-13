@@ -1,4 +1,6 @@
-# Count Unique Words in _War and Peace_
+# Count the Unique Words in _War and Peace_
+
+This is a fun little example of line-oriented data processing.
 
 Tolstoy's _War and Peace_ is sprawling and immense, and it uses a lot of words.
 But how many _unique_ words does it contain?
