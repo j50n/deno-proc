@@ -57,6 +57,12 @@ await proc.sleep(100);
 await play(cowbellWav);
 await proc.sleep(100);
 
-/* Moo and ring a bell. */
-await Promise.all([play(cowWav), play(cowbellWav)]);
+/* Moo and ring a bell simultaneously. */
+await Promise.all([
+  play(cowWav),
+  (async () => {
+    await play(cowbellWav);
+    await play(cowbellWav);
+  })(),
+]);
 await proc.sleep(100);
