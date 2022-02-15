@@ -42,6 +42,15 @@ await say(
 
 ## Non-Streaming Handlers
 
+Non-streaming data is convenient when your data is small. The non-streaming
+implementations guarantee that data is completely processes and errors are
+checked and propagated correctly. If you are using both non-streaming input and
+output handlers for a command, it is always safe to use the default global
+`Group`. Non-streaming code is also a bit easier to debug.
+
+If you aren't dealing with bigger data sizes, it's definitely a good idea to
+start with the non-streaming handlers.
+
 ### Bytes (`Uint8Array`)
 
 Bytes can be used as input or output.
@@ -50,20 +59,15 @@ In this example, we pass some bytes to `gzip` to compress them and then pass
 those bytes to `gunzip` to decompress.
 
 ```ts
-const pg = proc.group();
-try {
-  const pr = proc.runner(proc.bytesInput(), proc.bytesOutput())(pg);
+const pr = proc.runner(proc.bytesInput(), proc.bytesOutput())();
 
-  const original = new Uint8Array([1, 2, 3, 4, 5]);
+const original = new Uint8Array([1, 2, 3, 4, 5]);
 
-  const gzipped = await pr.run({ cmd: ["gzip"] }, original);
-  console.dir(gzipped);
-  const unzipped = await pr.run({ cmd: ["gunzip"] }, gzipped);
+const gzipped = await pr.run({ cmd: ["gzip"] }, original);
+console.dir(gzipped);
+const unzipped = await pr.run({ cmd: ["gunzip"] }, gzipped);
 
-  assertEquals(unzipped, original);
-} finally {
-  pg.close();
-}
+assertEquals(unzipped, original);
 ```
 
 ### Text (`string`)
@@ -85,13 +89,8 @@ more credible than things not said by cows. Feel free to steal this code.
 
 ```ts
 const cowsay = async (text: string): Promise<string> => {
-  const pg = proc.group();
-  try {
-    return await proc.runner(proc.stringInput(), proc.stringOutput())(pg)
-      .run({ cmd: ["cowsay"] }, text);
-  } finally {
-    pg.close();
-  }
+  return await proc.runner(proc.stringInput(), proc.stringOutput())()
+    .run({ cmd: ["cowsay"] }, text);
 };
 
 const whatTheCowSaid = await cowsay("*proc* is pretty cool!");
@@ -178,6 +177,11 @@ the terminal.
 ### Text (`AsyncIterable<string>`)
 
 ## Unbuffered Handlers
+
+Unbuffered data is useful if you need to send or receive data as soon as it is
+available, and you are not concerned about maximizing throughput. This is used
+most often for line-oriented data, where you want to see each line as it is
+printed.
 
 ### Text (`AsyncIterable<string>`) - Unbuffered
 
