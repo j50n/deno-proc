@@ -162,8 +162,9 @@ fully consumed), you can use the short form safely.
 For most of the output handlers, the first argument is optional and allows you
 to pass a function to process `stderr` yourself.
 
-- The function is passed one argument - an `AsyncIterator<string>` of `stderr`
-  lines in text form (unbuffered)
+- The function is passed one argument - an `AsyncIterator<Uint8Array>` of
+  `stderr` in `Uint8Array` form (unbuffered); use `toLines(...)` to convert into
+  text lines
 - You can optionally return a `string[]` of lines from this function; these are
   attached to the `ProcessExitError` if the process returns a non-zero error
   code

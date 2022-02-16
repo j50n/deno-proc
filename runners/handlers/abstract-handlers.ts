@@ -33,7 +33,7 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
 
     try {
       stderrLines = await this.processStderr(
-        toLines(readerToBytesUnbuffered(stderr)),
+        readerToBytesUnbuffered(stderr),
       );
     } catch (e) {
       if (e instanceof Deno.errors.Interrupted) {

@@ -129,7 +129,7 @@ Deno.test({
         const line of proc.runner(
           proc.emptyInput(),
           proc.stringIterableUnbufferedOutput(async (stderr) => {
-            for await (const line of stderr) {
+            for await (const line of proc.toLines(stderr)) {
               // await sleep(1);
               console.error(
                 `${red(`${new Date().getTime()}`)} -> ${stripColor(line)}`,

@@ -3,6 +3,7 @@
 ## 0.15.0
 
 - `#23` **fix** Separators on Windows are "\r\n" and "\n" elsewhere.
+- `#24` **enhancement** `stderr` handler now passes bytes rather than text.
 
 ## 0.14.4
 

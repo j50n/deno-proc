@@ -1,6 +1,8 @@
+import { toLines } from "./utility.ts";
+
 /** A processor for `stderr`. */
 export type StderrProcessor = (
-  lines: AsyncIterable<string>,
+  bytes: AsyncIterable<Uint8Array>,
 ) => Promise<unknown | string[]>;
 
 /**
@@ -8,10 +10,10 @@ export type StderrProcessor = (
  * @param lines `stderr` lines.
  */
 export async function stderrLinesToConsoleError(
-  lines: AsyncIterable<string>,
+  bytes: AsyncIterable<Uint8Array>,
 ): Promise<void> {
-  for await (const line of lines) {
-    console.error(line);
+  for await (const b of bytes) {
+    Deno.stderr.writeSync(b);
   }
 }
 
@@ -20,7 +22,7 @@ export async function stderrLinesToConsoleError(
  * @param _lines `stderr` lines.
  */
 export async function stderrLinesToNull(
-  _lines: AsyncIterable<string>,
+  _bytes: AsyncIterable<Uint8Array>,
 ): Promise<void> {
 }
 
@@ -30,14 +32,14 @@ export async function stderrLinesToNull(
  */
 export function stderrLinesToErrorMessage(
   tail = 20,
-): (lines: AsyncIterable<string>) => Promise<string[]> {
+): (bytes: AsyncIterable<Uint8Array>) => Promise<string[]> {
   async function stderrLinesToErrorMessageLimited(
-    lines: AsyncIterable<string>,
+    bytes: AsyncIterable<Uint8Array>,
   ): Promise<string[]> {
     let droppedLines = false;
 
     const linesArray = [];
-    for await (const line of lines) {
+    for await (const line of toLines(bytes)) {
       linesArray.push(line);
       if (linesArray.length > tail) {
         linesArray.shift();

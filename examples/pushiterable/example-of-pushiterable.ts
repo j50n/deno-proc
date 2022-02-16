@@ -57,7 +57,7 @@ for await (
     proc.runner(
       proc.stringIterableUnbufferedInput(),
       proc.stringIterableUnbufferedOutput(async (stderrLines) => {
-        for await (const line of stderrLines) {
+        for await (const line of proc.toLines(stderrLines)) {
           console.error(red(line));
         }
       }),
