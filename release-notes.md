@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.14.4
+
+- **documentation** Various edits to documentation and examples.
+
 ## 0.14.3
 
 - **documentation** Various edits to documentation and examples.
