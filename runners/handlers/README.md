@@ -197,7 +197,7 @@ This example demonstrates unbuffered output. I am going to run `deno doc` and
 decorate both `stderr` and `stdout` streams.
 
 Note that you can define a custom `stderr` handler function in the
-`runner(...)`, and `stderr` is always unbuffered - because it is often used for
+`runner(...)`, and `stderr` is always unbuffered - because it is used for
 real-time feedback at the console.
 
 The program is getting a line at a time, as it is ready (no buffering), from

@@ -5,6 +5,7 @@ set -e
 HERE="$(realpath "$(dirname $0)")"
 
 deno fmt "$HERE"
+sed -i -r '2s|^":";\s[/][/]#;|":" //#;|' `find "$HERE" -name '*.ts'`
 deno lint "$HERE"
 
 deno test --allow-run --reload "$HERE"
