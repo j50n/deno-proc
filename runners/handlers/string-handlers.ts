@@ -6,6 +6,7 @@ import {
   MultiCloseWriter,
   NoCloseReader,
 } from "../closers.ts";
+import { LINESEP } from "../constants.ts";
 import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
@@ -54,6 +55,6 @@ export class StringOutputHandler extends AbstractTextOutputHandler<string> {
       lines.push(line);
     }
 
-    return lines.join("\n");
+    return lines.join(LINESEP);
   }
 }

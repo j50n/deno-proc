@@ -5,6 +5,7 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
+import { LINESEP } from "../constants.ts";
 import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
@@ -22,13 +23,13 @@ export class StringArrayInputHandler implements InputHandler<string[]> {
   async processInput(input: string[], stdin: MultiCloseWriter): Promise<void> {
     try {
       const encoder = new TextEncoder();
-      const lf = encoder.encode("\n");
+      const linesep = encoder.encode(LINESEP);
 
       const buf = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
       try {
         for (const line of input) {
           await buf.write(encoder.encode(line));
-          await buf.write(lf);
+          await buf.write(linesep);
         }
       } finally {
         await buf.flush();

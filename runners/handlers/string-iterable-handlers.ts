@@ -5,6 +5,7 @@ import {
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
+import { LINESEP } from "../constants.ts";
 import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
@@ -32,13 +33,13 @@ export class StringIterableInputHandler
   ): Promise<void> {
     try {
       const encoder = new TextEncoder();
-      const cr = encoder.encode("\n");
+      const linesep = encoder.encode(LINESEP);
 
       const bw = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
       try {
         for await (const line of input) {
           await bw.write(encoder.encode(line));
-          await bw.write(cr);
+          await bw.write(linesep);
           if (this.autoflush) {
             await bw.flush();
           }
@@ -79,10 +80,10 @@ export class StringIterableUnbufferedInputHandler
   ): Promise<void> {
     try {
       const encoder = new TextEncoder();
-      const cr = encoder.encode("\n");
+      const linesep = encoder.encode(LINESEP);
 
       for await (const line of input) {
-        await stdin.write(concat([encoder.encode(line), cr]));
+        await stdin.write(concat([encoder.encode(line), linesep]));
       }
     } catch (e) {
       if (
