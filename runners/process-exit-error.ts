@@ -15,7 +15,7 @@ export class ProcessExitError extends Error {
     /** Signal, if the exit was due to a signal. */
     public readonly signal?: number,
     /** Details (optionally scraped from `stderr`). */
-    public readonly details?: string[],
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = this.constructor.name;

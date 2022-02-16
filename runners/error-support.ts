@@ -4,13 +4,13 @@ import { ProcessExitError } from "./process-exit-error.ts";
 export type ErrorHandler = (
   options: RunOptions,
   status: Deno.ProcessStatus,
-  stderrLines?: string[] | unknown,
+  details?: unknown,
 ) => void;
 
 export function defaultErrorHandling(
   options: RunOptions,
   status: Deno.ProcessStatus,
-  stderrLines?: string[] | unknown,
+  details?: unknown,
 ): void {
   if (!status.success) {
     let message = `process exited with code: ${status.code} `;
@@ -28,7 +28,7 @@ export function defaultErrorHandling(
       status.code,
       options,
       status.signal,
-      Array.isArray(stderrLines) ? stderrLines : undefined,
+      details,
     );
   }
 }

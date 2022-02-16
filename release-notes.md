@@ -4,6 +4,8 @@
 
 - `#23` **fix** Separators on Windows are "\r\n" and "\n" elsewhere.
 - `#24` **enhancement** `stderr` handler now passes bytes rather than text.
+- `#25` **enhancement** `stderr` handler can pass back something (`unknown`
+  type) to be attached to the error, if there is an error.
 
 ## 0.14.4
 

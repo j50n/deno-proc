@@ -165,7 +165,7 @@ to pass a function to process `stderr` yourself.
 - The function is passed one argument - an `AsyncIterator<Uint8Array>` of
   `stderr` in `Uint8Array` form (unbuffered); use `toLines(...)` to convert into
   text lines
-- You can optionally return a `string[]` of lines from this function; these are
+- You can optionally return an `unknown` (anything) from this function; this are
   attached to the `ProcessExitError` if the process returns a non-zero error
   code
 - You can throw an error from this function; this allows you to scrape `stderr`

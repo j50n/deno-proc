@@ -71,10 +71,10 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
         );
       }
 
-      const stderrLines: string[] | unknown = await se;
+      const details: unknown = await se;
       const status = await process.status();
 
-      this.errorHandler(process.options, status, stderrLines);
+      this.errorHandler(process.options, status, details);
     } finally {
       input.stdin.close();
       stdout.close();

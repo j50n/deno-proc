@@ -3,7 +3,7 @@ import { toLines } from "./utility.ts";
 /** A processor for `stderr`. */
 export type StderrProcessor = (
   bytes: AsyncIterable<Uint8Array>,
-) => Promise<unknown | string[]>;
+) => Promise<unknown | undefined>;
 
 /**
  * Write `stderr` lines to `console.error()`.
