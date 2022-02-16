@@ -29,7 +29,8 @@ In this example, I am going to set up a child process that lets me ask a
 answer includes the number in roman-numeral format and written out in English.
 Data is passed to and from the child process via JSON messages.
 
-[example-of-pushiterable.ts](./example-of-pushiterable.ts)
+- [example-of-pushiterable.ts](./example-of-pushiterable.ts)
+- [common-json-defs.ts](./common-json-defs.ts)
 
 ```ts
 import { Answer, Question } from "./common-json-defs.ts";
@@ -79,7 +80,7 @@ The child process converts stdin to `Question` instances (unbuffered IO), does
 some conversion, and writes the `Answer`s out to `stdout` (that is where
 `console.log()` goes).
 
-[humanize-numbers.ts](./humanize-numbers.ts)
+- [humanize-numbers.ts](./humanize-numbers.ts)
 
 ```ts
 import "https://deno.land/x/humanizer/romanNumerals.ts";
