@@ -1,7 +1,7 @@
 # proc
 
-A different approach to running child processes that is easy, flexible,
-powerful, and prevents resource leaks.
+A high-level way to run child processes that is easy, flexible, powerful, and
+prevents resource leaks.
 
 `proc` lets you write process-handling code in readable, idiomatic Typescript
 using `async/await` and `AsyncIterator` promisy goodness. It provides a variety
@@ -35,10 +35,10 @@ Processes really just deal with one type of data - bytes, in streams. Many
 programs will take this one step further and internally translate to and from
 text data, processing this data one line at a time.
 
-`proc` treats process data as either `Uint8Array` or `AsyncIterable<Uint8Array>`
-for byte data, or `string` or `AsyncIterable<string>` (as lines of text) for
-text. It defines a set of standard input and output handlers that provide both
-type information and data handling behavior to the runner.
+`proc` uses input and output handlers that let you choose both the types and
+behaviors of your data and customize `stderr` and error handling. So you can
+work with bytes or text, synchronous or asynchronous, buffered or unbuffered,
+with just a little code to define what you want.
 
 #### An Example
 
