@@ -31,14 +31,10 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 
 # Input and Output Types
 
-Processes really just deal with one type of data - bytes, in streams. Many
-programs will take this one step further and internally translate to and from
-text data, processing this data one line at a time.
-
 `proc` uses input and output handlers that let you choose both the types and
-behaviors of your data and customize `stderr` and error handling. So you can
-work with bytes or text, synchronous or asynchronous, buffered or unbuffered,
-with just a little code to define what you want.
+behaviors for your data. It also lets you customize `stderr` and error handling.
+With just a little code for definition, you can work with bytes or text,
+synchronous or asynchronous, buffered or unbuffered.
 
 #### An Example
 
