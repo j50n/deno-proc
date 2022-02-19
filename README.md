@@ -31,6 +31,8 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 
 ## Short-Form Run Functions
 
+The short-form api gets the job done. It is not a general purpose api, but it covers a lot of common use cases, and when it works, it reduces code noise (boilerplate) dramatically. It is easy and familiar. If the default behaviors are okay, and if you don't have a large data set, and you don't need to stream data from process to process asynchronously, the short-form api might work for you. It produces very concise and readable code, and it is more approachable if you are still unsure about all this child process stuff. It is a good place to start.
+
 **An Example**
 
 To get you started, here is an example where we pass a text `string` to a
@@ -52,12 +54,16 @@ console.dir(await gzip("Hello, world."));
 /* prints an array of bytes to console. */
 ```
 
+**TODO:** SHORT FORM TABLE
+
 > ℹ️ **Short Form** The short form run functions are new. It seems a little odd
 > to have typed functions, but it cuts out a lot of boilerplate. This feature
 > will most likely be under development _and unstable_ for some time. See
 > [runner.ts](./runner.ts) for available short form run functions.
 
-## The Standard Runner (Long-Form)
+## The Runner API (Long-Form)
+
+The `runner` api requires a bit more boilerplate, but it is the general solution. It supports arbitrary input and output handlers, allowing you to choose whether you want the data to be streamed or buffered, and what types of conversions you want to be performed automatically. It allows better control over `stderr` data and the ability to customize error handling in different ways. It also exposes process groups, allowing you to clean up your processes reliably in more complex streaming scenarios (you'll use these when larger data sizes or performance are a concern). 
 
 ### Input and Output Handlers
 
