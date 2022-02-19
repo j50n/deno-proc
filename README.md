@@ -29,14 +29,9 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 
 - [deno-asynciter](https://github.com/j50n/deno-asynciter)
 
-# Input and Output Types
+## Short-Form Run Functions
 
-`proc` uses input and output handlers that let you choose both the types and
-behaviors for your data. It also lets you customize `stderr` and error handling.
-With just a little code for definition, you can work with bytes or text,
-synchronous or asynchronous, buffered or unbuffered.
-
-### An Example
+**An Example**
 
 To get you started, here is an example where we pass a text `string` to a
 process and get back a `Uint8Array` - text compressed to bytes using `gzip`.
@@ -62,7 +57,16 @@ console.dir(await gzip("Hello, world."));
 > will most likely be under development _and unstable_ for some time. See
 > [runner.ts](./runner.ts) for available short form run functions.
 
-## Input Types
+## The Standard Runner (Long-Form)
+
+### Input and Output Handlers
+
+`proc` uses input and output handlers that let you choose both the types and
+behaviors for your data. It also lets you customize `stderr` and error handling.
+With just a little code for definition, you can work with bytes or text,
+synchronous or asynchronous, buffered or unbuffered.
+
+#### Input Types
 
 | Name                                  | Description                                                  |
 | :------------------------------------ | :----------------------------------------------------------- |
@@ -80,7 +84,7 @@ console.dir(await gzip("Hello, world."));
 <sup>*</sup> - `readerInput()` and `readerUnbufferedInput()` are special input
 types that do not have corresponding output types.
 
-## Output Types
+#### Output Types
 
 | Name                                               | Description                                                                            |
 | :------------------------------------------------- | :------------------------------------------------------------------------------------- |
@@ -102,7 +106,7 @@ multiplexed as accurately as possible.
 > behavior, we have to return all the data from the process streams before we
 > can propagate an error.
 
-## Running a Command
+### Running a Command
 
 `proc` is easiest to use with a wildcard import.
 
