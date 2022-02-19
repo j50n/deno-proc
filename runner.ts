@@ -12,7 +12,8 @@ import {
 } from "./runners/proc-group.ts";
 import { LINESEP } from "./runners/constants.ts";
 import { concat } from "./runners/utility.ts";
-import { bytesIterableInput } from "./runners/handlers/bytes-iterable.ts";
+import { bytesAsyncIterableInput } from "./runners/handlers/bytes-asynciterable.ts";
+import { readerInput } from "./runners/handlers/reader.ts";
 
 const globalGroup = group();
 
@@ -54,6 +55,7 @@ type StandardInputs =
   | Iterable<Uint8Array>
   | AsyncIterable<string>
   | AsyncIterable<Uint8Array>
+  | Deno.Reader & Deno.Closer
   | undefined;
 
 export async function run0(
@@ -94,42 +96,56 @@ function isAsyncIterable(x: any): x is Iterable<unknown> {
   return Symbol.asyncIterator in x;
 }
 
-async function runSomething<B>(
+// deno-lint-ignore no-explicit-any
+function isReaderCloser(x: any): x is Deno.Reader & Deno.Closer {
+  return typeof x.read === "function" && typeof x.close === "function";
+}
+
+function runSomething<B>(
   output: OutputHandler<B>,
   options: RunOptions,
   input?: StandardInputs,
-): Promise<PromiseOrIterable<B>> {
+): PromiseOrIterable<B> {
   if (input === undefined) {
-    return await new RunnerImpl(globalGroup, emptyInput(), output).run(
+    return new RunnerImpl(globalGroup, emptyInput(), output).run(
       options,
     );
   } else if (typeof input === "string") {
-    return await new RunnerImpl(globalGroup, stringInput(), output).run(
+    return new RunnerImpl(globalGroup, stringInput(), output).run(
       options,
       input,
     );
   } else if (input instanceof Uint8Array) {
-    return await new RunnerImpl(globalGroup, bytesInput(), output).run(
+    return new RunnerImpl(globalGroup, bytesInput(), output).run(
       options,
       input,
     );
   } else if (Array.isArray(input)) {
-    return await new RunnerImpl(globalGroup, bytesIterableInput(), output).run(
-      options,
-      genericArrayInput(input),
-    );
+    return new RunnerImpl(globalGroup, bytesAsyncIterableInput(), output)
+      .run(
+        options,
+        genericArrayInput(input),
+      );
   } else if (isIterable(input)) {
-    return await new RunnerImpl(globalGroup, bytesIterableInput(), output).run(
-      options,
-      genericAsyncIterableInput(
-        iterableToAsyncIterable(input as Iterable<string | Uint8Array>),
-      ),
-    );
+    return new RunnerImpl(globalGroup, bytesAsyncIterableInput(), output)
+      .run(
+        options,
+        genericAsyncIterableInput(
+          iterableToAsyncIterable(input as Iterable<string | Uint8Array>),
+        ),
+      );
   } else if (isAsyncIterable(input)) {
-    return await new RunnerImpl(globalGroup, bytesIterableInput(), output).run(
-      options,
-      genericAsyncIterableInput(input),
-    );
+    return new RunnerImpl(globalGroup, bytesAsyncIterableInput(), output)
+      .run(
+        options,
+        genericAsyncIterableInput(input as AsyncIterable<string | Uint8Array>),
+      );
+  } else if (isReaderCloser(input)) {
+    return new RunnerImpl(globalGroup, readerInput(), output)
+      .run(
+        options,
+        input as Deno.Reader & Deno.Closer,
+      );
   } else {
     throw new TypeError("input is not a supported type");
   }

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --quiet --allow-run
+#!/usr/bin/env -S deno run --quiet --allow-run=deno,find,sed,udd
 
 import * as proc from "./mod.ts";
 import { dirname } from "./runners/utility.ts";

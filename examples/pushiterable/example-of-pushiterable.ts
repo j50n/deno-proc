@@ -55,8 +55,8 @@ const it = new proc.PushIterable<Question>();
 for await (
   const answer: Answer of asynciter(
     proc.runner(
-      proc.stringIterableUnbufferedInput(),
-      proc.stringIterableUnbufferedOutput(async (stderrLines) => {
+      proc.stringAsyncIterableUnbufferedInput(),
+      proc.stringAsyncIterableUnbufferedOutput(async (stderrLines) => {
         for await (const line of proc.toLines(stderrLines)) {
           console.error(red(line));
         }

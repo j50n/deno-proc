@@ -2,7 +2,7 @@ import { assert, assertEquals, asynciter, fail } from "../../deps-test.ts";
 import { group } from "../proc-group.ts";
 import { ProcessExitError } from "../process-exit-error.ts";
 import { emptyInput } from "./empty.ts";
-import { stderrToStdoutStringIterableOutput } from "./stderr-to-stdout-string-iterable.ts";
+import { stderrToStdoutStringAsyncIterableOutput } from "./stderr-to-stdout-string-asynciterable.ts";
 
 Deno.test({
   name: "[HAPPY-PATH] I can interleave stderr lines into stdout.",
@@ -11,7 +11,7 @@ Deno.test({
     try {
       const output = await proc.run(
         emptyInput(),
-        stderrToStdoutStringIterableOutput(),
+        stderrToStdoutStringAsyncIterableOutput(),
         undefined,
         {
           cmd: [
@@ -52,7 +52,7 @@ Deno.test({
     try {
       const output = await proc.run(
         emptyInput(),
-        stderrToStdoutStringIterableOutput(),
+        stderrToStdoutStringAsyncIterableOutput(),
         undefined,
         {
           cmd: [
@@ -87,7 +87,7 @@ Deno.test({
       try {
         const a = await proc.run(
           emptyInput(),
-          stderrToStdoutStringIterableOutput(),
+          stderrToStdoutStringAsyncIterableOutput(),
           undefined,
           {
             cmd: [

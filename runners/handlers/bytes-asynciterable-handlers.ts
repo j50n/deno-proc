@@ -1,26 +1,25 @@
-import { BufWriter } from "../../deps.ts";
 import { optionalChain } from "../chained-error.ts";
+import { BufWriter } from "../../deps.ts";
 import {
   MultiCloseProcess,
   MultiCloseReader,
   MultiCloseWriter,
 } from "../closers.ts";
-import { LINESEP } from "../constants.ts";
 import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
-import { concat, DEFAULT_BUFFER_SIZE } from "../utility.ts";
+import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
 import {
-  AbstractTextOutputHandler,
-  AbstractTextUnbufferedOutputHandler,
+  AbstractBytesOutputHandler,
+  AbstractBytesUnbufferedOutputHandler,
 } from "./abstract-handlers.ts";
 
 /**
- * Source `stdin` from an iterable of lines.
+ * Source `stdin` from an iterable of byte arrays.
  */
-export class StringIterableInputHandler
-  implements InputHandler<AsyncIterable<string>> {
-  constructor(public readonly autoflush: boolean) {
+export class BytesAsyncIterableInputHandler
+  implements InputHandler<AsyncIterable<Uint8Array>> {
+  constructor() {
   }
 
   get failOnEmptyInput(): boolean {
@@ -28,25 +27,15 @@ export class StringIterableInputHandler
   }
 
   async processInput(
-    input: AsyncIterable<string>,
+    input: AsyncIterable<Uint8Array>,
     stdin: MultiCloseWriter,
   ): Promise<void> {
+    const bw = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
     try {
-      const encoder = new TextEncoder();
-      const linesep = encoder.encode(LINESEP);
-
-      const bw = new BufWriter(stdin, DEFAULT_BUFFER_SIZE);
-      try {
-        for await (const line of input) {
-          await bw.write(encoder.encode(line));
-          await bw.write(linesep);
-          if (this.autoflush) {
-            await bw.flush();
-          }
-        }
-      } finally {
-        await bw.flush();
+      for await (const byteArray of input) {
+        await bw.write(byteArray);
       }
+      await bw.flush();
     } catch (e) {
       if (
         e instanceof Deno.errors.BrokenPipe ||
@@ -63,10 +52,10 @@ export class StringIterableInputHandler
 }
 
 /**
- * Source `stdin` from an iterable of lines, unbuffered.
+ * Source `stdin` from an iterable of byte arrays, unbuffered.
  */
-export class StringIterableUnbufferedInputHandler
-  implements InputHandler<AsyncIterable<string>> {
+export class BytesAsyncIterableUnbufferedInputHandler
+  implements InputHandler<AsyncIterable<Uint8Array>> {
   constructor() {
   }
 
@@ -75,15 +64,12 @@ export class StringIterableUnbufferedInputHandler
   }
 
   async processInput(
-    input: AsyncIterable<string>,
+    input: AsyncIterable<Uint8Array>,
     stdin: MultiCloseWriter,
   ): Promise<void> {
     try {
-      const encoder = new TextEncoder();
-      const linesep = encoder.encode(LINESEP);
-
-      for await (const line of input) {
-        await stdin.write(concat([encoder.encode(line), linesep]));
+      for await (const byteArray of input) {
+        await stdin.write(byteArray);
       }
     } catch (e) {
       if (
@@ -103,8 +89,8 @@ export class StringIterableUnbufferedInputHandler
 /**
  * Return `stdout` as an iterable over the lines.
  */
-export class StringIterableOutputHandler
-  extends AbstractTextOutputHandler<AsyncIterable<string>> {
+export class BytesAsyncIterableOutputHandler
+  extends AbstractBytesOutputHandler<AsyncIterable<Uint8Array>> {
   constructor(
     processStderr: StderrProcessor,
     errorHandler: ErrorHandler,
@@ -117,7 +103,7 @@ export class StringIterableOutputHandler
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
     input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
-  ): AsyncIterableIterator<string> {
+  ): AsyncIterable<Uint8Array> {
     yield* this.process(stdout, stderr, process, input);
   }
 }
@@ -125,8 +111,8 @@ export class StringIterableOutputHandler
 /**
  * Return `stdout` as an iterable over the lines, unbuffered.
  */
-export class StringIterableUnbufferedOutputHandler
-  extends AbstractTextUnbufferedOutputHandler<AsyncIterable<string>> {
+export class BytesAsyncIterableUnbufferedOutputHandler
+  extends AbstractBytesUnbufferedOutputHandler<AsyncIterable<Uint8Array>> {
   constructor(
     processStderr: StderrProcessor,
     errorHandler: ErrorHandler,
@@ -139,7 +125,7 @@ export class StringIterableUnbufferedOutputHandler
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
     input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
-  ): AsyncIterableIterator<string> {
+  ): AsyncIterable<Uint8Array> {
     yield* this.process(stdout, stderr, process, input);
   }
 }

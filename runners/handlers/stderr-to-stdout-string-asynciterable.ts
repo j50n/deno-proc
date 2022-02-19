@@ -1,5 +1,5 @@
 import { defaultErrorHandling, ErrorHandler } from "../error-support.ts";
-import { StderrToStdoutStringIterableOutputHandler } from "./stderr-to-stdout-string-iterable-handlers.ts";
+import { StderrToStdoutStringAsyncIterableOutputHandler } from "./stderr-to-stdout-string-asynciterable-handlers.ts";
 
 /**
  * Redirects `stderr` into `stdout` so that you get both, as lines, for output.
@@ -10,8 +10,8 @@ import { StderrToStdoutStringIterableOutputHandler } from "./stderr-to-stdout-st
  *
  * @param errorHandler Custom error handler.
  */
-export function stderrToStdoutStringIterableOutput(
+export function stderrToStdoutStringAsyncIterableOutput(
   errorHandler: ErrorHandler = defaultErrorHandling,
 ) {
-  return new StderrToStdoutStringIterableOutputHandler(errorHandler);
+  return new StderrToStdoutStringAsyncIterableOutputHandler(errorHandler);
 }

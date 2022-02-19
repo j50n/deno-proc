@@ -17,8 +17,8 @@ Deno.test({
     "[EDGE-CASE] A process with infinite string input works correctly and without errors.",
   async fn() {
     const p = proc.runner(
-      proc.stringIterableInput(),
-      proc.stringIterableOutput(),
+      proc.stringAsyncIterableInput(),
+      proc.stringAsyncIterableOutput(),
     );
 
     const pg = proc.group();
@@ -40,8 +40,8 @@ Deno.test({
     "[EDGE-CASE] A process with infinite byte input (encoded text lines, but bytes to us) works correctly and without errors.",
   async fn() {
     const p = proc.runner(
-      proc.bytesIterableInput(),
-      proc.stringIterableOutput(),
+      proc.bytesAsyncIterableInput(),
+      proc.stringAsyncIterableOutput(),
     );
 
     const pg = proc.group();
@@ -69,8 +69,8 @@ Deno.test({
   name: "[HAPPY-PATH] I can count the unique words in some text.",
   async fn() {
     const pr = proc.runner(
-      proc.stringIterableInput(),
-      proc.stringIterableOutput(),
+      proc.stringAsyncIterableInput(),
+      proc.stringAsyncIterableOutput(),
     );
 
     const imNobody = asynciter([

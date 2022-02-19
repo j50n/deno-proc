@@ -5,29 +5,29 @@ import {
   StderrProcessor,
 } from "../stderr-support.ts";
 import {
-  StringIterableInputHandler,
-  StringIterableOutputHandler,
-  StringIterableUnbufferedInputHandler,
-  StringIterableUnbufferedOutputHandler,
-} from "./string-iterable-handlers.ts";
+  StringAsyncIterableInputHandler,
+  StringAsyncIterableOutputHandler,
+  StringAsyncIterableUnbufferedInputHandler,
+  StringAsyncIterableUnbufferedOutputHandler,
+} from "./string-asynciterable-handlers.ts";
 
 /**
  * A handler for `AsyncIterable<string>` input.
  * @param autoflush Flush after each line. Defaults to `false`.
  */
-export function stringIterableInput(
+export function stringAsyncIterableInput(
   autoflush = false,
 ): InputHandler<AsyncIterable<string>> {
-  return new StringIterableInputHandler(autoflush);
+  return new StringAsyncIterableInputHandler(autoflush);
 }
 
 /**
  * A handler for `AsyncIterable<string>` input, unbuffered.
  */
-export function stringIterableUnbufferedInput(): InputHandler<
+export function stringAsyncIterableUnbufferedInput(): InputHandler<
   AsyncIterable<string>
 > {
-  return new StringIterableUnbufferedInputHandler();
+  return new StringAsyncIterableUnbufferedInputHandler();
 }
 
 /**
@@ -35,11 +35,11 @@ export function stringIterableUnbufferedInput(): InputHandler<
  * @param processStderr A custom processor for `stderr`.
  * @param errorHandler A custom error handler.
  */
-export function stringIterableOutput(
+export function stringAsyncIterableOutput(
   processStderr: StderrProcessor = stderrLinesToConsoleError,
   errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<string>> {
-  return new StringIterableOutputHandler(processStderr, errorHandler);
+  return new StringAsyncIterableOutputHandler(processStderr, errorHandler);
 }
 
 /**
@@ -47,9 +47,12 @@ export function stringIterableOutput(
  * @param processStderr A custom processor for `stderr`.
  * @param errorHandler A custom error handler.
  */
-export function stringIterableUnbufferedOutput(
+export function stringAsyncIterableUnbufferedOutput(
   processStderr: StderrProcessor = stderrLinesToConsoleError,
   errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<string>> {
-  return new StringIterableUnbufferedOutputHandler(processStderr, errorHandler);
+  return new StringAsyncIterableUnbufferedOutputHandler(
+    processStderr,
+    errorHandler,
+  );
 }

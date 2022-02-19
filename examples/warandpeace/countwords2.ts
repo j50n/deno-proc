@@ -27,12 +27,12 @@ try {
    */
   const uncompressedText = proc.runner(
     proc.readerInput(),
-    proc.bytesIterableOutput(proc.stderrLinesToErrorMessage(20)),
+    proc.bytesAsyncIterableOutput(proc.stderrLinesToErrorMessage(20)),
   )().run({ cmd: ["gunzip"] }, Deno.stdin);
 
   const nonNumericWords = proc.runner(
-    proc.bytesIterableInput(),
-    proc.stringIterableOutput(),
+    proc.bytesAsyncIterableInput(),
+    proc.stringAsyncIterableOutput(),
   )().run(
     {
       cmd: [
@@ -54,7 +54,7 @@ try {
   const wordCount = parseInt(
     (
       await proc.runner(
-        proc.stringIterableInput(),
+        proc.stringAsyncIterableInput(),
         proc.stringArrayOutput(),
       )().run(
         {

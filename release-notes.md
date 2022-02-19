@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.17.0
+
+This release contains breaking changes.
+
+- Iterable handlers have been renamed to include "async."
+- Rework of short-form functions.
+
 ## 0.16.0
 
 This release contains minor breaking changes.

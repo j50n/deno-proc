@@ -31,7 +31,7 @@ async function play(sound: Uint8Array): Promise<void> {
     for await (
       const line of proc.runner(
         proc.bytesInput(),
-        proc.stringIterableUnbufferedOutput(),
+        proc.stringAsyncIterableUnbufferedOutput(),
       )(pg).run({ cmd: ["aplay"] }, sound)
     ) {
       console.log(line);

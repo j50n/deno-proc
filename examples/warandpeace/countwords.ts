@@ -22,7 +22,7 @@ try {
      */
   const uncompressedDoc = proc.runner(
     proc.readerInput(),
-    proc.bytesIterableOutput(),
+    proc.bytesAsyncIterableOutput(),
   )().run(
     {
       cmd: ["gunzip"],
@@ -34,8 +34,8 @@ try {
    * `grep` to split the document roughly into words.
    */
   const rawWords = proc.runner(
-    proc.bytesIterableInput(),
-    proc.bytesIterableOutput(),
+    proc.bytesAsyncIterableInput(),
+    proc.bytesAsyncIterableOutput(),
   )().run(
     {
       cmd: ["grep", "-o", "-E", "(\\w|')+"],
@@ -47,8 +47,8 @@ try {
    * `grep` again to remove words that start with a digit, because that's a number.
    */
   const nonNumericWords = proc.runner(
-    proc.bytesIterableInput(),
-    proc.stringIterableOutput(),
+    proc.bytesAsyncIterableInput(),
+    proc.stringAsyncIterableOutput(),
   )().run(
     {
       cmd: ["grep", "-v", "-P", "^\\d"],
@@ -72,8 +72,8 @@ try {
    * Now we have to sort - because `uniq`, which is the next step, requires sorted data.
    */
   const sortedWords = proc.runner(
-    proc.stringIterableInput(),
-    proc.bytesIterableOutput(),
+    proc.stringAsyncIterableInput(),
+    proc.bytesAsyncIterableOutput(),
   )().run(
     { cmd: ["sort"] },
     lowercaseWords,
@@ -83,8 +83,8 @@ try {
    * Remove duplicate words.
    */
   const uniqWords = proc.runner(
-    proc.bytesIterableInput(),
-    proc.bytesIterableOutput(),
+    proc.bytesAsyncIterableInput(),
+    proc.bytesAsyncIterableOutput(),
   )().run(
     { cmd: ["uniq"] },
     sortedWords,
@@ -95,7 +95,10 @@ try {
    * The first line of output is the count from `wc`. I grab this line and convert it to integer.
    */
   const countOfWords = parseInt(
-    (await proc.runner(proc.bytesIterableInput(), proc.stringArrayOutput())()
+    (await proc.runner(
+      proc.bytesAsyncIterableInput(),
+      proc.stringArrayOutput(),
+    )()
       .run(
         { cmd: ["wc", "-l"] },
         uniqWords,

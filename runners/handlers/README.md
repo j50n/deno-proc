@@ -211,7 +211,7 @@ try {
   for await (
     const line of proc.runner(
       proc.emptyInput(),
-      proc.stringIterableUnbufferedOutput(async (stderr) => {
+      proc.stringAsyncIterableUnbufferedOutput(async (stderr) => {
         for await (const line of stderr) {
           console.error(
             `${red(`${new Date().getTime()}`)} -> ${stripColor(line)}`,

@@ -23,10 +23,7 @@ try {
     `${new Date()} The document is ${uncompressedDoc.length} bytes long.`,
   );
 
-  const rawWords = await proc.runner(
-    proc.stringInput(),
-    proc.stringArrayOutput(),
-  )().run(
+  const rawWords = await proc.runSa(
     {
       cmd: ["grep", "-o", "-E", "(\\w|')+"],
     },
@@ -37,10 +34,7 @@ try {
     `${new Date()} There are ${rawWords.length} words in the document.`,
   );
 
-  const nonNumericWords = await proc.runner(
-    proc.stringArrayInput(),
-    proc.stringArrayOutput(),
-  )().run(
+  const nonNumericWords = await proc.runSa(
     {
       cmd: ["grep", "-v", "-P", "^\\d"],
     },
@@ -55,20 +49,14 @@ try {
 
   console.error(`${new Date()} Words are converted to lower case.`);
 
-  const sortedWords = await proc.runner(
-    proc.stringArrayInput(),
-    proc.stringArrayOutput(),
-  )().run(
+  const sortedWords = await proc.runSa(
     { cmd: ["sort"] },
     lowercaseWords,
   );
 
   console.error(`${new Date()} Words are sorted alphabetically.`);
 
-  const uniqWords = await proc.runner(
-    proc.stringArrayInput(),
-    proc.stringArrayOutput(),
-  )().run(
+  const uniqWords = await proc.runSa(
     { cmd: ["uniq"] },
     sortedWords,
   );
@@ -78,11 +66,10 @@ try {
   );
 
   const countOfWords = parseInt(
-    (await proc.runner(proc.stringArrayInput(), proc.stringArrayOutput())()
-      .run(
-        { cmd: ["wc", "-l"] },
-        uniqWords,
-      ))[0],
+    (await proc.runSa(
+      { cmd: ["wc", "-l"] },
+      uniqWords,
+    ))[0],
     10,
   );
 

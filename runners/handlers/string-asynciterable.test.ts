@@ -11,11 +11,11 @@ import { ProcessExitError } from "../process-exit-error.ts";
 import { stderrLinesToErrorMessage } from "../stderr-support.ts";
 import { emptyInput } from "./empty.ts";
 import {
-  stringIterableInput,
-  stringIterableOutput,
-  stringIterableUnbufferedInput,
-  stringIterableUnbufferedOutput,
-} from "./string-iterable.ts";
+  stringAsyncIterableInput,
+  stringAsyncIterableOutput,
+  stringAsyncIterableUnbufferedInput,
+  stringAsyncIterableUnbufferedOutput,
+} from "./string-asynciterable.ts";
 import * as proc from "../../mod.ts";
 
 Deno.test({
@@ -29,8 +29,8 @@ Deno.test({
     const proc = group();
     try {
       const stdout = await proc.run(
-        stringIterableInput(),
-        stringIterableOutput(stderrLinesToErrorMessage(20)),
+        stringAsyncIterableInput(),
+        stringAsyncIterableOutput(stderrLinesToErrorMessage(20)),
         asynciter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).map((n) => `${n}`),
         { cmd: ["grep", "1"] },
       );
@@ -55,8 +55,8 @@ Deno.test({
     const proc = group();
     try {
       const stdout = await proc.run(
-        stringIterableUnbufferedInput(),
-        stringIterableUnbufferedOutput(stderrLinesToErrorMessage(20)),
+        stringAsyncIterableUnbufferedInput(),
+        stringAsyncIterableUnbufferedOutput(stderrLinesToErrorMessage(20)),
         asynciter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).map((n) => `${n}`),
         { cmd: ["grep", "1"] },
       );
@@ -81,7 +81,7 @@ Deno.test({
       try {
         const a = await proc.run(
           emptyInput(),
-          stringIterableOutput(),
+          stringAsyncIterableOutput(),
           undefined,
           {
             cmd: [
@@ -128,7 +128,7 @@ Deno.test({
       for await (
         const line of proc.runner(
           proc.emptyInput(),
-          proc.stringIterableUnbufferedOutput(async (stderr) => {
+          proc.stringAsyncIterableUnbufferedOutput(async (stderr) => {
             for await (const line of proc.toLines(stderr)) {
               // await sleep(1);
               console.error(

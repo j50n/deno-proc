@@ -1,11 +1,11 @@
 import { assertEquals } from "../../deps-test.ts";
 import { group } from "../proc-group.ts";
 import {
-  bytesIterableInput,
-  bytesIterableOutput,
-  bytesIterableUnbufferedInput,
-  bytesIterableUnbufferedOutput,
-} from "./bytes-iterable.ts";
+  bytesAsyncIterableInput,
+  bytesAsyncIterableOutput,
+  bytesAsyncIterableUnbufferedInput,
+  bytesAsyncIterableUnbufferedOutput,
+} from "./bytes-asynciterable.ts";
 import { emptyInput } from "./empty.ts";
 import { stringOutput } from "./string.ts";
 
@@ -21,19 +21,24 @@ Deno.test({
     try {
       const out1 = await proc.run(
         emptyInput(),
-        bytesIterableOutput(),
+        bytesAsyncIterableOutput(),
         undefined,
         { cmd: ["bash", "-c", "echo 'Hello, world.'"] },
       );
       const out2 = await proc.run(
-        bytesIterableInput(),
-        bytesIterableOutput(),
+        bytesAsyncIterableInput(),
+        bytesAsyncIterableOutput(),
         out1,
         { cmd: ["gzip", "-c"] },
       );
-      const out3 = await proc.run(bytesIterableInput(), stringOutput(), out2, {
-        cmd: ["gzip", "-cd"],
-      });
+      const out3 = await proc.run(
+        bytesAsyncIterableInput(),
+        stringOutput(),
+        out2,
+        {
+          cmd: ["gzip", "-cd"],
+        },
+      );
 
       assertEquals(out3, "Hello, world.");
     } finally {
@@ -50,18 +55,18 @@ Deno.test({
     try {
       const out1 = await proc.run(
         emptyInput(),
-        bytesIterableUnbufferedOutput(),
+        bytesAsyncIterableUnbufferedOutput(),
         undefined,
         { cmd: ["bash", "-c", "echo 'Hello, world.'"] },
       );
       const out2 = await proc.run(
-        bytesIterableUnbufferedInput(),
-        bytesIterableUnbufferedOutput(),
+        bytesAsyncIterableUnbufferedInput(),
+        bytesAsyncIterableUnbufferedOutput(),
         out1,
         { cmd: ["gzip", "-c"] },
       );
       const out3 = await proc.run(
-        bytesIterableUnbufferedInput(),
+        bytesAsyncIterableUnbufferedInput(),
         stringOutput(),
         out2,
         {

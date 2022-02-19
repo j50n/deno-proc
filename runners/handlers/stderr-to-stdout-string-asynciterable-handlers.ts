@@ -13,7 +13,7 @@ import { optionalChain } from "../chained-error.ts";
  * Redirect `stderr` into `stdout`. This handler is always unbuffered so that
  * the lines come out as close to real-time as possible.
  */
-export class StderrToStdoutStringIterableOutputHandler
+export class StderrToStdoutStringAsyncIterableOutputHandler
   implements OutputHandler<AsyncIterable<string>> {
   constructor(
     public readonly errorHandler: ErrorHandler,

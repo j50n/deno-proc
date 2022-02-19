@@ -5,26 +5,28 @@ import {
   StderrProcessor,
 } from "../stderr-support.ts";
 import {
-  BytesIterableInputHandler,
-  BytesIterableOutputHandler,
-  BytesIterableUnbufferedInputHandler,
-  BytesIterableUnbufferedOutputHandler,
-} from "./bytes-iterable-handlers.ts";
+  BytesAsyncIterableInputHandler,
+  BytesAsyncIterableOutputHandler,
+  BytesAsyncIterableUnbufferedInputHandler,
+  BytesAsyncIterableUnbufferedOutputHandler,
+} from "./bytes-asynciterable-handlers.ts";
 
 /**
  * A handler for `AsyncIterable<Uint8Array>` input.
  */
-export function bytesIterableInput(): InputHandler<AsyncIterable<Uint8Array>> {
-  return new BytesIterableInputHandler();
+export function bytesAsyncIterableInput(): InputHandler<
+  AsyncIterable<Uint8Array>
+> {
+  return new BytesAsyncIterableInputHandler();
 }
 
 /**
  * A handler for `AsyncIterable<Uint8Array>` input, unbuffered.
  */
-export function bytesIterableUnbufferedInput(): InputHandler<
+export function bytesAsyncIterableUnbufferedInput(): InputHandler<
   AsyncIterable<Uint8Array>
 > {
-  return new BytesIterableUnbufferedInputHandler();
+  return new BytesAsyncIterableUnbufferedInputHandler();
 }
 
 /**
@@ -32,11 +34,11 @@ export function bytesIterableUnbufferedInput(): InputHandler<
  * @param processStderr A custom processor for `stderr`.
  * @param errorHandler A custom error handler.
  */
-export function bytesIterableOutput(
+export function bytesAsyncIterableOutput(
   processStderr: StderrProcessor = stderrLinesToConsoleError,
   errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<Uint8Array>> {
-  return new BytesIterableOutputHandler(processStderr, errorHandler);
+  return new BytesAsyncIterableOutputHandler(processStderr, errorHandler);
 }
 
 /**
@@ -44,9 +46,12 @@ export function bytesIterableOutput(
  * @param processStderr A custom processor for `stderr`.
  * @param errorHandler A custom error handler.
  */
-export function bytesIterableUnbufferedOutput(
+export function bytesAsyncIterableUnbufferedOutput(
   processStderr: StderrProcessor = stderrLinesToConsoleError,
   errorHandler: ErrorHandler = defaultErrorHandling,
 ): OutputHandler<AsyncIterable<Uint8Array>> {
-  return new BytesIterableUnbufferedOutputHandler(processStderr, errorHandler);
+  return new BytesAsyncIterableUnbufferedOutputHandler(
+    processStderr,
+    errorHandler,
+  );
 }

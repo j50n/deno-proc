@@ -74,8 +74,8 @@ console.dir(await gzip("Hello, world."));
 | `readerUnbufferedInput()`<sup>*</sup> | Process input is a `Deno.Reader & Deno.Closer`, unbuffered.  |
 | `stringIterableInput()`               | Process input is an `AsyncIterable<string>`.                 |
 | `stringIterableUnbufferedInput()`     | Process input is an `AsyncIterable<string>`, unbuffered.     |
-| `bytesIterableInput()`                | Process input is an `AsyncIterable<Uint8Array>`.             |
-| `bytesIterableUnbufferedInput()`      | Process input is an `AsyncIterable<Uint8Array>`, unbuffered. |
+| `bytesAsyncIterableInput()`           | Process input is an `AsyncIterable<Uint8Array>`.             |
+| `bytesAsyncIterableUnbufferedInput()` | Process input is an `AsyncIterable<Uint8Array>`, unbuffered. |
 
 <sup>*</sup> - `readerInput()` and `readerUnbufferedInput()` are special input
 types that do not have corresponding output types.
@@ -89,8 +89,8 @@ types that do not have corresponding output types.
 | `bytesOutput()`                                    | Process output is a `Uint8Array`.                                                      |
 | `stringIterableOutput()`                           | Process output is an `AsyncIterable<string>`.                                          |
 | `stringIterableUnbufferedOutput()`                 | Process output is an `AsyncIterable<string>`, unbuffered.                              |
-| `bytesIterableOutput()`                            | Process output is an `AsyncIterable<Uint8Array>`.                                      |
-| `bytesIterableUnbufferedOutput()`                  | Process output is an `AsyncIterable<Uint8Array>`, unbuffered.                          |
+| `bytesAsyncIterableOutput()`                       | Process output is an `AsyncIterable<Uint8Array>`.                                      |
+| `bytesAsyncIterableUnbufferedOutput()`             | Process output is an `AsyncIterable<Uint8Array>`, unbuffered.                          |
 | `stderrToStdoutStringIterableOutput()`<sup>*</sup> | `stdout` and `stderr` are converted to text lines (`string`) and multiplexed together. |
 
 <sup>*</sup> - Special output handler that mixes `stdout` and `stderr` together.
