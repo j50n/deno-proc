@@ -64,7 +64,7 @@ Deno.test({
      * @return The text compressed into bytes.
      */
     async function gzip(text: string): Promise<Uint8Array> {
-      return await proc.runSB({ cmd: ["gzip", "-c"] }, text);
+      return await proc.runB({ cmd: ["gzip", "-c"] }, text);
     }
 
     console.dir(await gzip("Hello, world."));

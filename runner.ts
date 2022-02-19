@@ -10,6 +10,9 @@ import {
   OutputHandler,
   RunOptions,
 } from "./runners/proc-group.ts";
+import { LINESEP } from "./runners/constants.ts";
+import { concat } from "./runners/utility.ts";
+import { bytesIterableInput } from "./runners/handlers/bytes-iterable.ts";
 
 const globalGroup = group();
 
@@ -42,64 +45,134 @@ export function runner<A, B>(
   return (group?: Group) => new RunnerImpl(group || globalGroup, input, output);
 }
 
-/**
- * A simple runner.
- * - `stdin` is empty.
- * - `stdout` and `stderr` are redirected to the parent.
- * - the global group is used.
- */
-export async function run00(options: RunOptions): Promise<void> {
-  await new RunnerImpl(globalGroup, emptyInput(), emptyOutput()).run(
-    options,
-  );
-}
+type StandardInputs =
+  | string
+  | Uint8Array
+  | string[]
+  | Uint8Array[]
+  | Iterable<string>
+  | Iterable<Uint8Array>
+  | AsyncIterable<string>
+  | AsyncIterable<Uint8Array>
+  | undefined;
 
-/**
- * A non-streaming runner for `string[]` output.
- * - `stdout` is interpreted as lines of text and returned as a `string[]`.
- * - `stdin` is empty.
- * - `stderr` is redirected to the parent.
- * - the global group is used.
- */
-export async function run0Sa(options: RunOptions): Promise<string[]> {
-  return await new RunnerImpl(globalGroup, emptyInput(), stringArrayOutput())
-    .run(
-      options,
-    );
-}
-
-/**
- * A non-streaming runner for `Uint8Array` input and `string` output.
- * - `stdout` is interpreted as a `string`.
- * - `stdin` is interpreted as a `Uint8Array`.
- * - `stderr` is redirected to the parent.
- * - the global group is used.
- */
-export async function runBS(
+export async function run0(
   options: RunOptions,
-  input: Uint8Array,
+  input?: StandardInputs,
+): Promise<void> {
+  await runSomething(emptyOutput(), options, input);
+}
+
+export async function runS(
+  options: RunOptions,
+  input?: StandardInputs,
 ): Promise<string> {
-  return await new RunnerImpl(globalGroup, bytesInput(), stringOutput())
-    .run(
-      options,
-      input,
-    );
+  return await runSomething(stringOutput(), options, input);
 }
 
-/**
- * A non-streaming runner for `string`input and `Uint8Array` output.
- * - `stdout` is interpreted as a `Uint8Array`.
- * - `stdin` is interpreted as a `string`.
- * - `stderr` is redirected to the parent.
- * - the global group is used.
- */
-export async function runSB(
+export async function runB(
   options: RunOptions,
-  input: string,
+  input?: StandardInputs,
 ): Promise<Uint8Array> {
-  return await new RunnerImpl(globalGroup, stringInput(), bytesOutput())
-    .run(
+  return await runSomething(bytesOutput(), options, input);
+}
+
+export async function runSa(
+  options: RunOptions,
+  input?: StandardInputs,
+): Promise<string[]> {
+  return await runSomething(stringArrayOutput(), options, input);
+}
+
+// deno-lint-ignore no-explicit-any
+function isIterable(x: any): x is Iterable<unknown> {
+  return Symbol.iterator in x;
+}
+
+// deno-lint-ignore no-explicit-any
+function isAsyncIterable(x: any): x is Iterable<unknown> {
+  return Symbol.asyncIterator in x;
+}
+
+async function runSomething<B>(
+  output: OutputHandler<B>,
+  options: RunOptions,
+  input?: StandardInputs,
+): Promise<PromiseOrIterable<B>> {
+  if (input === undefined) {
+    return await new RunnerImpl(globalGroup, emptyInput(), output).run(
+      options,
+    );
+  } else if (typeof input === "string") {
+    return await new RunnerImpl(globalGroup, stringInput(), output).run(
       options,
       input,
     );
+  } else if (input instanceof Uint8Array) {
+    return await new RunnerImpl(globalGroup, bytesInput(), output).run(
+      options,
+      input,
+    );
+  } else if (Array.isArray(input)) {
+    return await new RunnerImpl(globalGroup, bytesIterableInput(), output).run(
+      options,
+      genericArrayInput(input),
+    );
+  } else if (isIterable(input)) {
+    return await new RunnerImpl(globalGroup, bytesIterableInput(), output).run(
+      options,
+      genericAsyncIterableInput(
+        iterableToAsyncIterable(input as Iterable<string | Uint8Array>),
+      ),
+    );
+  } else if (isAsyncIterable(input)) {
+    return await new RunnerImpl(globalGroup, bytesIterableInput(), output).run(
+      options,
+      genericAsyncIterableInput(input),
+    );
+  } else {
+    throw new TypeError("input is not a supported type");
+  }
+}
+
+async function* iterableToAsyncIterable<T>(
+  input: Iterable<T>,
+): AsyncIterableIterator<T> {
+  for (const item of input) {
+    yield item;
+  }
+}
+
+async function* genericArrayInput(
+  input: (string | Uint8Array)[],
+): AsyncIterableIterator<Uint8Array> {
+  const encoder = new TextEncoder();
+  const linesep = encoder.encode(LINESEP);
+
+  for (const item of input) {
+    if (typeof item === "string") {
+      yield concat([encoder.encode(item), linesep]);
+    } else if (item instanceof Uint8Array) {
+      yield item;
+    } else {
+      throw new TypeError("item is not a 'string' or 'Uint8Array'");
+    }
+  }
+}
+
+async function* genericAsyncIterableInput(
+  input: AsyncIterable<string | Uint8Array>,
+): AsyncIterableIterator<Uint8Array> {
+  const encoder = new TextEncoder();
+  const linesep = encoder.encode(LINESEP);
+
+  for await (const item of input) {
+    if (typeof item === "string") {
+      yield concat([encoder.encode(item), linesep]);
+    } else if (item instanceof Uint8Array) {
+      yield item;
+    } else {
+      throw new TypeError("item is not a 'string' or 'Uint8Array'");
+    }
+  }
 }

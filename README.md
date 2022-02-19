@@ -50,7 +50,7 @@ This uses the "short-form" function that takes a string as input and returns a
  * @return The text compressed into bytes.
  */
 async function gzip(text: string): Promise<Uint8Array> {
-  return await proc.runSB({ cmd: ["gzip", "-c"] }, text);
+  return await proc.runB({ cmd: ["gzip", "-c"] }, text);
 }
 
 console.dir(await gzip("Hello, world."));
@@ -58,9 +58,9 @@ console.dir(await gzip("Hello, world."));
 ```
 
 > ℹ️ **Short Form** The short form run functions are new. It seems a little odd
-> to have so many different typed functions, but it cuts out a lot of
-> boilerplate. This feature will most likely be under development for some time.
-> See [runner.ts](./runner.ts) for available short form run functions.
+> to have typed functions, but it cuts out a lot of boilerplate. This feature
+> will most likely be under development _and unstable_ for some time. See
+> [runner.ts](./runner.ts) for available short form run functions.
 
 ## Input Types
 

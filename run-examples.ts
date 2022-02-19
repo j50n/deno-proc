@@ -5,7 +5,7 @@ import { dirname } from "./runners/utility.ts";
 
 const here = dirname(import.meta);
 
-proc.run00({
+proc.run0({
   cmd: [
     "bash",
     "--login",

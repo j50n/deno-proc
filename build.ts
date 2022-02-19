@@ -4,20 +4,20 @@ import * as proc from "./mod.ts";
 import { dirname } from "./runners/utility.ts";
 
 async function findAllTypescriptFiles(): Promise<string[]> {
-  return await proc.run0Sa(
+  return await proc.runSa(
     { cmd: ["find", dirname(import.meta), "-name", "*.ts"] },
   );
 }
 
 async function updateDependencies(): Promise<void> {
-  await proc.run00({ cmd: ["udd", ...(await findAllTypescriptFiles())] });
+  await proc.run0({ cmd: ["udd", ...(await findAllTypescriptFiles())] });
 }
 
 async function format(): Promise<void> {
-  await proc.run00({ cmd: ["deno", "fmt", dirname(import.meta)] });
+  await proc.run0({ cmd: ["deno", "fmt", dirname(import.meta)] });
 
   /* Fix breaks to legacy shebang caused by deno formatter. */
-  await proc.run00(
+  await proc.run0(
     {
       cmd: [
         "sed",
@@ -30,11 +30,11 @@ async function format(): Promise<void> {
 }
 
 async function lint(): Promise<void> {
-  await proc.run00({ cmd: ["deno", "lint", dirname(import.meta)] });
+  await proc.run0({ cmd: ["deno", "lint", dirname(import.meta)] });
 }
 
 async function test(): Promise<void> {
-  await proc.run00({
+  await proc.run0({
     cmd: ["deno", "test", "--allow-run", "--reload", dirname(import.meta)],
   });
 }
