@@ -7,6 +7,7 @@ import {
   stringInput,
   stringOutput,
 } from "../mod.ts";
+import * as proc from "../mod.ts";
 
 Deno.test({
   name: "[README] Key Concepts | Leaking Resources",
@@ -48,6 +49,22 @@ Deno.test({
       } finally {
         pg.close();
       }
+    }
+
+    console.dir(await gzip("Hello, world."));
+  },
+});
+
+Deno.test({
+  name: "[README] Input and Output Types (Short Form)",
+  async fn() {
+    /**
+     * Use `gzip` to compress some text.
+     * @param text The text to compress.
+     * @return The text compressed into bytes.
+     */
+    async function gzip(text: string): Promise<Uint8Array> {
+      return await proc.runSB({ cmd: ["gzip", "-c"] }, text);
     }
 
     console.dir(await gzip("Hello, world."));

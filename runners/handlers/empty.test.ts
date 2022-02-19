@@ -7,7 +7,7 @@ Deno.test(
       async function say(text: string): Promise<void> {
         const pg = proc.group();
         try {
-          await proc.simpleRunner(pg).run({
+          await proc.run00({
             cmd: [
               "spd-say",
               "-w",

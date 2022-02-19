@@ -1,4 +1,5 @@
 import { BufReader, BufWriter } from "../deps.ts";
+import * as path from "https://deno.land/std@0.126.0/path/mod.ts";
 
 export const DEFAULT_BUFFER_SIZE = 4096;
 
@@ -206,4 +207,12 @@ export async function sleep(delayms: number): Promise<void> {
   await new Promise<void>((resolve, _reject) =>
     setTimeout(() => resolve(), delayms)
   );
+}
+
+export function filename(meta: { url: string }): string {
+  return path.fromFileUrl(meta.url);
+}
+
+export function dirname(meta: { url: string }): string {
+  return path.dirname(filename(meta));
 }

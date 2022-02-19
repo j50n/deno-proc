@@ -6,7 +6,7 @@ import {
 import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
-import { AbstractTextUnbufferedOutputHandler } from "./abstract-handlers.ts";
+import { AbstractBytesUnbufferedOutputHandler } from "./abstract-handlers.ts";
 
 /**
  * Empty `stdin`.
@@ -26,7 +26,7 @@ export class EmptyInputHandler implements InputHandler<void> {
  * Write lines of `stdout` to `stdout` of the parent process, unbuffered.
  */
 export class EmptyOutputHandler
-  extends AbstractTextUnbufferedOutputHandler<void> {
+  extends AbstractBytesUnbufferedOutputHandler<void> {
   constructor(
     processStderr: StderrProcessor,
     errorHandler: ErrorHandler,
@@ -40,8 +40,8 @@ export class EmptyOutputHandler
     process: MultiCloseProcess,
     input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
   ): Promise<void> {
-    for await (const line of this.process(stdout, stderr, process, input)) {
-      console.log(line);
+    for await (const bytes of this.process(stdout, stderr, process, input)) {
+      Deno.stdout.writeSync(bytes);
     }
   }
 }

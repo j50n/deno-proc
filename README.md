@@ -36,10 +36,12 @@ behaviors for your data. It also lets you customize `stderr` and error handling.
 With just a little code for definition, you can work with bytes or text,
 synchronous or asynchronous, buffered or unbuffered.
 
-#### An Example
+### An Example
 
-To get you started, here is a simple example where we pass a text `string` to a
+To get you started, here is an example where we pass a text `string` to a
 process and get back a `Uint8Array` - text compressed to bytes using `gzip`.
+This uses the "short-form" function that takes a string as input and returns a
+`Uint8array` as output.
 
 ```ts
 /**
@@ -48,14 +50,17 @@ process and get back a `Uint8Array` - text compressed to bytes using `gzip`.
  * @return The text compressed into bytes.
  */
 async function gzip(text: string): Promise<Uint8Array> {
-  return await runner(stringInput(), bytesOutput())().run({
-    cmd: ["gzip", "-c"],
-  }, text);
+  return await proc.runSB({ cmd: ["gzip", "-c"] }, text);
 }
 
 console.dir(await gzip("Hello, world."));
 /* prints an array of bytes to console. */
 ```
+
+> ℹ️ **Short Form** The short form run functions are new. It seems a little odd
+> to have so many different typed functions, but it cuts out a lot of
+> boilerplate. This feature will most likely be under development for some time.
+> See [runner.ts](./runner.ts) for available short form run functions.
 
 ## Input Types
 
@@ -146,12 +151,12 @@ manually).
 
 Most of the time, `proc` can automatically clean up processes. In some cases
 where the output of one process feeds into the input of another, the first
-process won't be fully processed and therefore cannot be automatically shut
-down. This can also happen if you don't fully process `AsyncIterable` output of
-a process. This will result in resource leakage. If your program is short and
-does not start many processes, or if you are sure that the way you are using
-processes is well behaved (either non-streaming output or all output data is
-fully consumed), you can use the short form safely.
+process's output won't be fully read, and therefore the process cannot be
+automatically shut down. This can also happen if you don't fully process
+`AsyncIterable` output of a process. This will result in resource leakage. If
+your program is short and does not start many processes, or if you are sure that
+the way you are using processes is well behaved (either non-streaming output or
+all output data is fully consumed), you can use the short form safely.
 
 ### Direct Control Over `stderr`
 
