@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.16.0
+
+This release contains minor breaking changes.
+
+- Dependency maintenance.
+- Build is written in Typescript; no more shell builds.
+- Added some short-form run functions.
+
 ## 0.15.0
 
 This release contains minor breaking changes.
