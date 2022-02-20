@@ -74,14 +74,13 @@ function for each supported output type.
 
 **An Example**
 
-This is how we might compress and then uncompress some text using a shell
-script:
+This shell script compresses and then uncompresses some text.
 
 ```sh
 echo "Hello, world." | gzip | gunzip
 ```
 
-This is how the same thing might be accomplished in TypeScript using the
+This is how the same thing can be accomplished in TypeScript using the
 short-form api in `proc`.
 
 ```ts
