@@ -32,8 +32,9 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 
 ## Short-Form Run Functions
 
-Start here. The short-form api makes the simple stuff simple. Here is a
-breakdown of the pros and cons of short-form:
+Start here. The short-form api makes the simple stuff simple and significantly
+reduces code boilerplate. Here is a breakdown of the pros and cons of
+short-form:
 
 - The Good:
   - Minimal code - easy to write, easy to read.
