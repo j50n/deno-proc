@@ -32,30 +32,28 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 
 ## Short-Form Run Functions
 
-The short-form api makes the simple stuff simple and significantly
-reduces code boilerplate. Here is a breakdown of some of the plusses and minuses of
-short-form:
+The short-form api makes the simple stuff simple and significantly reduces code
+boilerplate associated with the `runner` api (next section). It has limitations,
+but it is a surprisingly good solution for many common use cases. Here are some
+of the plusses and minuses:
 
 - The Good:
   - Minimal code - easy to write, easy to read.
   - Covers many common use cases.
+  - Automatically prevents resource leakage associated with `Deno.run()`.
 - The Bad:
   - Not general. Supported data types (input and output) are limited.
-  - Not good for large datasets (output is stored in RAM).
-  - Can't add custom `stderr` processing.
-  - Can't customize error handling.
+  - Not good for large datasets (no streaming, output kept in memory).
+  - No custom `stderr` processing.
+  - No custom error handling.
 
 The input for a `run*` function may be `undefined` (`void`) or any of the
 following:
 
-- `string`
-- `Uint8Array`
-- `string[]`
-- `Uint8Array[]`
-- `Iterable<string>`
-- `Iterable<Uint8Array>`
-- `AsyncIterable<string>`
-- `AsyncIterable<Uint8Array>`
+- `string` or `Uint8Array`
+- `string[]` or `Uint8Array[]`
+- `Iterable<string>` or `Iterable<Uint8Array>`
+- `AsyncIterable<string>` of `AsyncIterable<Uint8Array>`
 - `Deno.Reader & Deno.Closer`
 
 The following short-form `run*` functions are available. There is a different
