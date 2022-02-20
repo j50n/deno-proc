@@ -27,43 +27,103 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 
 ## Related Projects
 
-- [deno-asynciter](https://github.com/j50n/deno-asynciter)
+- [deno-asynciter](https://github.com/j50n/deno-asynciter) `map`, `filter`,
+  `reduce`, and `collect` for `AsyncIterable<?>`
 
 ## Short-Form Run Functions
 
-The short-form api gets the job done. It is not a general purpose api, but it covers a lot of common use cases, and when it works, it reduces code noise (boilerplate) dramatically. It is easy and familiar. If the default behaviors are okay, and if you don't have a large data set, and you don't need to stream data from process to process asynchronously, the short-form api might work for you. It produces very concise and readable code, and it is more approachable if you are still unsure about all this child process stuff. It is a good place to start.
+Start here. The short-form api makes the simple stuff simple. Here is a
+breakdown of the pros and cons of short-form:
+
+- The Good:
+  - Minimal code - easy to write, easy to read.
+  - Covers many common use cases.
+- The Bad:
+  - Not good for large datasets (output is stored in RAM).
+  - Can't add custom `stderr` processing.
+  - Can't customize error handling.
+  - No output available until child process completes.
+
+If you are processing large amounts of data, don't use short-form. Otherwise,
+this might be exactly what you need.
+
+The input for a `run*` function may be `undefined` (`void`) or any of the
+following:
+
+- `string`
+- `Uint8Array`
+- `string[]`
+- `Uint8Array[]`
+- `Iterable<string>`
+- `Iterable<Uint8Array>`
+- `AsyncIterable<string>`
+- `AsyncIterable<Uint8Array>`
+- `Deno.Reader & Deno.Closer`
+
+The following short-form `run*` functions are available. There is a different
+function for each supported output type.
+
+| Name  | Output Type           | Description                                      |
+| :---- | --------------------- | ------------------------------------------------ |
+| run0  | `Promise<void>`       | `stdout` is redirected to the parent, unbuffered |
+| runB  | `Promise<Uint8Array>` | all the bytes from `stdout`                      |
+| runS  | `Promise<string>`     | `stdout` converted to text                       |
+| runSa | `Promise<string[]>`   | `stdout` as lines of text                        |
+
+> ℹ️ `run0` doesn't return anything, but it redirects `stdout` (and `stderr`) to
+> the parent process in real time. This works great for side-effect jobs like
+> builds, where the `stdout` is human-readable log data.
 
 **An Example**
 
-To get you started, here is an example where we pass a text `string` to a
-process and get back a `Uint8Array` - text compressed to bytes using `gzip`.
-This uses the "short-form" function that takes a string as input and returns a
-`Uint8array` as output.
+This is how we might compress and then uncompress some text using a shell
+script:
 
-```ts
-/**
- * Use `gzip` to compress some text.
- * @param text The text to compress.
- * @return The text compressed into bytes.
- */
-async function gzip(text: string): Promise<Uint8Array> {
-  return await proc.runB({ cmd: ["gzip", "-c"] }, text);
-}
-
-console.dir(await gzip("Hello, world."));
-/* prints an array of bytes to console. */
+```sh
+echo "Hello, world." | gzip | gunzip
 ```
 
-**TODO:** SHORT FORM TABLE
+This is how the same thing might be accomplished in TypeScript using the
+short-form api in `proc`.
 
-> ℹ️ **Short Form** The short form run functions are new. It seems a little odd
-> to have typed functions, but it cuts out a lot of boilerplate. This feature
-> will most likely be under development _and unstable_ for some time. See
-> [runner.ts](./runner.ts) for available short form run functions.
+```ts
+async function gzip(text: string): Promise<Uint8Array> {
+  return await proc.runB({ cmd: ["gzip"] }, text);
+}
+
+async function gunzip(bytes: Uint8Array): Promise<string> {
+  return await proc.runS({ cmd: ["gunzip"] }, bytes);
+}
+
+const compressedBytes = await gzip("Hello, world.");
+const originalText = await gunzip(compressedBytes);
+
+console.dir(compressedBytes);
+console.log(originalText);
+
+/*
+ * Uint8Array(33) [
+ *  31, 139,   8,   0,   0,   0,   0,   0,   0,
+ *   3, 243,  72, 205, 201, 201, 215,  81,  40,
+ * 207,  47, 202,  73, 209,   3,   0, 119, 219,
+ *  89, 123,  13,   0,   0,   0
+ * ]
+ *
+ * Hello, world.
+ */
+```
 
 ## The Runner API (Long-Form)
 
-The `runner` api requires a bit more boilerplate, but it is the general solution. It supports arbitrary input and output handlers, allowing you to choose whether you want the data to be streamed or buffered, and what types of conversions you want to be performed automatically. It allows better control over `stderr` data and the ability to customize error handling in different ways. It also exposes process groups, allowing you to clean up your processes reliably in more complex streaming scenarios (you'll use these when larger data sizes or performance are a concern). 
+The `runner` api requires a bit more boilerplate, but it is a general solution.
+It supports arbitrary input and output handlers, allowing you to choose whether
+you want the data to be streamed or buffered, and what types of conversions you
+want to be performed automatically. It allows control over `stderr` data and the
+ability to customize error handling in different ways.
+
+It also exposes process groups, allowing you to clean up your processes reliably
+in more complex streaming scenarios. You'll need to use process groups and
+streaming data when larger data sizes and performance are concerns.
 
 ### Input and Output Handlers
 
@@ -120,8 +180,9 @@ multiplexed as accurately as possible.
 import * as proc from "https://deno.land/x/proc@0.0.0/mod.ts";
 ```
 
-First, create a template. The template is a static definition and may be reused.
-The input and output handlers determine the data types used by your runner.
+First, create a template. The template is a static definition and _may be
+reused._ The input and output handlers determine the data types used by your
+runner.
 
 ```ts
 const template = proc.runner(proc.emptyInput(), proc.stringOutput());
@@ -144,6 +205,9 @@ try {
 }
 ```
 
+> ⚠️ If you are working with `AsyncIterable` outputs, these must be _completely_
+> processed before you close the associated `Group`.
+
 ### A Simpler Alternative - The Global Group
 
 It is not strictly necessary to create and close a local `Group`. If you don't
@@ -163,10 +227,14 @@ Most of the time, `proc` can automatically clean up processes. In some cases
 where the output of one process feeds into the input of another, the first
 process's output won't be fully read, and therefore the process cannot be
 automatically shut down. This can also happen if you don't fully process
-`AsyncIterable` output of a process. This will result in resource leakage. If
+`AsyncIterable` output of a process. This can result in resource leakage. If
 your program is short and does not start many processes, or if you are sure that
 the way you are using processes is well behaved (either non-streaming output or
 all output data is fully consumed), you can use the short form safely.
+
+> ℹ️ `Deno.test` will detect process resource leakage. An easy approach is to
+> test your child process code. If your tests detect a leak, use a local
+> `Group`.
 
 ### Direct Control Over `stderr`
 

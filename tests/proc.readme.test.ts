@@ -58,16 +58,19 @@ Deno.test({
 Deno.test({
   name: "[README] Input and Output Types (Short Form)",
   async fn() {
-    /**
-     * Use `gzip` to compress some text.
-     * @param text The text to compress.
-     * @return The text compressed into bytes.
-     */
     async function gzip(text: string): Promise<Uint8Array> {
-      return await proc.runB({ cmd: ["gzip", "-c"] }, text);
+      return await proc.runB({ cmd: ["gzip"] }, text);
     }
 
-    console.dir(await gzip("Hello, world."));
+    async function gunzip(bytes: Uint8Array): Promise<string> {
+      return await proc.runS({ cmd: ["gunzip"] }, bytes);
+    }
+
+    const compressedBytes = await gzip("Hello, world.");
+    const originalText = await gunzip(compressedBytes);
+
+    console.dir(compressedBytes);
+    console.log(originalText);
   },
 });
 
