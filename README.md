@@ -33,7 +33,7 @@ deno doc --reload https://deno.land/x/proc/mod.ts 2> /dev/null
 ## Short-Form Run Functions
 
 The short-form api makes the simple stuff simple and significantly
-reduces code boilerplate. Here is a breakdown of the pros and cons of
+reduces code boilerplate. Here is a breakdown of some of the plusses and minuses of
 short-form:
 
 - The Good:
@@ -44,7 +44,6 @@ short-form:
   - Not good for large datasets (output is stored in RAM).
   - Can't add custom `stderr` processing.
   - Can't customize error handling.
-  - No output available until child process completes.
 
 The input for a `run*` function may be `undefined` (`void`) or any of the
 following:
