@@ -67,12 +67,12 @@ export async function pumpUnbuffered(
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
  * @param buffs The iterable bytes.
  */
-export async function* toLines(
+export async function* bytesToTextLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterableIterator<string> {
   const decoder = new TextDecoder();
 
-  for await (const line of toByteLines(buffs)) {
+  for await (const line of bytesToByteLines(buffs)) {
     yield decoder.decode(line);
   }
 }
@@ -82,7 +82,7 @@ export async function* toLines(
  * split on `lf` and suppressing trailing `cr`.
  * @param buffs The iterable bytes.
  */
-export async function* toByteLines(
+export async function* bytesToByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterableIterator<Uint8Array> {
   let currentLine: Uint8Array[] = [];

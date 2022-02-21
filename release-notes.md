@@ -24,7 +24,7 @@ This release contains minor breaking changes.
 - `#25` **enhancement** `stderr` handler can pass back something (`unknown`
   type) to be attached to the error, if there is an error.
 
-To convert bytes to lines of text, you can use `proc.toLines()`.
+To convert bytes to lines of text, you can use `proc.bytesToTextLines()`.
 
 ## 0.14.4
 

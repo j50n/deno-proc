@@ -7,7 +7,11 @@ import {
 import { type ErrorHandler } from "../error-support.ts";
 import { type OutputHandler } from "../proc-group.ts";
 import { type StderrProcessor } from "../stderr-support.ts";
-import { readerToBytes, readerToBytesUnbuffered, toLines } from "../utility.ts";
+import {
+  bytesToTextLines,
+  readerToBytes,
+  readerToBytesUnbuffered,
+} from "../utility.ts";
 
 /**
  * Abstract class for handling text output.
@@ -91,7 +95,7 @@ export abstract class AbstractTextOutputHandler<B>
   protected async *transformReader(
     reader: MultiCloseReader,
   ): AsyncIterableIterator<string> {
-    yield* toLines(readerToBytes(reader));
+    yield* bytesToTextLines(readerToBytes(reader));
   }
 }
 
@@ -100,7 +104,7 @@ export abstract class AbstractTextUnbufferedOutputHandler<B>
   protected async *transformReader(
     reader: MultiCloseReader,
   ): AsyncIterableIterator<string> {
-    yield* toLines(readerToBytesUnbuffered(reader));
+    yield* bytesToTextLines(readerToBytesUnbuffered(reader));
   }
 }
 

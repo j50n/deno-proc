@@ -2,7 +2,9 @@
 
 import * as proc from "../../mod.ts";
 
-for await (const text of proc.toLines(proc.readerToBytes(Deno.stdin))) {
+for await (
+  const text of proc.bytesToTextLines(proc.readerToBytes(Deno.stdin))
+) {
   if (text.trim().length > 0) {
     console.log();
     console.log(
@@ -10,7 +12,7 @@ for await (const text of proc.toLines(proc.readerToBytes(Deno.stdin))) {
         cmd: ["fmt", "-w", "80"],
       }, text.trim()),
     );
-    await proc.simpleRunner().run({
+    await proc.run0({
       cmd: ["spd-say", "-w", "-t", "female3", text.trim()],
     });
   }

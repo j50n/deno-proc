@@ -1,4 +1,4 @@
-import { toLines } from "./utility.ts";
+import { bytesToTextLines } from "./utility.ts";
 
 /** A processor for `stderr`. */
 export type StderrProcessor = (
@@ -39,7 +39,7 @@ export function stderrLinesToErrorMessage(
     let droppedLines = false;
 
     const linesArray = [];
-    for await (const line of toLines(bytes)) {
+    for await (const line of bytesToTextLines(bytes)) {
       linesArray.push(line);
       if (linesArray.length > tail) {
         linesArray.shift();

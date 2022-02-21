@@ -4,7 +4,7 @@ import {
   MultiCloseWriter,
 } from "../closers.ts";
 import { OutputHandler } from "../proc-group.ts";
-import { readerToBytesUnbuffered, toLines } from "../utility.ts";
+import { bytesToTextLines, readerToBytesUnbuffered } from "../utility.ts";
 import { MuxAsyncIterator } from "../../deps.ts";
 import { ErrorHandler } from "../error-support.ts";
 import { optionalChain } from "../chained-error.ts";
@@ -32,7 +32,7 @@ export class StderrToStdoutStringAsyncIterableOutputHandler
     stderr: MultiCloseReader,
   ): AsyncIterableIterator<string> {
     try {
-      yield* toLines(readerToBytesUnbuffered(stderr));
+      yield* bytesToTextLines(readerToBytesUnbuffered(stderr));
     } catch (e) {
       if (e instanceof Deno.errors.Interrupted) {
         // Ignore.
@@ -53,7 +53,7 @@ export class StderrToStdoutStringAsyncIterableOutputHandler
     try {
       const mux = new MuxAsyncIterator<string>();
       mux.add(this.handleStderr(stderr));
-      mux.add(toLines(readerToBytesUnbuffered(stdout)));
+      mux.add(bytesToTextLines(readerToBytesUnbuffered(stdout)));
 
       try {
         yield* mux;

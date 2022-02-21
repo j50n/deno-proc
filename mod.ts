@@ -14,8 +14,8 @@ export * from "./runners/chained-error.ts";
 export * from "./runners/stderr-support.ts";
 export * from "./runners/push-iterable.ts";
 export {
+  bytesToTextLines,
   readerToBytes,
   readerToBytesUnbuffered,
   sleep,
-  toLines,
 } from "./runners/utility.ts";
