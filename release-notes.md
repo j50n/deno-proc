@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.18.0
+
+This release contains breaking changes.
+
+- Conversion function names changed to be more specific.
+
+
 ## 0.17.0
 
 This release contains breaking changes.
