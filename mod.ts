@@ -15,6 +15,7 @@ export * from "./runners/stderr-support.ts";
 export * from "./runners/push-iterable.ts";
 export {
   bytesToTextLines,
+  dirname,
   readerToBytes,
   readerToBytesUnbuffered,
   sleep,

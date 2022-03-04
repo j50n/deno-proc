@@ -46,7 +46,7 @@ export function runner<A, B>(
   return (group?: Group) => new RunnerImpl(group || globalGroup, input, output);
 }
 
-type StandardInputs =
+export type StandardInputs =
   | string
   | Uint8Array
   | string[]

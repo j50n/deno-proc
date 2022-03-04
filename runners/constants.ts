@@ -1,4 +1,4 @@
-import { isWindows } from "https://deno.land/std@0.127.0/_util/os.ts";
+import { isWindows } from "https://deno.land/std@0.128.0/_util/os.ts";
 
 export const LINESEP: string = (() => {
   if (isWindows) {

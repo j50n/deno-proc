@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.19.0
+
+- Add a few useful items to `mod.ts`.
+
 ## 0.18.0
 
 This release contains breaking changes.
