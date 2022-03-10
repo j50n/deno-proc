@@ -1,5 +1,5 @@
 import { BufReader, BufWriter } from "../deps.ts";
-import * as path from "https://deno.land/std@0.128.0/path/mod.ts";
+import * as path from "https://deno.land/std@0.129.0/path/mod.ts";
 
 export const DEFAULT_BUFFER_SIZE = 4096;
 
@@ -86,28 +86,39 @@ export async function* bytesToByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterableIterator<Uint8Array> {
   let currentLine: Uint8Array[] = [];
+  let lastline: undefined | Uint8Array;
 
-  const createLine = (): Uint8Array => {
-    const line = concat(currentLine);
-    if (line.length > 0 && line[line.length - 1] === 0x0C) {
-      /* Strip the carriage return. */
-      return line.slice(0, line.length - 1);
-    } else {
-      return line;
+  function bufferLine(): Uint8Array | undefined {
+    function createLine(): Uint8Array {
+      const line = concat(currentLine);
+      //console.dir(line[line.length - 1]);
+      if (line.length > 0 && line[line.length - 1] === 13) {
+        /* Strip the carriage return. */
+        return line.slice(0, line.length - 1);
+      } else {
+        return line;
+      }
     }
-  };
+
+    const temp = lastline;
+    lastline = createLine();
+    return temp;
+  }
 
   for await (const buff of buffs) {
     const length = buff.length;
 
     let start = 0;
     for (let pos = 0; pos < length; pos++) {
-      if (buff[pos] === 0x0A) {
+      if (buff[pos] === 10) {
         if (pos) {
           currentLine.push(buff.slice(start, pos));
         }
 
-        yield createLine();
+        const b = bufferLine();
+        if (b) {
+          yield b;
+        }
 
         currentLine = [];
         start = pos + 1;
@@ -119,7 +130,14 @@ export async function* bytesToByteLines(
   }
 
   if (currentLine.length > 0) {
-    yield createLine();
+    const b = bufferLine();
+    if (b) {
+      yield b;
+    }
+  }
+
+  if (lastline?.length) {
+    yield lastline;
   }
 }
 

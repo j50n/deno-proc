@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.19.1
+
+- Fix line split to correctly remove trailing carriage returns on lines and to
+  remove an empty line at end of input.
+
 ## 0.19.0
 
 - Add a few useful items to `mod.ts`.
