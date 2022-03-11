@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.19.3
+
+- Refactored to use `subarray` in all places where `slice` had been used,
+  removing a lot of redundant memory copies.
+
 ## 0.19.2
 
 - Performance improvement to byte array concatenation.
