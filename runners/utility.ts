@@ -17,13 +17,13 @@ export async function pump(
       const bufferedReader = new BufReader(reader, DEFAULT_BUFFER_SIZE);
       const bufferedWriter = new BufWriter(writer, DEFAULT_BUFFER_SIZE);
       try {
-        const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
         while (true) {
+          const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
           const len = await bufferedReader.read(buffer);
           if (len === null) {
             break;
           }
-          await bufferedWriter.write(buffer.slice(0, len));
+          await bufferedWriter.write(buffer.subarray(0, len));
         }
       } finally {
         await bufferedWriter.flush();
@@ -47,13 +47,13 @@ export async function pumpUnbuffered(
 ): Promise<void> {
   try {
     try {
-      const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
       while (true) {
+        const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
         const len = await reader.read(buffer);
         if (len === null) {
           break;
         }
-        await writer.write(buffer.slice(0, len));
+        await writer.write(buffer.subarray(0, len));
       }
     } finally {
       reader.close();
@@ -94,7 +94,7 @@ export async function* bytesToByteLines(
       //console.dir(line[line.length - 1]);
       if (line.length > 0 && line[line.length - 1] === 13) {
         /* Strip the carriage return. */
-        return line.slice(0, line.length - 1);
+        return line.subarray(0, line.length - 1);
       } else {
         return line;
       }
@@ -112,7 +112,7 @@ export async function* bytesToByteLines(
     for (let pos = 0; pos < length; pos++) {
       if (buff[pos] === 10) {
         if (pos) {
-          currentLine.push(buff.slice(start, pos));
+          currentLine.push(buff.subarray(start, pos));
         }
 
         const b = bufferLine();
@@ -125,7 +125,7 @@ export async function* bytesToByteLines(
       }
     }
     if (start < length) {
-      currentLine.push(buff.slice(start));
+      currentLine.push(buff.subarray(start));
     }
   }
 
@@ -152,14 +152,14 @@ export async function* readerToBytes(
 ): AsyncIterableIterator<Uint8Array> {
   try {
     const bufferedReader = new BufReader(reader, bufSize);
-    const buffer = new Uint8Array(bufSize);
 
     while (true) {
+      const buffer = new Uint8Array(bufSize);
       const len = await bufferedReader.read(buffer);
       if (len === null) {
         break;
       }
-      yield buffer.slice(0, len);
+      yield buffer.subarray(0, len);
     }
   } finally {
     reader.close();
@@ -177,14 +177,13 @@ export async function* readerToBytesUnbuffered(
   reader: Deno.Reader & Deno.Closer,
 ): AsyncIterableIterator<Uint8Array> {
   try {
-    const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
-
     while (true) {
+      const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
       const len = await reader.read(buffer);
       if (len === null) {
         break;
       }
-      yield buffer.slice(0, len);
+      yield buffer.subarray(0, len);
     }
   } finally {
     reader.close();
