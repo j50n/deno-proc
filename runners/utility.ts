@@ -191,16 +191,34 @@ export async function* readerToBytesUnbuffered(
   }
 }
 
+/**
+ * Concatenate arrays together, returning a single array containing the result.
+ *
+ * Note that this may return the original source data rather than a copy in some
+ * circumstances.
+ *
+ * @param arrays The arrays to concatenate together.
+ * @returns The result of the concatenation.
+ */
 export function concat(arrays: Uint8Array[]): Uint8Array {
   if (!arrays.length) return new Uint8Array(0);
+
+  /*
+   * In many cases, we are dealing with data that actually only contains a single array of bytes
+   * and does not actually need to be concatenated. In this case, we just return the first buffer
+   * from the array (it is the only buffer) and skip the processing, saving a redundant memcpy.
+   */
+  if (arrays.length === 1) {
+    return arrays[0];
+  }
 
   const totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
   const result = new Uint8Array(totalLength);
 
-  let length = 0;
+  let pos = 0;
   for (const array of arrays) {
-    result.set(array, length);
-    length += array.length;
+    result.set(array, pos);
+    pos += array.length;
   }
 
   return result;

@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.19.2
+
+- Performance improvement to byte array concatenation.
+
 ## 0.19.1
 
 - Fix line split to correctly remove trailing carriage returns on lines and to
