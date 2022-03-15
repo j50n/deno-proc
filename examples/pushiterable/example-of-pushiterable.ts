@@ -2,7 +2,7 @@
 
 import { Answer, Question } from "./common-json-defs.ts";
 import * as proc from "../../mod.ts";
-import { asynciter } from "https://deno.land/x/asynciter@0.0.7/mod.ts";
+import { asynciter } from "https://deno.land/x/asynciter@0.0.8/mod.ts";
 import { blue, red } from "https://deno.land/std@0.129.0/fmt/colors.ts";
 
 /**
