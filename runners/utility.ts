@@ -1,5 +1,5 @@
 import { BufReader, BufWriter } from "../deps.ts";
-import * as path from "https://deno.land/std@0.129.0/path/mod.ts";
+import * as path from "https://deno.land/std@0.130.0/path/mod.ts";
 
 export const DEFAULT_BUFFER_SIZE = 4096;
 
@@ -91,7 +91,7 @@ export async function* bytesToByteLines(
   function bufferLine(): Uint8Array | undefined {
     function createLine(): Uint8Array {
       const line = concat(currentLine);
-    
+
       if (line.length > 0 && line[line.length - 1] === 13) {
         /* Strip the carriage return. */
         return line.subarray(0, line.length - 1);

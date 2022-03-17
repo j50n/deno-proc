@@ -65,7 +65,7 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
     try {
       const se = this.handleStderr(stderr);
 
-      for await (const thing of this.transformReader(stdout)){
+      for await (const thing of this.transformReader(stdout)) {
         yield thing;
       }
 
