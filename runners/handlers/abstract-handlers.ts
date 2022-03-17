@@ -82,6 +82,8 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
       const details: unknown = await se;
       const status = await process.status();
 
+      console.error("STATUS " + status);
+
       this.errorHandler(process.options, status, details);
     } finally {
       input.stdin.close();
