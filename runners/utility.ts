@@ -179,7 +179,7 @@ export async function* readerToBytesUnbuffered(
   const trace: number[] = [];
   try {
     while (true) {
-      const buffer = new Uint8Array(100);
+      const buffer = new Uint8Array(1024);
       const len = await reader.read(buffer);
       if (len === null) {
         break;
