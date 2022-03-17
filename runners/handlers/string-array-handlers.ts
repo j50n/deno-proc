@@ -10,7 +10,7 @@ import { ErrorHandler } from "../error-support.ts";
 import { InputHandler } from "../proc-group.ts";
 import { StderrProcessor } from "../stderr-support.ts";
 import { DEFAULT_BUFFER_SIZE } from "../utility.ts";
-import { AbstractTextOutputHandler } from "./abstract-handlers.ts";
+import { AbstractTextUnbufferedOutputHandler } from "./abstract-handlers.ts";
 
 /**
  * Source `stdin` from a `string[]`. `stdin` is closed once the text data is written.
@@ -46,7 +46,7 @@ export class StringArrayInputHandler implements InputHandler<string[]> {
  * Return `stdout` as a `string[]`.
  */
 export class StringArrayOutputHandler
-  extends AbstractTextOutputHandler<string[]> {
+  extends AbstractTextUnbufferedOutputHandler<string[]> {
   constructor(
     processStderr: StderrProcessor,
     errorHandler: ErrorHandler,

@@ -91,7 +91,7 @@ export async function* bytesToByteLines(
   function bufferLine(): Uint8Array | undefined {
     function createLine(): Uint8Array {
       const line = concat(currentLine);
-      //console.dir(line[line.length - 1]);
+    
       if (line.length > 0 && line[line.length - 1] === 13) {
         /* Strip the carriage return. */
         return line.subarray(0, line.length - 1);
