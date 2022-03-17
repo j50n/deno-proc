@@ -92,6 +92,8 @@ export class GroupImpl implements Group {
       }
     })();
 
+console.error(`RUN ${options}`)
+
     return outputHandler.processOutput(
       stdout,
       stderr,
