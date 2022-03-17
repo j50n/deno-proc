@@ -92,7 +92,7 @@ export class GroupImpl implements Group {
       }
     })();
 
-console.error(`RUN ${options}`)
+console.error(`RUN ${JSON.stringify(options)}`)
 
     return outputHandler.processOutput(
       stdout,
