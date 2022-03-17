@@ -176,6 +176,7 @@ export async function* readerToBytes(
 export async function* readerToBytesUnbuffered(
   reader: Deno.Reader & Deno.Closer,
 ): AsyncIterableIterator<Uint8Array> {
+  const trace: number[] = [];
   try {
     while (true) {
       const buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
@@ -183,9 +184,11 @@ export async function* readerToBytesUnbuffered(
       if (len === null) {
         break;
       }
+      trace.push(len);
       yield buffer.subarray(0, len);
     }
   } finally {
+    console.error(trace);
     reader.close();
   }
 }
