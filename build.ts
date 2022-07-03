@@ -45,7 +45,14 @@ async function check(): Promise<void> {
 
 async function test(): Promise<void> {
   await proc.run0({
-    cmd: ["deno", "test", "--allow-run", "--reload", dirname(import.meta)],
+    cmd: [
+      "deno",
+      "test",
+      "--check",
+      "--allow-run",
+      "--reload",
+      dirname(import.meta),
+    ],
   });
 }
 
