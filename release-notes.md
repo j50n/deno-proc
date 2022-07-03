@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.19.6
+
+- Updated dependencies.
+
 ## 0.19.5
 
 - Updated dependencies.
