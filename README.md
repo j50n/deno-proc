@@ -10,7 +10,8 @@ comfortable and intuitive. And `proc` handles closing and shutting down
 process-related resources in a sane manner - because you have enough to worry
 about, right?
 
-For more ramblings, see [Key Concepts](./runners/KEY-CONCEPTS.md).
+Although I don't think this project is ready for a 1.0 release, the API has been
+stable for some time now. I will be trying to avoid breaking changes.
 
 ## Rationale
 
@@ -27,8 +28,8 @@ does something useful. I just have to drop the Deno executable into
 `/usr/local/bin` and everything will "just work."
 
 _So here is the problem._ Deno has great support for launching child processes,
-but the API is low-level. It requires a lot of boilerplate and is difficult
-to use in an error-free manner.
+but the API is low-level. It requires a lot of boilerplate and is difficult to
+use in an error-free manner.
 
 _If I am going to replace shell scripting, I need to have **great** child
 process support!_
@@ -36,12 +37,14 @@ process support!_
 `proc` is my attempt to create a library that gives Deno all the power of a
 shell script for running child processes. These are the design goals:
 
-- fully embrace `AsyncIterable` (high level, not low level)
+- fully embrace `AsyncIterable` (high level)
 - support various byte and string conversions (stuff you shouldn't have to worry
   about)
 - deterministic process shutdown and resource recovery (no more fighting with
   leaking process and file handles)
 - readable fluent syntax
+- attention to detail in error handling (process errors should not require extra
+  thought)
 - speed, speed, speed
 
 ## Documentation
