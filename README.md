@@ -15,7 +15,7 @@ For more ramblings, see [Key Concepts](./runners/KEY-CONCEPTS.md).
 ## Rationale
 
 Deno is packaged as a monolithic executable. Because it has no package manager,
-dependencies can be relied up to be absolutely stable over time.
+dependencies can be relied upon to be absolutely stable over time.
 
 These features mean that Deno is uniquely placed as a language that can compete
 with shell scripts. Go and Rust require compilation. Java requires compilation
