@@ -27,7 +27,7 @@ does something useful. I just have to drop the Deno executable into
 `/usr/local/bin` and everything will "just work."
 
 _So here is the problem._ Deno has great support for launching child processes,
-but the API is very low level. It requires a lot of boilerplate and is difficult
+but the API is low-level. It requires a lot of boilerplate and is difficult
 to use in an error-free manner.
 
 _If I am going to replace shell scripting, I need to have **great** child
