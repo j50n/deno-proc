@@ -12,6 +12,37 @@ about, right?
 
 For more ramblings, see [Key Concepts](./runners/KEY-CONCEPTS.md).
 
+## Rationale
+
+Deno is packaged as a monolithic executable. Because it has no package manager,
+dependencies can be relied up to be absolutely stable over time.
+
+These features mean that Deno is uniquely placed as a language that can compete
+with shell scripts. Go and Rust require compilation. Java requires compilation
+and JAR files. Python requires an environment. Node requires `node_modules` and
+`npm`. With Deno, I can just run the script.
+
+Put another way, I can write a single-file, non-compiled script in Deno that
+does something useful. I just have to drop the Deno executable into
+`/usr/local/bin` and everything will "just work."
+
+_So here is the problem._ Deno has great support for launching child processes,
+but the API is very low level. It requires a lot of boilerplate and is difficult
+to use in an error-free manner.
+
+_If I am going to replace shell scripting, I need to have **great** child
+process support!_
+
+`proc` is my attempt to create a library that gives Deno all the power of a
+shell script for running child processes. These are the design goals:
+
+- fully embrace `AsyncIterable` (high level, not low level)
+- support various byte and string conversions (stuff you shouldn't have to worry
+  about)
+- deterministic process shutdown and resource recovery (no more fighting with
+  leaking process and file handles)
+- readable fluent syntax
+
 ## Documentation
 
 ```bash
