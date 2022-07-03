@@ -42,6 +42,7 @@ shell script for running child processes. These are the design goals:
 - deterministic process shutdown and resource recovery (no more fighting with
   leaking process and file handles)
 - readable fluent syntax
+- speed, speed, speed
 
 ## Documentation
 
