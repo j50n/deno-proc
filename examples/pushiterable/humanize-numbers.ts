@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --quiet
 import "https://deno.land/x/humanizer@1.1/romanNumerals.ts";
 import "https://deno.land/x/humanizer@1.1/numberToWords.ts";
-import { asynciter } from "https://deno.land/x/asynciter@0.0.12/mod.ts";
+import { asynciter } from "https://deno.land/x/asynciter@0.0.13/mod.ts";
 import { bytesToTextLines, readerToBytesUnbuffered } from "../../mod.ts";
 import { Answer, Question } from "./common-json-defs.ts";
 
