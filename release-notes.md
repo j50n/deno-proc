@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.20.0
+
+- Updated dependencies.
+- Supports augmented `AsyncIterable`s.
+
 ## 0.19.7
 
 - Updated dependencies.

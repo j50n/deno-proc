@@ -20,6 +20,8 @@ const globalGroup = group();
 /** Something that is either a promise or an iterable. */
 export type PromiseOrIterable<B> = B extends AsyncIterable<unknown> ? B
   : Promise<B>;
+// export type PromiseOrIterable<B> = B extends IAsyncIter<unknown> ? B
+// : Promise<B>;
 
 export interface Runner<A, B> {
   /**

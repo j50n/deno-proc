@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --quiet --allow-run=gunzip,sort,uniq,grep,wc
 
-import { asynciter } from "https://deno.land/x/asynciter@0.0.13/mod.ts";
+import { asynciter } from "https://deno.land/x/asynciter@0.0.14/mod.ts";
 import * as proc from "../../mod.ts";
 
 /**
