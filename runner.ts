@@ -9,19 +9,22 @@ import {
   InputHandler,
   OutputHandler,
   RunOptions,
+  Xyzzy,
 } from "./runners/proc-group.ts";
 import { LINESEP } from "./runners/constants.ts";
 import { concat } from "./runners/utility.ts";
 import { bytesAsyncIterableInput } from "./runners/handlers/bytes-asynciterable.ts";
 import { readerInput } from "./runners/handlers/reader.ts";
+//import { IAsyncIter } from "https://deno.land/x/asynciter@0.0.15/asynciter.ts";
 
 const globalGroup = group();
 
 /** Something that is either a promise or an iterable. */
-export type PromiseOrIterable<B> = B extends AsyncIterable<unknown> ? B
-  : Promise<B>;
-// export type PromiseOrIterable<B> = B extends IAsyncIter<unknown> ? B
-// : Promise<B>;
+// export type PromiseOrIterable<B> = B extends Promise<unknown> ? Promise<B>
+//   : B;
+export type PromiseOrIterable<B> = B extends AsyncIterable<infer A>
+  ? AsyncIterable<A>
+  : Awaited<B>;
 
 export interface Runner<A, B> {
   /**
@@ -32,7 +35,7 @@ export interface Runner<A, B> {
   run(
     options: RunOptions,
     input?: A,
-  ): PromiseOrIterable<B>;
+  ): Xyzzy<B>;
 }
 
 /**
@@ -107,7 +110,7 @@ function runSomething<B>(
   output: OutputHandler<B>,
   options: RunOptions,
   input?: StandardInputs,
-): PromiseOrIterable<B> {
+): Xyzzy<B> {
   if (input === undefined) {
     return new RunnerImpl(globalGroup, emptyInput(), output).run(
       options,

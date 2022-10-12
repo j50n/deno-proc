@@ -1,3 +1,6 @@
+// import { IAsyncIter } from "https://deno.land/x/asynciter@0.0.15/asynciter.ts";
+import { IAsyncIter } from "https://deno.land/x/asynciter@0.0.15/asynciter.ts";
+import { PromiseOrIterable } from "../runner.ts";
 import {
   MultiCloseProcess,
   MultiCloseReader,
@@ -41,7 +44,7 @@ export interface OutputHandler<B> {
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
     input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
-  ) => B | Promise<B>;
+  ) => PromiseOrIterable<B>;
 }
 
 /**
@@ -75,6 +78,9 @@ export function group(): Group {
   return new GroupImpl();
 }
 
+export type Xyzzy<B> = B extends IAsyncIter<infer D> ? IAsyncIter<D>
+  : Promise<B>;
+
 /**
  * A process group.
  *
@@ -88,10 +94,20 @@ export interface Group extends Deno.Closer {
    * @param input The input. `undefined` for empty input.
    * @param options The run options.
    */
-  run<A, B>(
+  run<
+    A,
+    B,
+  >(
     inputHandler: InputHandler<A>,
     outputHandler: OutputHandler<B>,
     input: A,
     options: RunOptions,
-  ): B | Promise<B>;
+  ): B extends IAsyncIter<infer D> ? IAsyncIter<D>
+    : Promise<B>;
+  // run<A, B>(
+  //   inputHandler: InputHandler<A>,
+  //   outputHandler: OutputHandler<B>,
+  //   input: A,
+  //   options: RunOptions,
+  // ): B | Promise<B>;
 }

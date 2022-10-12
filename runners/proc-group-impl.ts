@@ -1,3 +1,5 @@
+//import { asynciter } from "../deps-test.ts";
+import { asynciter } from "https://deno.land/x/asynciter@0.0.15/asynciter.ts";
 import {
   MultiCloseProcess,
   MultiCloseReader,
@@ -9,6 +11,7 @@ import {
   InputHandler,
   OutputHandler,
   RunOptions,
+  Xyzzy,
 } from "./proc-group.ts";
 import { randomString } from "./utility.ts";
 
@@ -58,12 +61,22 @@ export class GroupImpl implements Group {
     this.processes.clear();
   }
 
-  run<A, B>(
+  // run<A, B>(
+  //   inputHandler: InputHandler<A>,
+  //   outputHandler: OutputHandler<B>,
+  //   input: A,
+  //   options: RunOptions,
+  // ): B | Promise<B>;
+
+  run<
+    A,
+    B,
+  >(
     inputHandler: InputHandler<A>,
     outputHandler: OutputHandler<B>,
     input: A,
     options: RunOptions,
-  ): B | Promise<B> {
+  ): Xyzzy<B> {
     const process = Deno.run({
       ...options,
       stdin: "piped",
@@ -92,11 +105,29 @@ export class GroupImpl implements Group {
       }
     })();
 
-    return outputHandler.processOutput(
+    const out = outputHandler.processOutput(
       stdout,
       stderr,
       processWrapper,
       { stdin, handlerResult: inputResult },
     );
+
+    //return out;
+
+    // if (Symbol.asyncIterator in out) {
+    //   return asynciter(
+    //     out as unknown as AsyncIterable<C>,
+    //   );
+    // } else {
+    //   return out as unknown as Promise<B>;
+    // }
+
+    if (out instanceof Promise<unknown>) {
+      return out as unknown as Xyzzy<B>;
+    } else {
+      return asynciter(
+        out as unknown as AsyncIterable<unknown>,
+      ) as Xyzzy<B>;
+    }
   }
 }

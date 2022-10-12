@@ -1,3 +1,4 @@
+import { PromiseOrIterable } from "../../runner.ts";
 import { optionalChain } from "../chained-error.ts";
 import {
   MultiCloseProcess,
@@ -28,7 +29,7 @@ abstract class AbstractOutputHandler<B, C> implements OutputHandler<B> {
     stderr: MultiCloseReader,
     process: MultiCloseProcess,
     input: { stdin: MultiCloseWriter; handlerResult: Promise<null | Error> },
-  ): B | Promise<B>;
+  ): PromiseOrIterable<B>;
 
   protected async handleStderr(
     stderr: MultiCloseReader,

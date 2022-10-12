@@ -1,9 +1,10 @@
-import { PromiseOrIterable, Runner } from "./runner.ts";
+import { Runner } from "./runner.ts";
 import {
   Group,
   InputHandler,
   OutputHandler,
   RunOptions,
+  Xyzzy,
 } from "./runners/proc-group.ts";
 
 export class RunnerImpl<A, B> implements Runner<A, B> {
@@ -17,7 +18,7 @@ export class RunnerImpl<A, B> implements Runner<A, B> {
   run(
     options: RunOptions,
     input?: A,
-  ): PromiseOrIterable<B> {
+  ): Xyzzy<B> {
     if (input === undefined && this.input.failOnEmptyInput) {
       throw new Error("empty input; process requires input");
     }
@@ -26,6 +27,6 @@ export class RunnerImpl<A, B> implements Runner<A, B> {
       this.output,
       input as A,
       options,
-    ) as PromiseOrIterable<B>;
+    ) as Xyzzy<B>;
   }
 }
