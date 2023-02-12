@@ -20,7 +20,7 @@ dependencies can be relied upon to be absolutely stable over time.
 
 These features mean that Deno is uniquely placed as a language that can compete
 with shell scripts. Go and Rust require compilation. Java requires compilation
-and JAR files. Python requires an environment. Node requires `node_modules` and
+and JAR files. Python requires an environment. Node typically uses `node_modules` and
 `npm`. With Deno, I can just run the script.
 
 Put another way, I can write a single-file, non-compiled script in Deno that
