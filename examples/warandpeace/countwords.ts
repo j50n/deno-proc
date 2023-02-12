@@ -14,12 +14,12 @@ import * as proc from "../../mod.ts";
 
 try {
   /*
-     * `stdin` will be from a gzipped text file. So the first thing we need to do is
-     * decompress it.
-     *
-     * Since I am passing the output directly to the next process, I am passing the data
-     * in byte form (actually `Uint8Array`) in order to avoid the overhead of text conversions.
-     */
+   * `stdin` will be from a gzipped text file. So the first thing we need to do is
+   * decompress it.
+   *
+   * Since I am passing the output directly to the next process, I am passing the data
+   * in byte form (actually `Uint8Array`) in order to avoid the overhead of text conversions.
+   */
   const uncompressedDoc = proc.runner(
     proc.readerInput(),
     proc.bytesAsyncIterableOutput(),

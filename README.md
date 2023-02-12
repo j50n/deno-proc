@@ -197,10 +197,10 @@ types that do not have corresponding output types.
 `stdout` must be text data. `stdout` is unbuffered to allow the text lines to be
 multiplexed as accurately as possible.
 
-> ℹ️ **You must fully consume `Iterable` outputs.** If you only partially
-> consume `Iterable`s, process errors will not propagate properly. For correct
-> behavior, we have to return all the data from the process streams before we
-> can propagate an error.
+> ℹ️ **You must fully consume `Iterable` outputs.** If you only partially consume
+> `Iterable`s, process errors will not propagate properly. For correct behavior,
+> we have to return all the data from the process streams before we can
+> propagate an error.
 
 ### Running a Command
 
