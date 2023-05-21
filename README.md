@@ -1,3 +1,8 @@
+> `Deno.run` has been deprecated and is scheduled to be removed in Deno version
+> 2.0. I am working on a version of this library that will use `Deno.Command`,
+> the successor to `Deno.run`. This is an unstable API in Deno 1.x, so I am not
+> quite sure how I will roll this out yet. Stay tuned.
+
 # proc
 
 A high-level way to run child processes that is easy, flexible, powerful, and

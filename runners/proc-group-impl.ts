@@ -64,6 +64,7 @@ export class GroupImpl implements Group {
     input: A,
     options: RunOptions,
   ): B | Promise<B> {
+    // deno-lint-ignore no-deprecated-deno-api
     const process = Deno.run({
       ...options,
       stdin: "piped",
