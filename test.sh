@@ -1,3 +1,3 @@
 #!/bin/bash
 
-deno test ./tests
+deno test --allow-read --allow-run=grep,sort,uniq ./tests

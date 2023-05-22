@@ -1,4 +1,6 @@
-# `count-words.test`
+# `count-words.test.ts`
+
+[./count-words.test.ts](./count-words.test.ts)
 
 Our target `bash` script is:
 
