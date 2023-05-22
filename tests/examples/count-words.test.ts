@@ -55,7 +55,6 @@ Deno.test({
   async fn() {
     const wapFile = await Deno.open(
       fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
-      { read: true },
     );
 
     const grepWords = new Deno.Command("grep", {
@@ -100,22 +99,23 @@ Deno.test({
   },
 });
 
+/**
+ * This is a lot easier to read, and a lot easier to write as well.
+ */
 Deno.test({
   name: "I can count the words in a file, short version.",
   async fn() {
     const wapFile = await Deno.open(
       fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
-      { read: true },
     );
 
     const wapStream = new ProcReadableStream(wapFile.readable);
 
     const [words1, words2] = wapStream
       .pipeThrough(new DecompressionStream("gzip"))
-      .spawn("grep", { args: ["-o", "-E", "(\\w|')+"] })
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new ToLowerCaseStream())
-      .pipeThrough(new TextEncoderStream()).tee();
+      .spawn("grep", { args: ["-o", "-E", "(\\w|')+"] }).asText()
+      .pipeThrough(new ToLowerCaseStream()).asBytes()
+      .tee();
 
     const [uniqCount, totalCount] = await Promise.all([
       countWords(words1.spawn("sort").spawn("uniq").stdout),

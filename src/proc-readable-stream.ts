@@ -1,3 +1,19 @@
+import { TextLineStream } from "../tests/deps/streams.ts";
+
+class AddEOLStream extends TransformStream<string, string> {
+  constructor() {
+    super({
+      transform: (
+        chunk: string,
+        controller: TransformStreamDefaultController,
+      ) => {
+        controller.enqueue(chunk);
+        controller.enqueue("\n");
+      },
+    });
+  }
+}
+
 export class ProcReadableStream<R> implements ReadableStream<R> {
   constructor(protected readonly source: ReadableStream<R>) {
   }
@@ -53,6 +69,30 @@ export class ProcReadableStream<R> implements ReadableStream<R> {
     );
     this.pipeTo(p.stdin as WritableStream<R>);
     return p;
+  }
+
+  asText() {
+    return (this as ProcReadableStream<Uint8Array>).pipeThrough(
+      new TextDecoderStream(),
+    );
+  }
+
+  asTextLines() {
+    return (this as ProcReadableStream<Uint8Array>).pipeThrough(
+      new TextDecoderStream(),
+    ).pipeThrough(new TextLineStream());
+  }
+
+  asBytes(options?: { addEOL?: boolean }) {
+    if (options?.addEOL) {
+      return (this as ProcReadableStream<string>).pipeThrough(
+        new AddEOLStream(),
+      ).pipeThrough(new TextEncoderStream());
+    } else {
+      return (this as ProcReadableStream<string>).pipeThrough(
+        new TextEncoderStream(),
+      );
+    }
   }
 }
 
@@ -126,5 +166,17 @@ export class ProcChildProcess {
     );
     this.stdout.pipeTo(p.stdin);
     return p;
+  }
+
+  asText() {
+    return (this.stdout as ProcReadableStream<Uint8Array>).pipeThrough(
+      new TextDecoderStream(),
+    );
+  }
+
+  asTextLines() {
+    return (this.stdout as ProcReadableStream<Uint8Array>).pipeThrough(
+      new TextDecoderStream(),
+    ).pipeThrough(new TextLineStream());
   }
 }
