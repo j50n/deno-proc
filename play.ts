@@ -80,7 +80,7 @@ class CatchReadableStream<R> implements ReadableStream<R> {
     return this.source.pipeThrough(transform, options);
   }
   async pipeTo(dest: WritableStream<R>, options?: PipeOptions): Promise<void> {
-    console.log("BLAH")
+    console.log("BLAH");
     await this.source.pipeTo(dest, options);
   }
   tee(): [ReadableStream<R>, ReadableStream<R>] {

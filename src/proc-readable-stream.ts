@@ -14,61 +14,68 @@ class AddEOLStream extends TransformStream<string, string> {
   }
 }
 
-abstract class BaseChainable<R> {
-  protected abstract chainableOutput: ProcReadableStream<Uint8Array>;
+/**
+ * Convert a `ReadableStream` into a `ProcReadableStream` as needed, avoiding
+ * redundant wrappers.
+ * @param input Any `ReadableStream`.
+ * @returns A `ProcReadableStream` wrapper.
+ */
+export function toProcReadableStream<R>(
+  input: ReadableStream<R>,
+): ProcReadableStream<R> {
+  if (input instanceof ProcReadableStream) {
+    return input;
+  } else {
+    return new ProcReadableStream(input);
+  }
+}
 
-  spawn(
-    cmd: string,
-    options?: { args?: string[]; cwd?: string },
-  ): ProcChildProcess {
-    const p = new ProcChildProcess(
-      new Deno.Command(cmd, {
-        args: options?.args,
-        cwd: options?.cwd,
-        stdin: "piped",
-        stdout: "piped",
-      }).spawn(),
+/**
+ * Convert UTF8-encoded input to text chunks.
+ * @param input UTF8-encoded input.
+ * @returns Text chunks.
+ */
+export function text(input: ReadableStream<Uint8Array> | Deno.ChildProcess) {
+  let s: ReadableStream<Uint8Array>;
+  if ("stdout" in input) {
+    s = input.stdout;
+  } else {
+    s = input;
+  }
+
+  return toProcReadableStream(s).pipeThrough(new TextDecoderStream());
+}
+
+/**
+ * Convert UTF8-encoded input to text lines.
+ *
+ * @param input UTF8-encoded input.
+ * @returns Text lines.
+ */
+export function lines(input: ReadableStream<Uint8Array> | Deno.ChildProcess) {
+  return text(input).pipeThrough(new TextLineStream());
+}
+
+/**
+ * Convert text data into UTF8-encoded bytes.
+ * @param input Text data, either chunked or as lines.
+ * @param options Options.
+ * @returns
+ */
+export function bytes(
+  input: ReadableStream<string>,
+  options?: { chunked?: boolean },
+) {
+    //TODO: needs a coallescing transform.
+
+  if (options?.chunked) {
+    return toProcReadableStream(input.pipeThrough(new TextEncoderStream()));
+  } else {
+    return toProcReadableStream(
+      input.pipeThrough(new AddEOLStream()).pipeThrough(
+        new TextEncoderStream(),
+      ),
     );
-    this.chainableOutput.pipeTo(p.stdin);
-    return p;
-  }
-
-  /**
-   * Stream as text chunks. The split is arbitrary, based on the
-   * character buffer. This is _not_ split on EOL. This is good
-   * for processing text quickly when line splits are not important.
-   * @returns The stream as text chunks.
-   */
-  asText(): ProcReadableStream<string> {
-    return this.chainableOutput.pipeThrough(
-      new TextDecoderStream(),
-    );
-  }
-
-  /**
-   * Stream as lines of text, split on EOL.
-   * @returns The stream as lines of text.
-   */
-  asLines(): ProcReadableStream<string> {
-    return this.chainableOutput.pipeThrough(
-      new TextDecoderStream(),
-    ).pipeThrough(new TextLineStream());
-  }
-
-  /**
-   * Gather the lines of text from the output and return them as an array.
-   * This waits for the process to complete and returns all lines at once,
-   * or not at all in the case of an error.
-   * @returns The text lines as an array.
-   */
-  async lines(): Promise<string[]> {
-    const result: string[] = [];
-
-    for await (const line of this.asLines()) {
-      result.push(line);
-    }
-
-    return result;
   }
 }
 
@@ -93,14 +100,8 @@ export function spawn(
   return p;
 }
 
-export class ProcReadableStream<R> extends BaseChainable<R>
-  implements ReadableStream<R> {
+export class ProcReadableStream<R> implements ReadableStream<R> {
   constructor(protected readonly source: ReadableStream<R>) {
-    super();
-  }
-
-  override get chainableOutput(): ProcReadableStream<Uint8Array> {
-    return this as ProcReadableStream<Uint8Array>;
   }
 
   get locked(): boolean {
@@ -148,25 +149,49 @@ export class ProcReadableStream<R> extends BaseChainable<R>
     return this.source[Symbol.asyncIterator](options);
   }
 
-  asBytes(options?: { addEOL?: boolean }) {
-    if (options?.addEOL) {
-      return (this as ProcReadableStream<string>).pipeThrough(
-        new AddEOLStream(),
-      ).pipeThrough(new TextEncoderStream());
-    } else {
-      return (this as ProcReadableStream<string>).pipeThrough(
-        new TextEncoderStream(),
-      );
+  async collect() {
+    const result: R[] = [];
+
+    for await (const item of this) {
+      result.push(item);
     }
+
+    return result;
+  }
+
+  /**
+   * Spawn a process.
+   * 
+   * Note that this is not type safe. This should only be called on a 
+   * `ProcReadableStream<Uint8Array>`. Calling this for other types will
+   * cause a runtime error.
+   * 
+   * @param cmd The command.
+   * @param options Options.
+   * @returns A child process instance.
+   */
+  spawn(
+    cmd: string,
+    options?: { args?: string[]; cwd?: string },
+  ): ProcChildProcess {
+    const p = new ProcChildProcess(
+      new Deno.Command(cmd, {
+        args: options?.args,
+        cwd: options?.cwd,
+        stdin: "piped",
+        stdout: "piped",
+      }).spawn(),
+    );
+    (this as ReadableStream<Uint8Array>).pipeTo(p.stdin);
+    return p;
   }
 }
 
-export class ProcChildProcess extends BaseChainable<Uint8Array> {
+export class ProcChildProcess implements Deno.ChildProcess {
   private _stdout: ProcReadableStream<Uint8Array> | null = null;
   private _stderr: ProcReadableStream<Uint8Array> | null = null;
 
   constructor(protected child: Deno.ChildProcess) {
-    super();
   }
 
   protected get chainableOutput(): ProcReadableStream<Uint8Array> {
@@ -228,5 +253,28 @@ export class ProcChildProcess extends BaseChainable<Uint8Array> {
         options,
       ),
     );
+  }
+
+  /**
+   * Spawn a process.
+   * 
+   * @param cmd The command.
+   * @param options Options.
+   * @returns A child process instance.
+   */
+  spawn(
+    cmd: string,
+    options?: { args?: string[]; cwd?: string },
+  ): ProcChildProcess {
+    const p = new ProcChildProcess(
+      new Deno.Command(cmd, {
+        args: options?.args,
+        cwd: options?.cwd,
+        stdin: "piped",
+        stdout: "piped",
+      }).spawn(),
+    );
+    this.stdout.pipeTo(p.stdin);
+    return p;
   }
 }

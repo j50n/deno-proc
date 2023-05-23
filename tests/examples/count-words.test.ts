@@ -1,7 +1,7 @@
 import { TextLineStream } from "../deps/streams.ts";
 import { fromFileUrl } from "../deps/path.ts";
 import { assertEquals } from "../deps/asserts.ts";
-import { ProcReadableStream } from "../../mod.ts";
+import { bytes, lines, ProcReadableStream, text } from "../../mod.ts";
 
 class ToLowerCaseStream extends TransformStream<string, string> {
   constructor(options?: { lineOrientedText?: boolean }) {
@@ -20,12 +20,11 @@ class ToLowerCaseStream extends TransformStream<string, string> {
   }
 }
 
-async function countWords(stream: ReadableStream<Uint8Array>) {
+async function countWords(
+  stream: ReadableStream<Uint8Array> | Deno.ChildProcess,
+) {
   let count = 0;
-  for await (
-    const _ of stream.pipeThrough(new TextDecoderStream())
-      .pipeThrough(new TextLineStream())
-  ) {
+  for await (const _ of lines(stream)) {
     count++;
   }
   return count;
@@ -103,7 +102,7 @@ Deno.test({
  * This is a lot easier to read, and a lot easier to write as well.
  */
 Deno.test({
-  name: "I can count the words in a file, short version.",
+  name: "I can count the words in a file, shorthand version.",
   async fn() {
     const wapFile = await Deno.open(
       fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
@@ -111,14 +110,20 @@ Deno.test({
 
     const wapStream = new ProcReadableStream(wapFile.readable);
 
-    const [words1, words2] = wapStream
-      .pipeThrough(new DecompressionStream("gzip"))
-      .spawn("grep", { args: ["-o", "-E", "(\\w|')+"] }).asText()
-      .pipeThrough(new ToLowerCaseStream()).asBytes()
+    const [words1, words2] = bytes(
+      text(
+        wapStream
+          .pipeThrough(new DecompressionStream("gzip"))
+          //.spawn("gunzip")
+          .spawn("grep", { args: ["-o", "-E", "(\\w|')+"] }),
+      )
+        .pipeThrough(new ToLowerCaseStream()),
+      { chunked: true },
+    )
       .tee();
 
     const [uniqCount, totalCount] = await Promise.all([
-      countWords(words1.spawn("sort").spawn("uniq").stdout),
+      countWords(words1.spawn("sort").spawn("uniq")),
       countWords(words2),
     ]);
 
