@@ -80,6 +80,20 @@ export function bytes(
 }
 
 /**
+ * Spawn a process, interpret its output as lines, and print them
+ * to `console.log()`.
+ * @param cmd The command.
+ * @param options Options.
+ */
+export async function execute(cmd: string,
+    options?: { args?: string[]; cwd?: string },
+  ): Promise<void> {
+    for await (const line of lines(spawn(cmd, options))){
+        console.log(line)
+    }
+  }
+
+/**
  * Spawn a process.
  * @param cmd The command.
  * @param options Options.
