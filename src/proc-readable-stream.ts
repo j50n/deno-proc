@@ -34,7 +34,7 @@ abstract class BaseChainable<R> {
   }
 
   /**
-   * Stream as text chunks. The split is arbitrary, based on the 
+   * Stream as text chunks. The split is arbitrary, based on the
    * character buffer. This is _not_ split on EOL. This is good
    * for processing text quickly when line splits are not important.
    * @returns The stream as text chunks.
@@ -57,16 +57,18 @@ abstract class BaseChainable<R> {
 
   /**
    * Gather the lines of text from the output and return them as an array.
+   * This waits for the process to complete and returns all lines at once,
+   * or not at all in the case of an error.
    * @returns The text lines as an array.
    */
-  async lines(): Promise< string[]> {
-    const result: string[] = []
+  async lines(): Promise<string[]> {
+    const result: string[] = [];
 
-    for await (const line of this.asTextLines()){
-        result.push(line)
+    for await (const line of this.asLines()) {
+      result.push(line);
     }
 
-    return result
+    return result;
   }
 }
 
@@ -77,19 +79,19 @@ abstract class BaseChainable<R> {
  * @returns A child process instance.
  */
 export function spawn(
-    cmd: string,
-    options?: { args?: string[]; cwd?: string },
-  ): ProcChildProcess {
-    const p = new ProcChildProcess(
-      new Deno.Command(cmd, {
-        args: options?.args,
-        cwd: options?.cwd,
-        stdout: "piped",
-      }).spawn(),
-    );
-    
-    return p;
-  }
+  cmd: string,
+  options?: { args?: string[]; cwd?: string },
+): ProcChildProcess {
+  const p = new ProcChildProcess(
+    new Deno.Command(cmd, {
+      args: options?.args,
+      cwd: options?.cwd,
+      stdout: "piped",
+    }).spawn(),
+  );
+
+  return p;
+}
 
 export class ProcReadableStream<R> extends BaseChainable<R>
   implements ReadableStream<R> {
@@ -214,7 +216,10 @@ export class ProcChildProcess extends BaseChainable<Uint8Array> {
   }
 
   pipeThrough<T>(
-    transform: { writable: WritableStream<Uint8Array>; readable: ReadableStream<T> },
+    transform: {
+      writable: WritableStream<Uint8Array>;
+      readable: ReadableStream<T>;
+    },
     options?: PipeOptions,
   ): ProcReadableStream<T> {
     return new ProcReadableStream(

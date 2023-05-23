@@ -1,6 +1,5 @@
 import { ProcReadableStream } from "../../mod.ts";
 import { readableStreamFromIterable } from "../deps/streams.ts";
-import { asynciter } from "../deps/asynciter.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
 
 Deno.test({
@@ -12,7 +11,7 @@ Deno.test({
       ),
     );
     assertEquals(
-      (await asynciter(bytes.asTextLines()).collect()).join("|"),
+      (await bytes.lines()).join("|"),
       "abc|123",
       "Passed in text matches decoded text.",
     );
@@ -28,7 +27,7 @@ Deno.test({
         const text = new ProcReadableStream(
           readableStreamFromIterable(["abc\n", "123\n"]),
         );
-        await asynciter(text.asTextLines()).collect();
+        await text.lines();
       },
       TypeError,
       "chunk is not an ArrayBuffer",
