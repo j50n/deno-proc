@@ -33,18 +33,63 @@ abstract class BaseChainable<R> {
     return p;
   }
 
+  /**
+   * Stream as text chunks. The split is arbitrary, based on the 
+   * character buffer. This is _not_ split on EOL. This is good
+   * for processing text quickly when line splits are not important.
+   * @returns The stream as text chunks.
+   */
   asText(): ProcReadableStream<string> {
     return this.chainableOutput.pipeThrough(
       new TextDecoderStream(),
     );
   }
 
-  asTextLines(): ProcReadableStream<string> {
+  /**
+   * Stream as lines of text, split on EOL.
+   * @returns The stream as lines of text.
+   */
+  asLines(): ProcReadableStream<string> {
     return this.chainableOutput.pipeThrough(
       new TextDecoderStream(),
     ).pipeThrough(new TextLineStream());
   }
+
+  /**
+   * Gather the lines of text from the output and return them as an array.
+   * @returns The text lines as an array.
+   */
+  async lines(): Promise< string[]> {
+    const result: string[] = []
+
+    for await (const line of this.asTextLines()){
+        result.push(line)
+    }
+
+    return result
+  }
 }
+
+/**
+ * Spawn a process.
+ * @param cmd The command.
+ * @param options Options.
+ * @returns A child process instance.
+ */
+export function spawn(
+    cmd: string,
+    options?: { args?: string[]; cwd?: string },
+  ): ProcChildProcess {
+    const p = new ProcChildProcess(
+      new Deno.Command(cmd, {
+        args: options?.args,
+        cwd: options?.cwd,
+        stdout: "piped",
+      }).spawn(),
+    );
+    
+    return p;
+  }
 
 export class ProcReadableStream<R> extends BaseChainable<R>
   implements ReadableStream<R> {
