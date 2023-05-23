@@ -28,7 +28,7 @@ Deno.test({
         const text = new ProcReadableStream(
           readableStreamFromIterable(["abc\n", "123\n"]),
         );
-          (await asynciter(text.asTextLines()).collect())
+        await asynciter(text.asTextLines()).collect();
       },
       TypeError,
       "chunk is not an ArrayBuffer",

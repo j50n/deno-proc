@@ -14,8 +14,46 @@ class AddEOLStream extends TransformStream<string, string> {
   }
 }
 
-export class ProcReadableStream<R> implements ReadableStream<R> {
+abstract class BaseChainable<R> {
+  protected abstract chainableOutput: ProcReadableStream<Uint8Array>;
+
+  spawn(
+    cmd: string,
+    options?: { args?: string[]; cwd?: string },
+  ): ProcChildProcess {
+    const p = new ProcChildProcess(
+      new Deno.Command(cmd, {
+        args: options?.args,
+        cwd: options?.cwd,
+        stdin: "piped",
+        stdout: "piped",
+      }).spawn(),
+    );
+    this.chainableOutput.pipeTo(p.stdin);
+    return p;
+  }
+
+  asText(): ProcReadableStream<string> {
+    return this.chainableOutput.pipeThrough(
+      new TextDecoderStream(),
+    );
+  }
+
+  asTextLines(): ProcReadableStream<string> {
+    return this.chainableOutput.pipeThrough(
+      new TextDecoderStream(),
+    ).pipeThrough(new TextLineStream());
+  }
+}
+
+export class ProcReadableStream<R> extends BaseChainable<R>
+  implements ReadableStream<R> {
   constructor(protected readonly source: ReadableStream<R>) {
+    super();
+  }
+
+  override get chainableOutput(): ProcReadableStream<Uint8Array> {
+    return this as ProcReadableStream<Uint8Array>;
   }
 
   get locked(): boolean {
@@ -36,15 +74,20 @@ export class ProcReadableStream<R> implements ReadableStream<R> {
     return this.source.getReader(options);
   }
 
+  async pipeTo(dest: WritableStream<R>, options?: PipeOptions): Promise<void> {
+    await this.source.pipeTo(dest, options);
+  }
+
   pipeThrough<T>(
     transform: { writable: WritableStream<R>; readable: ReadableStream<T> },
     options?: PipeOptions,
   ): ProcReadableStream<T> {
-    return new ProcReadableStream(this.source.pipeThrough(transform, options));
-  }
-
-  async pipeTo(dest: WritableStream<R>, options?: PipeOptions): Promise<void> {
-    await this.source.pipeTo(dest, options);
+    return new ProcReadableStream(
+      this.source.pipeThrough(
+        transform,
+        options,
+      ),
+    );
   }
 
   tee(): [ProcReadableStream<R>, ProcReadableStream<R>] {
@@ -56,31 +99,6 @@ export class ProcReadableStream<R> implements ReadableStream<R> {
     options?: { preventCancel?: boolean },
   ): AsyncIterableIterator<R> {
     return this.source[Symbol.asyncIterator](options);
-  }
-
-  spawn(cmd: string, options?: { args?: string[]; cwd?: string }) {
-    const p = new ProcChildProcess(
-      new Deno.Command(cmd, {
-        args: options?.args,
-        cwd: options?.cwd,
-        stdin: "piped",
-        stdout: "piped",
-      }).spawn(),
-    );
-    this.pipeTo(p.stdin as WritableStream<R>);
-    return p;
-  }
-
-  asText() {
-    return (this as ProcReadableStream<Uint8Array>).pipeThrough(
-      new TextDecoderStream(),
-    );
-  }
-
-  asTextLines() {
-    return (this as ProcReadableStream<Uint8Array>).pipeThrough(
-      new TextDecoderStream(),
-    ).pipeThrough(new TextLineStream());
   }
 
   asBytes(options?: { addEOL?: boolean }) {
@@ -96,11 +114,16 @@ export class ProcReadableStream<R> implements ReadableStream<R> {
   }
 }
 
-export class ProcChildProcess {
+export class ProcChildProcess extends BaseChainable<Uint8Array> {
   private _stdout: ProcReadableStream<Uint8Array> | null = null;
   private _stderr: ProcReadableStream<Uint8Array> | null = null;
 
   constructor(protected child: Deno.ChildProcess) {
+    super();
+  }
+
+  protected get chainableOutput(): ProcReadableStream<Uint8Array> {
+    return this.stdout;
   }
 
   get stdout() {
@@ -146,37 +169,14 @@ export class ProcChildProcess {
   }
 
   pipeThrough<T>(
-    transform: {
-      writable: WritableStream<Uint8Array>;
-      readable: ReadableStream<T>;
-    },
+    transform: { writable: WritableStream<Uint8Array>; readable: ReadableStream<T> },
     options?: PipeOptions,
   ): ProcReadableStream<T> {
-    return new ProcReadableStream(this.stdout.pipeThrough(transform, options));
-  }
-
-  spawn(cmd: string, options?: { args?: string[]; cwd?: string }) {
-    const p = new ProcChildProcess(
-      new Deno.Command(cmd, {
-        args: options?.args,
-        cwd: options?.cwd,
-        stdin: "piped",
-        stdout: "piped",
-      }).spawn(),
+    return new ProcReadableStream(
+      this.stdout.pipeThrough(
+        transform,
+        options,
+      ),
     );
-    this.stdout.pipeTo(p.stdin);
-    return p;
-  }
-
-  asText() {
-    return (this.stdout as ProcReadableStream<Uint8Array>).pipeThrough(
-      new TextDecoderStream(),
-    );
-  }
-
-  asTextLines() {
-    return (this.stdout as ProcReadableStream<Uint8Array>).pipeThrough(
-      new TextDecoderStream(),
-    ).pipeThrough(new TextLineStream());
   }
 }
