@@ -1,5 +1,5 @@
 #!/usr/bin/bash 
-":"; //#; exec deno run "$0" "$@"
+":" //#; exec deno run "$0" "$@"
 
 /**
  * Basic shebang hack to run on Ubuntu 18.04 and prior.

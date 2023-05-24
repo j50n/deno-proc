@@ -1,7 +1,5 @@
 > `Deno.run` has been deprecated and is scheduled to be removed in Deno version
-> 2.0. I am working on a version of this library that will use `Deno.Command`,
-> the successor to `Deno.run`. This is an unstable API in Deno 1.x, so I am not
-> quite sure how I will roll this out yet. Stay tuned.
+> 2.0. This version of `proc` will no longer function after Deno 1.0.
 
 # proc
 

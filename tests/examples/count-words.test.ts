@@ -1,4 +1,3 @@
-import { TextLineStream } from "../deps/streams.ts";
 import { fromFileUrl } from "../deps/path.ts";
 import { assertEquals } from "../deps/asserts.ts";
 import { bytes, lines, ProcReadableStream, text } from "../../mod.ts";
@@ -115,7 +114,7 @@ Deno.test({
         wapStream
           .pipeThrough(new DecompressionStream("gzip"))
           //.spawn("gunzip")
-          .spawn("grep", { args: ["-o", "-E", "(\\w|')+"] }),
+          .run("grep", "-oE", "(\\w|')+"),
       )
         .pipeThrough(new ToLowerCaseStream()),
       { chunked: true },
@@ -123,7 +122,7 @@ Deno.test({
       .tee();
 
     const [uniqCount, totalCount] = await Promise.all([
-      countWords(words1.spawn("sort").spawn("uniq")),
+      countWords(words1.run("sort").run("uniq")),
       countWords(words2),
     ]);
 

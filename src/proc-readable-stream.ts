@@ -66,7 +66,7 @@ export function bytes(
   input: ReadableStream<string>,
   options?: { chunked?: boolean },
 ) {
-    //TODO: needs a coallescing transform.
+  //TODO: needs a coallescing transform.
 
   if (options?.chunked) {
     return toProcReadableStream(input.pipeThrough(new TextEncoderStream()));
@@ -79,40 +79,122 @@ export function bytes(
   }
 }
 
+export interface RunFnOptions {
+  cwd?: string;
+  env?: Record<string, string>;
+}
+
+function parseArgs(
+  optionsOrCmd: RunFnOptions | string,
+  ...rest: string[]
+): { options: RunFnOptions; cmd: string; args: string[] } {
+  let options: RunFnOptions = {};
+  let cmd = "";
+  let args: string[] = [];
+  if (typeof optionsOrCmd !== "string") {
+    options = optionsOrCmd;
+    cmd = rest[0];
+    args = rest.slice(1);
+  } else {
+    options = {};
+    cmd = optionsOrCmd;
+    args = rest;
+  }
+  return { options, cmd, args };
+}
+
+/**
+ * Run a process.
+ * @param cmd The command.
+ * @param options Options.
+ * @returns A child process instance.
+ */
+export async function execute(
+  options: RunFnOptions,
+  cmd: string,
+  ...args: string[]
+): Promise<void>;
+
+/**
+ * Run a process.
+ * @param cmd The command.
+ * @returns A child process instance.
+ */
+export async function execute(cmd: string, ...args: string[]): Promise<void>;
+
 /**
  * Spawn a process, interpret its output as lines, and print them
  * to `console.log()`.
  * @param cmd The command.
  * @param options Options.
  */
-export async function execute(cmd: string,
-    options?: { args?: string[]; cwd?: string },
-  ): Promise<void> {
-    for await (const line of lines(spawn(cmd, options))){
-        console.log(line)
-    }
+export async function execute(
+  optionsOrCmd: RunFnOptions | string,
+  ...rest: string[]
+): Promise<void> {
+  const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+
+  for await (const line of lines(run(options, cmd, ...args))) {
+    console.log(line);
   }
+}
 
 /**
- * Spawn a process.
+ * Run a process.
  * @param cmd The command.
  * @param options Options.
  * @returns A child process instance.
  */
-export function spawn(
+export function run(
+  options: RunFnOptions,
   cmd: string,
-  options?: { args?: string[]; cwd?: string },
+  ...args: string[]
+): ProcChildProcess;
+
+/**
+ * Run a process.
+ * @param cmd The command.
+ * @returns A child process instance.
+ */
+export function run(cmd: string, ...args: string[]): ProcChildProcess;
+
+export function run(
+  optionsOrCmd: RunFnOptions | string,
+  ...rest: string[]
 ): ProcChildProcess {
+  const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+
   const p = new ProcChildProcess(
     new Deno.Command(cmd, {
-      args: options?.args,
+      args: args,
       cwd: options?.cwd,
+      env: options?.env,
       stdout: "piped",
     }).spawn(),
   );
 
   return p;
 }
+// /**
+//  * Run a process.
+//  * @param cmd The command.
+//  * @param options Options.
+//  * @returns A child process instance.
+//  */
+// export function run(
+//   cmd: string,
+//   options?: { args?: string[]; cwd?: string },
+// ): ProcChildProcess {
+//   const p = new ProcChildProcess(
+//     new Deno.Command(cmd, {
+//       args: options?.args,
+//       cwd: options?.cwd,
+//       stdout: "piped",
+//     }).spawn(),
+//   );
+
+//   return p;
+// }
 
 export class ProcReadableStream<R> implements ReadableStream<R> {
   constructor(protected readonly source: ReadableStream<R>) {
@@ -174,29 +256,52 @@ export class ProcReadableStream<R> implements ReadableStream<R> {
   }
 
   /**
-   * Spawn a process.
-   * 
-   * Note that this is not type safe. This should only be called on a 
+   * Run a process.
+   *
+   * Note that this is not type safe. This should only be called on a
    * `ProcReadableStream<Uint8Array>`. Calling this for other types will
    * cause a runtime error.
-   * 
+   *
    * @param cmd The command.
    * @param options Options.
    * @returns A child process instance.
    */
-  spawn(
+  run(
+    options: RunFnOptions,
     cmd: string,
-    options?: { args?: string[]; cwd?: string },
+    ...args: string[]
+  ): ProcChildProcess;
+
+  /**
+   * Run a process.
+   *
+   * Note that this is not type safe. This should only be called on a
+   * `ProcReadableStream<Uint8Array>`. Calling this for other types will
+   * cause a runtime error.
+   *
+   * @param cmd The command.
+   * @returns A child process instance.
+   */
+  run(cmd: string, ...args: string[]): ProcChildProcess;
+
+  run(
+    optionsOrCmd: RunFnOptions | string,
+    ...rest: string[]
   ): ProcChildProcess {
+    const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+
     const p = new ProcChildProcess(
       new Deno.Command(cmd, {
-        args: options?.args,
+        args: args,
         cwd: options?.cwd,
+        env: options?.env,
         stdin: "piped",
         stdout: "piped",
       }).spawn(),
     );
+
     (this as ReadableStream<Uint8Array>).pipeTo(p.stdin);
+
     return p;
   }
 }
@@ -270,25 +375,44 @@ export class ProcChildProcess implements Deno.ChildProcess {
   }
 
   /**
-   * Spawn a process.
-   * 
+   * Run a process.
+   *
    * @param cmd The command.
    * @param options Options.
    * @returns A child process instance.
    */
-  spawn(
+  run(
+    options: RunFnOptions,
     cmd: string,
-    options?: { args?: string[]; cwd?: string },
+    ...args: string[]
+  ): ProcChildProcess;
+
+  /**
+   * Run a process.
+   *
+   * @param cmd The command.
+   * @returns A child process instance.
+   */
+  run(cmd: string, ...args: string[]): ProcChildProcess;
+
+  run(
+    optionsOrCmd: RunFnOptions | string,
+    ...rest: string[]
   ): ProcChildProcess {
+    const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+
     const p = new ProcChildProcess(
       new Deno.Command(cmd, {
-        args: options?.args,
+        args: args,
         cwd: options?.cwd,
+        env: options?.env,
         stdin: "piped",
         stdout: "piped",
       }).spawn(),
     );
+
     this.stdout.pipeTo(p.stdin);
+
     return p;
   }
 }
