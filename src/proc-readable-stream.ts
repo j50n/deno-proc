@@ -175,26 +175,6 @@ export function run(
 
   return p;
 }
-// /**
-//  * Run a process.
-//  * @param cmd The command.
-//  * @param options Options.
-//  * @returns A child process instance.
-//  */
-// export function run(
-//   cmd: string,
-//   options?: { args?: string[]; cwd?: string },
-// ): ProcChildProcess {
-//   const p = new ProcChildProcess(
-//     new Deno.Command(cmd, {
-//       args: options?.args,
-//       cwd: options?.cwd,
-//       stdout: "piped",
-//     }).spawn(),
-//   );
-
-//   return p;
-// }
 
 export class ProcReadableStream<R> implements ReadableStream<R> {
   constructor(protected readonly source: ReadableStream<R>) {
@@ -414,5 +394,26 @@ export class ProcChildProcess implements Deno.ChildProcess {
     this.stdout.pipeTo(p.stdin);
 
     return p;
+  }
+
+  /**
+   * The bytes from `stdout`.
+   */
+  async collect() {
+    return await this.stdout.collect();
+  }
+
+  /**
+   * The `stdout` data as a string.
+   */
+  async asString() {
+    return (await text(this.stdout).collect()).join();
+  }
+
+  /**
+   * Collect `stdout` as lines of text.
+   */
+  async collectLines() {
+    return await lines(this.stdout).collect();
   }
 }
