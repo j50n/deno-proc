@@ -407,7 +407,7 @@ export class ProcChildProcess implements Deno.ChildProcess {
    * The `stdout` data as a string.
    */
   async asString() {
-    return (await text(this.stdout).collect()).join();
+    return (await text(this.stdout).collect()).join("");
   }
 
   /**
