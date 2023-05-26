@@ -1,5 +1,16 @@
 import { TextLineStream } from "../tests/deps/streams.ts";
 
+/** The type signature for a command. */
+export type Cmd = [string | URL, ...string[]];
+
+/** Command options. */
+export interface RunFnOptions {
+  /** Current working directory. */
+  cwd?: string;
+  /** Environment variables. */
+  env?: Record<string, string>;
+}
+
 class AddEOLStream extends TransformStream<string, string> {
   constructor() {
     super({
@@ -76,28 +87,31 @@ export function bytes(
   }
 }
 
-export interface RunFnOptions {
-  cwd?: string;
-  env?: Record<string, string>;
-}
-
 function parseArgs(
-  optionsOrCmd: RunFnOptions | string,
-  ...rest: string[]
-): { options: RunFnOptions; cmd: string; args: string[] } {
+  cmd: unknown[],
+): { options: RunFnOptions; command: string | URL; args: string[] } {
   let options: RunFnOptions = {};
-  let cmd = "";
+  let command: string | URL = "";
   let args: string[] = [];
-  if (typeof optionsOrCmd !== "string") {
-    options = optionsOrCmd;
-    cmd = rest[0];
-    args = rest.slice(1);
-  } else {
+
+  if (cmd.length === 0) {
+    throw new RangeError("empty arguments");
+  } else if (typeof cmd[0] === "string" || cmd[0] instanceof URL) {
+    /* No options defined. */
     options = {};
-    cmd = optionsOrCmd;
-    args = rest;
+    command = cmd[0];
+    args = cmd.slice(1) as string[];
+  } else {
+    /* First item is the options object. */
+    if (cmd.length === 1) {
+      throw new RangeError("missing command");
+    }
+    options = cmd[0] as RunFnOptions;
+    command = cmd[1] as string | URL;
+    args = cmd.slice(2) as string[];
   }
-  return { options, cmd, args };
+
+  return { options, command, args };
 }
 
 /**
@@ -108,8 +122,7 @@ function parseArgs(
  */
 export async function execute(
   options: RunFnOptions,
-  cmd: string,
-  ...args: string[]
+  ...cmd: Cmd
 ): Promise<void>;
 
 /**
@@ -117,7 +130,7 @@ export async function execute(
  * @param cmd The command.
  * @returns A child process instance.
  */
-export async function execute(cmd: string, ...args: string[]): Promise<void>;
+export async function execute(...cmd: Cmd): Promise<void>;
 
 /**
  * Spawn a process, interpret its output as lines, and print them
@@ -126,12 +139,11 @@ export async function execute(cmd: string, ...args: string[]): Promise<void>;
  * @param options Options.
  */
 export async function execute(
-  optionsOrCmd: RunFnOptions | string,
-  ...rest: string[]
+  ...cmd: unknown[]
 ): Promise<void> {
-  const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+  const { options, command, args } = parseArgs(cmd);
 
-  for await (const line of lines(run(options, cmd, ...args))) {
+  for await (const line of lines(run(options, command, ...args))) {
     console.log(line);
   }
 }
@@ -144,8 +156,7 @@ export async function execute(
  */
 export function run(
   options: RunFnOptions,
-  cmd: string,
-  ...args: string[]
+  ...cmd: Cmd
 ): ProcChildProcess;
 
 /**
@@ -153,16 +164,15 @@ export function run(
  * @param cmd The command.
  * @returns A child process instance.
  */
-export function run(cmd: string, ...args: string[]): ProcChildProcess;
+export function run(...cmd: Cmd): ProcChildProcess;
 
 export function run(
-  optionsOrCmd: RunFnOptions | string,
-  ...rest: string[]
+  ...cmd: unknown[]
 ): ProcChildProcess {
-  const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+  const { options, command, args } = parseArgs(cmd);
 
   const p = new ProcChildProcess(
-    new Deno.Command(cmd, {
+    new Deno.Command(command, {
       args: args,
       cwd: options?.cwd,
       env: options?.env,
@@ -245,8 +255,7 @@ export class ProcReadableStream<R> implements ReadableStream<R> {
    */
   run(
     options: RunFnOptions,
-    cmd: string,
-    ...args: string[]
+    ...cmd: Cmd
   ): ProcChildProcess;
 
   /**
@@ -259,16 +268,15 @@ export class ProcReadableStream<R> implements ReadableStream<R> {
    * @param cmd The command.
    * @returns A child process instance.
    */
-  run(cmd: string, ...args: string[]): ProcChildProcess;
+  run(...cmd: Cmd): ProcChildProcess;
 
   run(
-    optionsOrCmd: RunFnOptions | string,
-    ...rest: string[]
+    ...cmd: unknown[]
   ): ProcChildProcess {
-    const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+    const { options, command, args } = parseArgs(cmd);
 
     const p = new ProcChildProcess(
-      new Deno.Command(cmd, {
+      new Deno.Command(command, {
         args: args,
         cwd: options?.cwd,
         env: options?.env,
@@ -360,8 +368,7 @@ export class ProcChildProcess implements Deno.ChildProcess {
    */
   run(
     options: RunFnOptions,
-    cmd: string,
-    ...args: string[]
+    ...cmd: Cmd
   ): ProcChildProcess;
 
   /**
@@ -370,16 +377,15 @@ export class ProcChildProcess implements Deno.ChildProcess {
    * @param cmd The command.
    * @returns A child process instance.
    */
-  run(cmd: string, ...args: string[]): ProcChildProcess;
+  run(...cmd: Cmd): ProcChildProcess;
 
   run(
-    optionsOrCmd: RunFnOptions | string,
-    ...rest: string[]
+    ...cmd: unknown[]
   ): ProcChildProcess {
-    const { options, cmd, args } = parseArgs(optionsOrCmd, ...rest);
+    const { options, command, args } = parseArgs(cmd);
 
     const p = new ProcChildProcess(
-      new Deno.Command(cmd, {
+      new Deno.Command(command, {
         args: args,
         cwd: options?.cwd,
         env: options?.env,

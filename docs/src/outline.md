@@ -18,6 +18,11 @@
         - Using TransformStream
 - Bashisms
     - Stuff we can do in Bash, and how we do it in `proc`
+- Techniques
+    - Line-Oriented Programming
+    - Why CSV is Broken
+    - Tab-Separated Values
+    - JSON Processing (no embedded tabs or CRs)
  
 
  
