@@ -22,5 +22,3 @@ in `Deno.Command` much easier.
 For now, this is a work in progress. Refer to
 [count-words.test](./tests/examples/count-words.test.md) for a good usage
 example if you want to try this out.
-
-

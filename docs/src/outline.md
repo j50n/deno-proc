@@ -2,34 +2,32 @@
 - A Simple Example
 - A More Complete Example
 - Introduction to Streams and Transforms
-    - Bytes and Characters/Lines
-    - Buffers (Can we buffer these things anymore?)
-    - Performance and Pitfalls
+  - Bytes and Characters/Lines
+  - Buffers (Can we buffer these things anymore?)
+  - Performance and Pitfalls
 - Handling Errors (TBD)
-    - `cat warandpeace.txt | head -n 50 | wc -l`
+  - `cat warandpeace.txt | head -n 50 | wc -l`
 - Advanced Streams
-    - Tee and Multiplex
-    - Streams and Iterators
-        - ReadableStream is an AsyncIterableIterator
+  - Tee and Multiplex
+  - Streams and Iterators
+    - ReadableStream is an AsyncIterableIterator
 - All About TransformStream
-    - Writing Your Own
-    - Combining Multiple TransformStreams
-        - Chaining in Functions
-        - Using TransformStream
+  - Writing Your Own
+  - Combining Multiple TransformStreams
+    - Chaining in Functions
+    - Using TransformStream
 - Bashisms
-    - Stuff we can do in Bash, and how we do it in `proc`
+  - Stuff we can do in Bash, and how we do it in `proc`
 - Techniques
-    - Line-Oriented Programming
-    - Why CSV is Broken
-    - Tab-Separated Values
-    - JSON Processing (no embedded tabs or CRs)
-
+  - Line-Oriented Programming
+  - Why CSV is Broken
+  - Tab-Separated Values
+  - JSON Processing (no embedded tabs or CRs)
 
 - Misc.
-    - Using the spread operator with `run()`
-        - `run(...["ls", "-la"] as Cmd)`, because it needs a tuple; Typescript sees it a `string[]` unless you cast to the tuple
-        - or `run("ls", ...args)` works
-        - _this is standard Typescript behavior, but we don't run into it that often_
- 
-
- 
+  - Using the spread operator with `run()`
+    - `run(...["ls", "-la"] as Cmd)`, because it needs a tuple; Typescript sees
+      it a `string[]` unless you cast to the tuple
+    - or `run("ls", ...args)` works
+    - _this is standard Typescript behavior, but we don't run into it that
+      often_
