@@ -23,6 +23,13 @@
     - Why CSV is Broken
     - Tab-Separated Values
     - JSON Processing (no embedded tabs or CRs)
+
+
+- Misc.
+    - Using the spread operator with `run()`
+        - `run(...["ls", "-la"] as Cmd)`, because it needs a tuple; Typescript sees it a `string[]` unless you cast to the tuple
+        - or `run("ls", ...args)` works
+        - _this is standard Typescript behavior, but we don't run into it that often_
  
 
  
