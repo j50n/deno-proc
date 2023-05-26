@@ -7,8 +7,7 @@ class AddEOLStream extends TransformStream<string, string> {
         chunk: string,
         controller: TransformStreamDefaultController,
       ) => {
-        controller.enqueue(chunk);
-        controller.enqueue("\n");
+        controller.enqueue(`${chunk}\n`);
       },
     });
   }
@@ -66,8 +65,6 @@ export function bytes(
   input: ReadableStream<string>,
   options?: { chunked?: boolean },
 ) {
-  //TODO: needs a coallescing transform.
-
   if (options?.chunked) {
     return toProcReadableStream(input.pipeThrough(new TextEncoderStream()));
   } else {
