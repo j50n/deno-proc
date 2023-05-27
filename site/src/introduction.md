@@ -1,20 +1,28 @@
 # Introduction
 
+`proc` simplifies working with child processes in Typescript/Deno. Its goal is
+to achieve the simplicity of shell scripts.
+
 Deno is a great choice to replace your `bash` scripts when they become too
-complex. Type checking and security-by-default make it safer to use when you
-have to test in production. It removes the need for a package-manager, so you
-can run scripts from source without an installation step. _If only we had better
-support for managing child processes._
+complex. Typescript scales up. Type checking and Deno's security-by-default make
+it safer to use when you have to test in production. Deno has done away with the
+package-manager concept, so you can run scripts from source without an
+installation step. There is no project configuration needed by default.
 
-At the start of 2023, we got that support. The Deno team has deprecated
-`Deno.run` in favor of `Deno.Command`. The new API is a major step forward.
-Resource cleanup and error checking are automatic now. The resulting code is
-cleaner. The performance is stellar. I think, though, that there is still some
-room for improvement.
+_If only running child processes was not so damn complicated. It is easy in
+`bash`. Why is it so hard in Deno?_
 
-Introducing `proc`. This is is a lightweight rethinking of the `Deno.Command`
-API for use doing shell-script-like things. It makes the simple things
-dead-simple and really cleans up the more complex ones.
+At the start of 2023, there was a major change. The Deno team deprecated
+`Deno.run` in favor of `Deno.Command`. The new API was a major step forward.
+Resource cleanup and error checking worked automatically. The resulting code was
+cleaner. The performance was stellar.
+
+_I think, though, that there is still some room for improvement._ Using the API
+could be simpler, and the resulting code could be a lot easier to read.
+
+**Introducing `proc`.** This is is a lightweight rethinking of the
+`Deno.Command` API for use doing shell-script-like things. It makes the simple
+things dead-simple and really cleans up the more complex ones.
 
 The goal of `proc` is to make programming with processes as close to the
 experience of shell scripting as possible. While the resulting code isn't as
@@ -70,13 +78,14 @@ for await (
 }
 ```
 
-This is really good compared to the old `Deno.run` which would leak resources if
-you didn't close the process and (multiple) readers explicitly. Error handling
-in child processes could also be tricky. In the new `Deno.Command`, all that is
-handled in a sensible way, automatically. This is already a giant leap forward
-for child process support in Deno.
+This is still really good compared to the old `Deno.run` - which would leak
+resources if you didn't close the process and (multiple) readers explicitly.
+Error handling in child processes could also be tricky. In the new
+`Deno.Command`, all that is handled in a sensible way, automatically. This is
+already a giant leap forward for child process support in Deno.
 
-There is still a lot of boilerplate.
+There is still a lot of boilerplate. Remember, the `bash` command is just
+`ls -la` and everything works.
 
 We can do better.
 
@@ -97,7 +106,7 @@ console.log(await run("ls", "-la").asString());
 ##### Example 2 (for `proc`)
 
 Or how about this? This is equivalent to the second example. This is streaming
-`stdout` as text lines:
+`stdout` into text lines:
 
 ```typescript
 for await (const line of lines(run("ls", "-la"))) {
@@ -112,4 +121,5 @@ access to `stdout`):
 await execute("ls", "-la");
 ```
 
-Ah! Just take a moment now and breathe in the minimalism.
+Ah! You may take a moment now and breathe in the minimalism. Boilerplate ...
+gone.

@@ -1,5 +1,6 @@
 > `Deno.run` has been deprecated and is scheduled to be removed in Deno version
-> 2.0. This version of `proc` will no longer function after Deno 1.0.
+> 2.0. This version of `proc` will no longer be maintained after the Deno 2.0
+> release.
 
 # proc
 
