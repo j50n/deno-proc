@@ -49,7 +49,7 @@ ls -la
 To do this using `Deno.Command`, I can do this (output bytes captured all at
 once, decoded to text):
 
-```javascript
+```typescript
 const output = await new Deno.Command("ls", { args: ["-la"] }).output();
 console.log(new TextDecoder().decode(output.stdout));
 ```
@@ -58,7 +58,7 @@ console.log(new TextDecoder().decode(output.stdout));
 
 Or this (output is streamed as text lines):
 
-```javascript
+```typescript
 for await (
   const line of new Deno.Command("ls", { args: ["-la"], stdout: "piped" })
     .spawn()
@@ -90,7 +90,7 @@ the code in the previous section - but simpler.
 This is equivalent to the first example. `stdout` of the process is fully
 captured, converted to text, and returned when the process exits.
 
-```javascript
+```typescript
 console.log(await run("ls", "-la").asString());
 ```
 
@@ -99,7 +99,7 @@ console.log(await run("ls", "-la").asString());
 Or how about this? This is equivalent to the second example. This is streaming
 `stdout` as text lines:
 
-```javascript
+```typescript
 for await (const line of lines(run("ls", "-la"))) {
   console.log(line);
 }
@@ -108,8 +108,8 @@ for await (const line of lines(run("ls", "-la"))) {
 If you really want the simplest version, there is also this (though you have no
 access to `stdout`):
 
-```javascript
+```typescript
 await execute("ls", "-la");
 ```
 
-Ah! Take a moment to breathe in all that minimalism.
+Ah! Just take a moment now and breathe in the minimalism.

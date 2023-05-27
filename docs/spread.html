@@ -146,19 +146,19 @@
                     <main>
                         <h1 id="using-the-spread-operator-in-run"><a class="header" href="#using-the-spread-operator-in-run">Using the Spread Operator in Run</a></h1>
 <p>This is fine:</p>
-<pre><code class="language-javascript">run(&quot;ls&quot;, &quot;-la&quot;)
+<pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
 <p>This results in an error: <em>A spread argument must either have a tuple type or be passed to a rest parameter.</em></p>
-<pre><code class="language-javascript">run(...[&quot;ls&quot;, &quot;-la&quot;]);
+<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]);
 </code></pre>
 <p>What gives? </p>
 <p>Typescript needs a specific tuple type here, but assumes an array type instead. <em>This is a Typescript thing, and I am sure they will get around to fixing it one day.</em></p>
 <p>Here is the longer version. The <em>rest</em> parameter passed to <code>run</code> is a tuple of type <code>Cmd</code>. The type signature is <code>[string|URL, ...string[]]</code>. Typescript assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code>. It is not able to figure out that <code>string[]</code> of guaranteed non-zero length is compatible with the tuple type <code>Cmd</code>. </p>
 <p>Until Typescript addresses this issue, the idiomatic fix is to simply specify the tuple type:</p>
-<pre><code class="language-javascript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd)
+<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd);
 </code></pre>
 <p>This is a practical exmple of building up a command in piecemeal fashion:</p>
-<pre><code class="language-javascript">const cmd: Cmd = [&quot;ls&quot;];
+<pre><code class="language-typescript">const cmd: Cmd = [&quot;ls&quot;];
 cmd.push(&quot;-la&quot;);
 run(...cmd);
 </code></pre>

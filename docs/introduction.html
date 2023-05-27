@@ -181,12 +181,12 @@ between <code>proc</code> and out-of-the-box <code>Deno.Command</code>.</p>
 <h5 id="example-1-for-command"><a class="header" href="#example-1-for-command">Example 1 (for <code>Command</code>)</a></h5>
 <p>To do this using <code>Deno.Command</code>, I can do this (output bytes captured all at
 once, decoded to text):</p>
-<pre><code class="language-javascript">const output = await new Deno.Command(&quot;ls&quot;, { args: [&quot;-la&quot;] }).output();
+<pre><code class="language-typescript">const output = await new Deno.Command(&quot;ls&quot;, { args: [&quot;-la&quot;] }).output();
 console.log(new TextDecoder().decode(output.stdout));
 </code></pre>
 <h5 id="example-2-for-command"><a class="header" href="#example-2-for-command">Example 2 (for <code>Command</code>)</a></h5>
 <p>Or this (output is streamed as text lines):</p>
-<pre><code class="language-javascript">for await (
+<pre><code class="language-typescript">for await (
   const line of new Deno.Command(&quot;ls&quot;, { args: [&quot;-la&quot;], stdout: &quot;piped&quot; })
     .spawn()
     .stdout
@@ -209,20 +209,20 @@ the code in the previous section - but simpler.</p>
 <h5 id="example-1-for-proc"><a class="header" href="#example-1-for-proc">Example 1 (for <code>proc</code>)</a></h5>
 <p>This is equivalent to the first example. <code>stdout</code> of the process is fully
 captured, converted to text, and returned when the process exits.</p>
-<pre><code class="language-javascript">console.log(await run(&quot;ls&quot;, &quot;-la&quot;).asString());
+<pre><code class="language-typescript">console.log(await run(&quot;ls&quot;, &quot;-la&quot;).asString());
 </code></pre>
 <h5 id="example-2-for-proc"><a class="header" href="#example-2-for-proc">Example 2 (for <code>proc</code>)</a></h5>
 <p>Or how about this? This is equivalent to the second example. This is streaming
 <code>stdout</code> as text lines:</p>
-<pre><code class="language-javascript">for await (const line of lines(run(&quot;ls&quot;, &quot;-la&quot;))) {
+<pre><code class="language-typescript">for await (const line of lines(run(&quot;ls&quot;, &quot;-la&quot;))) {
   console.log(line);
 }
 </code></pre>
 <p>If you really want the simplest version, there is also this (though you have no
 access to <code>stdout</code>):</p>
-<pre><code class="language-javascript">await execute(&quot;ls&quot;, &quot;-la&quot;);
+<pre><code class="language-typescript">await execute(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>Ah! Take a moment to breathe in all that minimalism.</p>
+<p>Ah! Just take a moment now and breathe in the minimalism.</p>
 
                     </main>
 

@@ -3,13 +3,13 @@
 
 This is fine:
 
-```javascript
-run("ls", "-la")
+```typescript
+run("ls", "-la");
 ```
 
 This results in an error: _A spread argument must either have a tuple type or be passed to a rest parameter._
 
-```javascript 
+```typescript 
 run(...["ls", "-la"]);
 ```
 
@@ -21,13 +21,13 @@ Here is the longer version. The _rest_ parameter passed to `run` is a tuple of t
 
 Until Typescript addresses this issue, the idiomatic fix is to simply specify the tuple type:
 
-```javascript
-run(...["ls", "-la"] as Cmd)
+```typescript
+run(...["ls", "-la"] as Cmd);
 ```
 
 This is a practical exmple of building up a command in piecemeal fashion:
 
-```javascript
+```typescript
 const cmd: Cmd = ["ls"];
 cmd.push("-la");
 run(...cmd);
