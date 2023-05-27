@@ -7,7 +7,7 @@ This is fine:
 run("ls", "-la")
 ```
 
-This results in an error: `A spread argument must either have a tuple type or be passed to a rest parameter.`
+This results in an error: _A spread argument must either have a tuple type or be passed to a rest parameter._
 
 ```javascript 
 run(...["ls", "-la"]);
