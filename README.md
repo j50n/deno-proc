@@ -2,6 +2,13 @@
 
 Blue sky. Let's make something wonderful!
 
+## Documentation
+
+The documentation is available at
+[https://j50n.github.io/deno-proc/](https://j50n.github.io/deno-proc/).
+
+## A Big Change is Underway
+
 > **Pardon our mess!** The deprecation of `Deno.run` is both a blessing and a
 > curse. `Deno.Command` is a _great_ improvement ... and it breaks pretty much
 > everything. I was going to have to redo the old library as it had gone in some
