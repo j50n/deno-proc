@@ -106,7 +106,7 @@ for await (const line of lines(run("ls", "-la"))) {
 ```
 
 If you really want the simplest version, there is also this (though you have no
-way to get the output - it streams to the `stdout` of the Deno process):
+access to `stdout`):
 
 ```javascript
 await execute("ls", "-la");

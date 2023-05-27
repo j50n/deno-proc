@@ -1,0 +1,215 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Introduction - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html" class="active"><strong>1.</strong> Introduction</a></li><li><a href="./spread.html"><strong>2.</strong> Using the Spread Operator in Run</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./introduction.html#introduction" id="introduction"><h1>Introduction</h1></a>
+<p>Deno is a great choice to replace your <code>bash</code> scripts when they become too
+complex. Type checking and security-by-default make it safer to use when you
+have to test in production. It removes the need for a package-manager, so you
+can run scripts from source without an installation step. <em>If only we had better
+support for managing child processes.</em></p>
+<p>At the start of 2023, we got that support. The Deno team has deprecated
+<code>Deno.run</code> in favor of <code>Deno.Command</code>. The new API is a major step forward.
+Resource cleanup and error checking are automatic now. The resulting code is
+cleaner. The performance is stellar. I think, though, that there is still some
+room for improvement.</p>
+<p>Introducing <code>proc</code>. This is is a lightweight rethinking of the <code>Deno.Command</code>
+API for use doing shell-script-like things. It makes the simple things
+dead-simple and really cleans up the more complex ones.</p>
+<p>The goal of <code>proc</code> is to make programming with processes as close to the
+experience of shell scripting as possible. While the resulting code isn't as
+terse as the equivalent shell script, it is pretty close to minimal for
+Typescript syntax.</p>
+<p>It should be possible to pipe the output of one process directly to another
+without boilerplate. Command syntax should be simpler. Processing the output as
+lines of text or as an array should be obvious. These are the kinds of things
+that <code>proc</code> give you.</p>
+<p>Note that <code>proc</code> is not reinventing or replacing <code>Deno.Command</code> at all. It is an
+extension. It uses the same interfaces, the same methods, streams, etc., so you
+can do things the same way you would - with the same performance - as
+<code>Deno.Command</code>. You can use as much or as little of <code>proc</code> as you wish, taking
+full control or doing it the &quot;easy way.&quot;</p>
+<p>Here are some working examples to give you an idea of some of the differences
+between <code>proc</code> and out-of-the-box <code>Deno.Command</code>.</p>
+<a class="header" href="./introduction.html#the-denocommand-way" id="the-denocommand-way"><h2>The <code>Deno.Command</code> Way</h2></a>
+<p>Here are some different approaches to listing files using <code>ls</code> using
+<code>Deno.Command</code>. The equivalent in <code>bash</code> would look like this:</p>
+<pre><code class="language-shell">ls -la
+</code></pre>
+<a class="header" href="./introduction.html#example-1-for-command" id="example-1-for-command"><h5>Example 1 (for <code>Command</code>)</h5></a>
+<p>To do this using <code>Deno.Command</code>, I can do this (output bytes captured all at
+once, decoded to text):</p>
+<pre><code class="language-javascript">const output = await new Deno.Command(&quot;ls&quot;, { args: [&quot;-la&quot;] }).output();
+console.log(new TextDecoder().decode(output.stdout));
+</code></pre>
+<a class="header" href="./introduction.html#example-2-for-command" id="example-2-for-command"><h5>Example 2 (for <code>Command</code>)</h5></a>
+<p>Or this (output is streamed as text lines):</p>
+<pre><code class="language-javascript">for await (
+  const line of new Deno.Command(&quot;ls&quot;, { args: [&quot;-la&quot;], stdout: &quot;piped&quot; })
+    .spawn()
+    .stdout
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(new TextLineStream())
+) {
+  console.log(line);
+}
+</code></pre>
+<p>This is really good compared to the old <code>Deno.run</code> which would leak resources if
+you didn't close the process and (multiple) readers explicitly. Error handling
+in child processes could also be tricky. In the new <code>Deno.Command</code>, all that is
+handled in a sensible way, automatically. This is already a giant leap forward
+for child process support in Deno.</p>
+<p>There is still a lot of boilerplate.</p>
+<p>We can do better.</p>
+<a class="header" href="./introduction.html#the-easy-way-of-proc" id="the-easy-way-of-proc"><h2>The (Easy) Way of <code>proc</code></h2></a>
+<p>Here are some approaches to running <code>ls</code> using <code>proc</code>. These are equivalent to
+the code in the previous section - but simpler.</p>
+<a class="header" href="./introduction.html#example-1-for-proc" id="example-1-for-proc"><h5>Example 1 (for <code>proc</code>)</h5></a>
+<p>This is equivalent to the first example. <code>stdout</code> of the process is fully
+captured, converted to text, and returned when the process exits.</p>
+<pre><code class="language-javascript">console.log(await run(&quot;ls&quot;, &quot;-la&quot;).asString());
+</code></pre>
+<a class="header" href="./introduction.html#example-2-for-proc" id="example-2-for-proc"><h5>Example 2 (for <code>proc</code>)</h5></a>
+<p>Or how about this? This is equivalent to the second example. This is streaming
+<code>stdout</code> as text lines:</p>
+<pre><code class="language-javascript">for await (const line of lines(run(&quot;ls&quot;, &quot;-la&quot;))) {
+  console.log(line);
+}
+</code></pre>
+<p>If you really want the simplest version, there is also this (though you have no
+access to <code>stdout</code>):</p>
+<pre><code class="language-javascript">await execute(&quot;ls&quot;, &quot;-la&quot;);
+</code></pre>
+<p>Ah! Take a moment to breathe in all that minimalism.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+
+                
+                    <a rel="next" href="./spread.html" class="mobile-nav-chapters next" title="Next chapter">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+
+            
+                <a href="./spread.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+
+    </body>
+</html>

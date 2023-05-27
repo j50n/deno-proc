@@ -6,7 +6,8 @@
   - Buffers (Can we buffer these things anymore?)
   - Performance and Pitfalls
 - Handling Errors (TBD)
-  - `cat warandpeace.txt | head -n 50 | wc -l`
+  - `cat warandpeace.txt | head -n 50 | wc -l` - stream closed
+  - Non-0 Exit Codes
 - Advanced Streams
   - Tee and Multiplex
   - Streams and Iterators
