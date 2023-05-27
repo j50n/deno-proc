@@ -1,4 +1,2 @@
-# Summary
-
 - [Introduction](./introduction.md)
 - [Using the Spread Operator in Run](./spread.md)

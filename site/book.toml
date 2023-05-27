@@ -1,0 +1,6 @@
+[book]
+authors = ["j50n"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Proc for Deno"
