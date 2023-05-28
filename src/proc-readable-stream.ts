@@ -1,4 +1,4 @@
-import { TextLineStream } from "../tests/deps/streams.ts";
+import { readableStreamFromIterable, TextLineStream } from "./deps/streams.ts";
 
 /** The type signature for a command. */
 export type Cmd = [string | URL, ...string[]];
@@ -22,6 +22,41 @@ class AddEOLStream extends TransformStream<string, string> {
       },
     });
   }
+}
+
+export class ExitCodeError extends Error {
+  constructor(public readonly message: string, public readonly code: number) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+}
+
+/**
+ * Pass through `ReadableStream` and throw an `ExitCodeError` if the process exit code is not 0.
+ * @param readable The readable.
+ * @param status The process status.
+ * @returns The data from the readable stream, with an error check after `readable` is fully processed.
+ */
+function failStream<T>(
+  readable: ReadableStream<T>,
+  status: Promise<Deno.CommandStatus>,
+): ReadableStream<T> {
+  async function* failIt(
+    readable: ReadableStream<T>,
+    status: Promise<Deno.CommandStatus>,
+  ): AsyncIterableIterator<T> {
+    yield* readable;
+
+    const s = await status;
+    if (s.code !== 0) {
+      throw new ExitCodeError(
+        `Process exited with non-zero exit code: ${s.code}`,
+        s.code,
+      );
+    }
+  }
+
+  return readableStreamFromIterable(failIt(readable, status));
 }
 
 /**
@@ -298,13 +333,11 @@ export class ProcChildProcess implements Deno.ChildProcess {
   constructor(protected child: Deno.ChildProcess) {
   }
 
-  protected get chainableOutput(): ProcReadableStream<Uint8Array> {
-    return this.stdout;
-  }
-
-  get stdout() {
+  get stdout(): ProcReadableStream<Uint8Array> {
     if (this._stdout === null) {
-      this._stdout = new ProcReadableStream(this.child.stdout);
+      this._stdout = new ProcReadableStream(
+        readableStreamFromIterable(failStream(this.child.stdout, this.status)),
+      );
     }
     return this._stdout;
   }

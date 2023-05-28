@@ -20,6 +20,8 @@ cleaner. The performance was stellar.
 _I think, though, that there is still some room for improvement._ Using the API
 could be simpler, and the resulting code could be a lot easier to read.
 
+---
+
 **Introducing `proc`.** This is is a lightweight rethinking of the
 `Deno.Command` API for use doing shell-script-like things. It makes the simple
 things dead-simple and really cleans up the more complex ones.

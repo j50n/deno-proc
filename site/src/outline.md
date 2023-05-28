@@ -4,6 +4,7 @@
 - Introduction to Streams and Transforms
   - Bytes and Characters/Lines
   - Buffers (Can we buffer these things anymore?)
+    - Do I need to write a "reconsolidator" for lines?
   - Performance and Pitfalls
 - Handling Errors (TBD)
   - `cat warandpeace.txt | head -n 50 | wc -l` - stream closed
@@ -14,7 +15,7 @@
     - ReadableStream is an AsyncIterableIterator
 - All About TransformStream
   - Writing Your Own
-  - Combining Multiple TransformStreams
+  - Combining Multiple TransformStreams (TBD)
     - Chaining in Functions
     - Using TransformStream
 - Bashisms
@@ -32,3 +33,5 @@
     - or `run("ls", ...args)` works
     - _this is standard Typescript behavior, but we don't run into it that
       often_
+
+I cannot believe I started this in 2021. Where has the time gone?

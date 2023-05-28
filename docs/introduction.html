@@ -145,19 +145,25 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p><code>proc</code> simplifies working with child processes in Typescript/Deno. Its goal is
+to achieve the simplicity of shell scripts.</p>
 <p>Deno is a great choice to replace your <code>bash</code> scripts when they become too
-complex. Type checking and security-by-default make it safer to use when you
-have to test in production. It removes the need for a package-manager, so you
-can run scripts from source without an installation step. <em>If only we had better
-support for managing child processes.</em></p>
-<p>At the start of 2023, we got that support. The Deno team has deprecated
-<code>Deno.run</code> in favor of <code>Deno.Command</code>. The new API is a major step forward.
-Resource cleanup and error checking are automatic now. The resulting code is
-cleaner. The performance is stellar. I think, though, that there is still some
-room for improvement.</p>
-<p>Introducing <code>proc</code>. This is is a lightweight rethinking of the <code>Deno.Command</code>
-API for use doing shell-script-like things. It makes the simple things
-dead-simple and really cleans up the more complex ones.</p>
+complex. Typescript scales up. Type checking and Deno's security-by-default make
+it safer to use when you have to test in production. Deno has done away with the
+package-manager concept, so you can run scripts from source without an
+installation step. There is no project configuration needed by default.</p>
+<p><em>If only running child processes was not so damn complicated. It is easy in
+<code>bash</code>. Why is it so hard in Deno?</em></p>
+<p>At the start of 2023, there was a major change. The Deno team deprecated
+<code>Deno.run</code> in favor of <code>Deno.Command</code>. The new API was a major step forward.
+Resource cleanup and error checking worked automatically. The resulting code was
+cleaner. The performance was stellar.</p>
+<p><em>I think, though, that there is still some room for improvement.</em> Using the API
+could be simpler, and the resulting code could be a lot easier to read.</p>
+<hr />
+<p><strong>Introducing <code>proc</code>.</strong> This is is a lightweight rethinking of the
+<code>Deno.Command</code> API for use doing shell-script-like things. It makes the simple
+things dead-simple and really cleans up the more complex ones.</p>
 <p>The goal of <code>proc</code> is to make programming with processes as close to the
 experience of shell scripting as possible. While the resulting code isn't as
 terse as the equivalent shell script, it is pretty close to minimal for
@@ -196,12 +202,13 @@ console.log(new TextDecoder().decode(output.stdout));
   console.log(line);
 }
 </code></pre>
-<p>This is really good compared to the old <code>Deno.run</code> which would leak resources if
-you didn't close the process and (multiple) readers explicitly. Error handling
-in child processes could also be tricky. In the new <code>Deno.Command</code>, all that is
-handled in a sensible way, automatically. This is already a giant leap forward
-for child process support in Deno.</p>
-<p>There is still a lot of boilerplate.</p>
+<p>This is still really good compared to the old <code>Deno.run</code> - which would leak
+resources if you didn't close the process and (multiple) readers explicitly.
+Error handling in child processes could also be tricky. In the new
+<code>Deno.Command</code>, all that is handled in a sensible way, automatically. This is
+already a giant leap forward for child process support in Deno.</p>
+<p>There is still a lot of boilerplate. Remember, the <code>bash</code> command is just
+<code>ls -la</code> and everything works.</p>
 <p>We can do better.</p>
 <h2 id="the-easy-way-of-proc"><a class="header" href="#the-easy-way-of-proc">The (Easy) Way of <code>proc</code></a></h2>
 <p>Here are some approaches to running <code>ls</code> using <code>proc</code>. These are equivalent to
@@ -213,7 +220,7 @@ captured, converted to text, and returned when the process exits.</p>
 </code></pre>
 <h5 id="example-2-for-proc"><a class="header" href="#example-2-for-proc">Example 2 (for <code>proc</code>)</a></h5>
 <p>Or how about this? This is equivalent to the second example. This is streaming
-<code>stdout</code> as text lines:</p>
+<code>stdout</code> into text lines:</p>
 <pre><code class="language-typescript">for await (const line of lines(run(&quot;ls&quot;, &quot;-la&quot;))) {
   console.log(line);
 }
@@ -222,7 +229,8 @@ captured, converted to text, and returned when the process exits.</p>
 access to <code>stdout</code>):</p>
 <pre><code class="language-typescript">await execute(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>Ah! Just take a moment now and breathe in the minimalism.</p>
+<p>Ah! You may take a moment now and breathe in the minimalism. Boilerplate ...
+gone.</p>
 
                     </main>
 
