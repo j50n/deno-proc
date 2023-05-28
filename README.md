@@ -2,7 +2,17 @@
 
 Blue sky. Let's make something wonderful!
 
-## Documentation
+## A Warning
+
+**Do not convert to the new API yet.** There are some major changes coming.
+
+## Documentation (Legacy API)
+
+The documentation for the legacy API is available at
+[Legacy Documentation](./legacy/README.md). It is recommended that you continue
+to use the legacy API for the time being.
+
+## Documentation (New API)
 
 The documentation is available at
 [https://j50n.github.io/deno-proc/](https://j50n.github.io/deno-proc/).
@@ -26,6 +36,6 @@ The documentation is available at
 I am working on a new version of this library that makes common usage patterns
 in `Deno.Command` much easier.
 
-For now, this is a work in progress. Refer to
-[count-words.test](./tests/examples/count-words.test.md) for a good usage
-example if you want to try this out.
+For now, this is a work in progress. Refer to the source code for the tests -
+like [count-words.test](./tests/examples/count-words.test.md) - for examples
+that are guaranteed to work with the current version.

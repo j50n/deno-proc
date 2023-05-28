@@ -31,6 +31,29 @@ export class ExitCodeError extends Error {
   }
 }
 
+class FailTransform<T>
+  extends TransformStream<T | { message: string; code: number }, T> {
+  constructor() {
+    super({
+      async transform(
+        chunk: T | { message: string; code: number },
+        controller: TransformStreamDefaultController,
+      ) {
+        await Promise.resolve();
+        if (
+          chunk != null && typeof chunk === "object" &&
+          Object.hasOwn(chunk, "message") && "code" in chunk
+        ) {
+          controller.error(new ExitCodeError(chunk.message, chunk.code));
+          controller.terminate();
+        } else {
+          controller.enqueue(chunk);
+        }
+      },
+    });
+  }
+}
+
 /**
  * Pass through `ReadableStream` and throw an `ExitCodeError` if the process exit code is not 0.
  * @param readable The readable.
@@ -44,19 +67,21 @@ function failStream<T>(
   async function* failIt(
     readable: ReadableStream<T>,
     status: Promise<Deno.CommandStatus>,
-  ): AsyncIterableIterator<T> {
+  ): AsyncIterableIterator<T | { message: string; code: number }> {
     yield* readable;
 
     const s = await status;
     if (s.code !== 0) {
-      throw new ExitCodeError(
-        `Process exited with non-zero exit code: ${s.code}`,
-        s.code,
-      );
+      yield {
+        message: `Process exited with non-zero exit code: ${s.code}`,
+        code: s.code,
+      };
     }
   }
 
-  return readableStreamFromIterable(failIt(readable, status));
+  return readableStreamFromIterable(failIt(readable, status)).pipeThrough(
+    new FailTransform(),
+  );
 }
 
 /**
