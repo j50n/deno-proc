@@ -13,7 +13,7 @@ class None {}
  *
  * The `write()` side **must** call `close()` when all write operations are done.
  */
-export class PushIterable<T> implements Deno.Closer {
+export class WritableIterable<T> implements Deno.Closer {
   private closed = false;
 
   private queue: QueueEntry<Some<T> | None>[] = [];

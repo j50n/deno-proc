@@ -1,10 +1,10 @@
 // deno-lint-ignore-file no-inner-declarations
 import { readableStreamFromIterable } from "./deps/streams.ts";
-import { PushIterable } from "./push-iterable.ts";
+import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
 
-export async function pipeTo<T>(src: AsyncIterable<T>, dest: PushIterable<T>) {
+export async function pipeTo<T>(src: AsyncIterable<T>, dest: WritableIterable<T>) {
   try {
     for await (const item of src) {
       dest.write(item);
@@ -50,7 +50,7 @@ export class ProcIterProcess implements Deno.Closer {
 
   private _stderr: AsyncIterableIterator<Uint8Array> | undefined;
   private _stdout: AsyncIterableIterator<Uint8Array> | undefined;
-  private _stdin: PushIterable<Uint8Array> | undefined;
+  private _stdin: WritableIterable<Uint8Array> | undefined;
 
   async close(): Promise<void> {
     if (this._stdin != null) {
@@ -88,9 +88,9 @@ export class ProcIterProcess implements Deno.Closer {
     return this._stdout;
   }
 
-  get stdin(): PushIterable<Uint8Array> {
+  get stdin(): WritableIterable<Uint8Array> {
     if (this._stdin == null) {
-      const pi = new PushIterable<Uint8Array>({
+      const pi = new WritableIterable<Uint8Array>({
         onclose: () => this.stdin.close(),
       });
       readableStreamFromIterable(pi).pipeTo(this.process.stdin);

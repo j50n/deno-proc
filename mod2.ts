@@ -1,2 +1,2 @@
 export * from "./src/proc-readable-stream.ts";
-export * from "./src/push-iterable.ts";
+export * from "./src/writable-iterable.ts";
