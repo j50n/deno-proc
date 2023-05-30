@@ -1,2 +1,2 @@
-export * from "./src/proc-readable-stream.ts";
-export * from "./legacy/mod.ts";
+/* Stable (legacy) API only for now. */
+export * from "./mod1.ts";

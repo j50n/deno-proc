@@ -1,4 +1,4 @@
-import { ExitCodeError, lines, run } from "../../mod.ts";
+import { ExitCodeError, lines, run } from "../../mod2.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
 
 Deno.test({

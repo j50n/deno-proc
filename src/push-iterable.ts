@@ -21,7 +21,7 @@ export class PushIterable<T> implements Deno.Closer {
   /**
    * Create a new `PushIterable`.
    */
-  constructor() {
+  constructor(protected options?: { onclose?: () => void | Promise<void> }) {
     this.addEmptyPromiseToQueue();
   }
 
@@ -43,9 +43,12 @@ export class PushIterable<T> implements Deno.Closer {
    *
    * It is safe to call `close()` multiple times.
    */
-  close(): void {
+  async close(): Promise<void> {
     this.closed = true;
     this.queue[this.queue.length - 1].resolve(new None());
+    if (this.options?.onclose != null) {
+      await this.options.onclose();
+    }
   }
 
   /**

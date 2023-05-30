@@ -1,4 +1,4 @@
-import { lines, ProcReadableStream } from "../../mod.ts";
+import { lines, ProcReadableStream } from "../../mod2.ts";
 import { readableStreamFromIterable } from "../deps/streams.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
 

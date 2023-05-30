@@ -4,13 +4,17 @@ Blue sky. Let's make something wonderful!
 
 ## A Warning
 
-**Do not convert to the new API yet.** There are some major changes coming.
+**The new API is in work and not yet ready (not even really close).** Big (good)
+changes coming. Stay tuned.
 
 ## Documentation (Legacy API)
 
 The documentation for the legacy API is available at
 [Legacy Documentation](./legacy/README.md). It is recommended that you continue
 to use the legacy API for the time being.
+
+Note that only the legacy API is available from
+`https://deno.land/x/proc/mod.ts`.
 
 ## Documentation (New API)
 

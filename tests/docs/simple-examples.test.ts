@@ -1,4 +1,4 @@
-import { execute, lines, run } from "../../mod.ts";
+import { execute, lines, run } from "../../mod2.ts";
 import { TextLineStream } from "../deps/streams.ts";
 
 Deno.test({

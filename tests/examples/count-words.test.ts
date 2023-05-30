@@ -1,6 +1,6 @@
 import { fromFileUrl } from "../deps/path.ts";
 import { assertEquals } from "../deps/asserts.ts";
-import { bytes, lines, ProcReadableStream, text } from "../../mod.ts";
+import { bytes, lines, ProcReadableStream, text } from "../../mod2.ts";
 
 class ToLowerCaseStream extends TransformStream<string, string> {
   constructor(options?: { lineOrientedText?: boolean }) {

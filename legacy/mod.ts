@@ -12,7 +12,8 @@ export * from "./runners/closers.ts";
 export * from "./runners/process-exit-error.ts";
 export * from "./runners/chained-error.ts";
 export * from "./runners/stderr-support.ts";
-export * from "./runners/push-iterable.ts";
+export * from "../src/push-iterable.ts";
+
 export {
   bytesToTextLines,
   dirname,
