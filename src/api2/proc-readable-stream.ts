@@ -1,4 +1,4 @@
-import { readableStreamFromIterable, TextLineStream } from "./deps/streams.ts";
+import { readableStreamFromIterable, TextLineStream } from "../deps/streams.ts";
 
 /** The type signature for a command. */
 export type Cmd = [string | URL, ...string[]];

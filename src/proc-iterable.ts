@@ -4,7 +4,10 @@ import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
 
-export async function pipeTo<T>(src: AsyncIterable<T>, dest: WritableIterable<T>) {
+export async function pipeTo<T>(
+  src: AsyncIterable<T>,
+  dest: WritableIterable<T>,
+) {
   try {
     for await (const item of src) {
       dest.write(item);

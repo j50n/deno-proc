@@ -1,6 +1,6 @@
-import { lines, ProcReadableStream } from "../../mod2.ts";
-import { readableStreamFromIterable } from "../deps/streams.ts";
-import { assertEquals, assertRejects } from "../deps/asserts.ts";
+import { lines, ProcReadableStream } from "../../../mod2.ts";
+import { readableStreamFromIterable } from "../../deps/streams.ts";
+import { assertEquals, assertRejects } from "../../deps/asserts.ts";
 
 Deno.test({
   name: "ProcReadableStream.toText() converts UTF8 bytes to text.",
