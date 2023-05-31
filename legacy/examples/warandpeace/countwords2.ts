@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --quiet --allow-run=bash,gunzip
 
-import { asynciter } from "https://deno.land/x/asynciter@0.0.15/mod.ts";
+import { asynciter } from "https://deno.land/x/asynciter@0.0.16/mod.ts";
 import * as proc from "../../mod.ts";
 
 /* Chain errors. */
