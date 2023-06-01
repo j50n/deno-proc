@@ -1,1 +1,1 @@
-export * from "https://deno.land/x/asynciter@0.0.15/mod.ts";
+export * from "https://deno.land/x/asynciter@0.0.16/mod.ts";

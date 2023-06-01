@@ -1,5 +1,3 @@
-import { AsyncIterableRunnable } from "./shell.ts";
-
 /**
  * Concatenate arrays together, returning a single array containing the result.
  *
@@ -39,33 +37,44 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
  */
 export function bytesToTextLines(
   buffs: AsyncIterable<Uint8Array>,
-): AsyncIterableRunnable<string> {
+): AsyncIterable<string> {
   const decoder = new TextDecoder();
 
-  return new AsyncIterableRunnable<string>({
+  return {
     async *[Symbol.asyncIterator]() {
-      for await (const line of bytesToByteLines(buffs)) {
-        yield decoder.decode(line);
+      for await (const lines of bytesToByteLines(buffs)) {
+        for (const line of lines) {
+          yield decoder.decode(line);
+        }
       }
     },
-  });
+  };
 }
 
 /**
- * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array>`
+ * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
+ * (an array of lines chunked together based on buffer size)
  * split on `lf` and suppressing trailing `cr`.
  * @param buffs The iterable bytes.
  */
 export async function* bytesToByteLines(
   buffs: AsyncIterable<Uint8Array>,
-): AsyncIterableIterator<Uint8Array> {
+): AsyncIterable<Uint8Array[]> {
+  /*
+   * Using subarray since that is just a view. No copy operation.
+   *
+   * Iterating and testing byte-wise rather than using `find()`, which requires a
+   * call to a function for each byte. Should be pretty close to byte-at-a-time
+   * C-style scanning. Not as fast as a SIMD operation, but that isn't an option
+   * here.
+   */
   let currentLine: Uint8Array[] = [];
   let lastline: undefined | Uint8Array;
 
   function bufferLine(): Uint8Array | undefined {
     function createLine(): Uint8Array {
       const line = concat(currentLine);
-      //console.dir(line[line.length - 1]);
+
       if (line.length > 0 && line[line.length - 1] === 13) {
         /* Strip the carriage return. */
         return line.subarray(0, line.length - 1);
@@ -79,38 +88,53 @@ export async function* bytesToByteLines(
     return temp;
   }
 
-  for await (const buff of buffs) {
-    const length = buff.length;
+  try {
+    for await (const buff of buffs) {
+      const length = buff.length;
 
-    let start = 0;
-    for (let pos = 0; pos < length; pos++) {
-      if (buff[pos] === 10) {
-        if (pos) {
-          currentLine.push(buff.subarray(start, pos));
+      const chunk: Uint8Array[] = [];
+
+      let start = 0;
+      for (let pos = 0; pos < length; pos++) {
+        if (buff[pos] === 10) {
+          if (pos) {
+            currentLine.push(buff.subarray(start, pos));
+          }
+
+          const b = bufferLine();
+          if (b) {
+            chunk.push(b);
+          }
+
+          currentLine = [];
+          start = pos + 1;
         }
+      }
 
-        const b = bufferLine();
-        if (b) {
-          yield b;
-        }
+      if (chunk.length > 0) {
+        yield chunk;
+      }
 
-        currentLine = [];
-        start = pos + 1;
+      if (start < length) {
+        currentLine.push(buff.subarray(start));
       }
     }
-    if (start < length) {
-      currentLine.push(buff.subarray(start));
-    }
-  }
+  } finally {
+    const chunk: Uint8Array[] = [];
 
-  if (currentLine.length > 0) {
-    const b = bufferLine();
-    if (b) {
-      yield b;
+    if (currentLine.length > 0) {
+      const b = bufferLine();
+      if (b) {
+        chunk.push(b);
+      }
     }
-  }
 
-  if (lastline?.length) {
-    yield lastline;
+    if (lastline?.length) {
+      chunk.push(lastline);
+    }
+
+    if (chunk.length > 0) {
+      yield chunk;
+    }
   }
 }

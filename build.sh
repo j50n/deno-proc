@@ -6,10 +6,6 @@ HERE="$(realpath "$(dirname "$0")")"
 
 deno install -rf --allow-read="$HERE/" --allow-write="$HERE/" --allow-net https://deno.land/x/udd/main.ts
 
-# cd "$HERE/legacy/" && (
-#     ./build.ts
-# )
-
 cd "$HERE/site/" && (
     cargo install mdbook
     mdbook build
@@ -18,7 +14,7 @@ cd "$HERE/site/" && (
 )
 
 cd "$HERE" && (
-    # udd `find . -type f -name "*.ts"`
+    udd `find . -type f -name "*.ts"`
 
     deno fmt `find . -type f -name "*.md"`
     deno fmt `find . -type f -name "*.ts"`
@@ -31,6 +27,6 @@ cd "$HERE" && (
     deno lint `find . -type f -name "*.ts"`
     deno check `find . -type f -name "*.ts"`
 
-    deno test --reload --allow-read --allow-run=grep,sort,uniq,gunzip,ls,deno,cat ./tests/
+    deno test --reload --allow-read --allow-run=grep,sort,uniq,gunzip,ls,deno,cat,bash ./tests/
 )
 
