@@ -8,10 +8,17 @@ Deno.test({
   async fn() {
     const process = new Command({ stdout: "piped" }, "ls", "-la")
       .spawn();
-    for await (
-      const line of bytesToTextLines(process.stdout)
-    ) {
-      console.log(blue(line.toLocaleLowerCase()));
+
+    try {
+      for await (
+        const lines of bytesToTextLines(process.stdout)
+      ) {
+        for (const line of lines) {
+          console.log(blue(line.toLocaleLowerCase()));
+        }
+      }
+    } finally {
+      await process.close();
     }
   },
 });
@@ -20,23 +27,29 @@ Deno.test({
   name: "All data output before the exit is captured.",
 
   async fn() {
-    const lines: string[] = [];
+    const results: string[] = [];
 
     const process = new Command(
       { stdout: "piped" },
       "bash",
       "-c",
-      "set -e\necho 'A'\necho 'B'\necho 'C'\necho 'D'",
+      "set -e\necho 'A'\necho 'B'\necho 'C'",
     )
       .spawn();
 
-    for await (
-      const line of bytesToTextLines(process.stdout)
-    ) {
-      lines.push(line);
-    }
+    try {
+      for await (
+        const lines of bytesToTextLines(process.stdout)
+      ) {
+        for (const line of lines) {
+          results.push(line);
+        }
+      }
 
-    assertEquals(lines, ["A", "B", "C", "D"], "All lines are captured.");
+      assertEquals(results, ["A", "B", "C"], "All lines are captured.");
+    } finally {
+      await process.close();
+    }
   },
 });
 
@@ -45,7 +58,7 @@ Deno.test({
     "I can catch an error from the exit-code, and all data output before the exit is captured.",
 
   async fn() {
-    const lines: string[] = [];
+    const results: string[] = [];
 
     await assertRejects(
       async () => {
@@ -57,10 +70,16 @@ Deno.test({
         )
           .spawn();
 
-        for await (
-          const line of bytesToTextLines(process.stdout)
-        ) {
-          lines.push(line);
+        try {
+          for await (
+            const lines of bytesToTextLines(process.stdout)
+          ) {
+            for (const line of lines) {
+              results.push(line);
+            }
+          }
+        } finally {
+          await process.close();
         }
       },
       ExitCodeError,
@@ -68,6 +87,46 @@ Deno.test({
       "Process returns lines of data and then exits with an error code. We process the lines then throw an error. Data is consumed directly.",
     );
 
-    assertEquals(lines, ["A", "B", "C", "D"], "All lines are captured.");
+    assertEquals(results, ["A", "B", "C", "D"], "All lines are captured.");
+  },
+});
+
+Deno.test({
+  name:
+    "I can pass data from stdin to stdout through a process, one line at a time.",
+
+  async fn() {
+    const results: string[] = [];
+
+    const process = new Command(
+      { stdout: "piped", stdin: "piped" },
+      "cat",
+      "-",
+    )
+      .spawn();
+
+    (async () => {
+      try {
+        for (const line of ["A", "B", "C", "D"]) {
+          await process.stdin.write([line]);
+        }
+      } finally {
+        await process.close();
+      }
+    })();
+
+    try {
+      for await (
+        const lines of bytesToTextLines(process.stdout)
+      ) {
+        for (const line of lines) {
+          results.push(line);
+        }
+      }
+    } finally {
+      await process.close();
+    }
+
+    assertEquals(results, ["A", "B", "C", "D"], "All lines are captured.");
   },
 });

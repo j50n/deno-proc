@@ -5,7 +5,9 @@ class Some<T> {
   }
 }
 
-class None {}
+class None {
+  constructor(public readonly error?: Error) {}
+}
 
 /**
  * Invert the normal data flow of an `AsyncIterable`, allowing you to push writes on one side and
@@ -13,7 +15,7 @@ class None {}
  *
  * The `write()` side **must** call `close()` when all write operations are done.
  */
-export class WritableIterable<T> implements Deno.Closer {
+export class WritableIterable<T> {
   private closed = false;
 
   private queue: QueueEntry<Some<T> | None>[] = [];
@@ -37,17 +39,20 @@ export class WritableIterable<T> implements Deno.Closer {
   }
 
   /**
-   * Close the iterable.
+   * Close the iterable. This must be called.
    *
    * Once closed, subsequent calls to `write(...)` will throw an error.
    *
-   * It is safe to call `close()` multiple times.
+   * It is safe to call `close()` multiple times. The error (or no error)
+   * passed on the first call will be honored.
    */
-  async close(): Promise<void> {
-    this.closed = true;
-    this.queue[this.queue.length - 1].resolve(new None());
-    if (this.options?.onclose != null) {
-      await this.options.onclose();
+  async close(error?: Error): Promise<void> {
+    if (!this.closed) {
+      this.closed = true;
+      this.queue[this.queue.length - 1].resolve(new None(error));
+      if (this.options?.onclose != null) {
+        await this.options.onclose();
+      }
     }
   }
 
@@ -70,13 +75,20 @@ export class WritableIterable<T> implements Deno.Closer {
 
   async *[Symbol.asyncIterator](): AsyncIterableIterator<T> {
     while (true) {
-      const item = await this.queue[0].promise;
-      if (item instanceof Some) {
-        yield item.item;
-      } else {
-        break;
+      try {
+        const item = await this.queue[0].promise;
+        if (item instanceof Some) {
+          yield item.item;
+        } else {
+          if (item.error != null) {
+            throw item.error;
+          } else {
+            break;
+          }
+        }
+      } finally {
+        this.queue.shift();
       }
-      this.queue.shift();
     }
   }
 }

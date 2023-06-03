@@ -1,4 +1,5 @@
 import { readableStreamFromIterable } from "./deps/streams.ts";
+import { concat } from "./utility.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -16,15 +17,19 @@ export interface ProcIterOptions {
 }
 
 export abstract class ProcessError extends Error {
-  constructor(public readonly message: string) {
-    super(message);
+  constructor(public readonly message: string, options?: { cause?: Error }) {
+    super(message, { cause: options?.cause });
     this.name = this.constructor.name;
   }
 }
 
 export class ExitCodeError extends ProcessError {
-  constructor(public readonly message: string, public readonly code: number) {
-    super(message);
+  constructor(
+    public readonly message: string,
+    public readonly code: number,
+    options: { cause?: Error },
+  ) {
+    super(message, { cause: options?.cause });
     this.name = this.constructor.name;
   }
 }
@@ -33,8 +38,9 @@ export class SignalError extends ProcessError {
   constructor(
     public readonly message: string,
     public readonly signal: Deno.Signal,
+    options: { cause?: Error },
   ) {
-    super(message);
+    super(message, { cause: options?.cause });
     this.name = this.constructor.name;
   }
 }
@@ -49,11 +55,24 @@ export class Process implements Deno.Closer {
 
   private _stderr: AsyncIterable<Uint8Array> | undefined;
   private _stdout: AsyncIterable<Uint8Array> | undefined;
-  private _stdin: WritableIterable<Uint8Array> | undefined;
+  private _stdin:
+    | WritableIterable<Uint8Array | Uint8Array[] | string | string[]>
+    | undefined;
+
+  private _isClosed = false;
+  private _passthruError: Error | undefined;
+
+  get isClosed(): boolean {
+    return this._isClosed;
+  }
 
   async close(): Promise<void> {
-    if (this._stdin != null) {
-      await this.stdin.close();
+    if (!this.isClosed) {
+      this._isClosed = true;
+
+      if (this._stdin != null) {
+        await this.stdin.close();
+      }
     }
   }
 
@@ -91,6 +110,8 @@ export class Process implements Deno.Closer {
       const close = this.close.bind(this);
       const process = this.process;
 
+      const getPassthruError = () => this._passthruError;
+
       this._stdout = {
         async *[Symbol.asyncIterator]() {
           try {
@@ -102,12 +123,20 @@ export class Process implements Deno.Closer {
               throw new SignalError(
                 `signal error: ${status.signal}`,
                 status.signal,
+                { cause: getPassthruError() },
               );
             } else if (status.code !== 0) {
-              throw new ExitCodeError(`exit code: ${status.code}`, status.code);
+              throw new ExitCodeError(
+                `exit code: ${status.code}`,
+                status.code,
+                { cause: getPassthruError() },
+              );
             }
           } finally {
             await close();
+          }
+          if (getPassthruError() != null) {
+            throw getPassthruError();
           }
         },
       };
@@ -115,12 +144,48 @@ export class Process implements Deno.Closer {
     return this._stdout;
   }
 
-  get stdin(): WritableIterable<Uint8Array> {
+  get stdin(): WritableIterable<Uint8Array | Uint8Array[] | string | string[]> {
     if (this._stdin == null) {
-      const pi = new WritableIterable<Uint8Array>({
+      const encoder = new TextEncoder();
+      const lf = encoder.encode("\n");
+
+      const pi = new WritableIterable<
+        Uint8Array | Uint8Array[] | string | string[]
+      >({
         onclose: () => this.stdin.close(),
       });
-      readableStreamFromIterable(pi).pipeTo(this.process.stdin);
+
+      const setPassthruError = (err: Error) => this._passthruError = err;
+
+      readableStreamFromIterable({
+        async *[Symbol.asyncIterator]() {
+          try {
+            for await (const item of pi) {
+              if (item instanceof Uint8Array) {
+                yield item;
+              } else if (typeof item === "string") {
+                yield encoder.encode(item);
+              } else if (Array.isArray(item)) {
+                for (const piece of item) {
+                  const lines: Uint8Array[] = [];
+                  if (piece instanceof Uint8Array) {
+                    lines.push(piece);
+                    lines.push(lf);
+                  } else if (typeof piece === "string") {
+                    lines.push(encoder.encode(piece));
+                    lines.push(lf);
+                  }
+                  yield concat(lines);
+                }
+              }
+            }
+          } catch (e) {
+            setPassthruError(e);
+          } finally {
+            pi.close();
+          }
+        },
+      }).pipeTo(this.process.stdin);
       this._stdin = pi;
     }
     return this._stdin;

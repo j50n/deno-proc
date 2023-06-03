@@ -37,15 +37,13 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
  */
 export function bytesToTextLines(
   buffs: AsyncIterable<Uint8Array>,
-): AsyncIterable<string> {
+): AsyncIterable<string[]> {
   const decoder = new TextDecoder();
 
   return {
     async *[Symbol.asyncIterator]() {
       for await (const lines of bytesToByteLines(buffs)) {
-        for (const line of lines) {
-          yield decoder.decode(line);
-        }
+        yield lines.map((line) => decoder.decode(line));
       }
     },
   };
@@ -54,7 +52,8 @@ export function bytesToTextLines(
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
  * (an array of lines chunked together based on buffer size)
- * split on `lf` and suppressing trailing `cr`.
+ * split on `lf` and also suppressing trailing `cr`. `lf` and trailing `cr`
+ * is removed from the returned lines.
  * @param buffs The iterable bytes.
  */
 export async function* bytesToByteLines(
@@ -76,7 +75,7 @@ export async function* bytesToByteLines(
       const line = concat(currentLine);
 
       if (line.length > 0 && line[line.length - 1] === 13) {
-        /* Strip the carriage return. */
+        /*  Strip the carriage return. */
         return line.subarray(0, line.length - 1);
       } else {
         return line;
