@@ -130,3 +130,50 @@ Deno.test({
     assertEquals(results, ["A", "B", "C", "D"], "All lines are captured.");
   },
 });
+
+Deno.test({
+  name:
+    "I can pass data from stdin to stdout through a process, one line at a time, with error passed through stdin.",
+
+  async fn() {
+    const results: string[] = [];
+
+    await assertRejects(
+      async () => {
+        const process = new Command(
+          { stdout: "piped", stdin: "piped" },
+          "cat",
+          "-",
+        )
+          .spawn();
+
+        (async () => {
+          try {
+            for (const line of ["A", "B", "C", "D"]) {
+              await process.stdin.write([line]);
+            }
+          } finally {
+            await process.stdin.close(new Error("This is a test."));
+          }
+        })();
+
+        try {
+          for await (
+            const lines of bytesToTextLines(process.stdout)
+          ) {
+            for (const line of lines) {
+              results.push(line);
+            }
+          }
+        } finally {
+          await process.close();
+        }
+      },
+      Error,
+      "This is a test.",
+      "Process returns lines of data and forwards an error passed from stdin. Lines are completely processed before the error is thrown.",
+    );
+
+    assertEquals(results, ["A", "B", "C", "D"], "All lines are captured.");
+  },
+});
