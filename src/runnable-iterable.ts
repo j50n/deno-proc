@@ -4,6 +4,7 @@ import {
   concurrentMap,
   concurrentUnorderedMap,
   filter,
+  flatten,
   forEach,
   map,
   reduce,
@@ -12,13 +13,16 @@ import { parseArgs } from "./helpers.ts";
 import { Cmd, RunOptions } from "./run.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
+type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
+  : never;
+
 /**
  * Create a new runnable.
  * @param iter The wrapped iterator.
  * @returns A new runnable.
  */
-export function runnable<T>(iter: AsyncIterable<T>): Runnable<T>{
-    return new Runnable(iter)
+export function runnable<T>(iter: AsyncIterable<T>): Runnable<T> {
+  return new Runnable(iter);
 }
 
 export class Runnable<T> implements AsyncIterable<T> {
@@ -77,6 +81,21 @@ export class Runnable<T> implements AsyncIterable<T> {
         yield* map(iter, mapFn);
       },
     }) as Runnable<U>;
+  }
+
+  /**
+   * Flatten the iterable.
+   * @returns An iterator where a level of indirection has been removed.
+   */
+  public flatten(): Runnable<ElementType<T>> {
+    const iterable = this.iter;
+    return new Runnable(
+      flatten(
+        iterable as AsyncIterable<
+          AsyncIterable<ElementType<T>> | Iterable<ElementType<T>>
+        >,
+      ),
+    );
   }
 
   /**

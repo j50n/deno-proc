@@ -35,14 +35,14 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
  * @param buffs The iterable bytes.
  */
-export function bytesToTextLines(
+export function toLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string[]> {
   const decoder = new TextDecoder();
 
   return {
     async *[Symbol.asyncIterator]() {
-      for await (const lines of bytesToByteLines(buffs)) {
+      for await (const lines of toByteLines(buffs)) {
         yield lines.map((line) => decoder.decode(line));
       }
     },
@@ -56,7 +56,7 @@ export function bytesToTextLines(
  * is removed from the returned lines.
  * @param buffs The iterable bytes.
  */
-export async function* bytesToByteLines(
+export async function* toByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<Uint8Array[]> {
   /*

@@ -1,4 +1,4 @@
-import { bytesToTextLines, Command, ExitCodeError } from "../../mod3.ts";
+import { Command, ExitCodeError, toLines } from "../../mod3.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
 import { blue } from "../deps/colors.ts";
 
@@ -11,7 +11,7 @@ Deno.test({
 
     try {
       for await (
-        const lines of bytesToTextLines(process.stdout)
+        const lines of toLines(process.stdout)
       ) {
         for (const line of lines) {
           console.log(blue(line.toLocaleLowerCase()));
@@ -39,7 +39,7 @@ Deno.test({
 
     try {
       for await (
-        const lines of bytesToTextLines(process.stdout)
+        const lines of toLines(process.stdout)
       ) {
         for (const line of lines) {
           results.push(line);
@@ -72,7 +72,7 @@ Deno.test({
 
         try {
           for await (
-            const lines of bytesToTextLines(process.stdout)
+            const lines of toLines(process.stdout)
           ) {
             for (const line of lines) {
               results.push(line);
@@ -117,7 +117,7 @@ Deno.test({
 
     try {
       for await (
-        const lines of bytesToTextLines(process.stdout)
+        const lines of toLines(process.stdout)
       ) {
         for (const line of lines) {
           results.push(line);
@@ -159,7 +159,7 @@ Deno.test({
 
         try {
           for await (
-            const lines of bytesToTextLines(process.stdout)
+            const lines of toLines(process.stdout)
           ) {
             for (const line of lines) {
               results.push(line);
