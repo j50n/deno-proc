@@ -1,4 +1,5 @@
 import { readableStreamFromIterable } from "./deps/streams.ts";
+import { bestTypeNameOf } from "./helpers.ts";
 import { concat } from "./utility.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
@@ -174,9 +175,21 @@ export class Process implements Deno.Closer {
                   } else if (typeof piece === "string") {
                     lines.push(encoder.encode(piece));
                     lines.push(lf);
+                  } else {
+                    throw new TypeError(
+                      `runtime type error; expected array data of string|Uint8Array but got ${
+                        bestTypeNameOf(piece)
+                      }`,
+                    );
                   }
                   yield concat(lines);
                 }
+              } else {
+                throw new TypeError(
+                  `runtime type error; expected string|Uint8Array|Array[...] but got ${
+                    bestTypeNameOf(item)
+                  }`,
+                );
               }
             }
           } catch (e) {

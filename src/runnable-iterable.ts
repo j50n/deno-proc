@@ -1,3 +1,4 @@
+import { Command } from "./command.ts";
 import {
   collect,
   concurrentMap,
@@ -7,8 +8,20 @@ import {
   map,
   reduce,
 } from "./deps/asynciter.ts";
+import { parseArgs } from "./helpers.ts";
+import { Cmd, RunOptions } from "./run.ts";
+import { WritableIterable } from "./writable-iterable.ts";
 
-export class RunnableIterable<T> {
+/**
+ * Create a new runnable.
+ * @param iter The wrapped iterator.
+ * @returns A new runnable.
+ */
+export function runnable<T>(iter: AsyncIterable<T>): Runnable<T>{
+    return new Runnable(iter)
+}
+
+export class Runnable<T> implements AsyncIterable<T> {
   constructor(protected iter: AsyncIterable<T>) {
   }
 
@@ -19,15 +32,37 @@ export class RunnableIterable<T> {
   }
 
   /**
+   * Write all data to the writer.
+   *
+   * Note that this call returns immediately, although it continues to run
+   * until the source iterable data is exhausted.
+   *
+   * @param writer The writer.
+   */
+  writeTo(writer: WritableIterable<T>) {
+    const iter = this.iter;
+    (async () => {
+      try {
+        for await (const it of iter) {
+          writer.write(it);
+        }
+        await writer.close();
+      } catch (e) {
+        await writer.close(e);
+      }
+    })();
+  }
+
+  /**
    * Transform the iterable from one type to another with an opportunity to catch
    * and handle errors.
    * @param fn The transform function.
    * @returns The transformed iterable.
    */
-  public transform<U>(
+  transform<U>(
     fn: (it: AsyncIterable<T>) => AsyncIterable<U>,
-  ): RunnableIterable<U> {
-    return new RunnableIterable(fn(this.iter));
+  ): Runnable<U> {
+    return new Runnable(fn(this.iter));
   }
 
   /**
@@ -35,13 +70,13 @@ export class RunnableIterable<T> {
    * @param mapFn The mapping function.
    * @returns An iterable of mapped values.
    */
-  map<U>(mapFn: (item: T) => U | Promise<U>): RunnableIterable<U> {
-    const iterable = this.iter;
-    return new RunnableIterable({
+  map<U>(mapFn: (item: T) => U | Promise<U>): Runnable<U> {
+    const iter = this.iter;
+    return new Runnable({
       async *[Symbol.asyncIterator]() {
-        yield* map(iterable, mapFn);
+        yield* map(iter, mapFn);
       },
-    });
+    }) as Runnable<U>;
   }
 
   /**
@@ -53,16 +88,16 @@ export class RunnableIterable<T> {
    * @param concurrency The maximum concurrency.
    * @returns An iterable of mapped values.
    */
-  public concurrentMap<U>(
+  concurrentMap<U>(
     mapFn: (item: T) => Promise<U>,
     concurrency?: number,
-  ): RunnableIterable<U> {
+  ): Runnable<U> {
     const iterable = this.iter;
-    return new RunnableIterable({
+    return new Runnable({
       async *[Symbol.asyncIterator]() {
         yield* concurrentMap(iterable, mapFn, concurrency);
       },
-    });
+    }) as Runnable<U>;
   }
 
   /**
@@ -76,16 +111,16 @@ export class RunnableIterable<T> {
    * @param concurrency The maximum concurrency.
    * @returns An iterable of mapped values.
    */
-  public concurrentUnorderedMap<U>(
+  concurrentUnorderedMap<U>(
     mapFn: (item: T) => Promise<U>,
     concurrency?: number,
-  ): RunnableIterable<U> {
+  ): Runnable<U> {
     const iterable = this.iter;
-    return new RunnableIterable({
+    return new Runnable({
       async *[Symbol.asyncIterator]() {
         yield* concurrentUnorderedMap(iterable, mapFn, concurrency);
       },
-    });
+    }) as Runnable<U>;
   }
 
   /**
@@ -93,15 +128,15 @@ export class RunnableIterable<T> {
    * @param filterFn The filter function.
    * @returns An iterator returning the values that passed the filter function.
    */
-  public filter(
+  filter(
     filterFn: (item: T) => boolean | Promise<boolean>,
-  ): RunnableIterable<T> {
+  ): Runnable<T> {
     const iterable = this.iter;
-    return new RunnableIterable({
+    return new Runnable({
       async *[Symbol.asyncIterator]() {
         yield* filter(iterable, filterFn);
       },
-    });
+    }) as Runnable<T>;
   }
 
   /**
@@ -109,7 +144,7 @@ export class RunnableIterable<T> {
    * @param reduce The reducing function.
    * @returns The result of applying the reducing function to each item and accumulating the result.
    */
-  public async reduce<U>(
+  async reduce<U>(
     zero: U,
     reduceFn: (acc: U, item: T) => U | Promise<U>,
   ): Promise<U> {
@@ -120,7 +155,7 @@ export class RunnableIterable<T> {
    * Perform an operation for each item in the sequence.
    * @param forEachFn The forEach function.
    */
-  public async forEach(
+  async forEach(
     forEachFn: (item: T) => void | Promise<void>,
   ): Promise<void> {
     await forEach(this.iter, forEachFn);
@@ -130,7 +165,43 @@ export class RunnableIterable<T> {
    * Collect the items in this iterator to an array.
    * @returns The items of this iterator collected to an array.
    */
-  public async collect(): Promise<T[]> {
+  async collect(): Promise<T[]> {
     return await collect(this.iter);
+  }
+
+  /**
+   * Run a process.
+   * @param cmd The command.
+   * @param options Options.
+   * @returns A child process instance.
+   */
+  run(
+    options: RunOptions,
+    ...cmd: Cmd
+  ): Runnable<Uint8Array>;
+
+  /**
+   * Run a process.
+   * @param cmd The command.
+   * @returns A child process instance.
+   */
+  run(...cmd: Cmd): Runnable<Uint8Array>;
+
+  run(
+    ...cmd: unknown[]
+  ): Runnable<Uint8Array> {
+    const { options, command, args } = parseArgs(cmd);
+
+    const c = new Command(
+      { ...options, stdout: "piped", stdin: "piped" },
+      command,
+      ...args,
+    );
+
+    const p = c.spawn();
+
+    this.writeTo(p.stdin as unknown as WritableIterable<T>);
+
+    return new Runnable(p.stdout);
   }
 }
