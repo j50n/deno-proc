@@ -1,5 +1,4 @@
 import { WritableIterable } from "./writable-iterable.ts";
-import { map } from "./deps/asynciter.ts";
 
 export async function pipeTo<T>(
   src: AsyncIterable<T>,
@@ -27,30 +26,5 @@ export class Shell implements Deno.Closer {
   constructor() {}
 
   async close(): Promise<void> {
-  }
-}
-
-export class AsyncIterableRunnable<T> {
-  constructor(protected readonly iterator: AsyncIterable<T>) {
-  }
-
-  public async *[Symbol.asyncIterator](): AsyncGenerator<T, void, unknown> {
-    for await (const item of this.iterator) {
-      yield item;
-    }
-  }
-
-  /**
-   * Map the sequence from one type to another.
-   * @param mapFn The mapping function.
-   * @returns An iterable of mapped values.
-   */
-  public map<U>(mapFn: (item: T) => U | Promise<U>) {
-    const iterable = this.iterator;
-    return new AsyncIterableRunnable({
-      async *[Symbol.asyncIterator]() {
-        yield* map(iterable, mapFn);
-      },
-    });
   }
 }
