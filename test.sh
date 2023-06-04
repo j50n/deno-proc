@@ -1,3 +1,3 @@
 #!/bin/bash
 
-deno test --allow-read --allow-run=grep,sort,uniq,gunzip,ls,deno,cat,bash `find . -name '*.test.ts' | grep shell`
+deno test --allow-read --allow-run `find . -name '*.test.ts' | grep -P 'run\.test'`

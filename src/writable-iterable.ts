@@ -15,8 +15,12 @@ class None {
  *
  * The `write()` side **must** call `close()` when all write operations are done.
  */
-export class WritableIterable<T> {
-  private closed = false;
+export class WritableIterable<T> implements AsyncIterable<T> {
+  private _closed = false;
+
+  get closed() {
+    return this._closed;
+  }
 
   private queue: QueueEntry<Some<T> | None>[] = [];
 
@@ -48,7 +52,7 @@ export class WritableIterable<T> {
    */
   async close(error?: Error): Promise<void> {
     if (!this.closed) {
-      this.closed = true;
+      this._closed = true;
       this.queue[this.queue.length - 1].resolve(new None(error));
       if (this.options?.onclose != null) {
         await this.options.onclose();
@@ -62,7 +66,7 @@ export class WritableIterable<T> {
    */
   async write(item: T): Promise<void> {
     if (this.closed) {
-      throw new Error("already closed");
+      throw new Error("writable is already closed");
     }
 
     this.queue[this.queue.length - 1].resolve(new Some(item));
@@ -73,7 +77,7 @@ export class WritableIterable<T> {
     }
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterableIterator<T> {
+  async *[Symbol.asyncIterator]() {
     while (true) {
       try {
         const item = await this.queue[0].promise;

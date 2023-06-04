@@ -1,6 +1,4 @@
-import { readableStreamFromIterable } from "./deps/streams.ts";
-import { bestTypeNameOf } from "./helpers.ts";
-import { concat } from "./utility.ts";
+import { toBytes } from "./utility.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -18,7 +16,21 @@ export interface ProcIterOptions {
 }
 
 export abstract class ProcessError extends Error {
-  constructor(public readonly message: string, options?: { cause?: Error }) {
+  constructor(
+    public readonly message: string,
+    public readonly options?: { cause?: Error },
+  ) {
+    super(message, { cause: options?.cause });
+    this.name = this.constructor.name;
+  }
+}
+
+export class StreamError extends ProcessError {
+  constructor(
+    public readonly message: string,
+    public readonly command: string,
+    public readonly options?: { cause?: Error },
+  ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
   }
@@ -27,8 +39,9 @@ export abstract class ProcessError extends Error {
 export class ExitCodeError extends ProcessError {
   constructor(
     public readonly message: string,
+    public readonly command: string,
     public readonly code: number,
-    options: { cause?: Error },
+    public readonly options: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
@@ -38,8 +51,9 @@ export class ExitCodeError extends ProcessError {
 export class SignalError extends ProcessError {
   constructor(
     public readonly message: string,
+    public readonly command: string,
     public readonly signal: Deno.Signal,
-    options: { cause?: Error },
+    public readonly options: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
@@ -95,7 +109,12 @@ export class Process implements Deno.Closer {
 
       this._stderr = {
         async *[Symbol.asyncIterator]() {
-          yield* process.stderr;
+          try {
+            yield* process.stderr;
+          } catch (e) {
+            //TODO: stderr needs some TLC
+            console.dir("[STDERR]", e);
+          }
         },
       };
     }
@@ -110,8 +129,14 @@ export class Process implements Deno.Closer {
     if (this._stdout == null) {
       const close = this.close.bind(this);
       const process = this.process;
+      const cmd = this.cmd;
 
-      const getPassthruError = () => this._passthruError;
+      const passError = () =>
+        this._passthruError == null
+          ? undefined
+          : new StreamError(this._passthruError.message, this.cmd.toString(), {
+            cause: this._passthruError,
+          });
 
       this._stdout = {
         async *[Symbol.asyncIterator]() {
@@ -123,21 +148,26 @@ export class Process implements Deno.Closer {
             if (status.signal != null) {
               throw new SignalError(
                 `signal error: ${status.signal}`,
+                cmd.toString(),
                 status.signal,
-                { cause: getPassthruError() },
+                { cause: passError() },
               );
             } else if (status.code !== 0) {
               throw new ExitCodeError(
                 `exit code: ${status.code}`,
+                cmd.toString(),
                 status.code,
-                { cause: getPassthruError() },
+                { cause: passError() },
               );
             }
+          } catch (e) {
+            throw e;
           } finally {
             await close();
           }
-          if (getPassthruError() != null) {
-            throw getPassthruError();
+          const pte = passError();
+          if (pte) {
+            throw pte;
           }
         },
       };
@@ -147,58 +177,47 @@ export class Process implements Deno.Closer {
 
   get stdin(): WritableIterable<Uint8Array | Uint8Array[] | string | string[]> {
     if (this._stdin == null) {
-      const encoder = new TextEncoder();
-      const lf = encoder.encode("\n");
+      const writer = this.process.stdin.getWriter();
+
+      let writerIsClosed = false;
+      const closeWriter = async () => {
+        if (!writerIsClosed) {
+          writerIsClosed = true;
+          try {
+            await writer.close();
+          } catch (e) {
+            if (!(e instanceof TypeError)) {
+              if (this._passthruError == null) {
+                this._passthruError = e;
+              }
+            }
+          }
+        }
+      };
 
       const pi = new WritableIterable<
         Uint8Array | Uint8Array[] | string | string[]
-      >({
-        onclose: () => this.stdin.close(),
-      });
+      >();
 
-      const setPassthruError = (err: Error) => this._passthruError = err;
-
-      readableStreamFromIterable({
-        async *[Symbol.asyncIterator]() {
-          try {
-            for await (const item of pi) {
-              if (item instanceof Uint8Array) {
-                yield item;
-              } else if (typeof item === "string") {
-                yield encoder.encode(item);
-              } else if (Array.isArray(item)) {
-                for (const piece of item) {
-                  const lines: Uint8Array[] = [];
-                  if (piece instanceof Uint8Array) {
-                    lines.push(piece);
-                    lines.push(lf);
-                  } else if (typeof piece === "string") {
-                    lines.push(encoder.encode(piece));
-                    lines.push(lf);
-                  } else {
-                    throw new TypeError(
-                      `runtime type error; expected array data of string|Uint8Array but got ${
-                        bestTypeNameOf(piece)
-                      }`,
-                    );
-                  }
-                  yield concat(lines);
-                }
-              } else {
-                throw new TypeError(
-                  `runtime type error; expected string|Uint8Array|Array[...] but got ${
-                    bestTypeNameOf(item)
-                  }`,
-                );
-              }
+      (async () => {
+        try {
+          for await (const it of toBytes(pi)) {
+            if (writerIsClosed) {
+              break;
             }
-          } catch (e) {
-            setPassthruError(e);
-          } finally {
-            pi.close();
+
+            await writer.write(it);
           }
-        },
-      }).pipeTo(this.process.stdin);
+        } catch (e) {
+          if (
+            this._passthruError == null && !(e instanceof Deno.errors.BrokenPipe)
+          ) {
+            this._passthruError = e;
+          }
+        } finally {
+          await closeWriter();
+        }
+      })();
       this._stdin = pi;
     }
     return this._stdin;

@@ -1,3 +1,5 @@
+import { bestTypeNameOf } from "./helpers.ts";
+
 /**
  * Concatenate arrays together, returning a single array containing the result.
  *
@@ -134,6 +136,45 @@ export async function* toByteLines(
 
     if (chunk.length > 0) {
       yield chunk;
+    }
+  }
+}
+
+const encoder = new TextEncoder();
+const lf = encoder.encode("\n");
+
+export async function* toBytes(
+  iter: AsyncIterable<string | Uint8Array | string[] | Uint8Array[]>,
+): AsyncIterable<Uint8Array> {
+  for await (const item of iter) {
+    if (item instanceof Uint8Array) {
+      yield item;
+    } else if (typeof item === "string") {
+      yield encoder.encode(item);
+    } else if (Array.isArray(item)) {
+      for (const piece of item) {
+        const lines: Uint8Array[] = [];
+        if (piece instanceof Uint8Array) {
+          lines.push(piece);
+          lines.push(lf);
+        } else if (typeof piece === "string") {
+          lines.push(encoder.encode(piece));
+          lines.push(lf);
+        } else {
+          throw new TypeError(
+            `runtime type error; expected array data of string|Uint8Array but got ${
+              bestTypeNameOf(piece)
+            }`,
+          );
+        }
+        yield concat(lines);
+      }
+    } else {
+      throw new TypeError(
+        `runtime type error; expected string|Uint8Array|Array[...] but got ${
+          bestTypeNameOf(item)
+        }`,
+      );
     }
   }
 }

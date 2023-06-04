@@ -9,12 +9,20 @@ import {
   map,
   reduce,
 } from "./deps/asynciter.ts";
+import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd, RunOptions } from "./run.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
+
+type Tuple<T, N extends number> = N extends N
+  ? number extends N ? T[] : TupleOf<T, N, []>
+  : never;
+type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
+  ? R
+  : TupleOf<T, N, [T, ...R]>;
 
 /**
  * Create a new runnable.
@@ -48,6 +56,10 @@ export class Runnable<T> implements AsyncIterable<T> {
     (async () => {
       try {
         for await (const it of iter) {
+          if (writer.closed) {
+            break;
+          }
+
           writer.write(it);
         }
         await writer.close();
@@ -112,11 +124,9 @@ export class Runnable<T> implements AsyncIterable<T> {
     concurrency?: number,
   ): Runnable<U> {
     const iterable = this.iter;
-    return new Runnable({
-      async *[Symbol.asyncIterator]() {
-        yield* concurrentMap(iterable, mapFn, concurrency);
-      },
-    }) as Runnable<U>;
+    return new Runnable(
+      concurrentMap(iterable, mapFn, concurrency),
+    ) as Runnable<U>;
   }
 
   /**
@@ -135,11 +145,9 @@ export class Runnable<T> implements AsyncIterable<T> {
     concurrency?: number,
   ): Runnable<U> {
     const iterable = this.iter;
-    return new Runnable({
-      async *[Symbol.asyncIterator]() {
-        yield* concurrentUnorderedMap(iterable, mapFn, concurrency);
-      },
-    }) as Runnable<U>;
+    return new Runnable(
+      concurrentUnorderedMap(iterable, mapFn, concurrency),
+    ) as Runnable<U>;
   }
 
   /**
@@ -151,11 +159,7 @@ export class Runnable<T> implements AsyncIterable<T> {
     filterFn: (item: T) => boolean | Promise<boolean>,
   ): Runnable<T> {
     const iterable = this.iter;
-    return new Runnable({
-      async *[Symbol.asyncIterator]() {
-        yield* filter(iterable, filterFn);
-      },
-    }) as Runnable<T>;
+    return new Runnable(filter(iterable, filterFn)) as Runnable<T>;
   }
 
   /**
@@ -222,5 +226,9 @@ export class Runnable<T> implements AsyncIterable<T> {
     this.writeTo(p.stdin as unknown as WritableIterable<T>);
 
     return new Runnable(p.stdout);
+  }
+
+  tee<N extends number = 2>(n?: N): Tuple<AsyncIterable<T>, N> {
+    return tee(this.iter, n);
   }
 }
