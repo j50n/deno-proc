@@ -210,7 +210,8 @@ export class Process implements Deno.Closer {
           }
         } catch (e) {
           if (
-            this._passthruError == null && !(e instanceof Deno.errors.BrokenPipe)
+            this._passthruError == null &&
+            !(e instanceof Deno.errors.BrokenPipe)
           ) {
             this._passthruError = e;
           }
