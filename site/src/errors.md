@@ -46,7 +46,7 @@ await runnable(file.readable)
   .forEach((line) => console.log(line));
 ```
 
-```graphviz
+```dot process
 digraph finite_state_machine {
     rankdir=LR;
     

@@ -7,4 +7,4 @@ title = "Proc for Deno"
 
 [preprocessor.graphviz]
 command = "mdbook-graphviz"
-output-to-file = true
+output-to-file = false
