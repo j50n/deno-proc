@@ -53,7 +53,9 @@ await runnable(file.readable)
   .flatten()
   .forEach((line) => console.log(line));
 ```
-Errors flow from process input to process output. `stderr` is redirected to process `stderr`.
+
+Errors flow from process input to process output. `stderr` is redirected to
+process `stderr`.
 
 ```dot process
 digraph finite_state_machine {

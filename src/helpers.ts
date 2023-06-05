@@ -1,9 +1,9 @@
-import { RunOptions } from "./run.ts";
+import { ProcessOptions } from "./command.ts";
 
-export function parseArgs(
+export function parseArgs<S>(
   cmd: unknown[],
-): { options: RunOptions; command: string | URL; args: string[] } {
-  let options: RunOptions = {};
+): { options: ProcessOptions<S>; command: string | URL; args: string[] } {
+  let options: ProcessOptions<S> = {};
   let command: string | URL = "";
   let args: string[] = [];
 
@@ -19,7 +19,7 @@ export function parseArgs(
     if (cmd.length === 1) {
       throw new RangeError("missing command");
     }
-    options = cmd[0] as RunOptions;
+    options = cmd[0] as ProcessOptions<S>;
     command = cmd[1] as string | URL;
     args = cmd.slice(2) as string[];
   }

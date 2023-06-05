@@ -3,13 +3,20 @@ import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
 
-/** Command options. */
-export interface ProcIterOptions {
+export interface ProcessOptions<T> {
   /** Current working directory. */
   readonly cwd?: string;
   /** Environment variables. */
   readonly env?: Record<string, string>;
 
+  /** Optionally process all lines of `stderr`. */
+  stderrHandler?: (it: AsyncIterator<string[]>) => Promise<T> | T;
+  /** Optionally override error handling. */
+  errorHandler?: (err: Error, stderr: T) => Promise<void> | void;
+}
+
+/** Command options. */
+export interface ProcessStreamOptions<T> extends ProcessOptions<T> {
   stdin?: PipeKinds;
   stdout?: PipeKinds;
   stderr?: PipeKinds;
@@ -60,10 +67,10 @@ export class SignalError extends ProcessError {
   }
 }
 
-export class Process implements Deno.Closer {
+export class Process<S> implements Deno.Closer {
   constructor(
     protected readonly process: Deno.ChildProcess,
-    public readonly options: ProcIterOptions,
+    public readonly options: ProcessStreamOptions<S>,
     public readonly cmd: string | URL,
     public readonly args: readonly string[],
   ) {}
@@ -225,11 +232,11 @@ export class Process implements Deno.Closer {
   }
 }
 
-export class Command {
+export class Command<S> {
   readonly args: readonly string[];
 
   constructor(
-    public readonly options: ProcIterOptions,
+    public readonly options: ProcessStreamOptions<S>,
     public readonly cmd: string | URL,
     ...args: string[]
   ) {

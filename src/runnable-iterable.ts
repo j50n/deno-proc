@@ -1,4 +1,4 @@
-import { Command } from "./command.ts";
+import { Command, ProcessOptions } from "./command.ts";
 import {
   collect,
   concurrentMap,
@@ -11,7 +11,7 @@ import {
 } from "./deps/asynciter.ts";
 import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
-import { Cmd, RunOptions } from "./run.ts";
+import { Cmd } from "./run.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
@@ -198,8 +198,8 @@ export class Runnable<T> implements AsyncIterable<T> {
    * @param options Options.
    * @returns A child process instance.
    */
-  run(
-    options: RunOptions,
+  run<S>(
+    options: ProcessOptions<S>,
     ...cmd: Cmd
   ): Runnable<Uint8Array>;
 
@@ -210,13 +210,13 @@ export class Runnable<T> implements AsyncIterable<T> {
    */
   run(...cmd: Cmd): Runnable<Uint8Array>;
 
-  run(
+  run<S>(
     ...cmd: unknown[]
   ): Runnable<Uint8Array> {
     const { options, command, args } = parseArgs(cmd);
 
     const c = new Command(
-      { ...options, stdout: "piped", stdin: "piped" },
+      { ...options as ProcessOptions<S>, stdout: "piped", stdin: "piped" },
       command,
       ...args,
     );
