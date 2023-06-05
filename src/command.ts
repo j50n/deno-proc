@@ -66,7 +66,7 @@ export abstract class ProcessError extends Error {
 export class StreamError extends ProcessError {
   constructor(
     public readonly message: string,
-    public readonly command: string,
+    public readonly command: string[],
     public readonly options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
@@ -77,9 +77,9 @@ export class StreamError extends ProcessError {
 export class ExitCodeError extends ProcessError {
   constructor(
     public readonly message: string,
-    public readonly command: string,
+    public readonly command: string[],
     public readonly code: number,
-    public readonly options: { cause?: Error },
+    public readonly options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
@@ -89,9 +89,9 @@ export class ExitCodeError extends ProcessError {
 export class SignalError extends ProcessError {
   constructor(
     public readonly message: string,
-    public readonly command: string,
+    public readonly command: string[],
     public readonly signal: Deno.Signal,
-    public readonly options: { cause?: Error },
+    public readonly options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
@@ -143,7 +143,7 @@ export class Process<S> implements Deno.Closer {
     return await this.process.status;
   }
 
-  get stderr() {
+  get stderr(): AsyncIterable<Uint8Array> {
     if (this.options.stderr !== "piped") {
       throw new Deno.errors.NotConnected("stderr only available when 'piped'");
     }
@@ -160,7 +160,7 @@ export class Process<S> implements Deno.Closer {
     return this._stderr;
   }
 
-  get stdout() {
+  get stdout(): AsyncIterable<Uint8Array> {
     if (this.options.stdout !== "piped") {
       throw new Deno.errors.NotConnected("stdout only available when 'piped'");
     }
@@ -168,16 +168,11 @@ export class Process<S> implements Deno.Closer {
     if (this._stdout == null) {
       const close = this.close.bind(this);
       const process = this.process;
-      const cmd = this.cmd;
+      const cmd = [this.cmd, ...this.args].map((it) => it.toString());
 
-      const passError = () =>
-        this._passError == null
-          ? undefined
-          : new StreamError(this._passError.message, this.cmd.toString(), {
-            cause: this._passError,
-          });
+      const passError = () => this._passError;
 
-      const handleError = async (e: Error) => {
+      const catchHandler = async (e: Error) => {
         const errorHandler = this.options.fnError;
 
         if (errorHandler != null) {
@@ -211,30 +206,33 @@ export class Process<S> implements Deno.Closer {
             yield* process.stdout;
 
             const status = await process.status;
+            const cause = passError();
 
             if (status.signal != null) {
               throw new SignalError(
                 `signal error: ${status.signal}`,
-                cmd.toString(),
+                cmd,
                 status.signal,
-                { cause: passError() as Error },
+                cause == null ? undefined : { cause },
               );
             } else if (status.code !== 0) {
               throw new ExitCodeError(
                 `exit code: ${status.code}`,
-                cmd.toString(),
+                cmd,
                 status.code,
-                { cause: passError() as Error },
+                cause == null ? undefined : { cause },
+              );
+            } else if (cause) {
+              throw new StreamError(
+                cause.message,
+                cmd,
+                cause == null ? undefined : { cause },
               );
             }
           } catch (e) {
-            await handleError(e);
+            await catchHandler(e);
           } finally {
             await close();
-          }
-          const pte = passError();
-          if (pte) {
-            await handleError(pte);
           }
         },
       };
