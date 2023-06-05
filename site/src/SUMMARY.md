@@ -1,2 +1,3 @@
 - [Introduction](./introduction.md)
 - [Using the Spread Operator in Run](./spread.md)
+- [The Zen of Errors](./errors.md)

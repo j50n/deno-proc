@@ -4,3 +4,7 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Proc for Deno"
+
+[preprocessor.graphviz]
+command = "mdbook-graphviz"
+output-to-file = false
