@@ -98,6 +98,10 @@ export class SignalError extends ProcessError {
   }
 }
 
+/**
+ * A wrapper for `Deno.ChildProcess` that converts streams to `AsyncIterable<...>`,
+ * corrects error handling, and adds other custom stuff.
+ */
 export class Process<S> implements Deno.Closer {
   private stderrResult: Promise<S> | undefined;
 
@@ -294,6 +298,9 @@ export class Process<S> implements Deno.Closer {
   }
 }
 
+/**
+ * A factory for [[Process]].
+ */
 export class Command<S> {
   readonly args: readonly string[];
 
