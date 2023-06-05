@@ -4,6 +4,14 @@ Error handling should just work. You should not have to check the exit code of
 every process. Errors that occur upstream should flow downstream. You should not
 have to manually `close` stuff.
 
+This stuff should not be so complicated.
+
+## TLDR
+
+For the most part, you should just be able to use `proc` as is, letting most
+errors bubble up, catching and handling errors when needed. Errors work the way
+you would expect them to.
+
 ## The Process Perspective
 
 If everything goes well, a process will read something from `stdin`, process it,
@@ -81,13 +89,15 @@ Assume there is an error in the data that causes `gunzip` to fail at some point.
 
 ### Scenario 1: A Data Error in the First 100 Lines
 
-_There is an error early in the compressed data._ `gunzip` will decompress data
-in chunks and write the result to `stdout` as it goes. When it reaches the
-error, it will exit with a non-zero `code`.
+_There is an error early in the compressed data._
 
-`proc` will check the `code` and throw an error. This will be propagated forward
-through the input of `head`, and then forward again through the input of `grep`
-as the output of each is exhausted.
+`gunzip` will decompress data in chunks and write the result to `stdout` as it
+goes. When it reaches the error, it will exit with a non-zero `code`.
+
+Once the (partial) output from `gunzip` has been fully read, `proc` will check
+the `code` and throw an error. This will be propagated forward through the input
+of `head`, and then forward again through the input of `grep` as the output of
+each is exhausted.
 
 Note that it is also possible that bad data in results in invalid data coming
 out, and since we process all the output data before we get the error, we might
@@ -95,9 +105,17 @@ see the data error first.
 
 ### Scenario 2: A Data Error After the First 100 Lines
 
-_There is an error later in the compressed data._ Once we get to line 100,
-`head` shuts down the stream. Even if `gunzip` is unlucky enough to process the
-error data, `head` is already done. The error won't propagate. Of course, if the
-error is _much_ later in the data, it will never even be read. Once `head` has
-found 100 lines, it shuts down its input, which in turn shuts down `gunzip`. The
-error never happens in the first place.
+_There is an error later in the compressed data._
+
+Once we get to line 100, `head` is done. It shuts down its input stream and
+exits normally. Even if `gunzip` is unlucky enough to process the error data,
+`head` is already done and success propagated forward. The error from `gunzip`
+won't be able to propagate. Of course, if the error is _much_ later in the data,
+it will never even be read. Once `head` has found 100 lines, it shuts down its
+input, which in turn shuts down `gunzip`. The error never happens in the first
+place.
+
+In other words, upstream processes may continue to function for a short time
+after the downstream processes have exited, assuming the downstream processes
+don't need to process input fully. In most cases this should not matter. If an
+upstream process has side effects, though, weird things could happen.

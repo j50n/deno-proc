@@ -262,6 +262,11 @@ run(...cmd);
 <p>Error handling should just work. You should not have to check the exit code of
 every process. Errors that occur upstream should flow downstream. You should not
 have to manually <code>close</code> stuff.</p>
+<p>This stuff should not be so complicated.</p>
+<h2 id="tldr"><a class="header" href="#tldr">TLDR</a></h2>
+<p>For the most part, you should just be able to use <code>proc</code> as is, letting most
+errors bubble up, catching and handling errors when needed. Errors work the way
+you would expect them to.</p>
 <h2 id="the-process-perspective"><a class="header" href="#the-process-perspective">The Process Perspective</a></h2>
 <p>If everything goes well, a process will read something from <code>stdin</code>, process it,
 and write something to <code>stdout</code>. This will continue until <code>stdin</code> is exhausted.
@@ -297,22 +302,29 @@ propagate through a process in order to preserve the stack traces.</p>
 lines.</p>
 <p>Assume there is an error in the data that causes <code>gunzip</code> to fail at some point.</p>
 <h3 id="scenario-1-a-data-error-in-the-first-100-lines"><a class="header" href="#scenario-1-a-data-error-in-the-first-100-lines">Scenario 1: A Data Error in the First 100 Lines</a></h3>
-<p><em>There is an error early in the compressed data.</em> <code>gunzip</code> will decompress data
-in chunks and write the result to <code>stdout</code> as it goes. When it reaches the
-error, it will exit with a non-zero <code>code</code>.</p>
-<p><code>proc</code> will check the <code>code</code> and throw an error. This will be propagated forward
-through the input of <code>head</code>, and then forward again through the input of <code>grep</code>
-as the output of each is exhausted.</p>
+<p><em>There is an error early in the compressed data.</em></p>
+<p><code>gunzip</code> will decompress data in chunks and write the result to <code>stdout</code> as it
+goes. When it reaches the error, it will exit with a non-zero <code>code</code>.</p>
+<p>Once the (partial) output from <code>gunzip</code> has been fully read, <code>proc</code> will check
+the <code>code</code> and throw an error. This will be propagated forward through the input
+of <code>head</code>, and then forward again through the input of <code>grep</code> as the output of
+each is exhausted.</p>
 <p>Note that it is also possible that bad data in results in invalid data coming
 out, and since we process all the output data before we get the error, we might
 see the data error first.</p>
 <h3 id="scenario-2-a-data-error-after-the-first-100-lines"><a class="header" href="#scenario-2-a-data-error-after-the-first-100-lines">Scenario 2: A Data Error After the First 100 Lines</a></h3>
-<p><em>There is an error later in the compressed data.</em> Once we get to line 100,
-<code>head</code> shuts down the stream. Even if <code>gunzip</code> is unlucky enough to process the
-error data, <code>head</code> is already done. The error won't propagate. Of course, if the
-error is <em>much</em> later in the data, it will never even be read. Once <code>head</code> has
-found 100 lines, it shuts down its input, which in turn shuts down <code>gunzip</code>. The
-error never happens in the first place.</p>
+<p><em>There is an error later in the compressed data.</em></p>
+<p>Once we get to line 100, <code>head</code> is done. It shuts down its input stream and
+exits normally. Even if <code>gunzip</code> is unlucky enough to process the error data,
+<code>head</code> is already done and success propagated forward. The error from <code>gunzip</code>
+won't be able to propagate. Of course, if the error is <em>much</em> later in the data,
+it will never even be read. Once <code>head</code> has found 100 lines, it shuts down its
+input, which in turn shuts down <code>gunzip</code>. The error never happens in the first
+place.</p>
+<p>In other words, upstream processes may continue to function for a short time
+after the downstream processes have exited, assuming the downstream processes
+don't need to process input fully. In most cases this should not matter. If an
+upstream process has side effects, though, weird things could happen.</p>
 
                     </main>
 
