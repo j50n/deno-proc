@@ -49,22 +49,23 @@ await runnable(file.readable)
 ```dot process
 digraph finite_state_machine {
     rankdir=LR;
+    splines=line;
     
     subgraph cluster_shell {
         style = filled;
         color = lightgrey;
 
         node [shape = rectangle, label="gunzip"]; A;
-        node [shape = rectangle, label="head"]; B;
-        node [shape = rectangle, label="grep"]; C;
+        node [shape = rectangle, label="grep"]; B;
+        node [shape = rectangle, label="head"]; C;
     }
     node [shape = doublecircle ]; in;
     node [shape = doublecircle]; err;
     node [shape = doublecircle ]; out;
 
-    A:s -> err:w [color = red];
-    B:s -> err:w [color = red];
-    C:s -> err:w [color = red];
+    A:s -> err [color = red];
+    B:s -> err [color = red];
+    C:s -> err [color = red];
 
     in -> A;
     A -> B;
