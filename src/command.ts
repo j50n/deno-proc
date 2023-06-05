@@ -172,7 +172,7 @@ export class Process<S> implements Deno.Closer {
 
       const passError = () => this._passError;
 
-      const catchHandler = async (e: Error) => {
+      const catchHandler = async (error: Error) => {
         const errorHandler = this.options.fnError;
 
         if (errorHandler != null) {
@@ -189,14 +189,14 @@ export class Process<S> implements Deno.Closer {
 
           try {
             errorHandler({
-              error: e,
+              error,
               stderrData,
             });
-          } catch (e) {
-            throw e;
+          } catch (handledError) {
+            throw handledError;
           }
         } else {
-          throw e;
+          throw error;
         }
       };
 
