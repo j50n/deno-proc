@@ -29,7 +29,11 @@ export function run<S>(
   const { options, command, args } = parseArgs<S>(cmd);
 
   const c = new Command(
-    { ...options, stdout: "piped" },
+    {
+      ...options,
+      stdout: "piped",
+      stderr: options.fnStderr == null ? "inherit" : "piped",
+    },
     command,
     ...args,
   );

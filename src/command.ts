@@ -1,18 +1,49 @@
-import { toBytes } from "./utility.ts";
+import { toBytes, toLines } from "./utility.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
 
-export interface ProcessOptions<T> {
+/**
+ * Options for an `ErrorHandler` function.
+ */
+export interface ErrorHandlerOptions<S> {
+  /** The error that is about to be thrown. */
+  error: Error;
+  /** Data returned from the `stderr` handler.  */
+  stderrData?: S;
+}
+
+/**
+ * Optionally change or suppress the error before it is thrown.
+ *
+ * This is a chance to combine data scraped from `stderr` with the thrown error.
+ * You can pass any type of data you want between handlers since you control both ends.
+ *
+ * Throw the error you want to be thrown from the process. If you want to suppress
+ * the error, just don't throw an error and return normally.
+ */
+export type ErrorHandler<S> = (options: ErrorHandlerOptions<S>) => void;
+
+/**
+ * Optionally handle lines of stderr (passed as arrays of lines as available) and optionally return
+ * a value that is passed to your custom `ErrorHandler`. This function may not throw an
+ * error.
+ */
+export type StderrHandler<S> = (it: AsyncIterable<string[]>) => Promise<S>;
+
+/**
+ * Options passed to a process.
+ */
+export interface ProcessOptions<S> {
   /** Current working directory. */
   readonly cwd?: string;
   /** Environment variables. */
   readonly env?: Record<string, string>;
 
   /** Optionally process all lines of `stderr`. */
-  stderrHandler?: (it: AsyncIterator<string[]>) => Promise<T> | T;
+  fnStderr?: StderrHandler<S>;
   /** Optionally override error handling. */
-  errorHandler?: (err: Error, stderr: T) => Promise<void> | void;
+  fnError?: ErrorHandler<S>;
 }
 
 /** Command options. */
@@ -68,12 +99,18 @@ export class SignalError extends ProcessError {
 }
 
 export class Process<S> implements Deno.Closer {
+  private stderrResult: Promise<S> | undefined;
+
   constructor(
     protected readonly process: Deno.ChildProcess,
     public readonly options: ProcessStreamOptions<S>,
     public readonly cmd: string | URL,
     public readonly args: readonly string[],
-  ) {}
+  ) {
+    if (options.fnStderr != null) {
+      this.stderrResult = options.fnStderr(toLines(process.stderr));
+    }
+  }
 
   private _stderr: AsyncIterable<Uint8Array> | undefined;
   private _stdout: AsyncIterable<Uint8Array> | undefined;
@@ -82,7 +119,7 @@ export class Process<S> implements Deno.Closer {
     | undefined;
 
   private _isClosed = false;
-  private _passthruError: Error | undefined;
+  private _passError: Error | undefined;
 
   get isClosed(): boolean {
     return this._isClosed;
@@ -116,12 +153,7 @@ export class Process<S> implements Deno.Closer {
 
       this._stderr = {
         async *[Symbol.asyncIterator]() {
-          try {
-            yield* process.stderr;
-          } catch (e) {
-            //TODO: stderr needs some TLC
-            console.dir("[STDERR]", e);
-          }
+          yield* process.stderr;
         },
       };
     }
@@ -139,11 +171,39 @@ export class Process<S> implements Deno.Closer {
       const cmd = this.cmd;
 
       const passError = () =>
-        this._passthruError == null
+        this._passError == null
           ? undefined
-          : new StreamError(this._passthruError.message, this.cmd.toString(), {
-            cause: this._passthruError,
+          : new StreamError(this._passError.message, this.cmd.toString(), {
+            cause: this._passError,
           });
+
+      const handleError = async (e: Error) => {
+        const errorHandler = this.options.fnError;
+
+        if (errorHandler != null) {
+          const stderrResult = async () => {
+            if (this.stderrResult == null) {
+              return {};
+            } else {
+              const stderrData: S = await this.stderrResult;
+              return { stderrData };
+            }
+          };
+
+          const { stderrData } = await stderrResult();
+
+          try {
+            errorHandler({
+              error: e,
+              stderrData,
+            });
+          } catch (e) {
+            throw e;
+          }
+        } else {
+          throw e;
+        }
+      };
 
       this._stdout = {
         async *[Symbol.asyncIterator]() {
@@ -157,24 +217,24 @@ export class Process<S> implements Deno.Closer {
                 `signal error: ${status.signal}`,
                 cmd.toString(),
                 status.signal,
-                { cause: passError() },
+                { cause: passError() as Error },
               );
             } else if (status.code !== 0) {
               throw new ExitCodeError(
                 `exit code: ${status.code}`,
                 cmd.toString(),
                 status.code,
-                { cause: passError() },
+                { cause: passError() as Error },
               );
             }
           } catch (e) {
-            throw e;
+            await handleError(e);
           } finally {
             await close();
           }
           const pte = passError();
           if (pte) {
-            throw pte;
+            await handleError(pte);
           }
         },
       };
@@ -183,6 +243,10 @@ export class Process<S> implements Deno.Closer {
   }
 
   get stdin(): WritableIterable<Uint8Array | Uint8Array[] | string | string[]> {
+    if (this.options.stdin !== "piped") {
+      throw new Deno.errors.NotConnected("stdin only available when 'piped'");
+    }
+
     if (this._stdin == null) {
       const writer = this.process.stdin.getWriter();
 
@@ -194,8 +258,8 @@ export class Process<S> implements Deno.Closer {
             await writer.close();
           } catch (e) {
             if (!(e instanceof TypeError)) {
-              if (this._passthruError == null) {
-                this._passthruError = e;
+              if (this._passError == null) {
+                this._passError = e;
               }
             }
           }
@@ -217,10 +281,10 @@ export class Process<S> implements Deno.Closer {
           }
         } catch (e) {
           if (
-            this._passthruError == null &&
+            this._passError == null &&
             !(e instanceof Deno.errors.BrokenPipe)
           ) {
-            this._passthruError = e;
+            this._passError = e;
           }
         } finally {
           await closeWriter();

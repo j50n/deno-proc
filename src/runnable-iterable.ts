@@ -216,7 +216,12 @@ export class Runnable<T> implements AsyncIterable<T> {
     const { options, command, args } = parseArgs(cmd);
 
     const c = new Command(
-      { ...options as ProcessOptions<S>, stdout: "piped", stdin: "piped" },
+      {
+        ...options as ProcessOptions<S>,
+        stdout: "piped",
+        stdin: "piped",
+        stderr: options.fnStderr == null ? "inherit" : "piped",
+      },
       command,
       ...args,
     );
