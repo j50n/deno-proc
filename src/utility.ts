@@ -144,6 +144,20 @@ export async function* toByteLines(
 const encoder = new TextEncoder();
 const lf = encoder.encode("\n");
 
+/**
+ * Converts specific types to `Uint8Array` chunks.
+ *
+ * - `string` is converted to `utf-8`, concatenating a trailing `lf`
+ * - `string[]` each item in the array is converted to `utf-8`, adding a trailing `lf`,
+ *   all concatenated to a single `Uint8Array`
+ * - `Uint8Array` is passed on unchanged
+ * - `Uint8Array[]` is concatenated to a single `Uint8Array`
+ *
+ * Strings are always treated as lines, and we add a trailing `lf` character. Data in
+ * byte form is always treated strictly as binary data.
+ *
+ * @param iter
+ */
 export async function* toBytes(
   iter: AsyncIterable<string | Uint8Array | string[] | Uint8Array[]>,
 ): AsyncIterable<Uint8Array> {
@@ -151,13 +165,12 @@ export async function* toBytes(
     if (item instanceof Uint8Array) {
       yield item;
     } else if (typeof item === "string") {
-      yield encoder.encode(item);
+      yield concat([encoder.encode(item), lf]);
     } else if (Array.isArray(item)) {
       for (const piece of item) {
         const lines: Uint8Array[] = [];
         if (piece instanceof Uint8Array) {
           lines.push(piece);
-          lines.push(lf);
         } else if (typeof piece === "string") {
           lines.push(encoder.encode(piece));
           lines.push(lf);
