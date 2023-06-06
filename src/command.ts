@@ -4,30 +4,24 @@ import { WritableIterable } from "./writable-iterable.ts";
 export type PipeKinds = "piped" | "inherit" | "null";
 
 /**
- * Options for an `ErrorHandler` function.
- */
-export interface ErrorHandlerOptions<S> {
-  /** The error that is about to be thrown. */
-  error: Error;
-  /** Data returned from the `stderr` handler.  */
-  stderrData?: S;
-}
-
-/**
- * Optionally change or suppress the error before it is thrown.
+ * Optionally change or suppress the error before it is thrown. Note that this will only
+ * be called if either one or both of `error` and `stderrData` is defined (non-`null`).
  *
- * This is a chance to combine data scraped from `stderr` with the thrown error.
- * You can pass any type of data you want between handlers since you control both ends.
+ * This is a chance to throw a custom error or to suppress throwing an error.
+ * You can pass any type of data from the `stderr` handler to the error handler
+ * since you own both functions.
  *
  * Throw the error you want to be thrown from the process. If you want to suppress
- * the error, just don't throw an error and return normally.
+ * the error, just don't throw an error and return normally. It is good practice to
+ * set the error `cause` when wrapping a thrown error.
  */
-export type ErrorHandler<S> = (options: ErrorHandlerOptions<S>) => void;
+export type ErrorHandler<S> = (error?: Error, stderrData?: S) => void;
 
 /**
- * Optionally handle lines of stderr (passed as arrays of lines as available) and optionally return
- * a value that is passed to your custom `ErrorHandler`. This function may not throw an
- * error.
+ * Optionally handle lines of stderr (passed as arrays of lines as available), and also
+ * optionally return a value that is passed to your custom `ErrorHandler`. **This function
+ * may not throw an error**. If you wish to throw an error based on `stderr` data, the
+ * `ErrorHandler` function is where you do that.
  */
 export type StderrHandler<S> = (it: AsyncIterable<string[]>) => Promise<S>;
 
@@ -176,7 +170,7 @@ export class Process<S> implements Deno.Closer {
 
       const passError = () => this._passError;
 
-      const catchHandler = async (error: Error) => {
+      const catchHandler = async (error?: Error) => {
         const errorHandler = this.options.fnError;
 
         if (errorHandler != null) {
@@ -191,50 +185,58 @@ export class Process<S> implements Deno.Closer {
 
           const { stderrData } = await stderrResult();
 
-          try {
-            errorHandler({
-              error,
-              stderrData,
-            });
-          } catch (handledError) {
-            throw handledError;
+          if (error != null || stderrData != null) {
+            try {
+              errorHandler(
+                error,
+                stderrData,
+              );
+            } catch (handledError) {
+              throw handledError;
+            }
           }
         } else {
-          throw error;
+          if (error != null) {
+            throw error;
+          }
         }
       };
 
       this._stdout = {
         async *[Symbol.asyncIterator]() {
           try {
-            yield* process.stdout;
+            let error: Error | undefined;
+            try {
+              yield* process.stdout;
 
-            const status = await process.status;
-            const cause = passError();
+              const status = await process.status;
+              const cause = passError();
 
-            if (status.signal != null) {
-              throw new SignalError(
-                `signal error: ${status.signal}`,
-                cmd,
-                status.signal,
-                cause == null ? undefined : { cause },
-              );
-            } else if (status.code !== 0) {
-              throw new ExitCodeError(
-                `exit code: ${status.code}`,
-                cmd,
-                status.code,
-                cause == null ? undefined : { cause },
-              );
-            } else if (cause) {
-              throw new StreamError(
-                cause.message,
-                cmd,
-                cause == null ? undefined : { cause },
-              );
+              if (status.signal != null) {
+                throw new SignalError(
+                  `signal error: ${status.signal}`,
+                  cmd,
+                  status.signal,
+                  cause == null ? undefined : { cause },
+                );
+              } else if (status.code !== 0) {
+                throw new ExitCodeError(
+                  `exit code: ${status.code}`,
+                  cmd,
+                  status.code,
+                  cause == null ? undefined : { cause },
+                );
+              } else if (cause) {
+                throw new StreamError(
+                  cause.message,
+                  cmd,
+                  cause == null ? undefined : { cause },
+                );
+              }
+            } catch (e) {
+              error = e;
             }
-          } catch (e) {
-            await catchHandler(e);
+            await catchHandler(error);
           } finally {
             await close();
           }

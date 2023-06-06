@@ -1,3 +1,6 @@
 #!/bin/bash
 
-deno test --allow-read --allow-run `find ./tests/ -name '*.test.ts'`
+cd ./tests/ && (
+    deno fmt
+    deno test --allow-read --allow-run `find ./runnable/ -name '*.test.ts'`
+)

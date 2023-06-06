@@ -1,27 +1,5 @@
 import { Command, ExitCodeError, toLines } from "../../mod3.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
-import { blue } from "../deps/colors.ts";
-
-Deno.test({
-  name: "I can 'ls' a folder.",
-
-  async fn() {
-    const process = new Command({ stdout: "piped" }, "ls", "-la")
-      .spawn();
-
-    try {
-      for await (
-        const lines of toLines(process.stdout)
-      ) {
-        for (const line of lines) {
-          console.log(blue(line.toLocaleLowerCase()));
-        }
-      }
-    } finally {
-      await process.close();
-    }
-  },
-});
 
 Deno.test({
   name: "All data output before the exit is captured.",
