@@ -1,3 +1,4 @@
+import { Enumerable, enumerate } from "./enumerable.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 
 /**
@@ -177,4 +178,65 @@ export async function* toBytes(
       );
     }
   }
+}
+
+interface GenericRangeOptions<F extends number = 0, S extends number = 1> {
+  from?: F;
+  step?: S;
+}
+interface RangeWithToOptions<F extends number = 0, S extends number = 1>
+  extends GenericRangeOptions<F, S> {
+  to: number;
+}
+interface RangeWithUntilOptions<F extends number = 1, S extends number = 1>
+  extends GenericRangeOptions<F, S> {
+  until: number;
+}
+type Range<F extends number = 0 | 1, S extends number = 1> =
+  | RangeWithToOptions<F, S>
+  | RangeWithUntilOptions<F, S>;
+
+/**
+ * Lazily produce a range of numbers.
+ *
+ * There are two forms:
+ * - _from/to/step_: default 0 based, `to` is exclusive, and
+ * - _from/until/step_: default 1 based, `until` is inclusive.
+ *
+ * @param options Range options.
+ */
+export function range<F extends number = 0, S extends number = 1>(
+  options: Range<F, S>,
+): Enumerable<number> {
+  async function* doRange(): AsyncIterable<number> {
+    const s = options.step ?? 1;
+    if ("to" in options) {
+      const f = options.from ?? 0;
+      const t = options.to;
+
+      if (s > 0) {
+        for (let i = f; i < t; i += s) {
+          yield i;
+        }
+      } else {
+        for (let i = f; i >= t; i += s) {
+          yield i;
+        }
+      }
+    } else {
+      const f = options.from ?? 1;
+      const u = options.until;
+
+      if (s > 0) {
+        for (let i = f; i <= u; i += s) {
+          yield i;
+        }
+      } else {
+        for (let i = f; i > u; i += s) {
+          yield i;
+        }
+      }
+    }
+  }
+  return enumerate(doRange());
 }

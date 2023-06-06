@@ -241,7 +241,78 @@ export class Enumerable<T> implements AsyncIterable<T> {
     return new Enumerable(p.stdout);
   }
 
-  tee<N extends number = 2>(n?: N): Tuple<AsyncIterable<T>, N> {
-    return tee(this.iter, n);
+  tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
+    return tee(this.iter, n).map((it) => enumerate(it)) as Tuple<
+      Enumerable<T>,
+      N
+    >;
+  }
+
+  /**
+   * Take the first `n` items.
+   * @param n The number of items to take.
+   * @returns The first `n` items.
+   */
+  take<N extends number = 1>(n?: N): Enumerable<T> {
+    const iter = this.iter;
+
+    return enumerate(
+      {
+        async *[Symbol.asyncIterator]() {
+          let count = 0;
+          const goal = n ?? 1;
+          for await (const item of iter) {
+            if (count < goal) {
+              yield item;
+            } else {
+              break;
+            }
+            count += 1;
+          }
+        },
+      },
+    ) as Enumerable<T>;
+  }
+
+  /**
+   * Drop the first `n` items, return the rest.
+   * @param n The number of items to drop.
+   * @returns The items that were not dropped.
+   */
+  drop<N extends number = 1>(n?: N): Enumerable<T> {
+    const iter = this.iter;
+
+    return enumerate(
+      {
+        async *[Symbol.asyncIterator]() {
+          let count = 0;
+          const goal = n ?? 1;
+          for await (const item of iter) {
+            if (count >= goal) {
+              yield item;
+            }
+            count += 1;
+          }
+        },
+      },
+    ) as Enumerable<T>;
+  }
+
+  /**
+   * Drop the first `n` items, return the rest.
+   * @param n The number of items to drop.
+   * @returns The items that were not dropped.
+   */
+  concat(other: AsyncIterable<T>): Enumerable<T> {
+    const iter = this.iter;
+
+    return enumerate(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield* iter;
+          yield* other;
+        },
+      },
+    ) as Enumerable<T>;
   }
 }
