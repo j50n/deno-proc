@@ -24,13 +24,19 @@ type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
   ? R
   : TupleOf<T, N, [T, ...R]>;
 
+async function* asAsyncIterable<T>(
+  iter: AsyncIterable<T> | Iterable<T>,
+): AsyncIterable<T> {
+  yield* iter;
+}
+
 /**
  * Create a new runnable.
  * @param iter The wrapped iterator.
  * @returns A new runnable.
  */
-export function runnable<T>(iter: AsyncIterable<T>): Runnable<T> {
-  return new Runnable(iter);
+export function runnable<T>(iter: AsyncIterable<T> | Iterable<T>): Runnable<T> {
+  return new Runnable(asAsyncIterable(iter));
 }
 
 export class Runnable<T> implements AsyncIterable<T> {

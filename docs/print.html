@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">2.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">2.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformations</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -327,6 +327,29 @@ place.</p>
 after the downstream processes have exited, assuming the downstream processes
 don't need to process input fully. In most cases this should not matter. If an
 upstream process has side effects, though, weird things could happen.</p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
+<p>A transformer is just a function with this signature:</p>
+<pre><code class="language-typescript">((it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;);
+</code></pre>
+<p>A transformer transforms objects from one type to another. The chief difference between
+this and a <code>map</code> operation is that you control the whole transformation, so you
+can catch and throw errors emanating from the iteration and manage state.</p>
+<p>You can easily create a transformer using an asynchronous generator. This one
+will transform strings to lower-case:</p>
+<pre><code class="language-typescript">async function* toLower(texts: AsyncIterable&lt;string&gt;) {
+  for await (const text of texts) {
+    yield text.toLocaleLowerCase();
+  }
+}
+</code></pre>
+<p>Here is an example:</p>
+<pre><code class="language-typescript">const lowered = await runnable([&quot;A&quot;, &quot;B&quot;, &quot;C&quot;])
+    .transform(toLower)
+    .collect();
+
+assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
+</code></pre>
+<p>The <code>transform</code> operation is analogous to <code>pipeThrough</code> in the streaming API. </p>
 
                     </main>
 
