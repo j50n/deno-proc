@@ -1,5 +1,5 @@
 import { ExitCodeError, run, runnable, toLines } from "../../mod3.ts";
-import { assertEquals } from "../deps/asserts.ts";
+import { assert, assertEquals, fail } from "../deps/asserts.ts";
 import { gray } from "../deps/colors.ts";
 
 Deno.test({
@@ -53,23 +53,27 @@ export class TestError extends Error {
 Deno.test({
   name: "I can throw custom errors using data from stderr.",
   async fn() {
-    const result = await run(
-      {
-        fnStderr: async (input: AsyncIterable<string[]>): Promise<string[]> => {
-          /* This supresses print of the stderr data. */
-          return await runnable(input).flatten().collect();
+    const result: string[] = [];
+    try {
+      const output = run(
+        {
+          fnStderr: async (
+            input: AsyncIterable<string[]>,
+          ): Promise<string[]> => {
+            /* This supresses print of the stderr data. */
+            return await runnable(input).flatten().collect();
+          },
+          fnError: (error?: Error, stderrData?: string[]) => {
+            if (error != null && error instanceof ExitCodeError) {
+              throw new TestError("Something went wrong.", stderrData!, {
+                cause: error,
+              });
+            }
+          },
         },
-        fnError: (error?: Error, stderrData?: string[]) => {
-          if (error != null && error instanceof ExitCodeError) {
-            throw new TestError("Something went wrong.", stderrData!, {
-              cause: error,
-            });
-          }
-        },
-      },
-      "bash",
-      "-c",
-      `
+        "bash",
+        "-c",
+        `
         set -e
 
         echo "excelsior" 1>&2
@@ -80,12 +84,32 @@ Deno.test({
 
         exit 7
      `,
-    )
-      .transform(toLines)
-      .flatten()
-      .collect();
+      )
+        .transform(toLines)
+        .flatten();
 
-    //assertEquals(stderr, ["excelsior"], "I can get lines from stderr.");
+      for await (const line of output) {
+        result.push(line);
+      }
+
+      fail("The iterable should error out and never reach this line.");
+    } catch (e) {
+      assert(e instanceof TestError, "I should see the error I threw.");
+      assert(
+        e.message === "Something went wrong.",
+        "It's the right error message.",
+      );
+      assertEquals(
+        e.data,
+        ["excelsior"],
+        "I captured the data from stderr to the error.",
+      );
+      assert(
+        e.cause instanceof ExitCodeError,
+        "The cause is passed along too.",
+      );
+    }
+
     assertEquals(result, ["A", "B", "C"], "I can get lines from a process.");
   },
 });
