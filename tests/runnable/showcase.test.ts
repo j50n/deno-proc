@@ -1,4 +1,4 @@
-import { runnable, toLines } from "../../mod3.ts";
+import { enumerate, toLines } from "../../mod3.ts";
 import { assertEquals } from "../deps/asserts.ts";
 import { fromFileUrl } from "../deps/path.ts";
 
@@ -9,7 +9,7 @@ Deno.test({
       fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
     );
 
-    const output = await runnable(file.readable)
+    const output = await enumerate(file.readable)
       .run("gunzip")
       .run("grep", "-oE", "(\\w|')+")
       .run("tr", "[:upper:]", "[:lower:]")

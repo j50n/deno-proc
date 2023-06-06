@@ -31,15 +31,17 @@ async function* asAsyncIterable<T>(
 }
 
 /**
- * Create a new runnable.
+ * Wrap in an `Enumerable`.
  * @param iter The wrapped iterator.
  * @returns A new runnable.
  */
-export function runnable<T>(iter: AsyncIterable<T> | Iterable<T>): Runnable<T> {
-  return new Runnable(asAsyncIterable(iter));
+export function enumerate<T>(
+  iter: AsyncIterable<T> | Iterable<T>,
+): Enumerable<T> {
+  return new Enumerable(asAsyncIterable(iter));
 }
 
-export class Runnable<T> implements AsyncIterable<T> {
+export class Enumerable<T> implements AsyncIterable<T> {
   constructor(protected iter: AsyncIterable<T>) {
   }
 
@@ -83,8 +85,8 @@ export class Runnable<T> implements AsyncIterable<T> {
    */
   transform<U>(
     fn: (it: AsyncIterable<T>) => AsyncIterable<U>,
-  ): Runnable<U> {
-    return new Runnable(fn(this.iter));
+  ): Enumerable<U> {
+    return new Enumerable(fn(this.iter));
   }
 
   /**
@@ -92,22 +94,22 @@ export class Runnable<T> implements AsyncIterable<T> {
    * @param mapFn The mapping function.
    * @returns An iterable of mapped values.
    */
-  map<U>(mapFn: (item: T) => U | Promise<U>): Runnable<U> {
+  map<U>(mapFn: (item: T) => U | Promise<U>): Enumerable<U> {
     const iter = this.iter;
-    return new Runnable({
+    return new Enumerable({
       async *[Symbol.asyncIterator]() {
         yield* map(iter, mapFn);
       },
-    }) as Runnable<U>;
+    }) as Enumerable<U>;
   }
 
   /**
    * Flatten the iterable.
    * @returns An iterator where a level of indirection has been removed.
    */
-  public flatten(): Runnable<ElementType<T>> {
+  public flatten(): Enumerable<ElementType<T>> {
     const iterable = this.iter;
-    return new Runnable(
+    return new Enumerable(
       flatten(
         iterable as AsyncIterable<
           AsyncIterable<ElementType<T>> | Iterable<ElementType<T>>
@@ -128,11 +130,11 @@ export class Runnable<T> implements AsyncIterable<T> {
   concurrentMap<U>(
     mapFn: (item: T) => Promise<U>,
     concurrency?: number,
-  ): Runnable<U> {
+  ): Enumerable<U> {
     const iterable = this.iter;
-    return new Runnable(
+    return new Enumerable(
       concurrentMap(iterable, mapFn, concurrency),
-    ) as Runnable<U>;
+    ) as Enumerable<U>;
   }
 
   /**
@@ -149,11 +151,11 @@ export class Runnable<T> implements AsyncIterable<T> {
   concurrentUnorderedMap<U>(
     mapFn: (item: T) => Promise<U>,
     concurrency?: number,
-  ): Runnable<U> {
+  ): Enumerable<U> {
     const iterable = this.iter;
-    return new Runnable(
+    return new Enumerable(
       concurrentUnorderedMap(iterable, mapFn, concurrency),
-    ) as Runnable<U>;
+    ) as Enumerable<U>;
   }
 
   /**
@@ -163,9 +165,9 @@ export class Runnable<T> implements AsyncIterable<T> {
    */
   filter(
     filterFn: (item: T) => boolean | Promise<boolean>,
-  ): Runnable<T> {
+  ): Enumerable<T> {
     const iterable = this.iter;
-    return new Runnable(filter(iterable, filterFn)) as Runnable<T>;
+    return new Enumerable(filter(iterable, filterFn)) as Enumerable<T>;
   }
 
   /**
@@ -207,18 +209,18 @@ export class Runnable<T> implements AsyncIterable<T> {
   run<S>(
     options: ProcessOptions<S>,
     ...cmd: Cmd
-  ): Runnable<Uint8Array>;
+  ): Enumerable<Uint8Array>;
 
   /**
    * Run a process.
    * @param cmd The command.
    * @returns A child process instance.
    */
-  run(...cmd: Cmd): Runnable<Uint8Array>;
+  run(...cmd: Cmd): Enumerable<Uint8Array>;
 
   run<S>(
     ...cmd: unknown[]
-  ): Runnable<Uint8Array> {
+  ): Enumerable<Uint8Array> {
     const { options, command, args } = parseArgs(cmd);
 
     const c = new Command(
@@ -236,7 +238,7 @@ export class Runnable<T> implements AsyncIterable<T> {
 
     this.writeTo(p.stdin as unknown as WritableIterable<T>);
 
-    return new Runnable(p.stdout);
+    return new Enumerable(p.stdout);
   }
 
   tee<N extends number = 2>(n?: N): Tuple<AsyncIterable<T>, N> {

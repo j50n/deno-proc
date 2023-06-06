@@ -41,7 +41,7 @@
  */
 
 import { sleep } from "../legacy/runners/utility.ts";
-import { runnable, toLines } from "../mod3.ts";
+import { enumerate, toLines } from "../mod3.ts";
 import { colors, path } from "./deps.ts";
 
 const file = await Deno.open(
@@ -96,7 +96,7 @@ let count = 0;
 
 OUTER:
 for await (
-  const lines of runnable(file.readable)
+  const lines of enumerate(file.readable)
     .run("gunzip").transform(test("A gunzip"))
     .filter((line) =>
       /* Every other line is whitespace. Boring. */

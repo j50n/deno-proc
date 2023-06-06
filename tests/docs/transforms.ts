@@ -1,4 +1,4 @@
-import { runnable } from "../../mod3.ts";
+import { enumerate } from "../../mod3.ts";
 import { assertEquals } from "../deps/asserts.ts";
 
 async function* toLower(texts: AsyncIterable<string>) {
@@ -10,7 +10,7 @@ async function* toLower(texts: AsyncIterable<string>) {
 Deno.test({
   name: "I can transform text to lower-case using a custom transformer.",
   async fn() {
-    const lowered = await runnable(["A", "B", "C"])
+    const lowered = await enumerate(["A", "B", "C"])
       .transform(toLower)
       .collect();
 

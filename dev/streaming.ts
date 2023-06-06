@@ -10,14 +10,14 @@
  * was playing. Another addition to my bag of tricks.
  */
 
-import { runnable, toLines } from "../mod3.ts";
+import { enumerate, toLines } from "../mod3.ts";
 import { path } from "./deps.ts";
 
 const file = await Deno.open(
   path.fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
 );
 
-await runnable(file.readable)
+await enumerate(file.readable)
   .run("gunzip")
   .run("grep", "-v", "^$")
   .run("head")

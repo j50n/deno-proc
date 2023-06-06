@@ -1,4 +1,4 @@
-import { ExitCodeError, run, runnable, toLines } from "../../mod3.ts";
+import { enumerate, ExitCodeError, run, toLines } from "../../mod3.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 import { gray } from "../deps/colors.ts";
 
@@ -61,7 +61,7 @@ Deno.test({
             input: AsyncIterable<string[]>,
           ): Promise<string[]> => {
             /* This supresses print of the stderr data. */
-            return await runnable(input).flatten().collect();
+            return await enumerate(input).flatten().collect();
           },
           fnError: (error?: Error, stderrData?: string[]) => {
             if (error != null && error instanceof ExitCodeError) {

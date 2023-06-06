@@ -24,7 +24,7 @@ async function* toLower(texts: AsyncIterable<string>) {
 Here is an example:
 
 ```typescript
-const lowered = await runnable(["A", "B", "C"])
+const lowered = await enumerable(["A", "B", "C"])
   .transform(toLower)
   .collect();
 

@@ -45,7 +45,7 @@ cat ./warandpeace.txt.gz | grep -v '^$' | head -n 100
 In `Typescript`:
 
 ```typescript
-await runnable(file.readable)
+await enumerable(file.readable)
   .run("gunzip")
   .run("grep", "-v", "^$")
   .run("head", "-n", "100")
