@@ -1,4 +1,3 @@
-import { enumerate } from "./enumerable.ts";
 import { buffer, toBytes, toChunkedLines } from "./utility.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
@@ -139,7 +138,7 @@ export class Process<S> implements Deno.Closer {
       this._isClosed = true;
 
       if (this._stdin != null) {
-        await this.stdin.close();
+        await this._stdin.close();
       }
     }
   }
@@ -257,63 +256,74 @@ export class Process<S> implements Deno.Closer {
     return this._stdout;
   }
 
+  /**
+   * `stdin` as a {@link WritableIterable}.
+   */
   get stdin(): WritableIterable<Uint8Array | Uint8Array[] | string | string[]> {
+    if (this._stdin == null) {
+      const pi = new WritableIterable<
+        Uint8Array | Uint8Array[] | string | string[]
+      >();
+      this.writeToStdin(pi);
+      this._stdin = pi;
+    }
+    return this._stdin;
+  }
+
+  /**
+   * This is the "backdoor" way to write directly to the underlying process `stdin`
+   * without the overhead of a {@link WritableIterable}. This replaces using `this.stdin`
+   * entirely.
+   *
+   * @param iter The data being passed to the underlying process `stdin`.
+   */
+  writeToStdin(
+    iter: AsyncIterable<Uint8Array | Uint8Array[] | string | string[]>,
+  ) {
     if (this.options.stdin !== "piped") {
       throw new Deno.errors.NotConnected("stdin only available when 'piped'");
     }
 
     const bufferInput = this.options.buffer === true;
 
-    if (this._stdin == null) {
-      const writer = this.process.stdin.getWriter();
+    const writer = this.process.stdin.getWriter();
 
-      let writerIsClosed = false;
-      const closeWriter = async () => {
-        if (!writerIsClosed) {
-          writerIsClosed = true;
-          try {
-            await writer.close();
-          } catch (e) {
-            if (!(e instanceof TypeError)) {
-              if (this._passError == null) {
-                this._passError = e;
-              }
-            }
-          }
-        }
-      };
-
-      const pi = new WritableIterable<
-        Uint8Array | Uint8Array[] | string | string[]
-      >();
-
-      (async () => {
+    let writerIsClosed = false;
+    const closeWriter = async () => {
+      if (!writerIsClosed) {
+        writerIsClosed = true;
         try {
-          for await (
-            const it of enumerate(pi)
-              .transform(toBytes)
-              .transform(buffer(bufferInput ? 16384 : 0))
-          ) {
-            if (writerIsClosed) {
-              break;
-            }
-
-            await writer.write(it);
-          }
+          await writer.close();
         } catch (e) {
-          if (
-            this._passError == null &&
-            !(e instanceof Deno.errors.BrokenPipe)
-          ) {
-            this._passError = e;
+          if (!(e instanceof TypeError)) {
+            if (this._passError == null) {
+              this._passError = e;
+            }
           }
-        } finally {
-          await closeWriter();
         }
-      })();
-      this._stdin = pi;
-    }
-    return this._stdin;
+      }
+    };
+
+    (async () => {
+      try {
+        for await (const it of buffer(bufferInput ? 16384 : 0)(toBytes(iter))) {
+          if (writerIsClosed) {
+            break;
+          }
+
+          await writer.write(it);
+        }
+      } catch (e) {
+        if (
+          this._passError == null &&
+          !(e instanceof Deno.errors.BrokenPipe)
+        ) {
+          this._passError = e;
+        }
+      } finally {
+        await closeWriter();
+      }
+    })();
   }
 }
 

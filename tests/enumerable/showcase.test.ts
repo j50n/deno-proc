@@ -13,14 +13,8 @@ Deno.test({
 
     const count = await enumerate(file.readable)
       .run("gunzip")
-      .run("grep", "-oE", "(\\w|')+").chunkedLines
-      .map((lines) => {
-        const result: string[] = [];
-        for (const line of lines) {
-          result.push(line.toLocaleLowerCase());
-        }
-        return result;
-      })
+      .run("grep", "-oE", "(\\w|')+").lines
+      .map((line) => line.toLocaleLowerCase())
       .run({ buffer }, "sort")
       .run("uniq")
       .lines

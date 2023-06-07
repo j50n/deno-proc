@@ -238,7 +238,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
     const p = c.spawn();
 
-    this.writeTo(p.stdin as unknown as WritableIterable<T>);
+    p.writeToStdin(
+      this.iter as AsyncIterable<string | string[] | Uint8Array | Uint8Array[]>,
+    );
 
     return new Uint8Enumerable(p.stdout);
   }
