@@ -1,4 +1,5 @@
-import { toBytes, toLines } from "./utility.ts";
+import { enumerate } from "./enumerable.ts";
+import { buffer, toBytes, toChunkedLines } from "./utility.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -38,6 +39,16 @@ export interface ProcessOptions<S> {
   fnStderr?: StderrHandler<S>;
   /** Optionally override error handling. */
   fnError?: ErrorHandler<S>;
+
+  /**
+   * Turn on input buffering.
+   *
+   * Buffering input can improve performance in some cases, but it can also
+   * change behavior in subtle ways - in particular if you are expecting a
+   * process to respond immediately to written input on an open stream.
+   * To prevent confusion, buffering is turned off by default.
+   */
+  buffer?: boolean;
 }
 
 /** Command options. */
@@ -106,7 +117,7 @@ export class Process<S> implements Deno.Closer {
     public readonly args: readonly string[],
   ) {
     if (options.fnStderr != null) {
-      this.stderrResult = options.fnStderr(toLines(process.stderr));
+      this.stderrResult = options.fnStderr(toChunkedLines(process.stderr));
     }
   }
 
@@ -251,6 +262,8 @@ export class Process<S> implements Deno.Closer {
       throw new Deno.errors.NotConnected("stdin only available when 'piped'");
     }
 
+    const bufferInput = this.options.buffer === true;
+
     if (this._stdin == null) {
       const writer = this.process.stdin.getWriter();
 
@@ -276,7 +289,11 @@ export class Process<S> implements Deno.Closer {
 
       (async () => {
         try {
-          for await (const it of toBytes(pi)) {
+          for await (
+            const it of enumerate(pi)
+              .transform(toBytes)
+              .transform(buffer(bufferInput ? 16384 : 0))
+          ) {
             if (writerIsClosed) {
               break;
             }

@@ -1,14 +1,6 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
-/*
- * Errors are not being passed. Let's see if we can figure out why.
- *
- * This gathers the stdout and then throws the error - if working properly.
- */
-
 import { Command, toChunkedLines } from "../mod3.ts";
-
-const results: string[] = [];
 
 const process = new Command(
   { stdout: "piped", stdin: "piped" },
@@ -32,10 +24,9 @@ try {
     const lines of toChunkedLines(process.stdout)
   ) {
     for (const line of lines) {
-      results.push(line);
+      console.log(line);
     }
   }
 } finally {
   await process.close();
-  console.dir(results);
 }

@@ -41,7 +41,7 @@
  */
 
 import { sleep } from "../legacy/runners/utility.ts";
-import { enumerate, toLines } from "../mod3.ts";
+import { enumerate, toChunkedLines } from "../mod3.ts";
 import { colors, path } from "./deps.ts";
 
 const file = await Deno.open(
@@ -59,7 +59,7 @@ function test(
     input: AsyncIterable<Uint8Array>,
   ): AsyncIterable<string[]> {
     let count = 0;
-    for await (const lines of toLines(input)) {
+    for await (const lines of toChunkedLines(input)) {
       /*
        * Line-oriented text is represented in this library as `string[]`, not `string`. This
        * is because, for performance reasons, you usually want to keep the line groups together.
@@ -73,7 +73,7 @@ function test(
        * `Uint8Array[]`, we add line feeds. It is a consistent way to do it.
        */
       for (const line of lines) {
-        await sleep(1000);
+        await sleep(100);
         count += 1;
         console.error(
           colors.gray(
@@ -94,21 +94,25 @@ function test(
 
 let count = 0;
 
+const buffer = true;
+
 OUTER:
 for await (
   const lines of enumerate(file.readable)
-    .run("gunzip").transform(test("A gunzip"))
+    .run({ buffer }, "gunzip").transform(test("A gunzip"))
     .filter((line) =>
       /* Every other line is whitespace. Boring. */
       line.join("").trim().length > 0
     )
-    .run("cat").transform(test("B cat"))
-    .run("cat").transform(test("C cat"))
-    .run("cat").transform(test("D cat"))
-    .run("head", "-n", "300").transform(test("E head"))
-    .run("cat").transform(test("F cat"))
-    .run("cat").transform(test("G cat"))
-    .run("cat").transform(test("H cat"))
+    .run({ buffer }, "cat").transform(test("B cat"))
+    .run({ buffer }, "cat").transform(test("C cat"))
+    .run({ buffer }, "cat").transform(test("D cat"))
+    .run({ buffer }, "head", "-n", "300").transform(
+      test("E head"),
+    )
+    .run({ buffer }, "cat").transform(test("F cat"))
+    .run({ buffer }, "cat").transform(test("G cat"))
+    .run({ buffer }, "cat").transform(test("H cat"))
 ) {
   for (const line of lines) {
     count += 1;

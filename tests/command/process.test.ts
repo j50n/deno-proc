@@ -1,4 +1,4 @@
-import { Command, ExitCodeError, toLines } from "../../mod3.ts";
+import { Command, ExitCodeError, toChunkedLines } from "../../mod3.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
 
 Deno.test({
@@ -17,7 +17,7 @@ Deno.test({
 
     try {
       for await (
-        const lines of toLines(process.stdout)
+        const lines of toChunkedLines(process.stdout)
       ) {
         for (const line of lines) {
           results.push(line);
@@ -50,7 +50,7 @@ Deno.test({
 
         try {
           for await (
-            const lines of toLines(process.stdout)
+            const lines of toChunkedLines(process.stdout)
           ) {
             for (const line of lines) {
               results.push(line);
@@ -95,7 +95,7 @@ Deno.test({
 
     try {
       for await (
-        const lines of toLines(process.stdout)
+        const lines of toChunkedLines(process.stdout)
       ) {
         for (const line of lines) {
           results.push(line);
@@ -137,7 +137,7 @@ Deno.test({
 
         try {
           for await (
-            const lines of toLines(process.stdout)
+            const lines of toChunkedLines(process.stdout)
           ) {
             for (const line of lines) {
               results.push(line);

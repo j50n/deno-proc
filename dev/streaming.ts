@@ -10,7 +10,7 @@
  * was playing. Another addition to my bag of tricks.
  */
 
-import { enumerate, toLines } from "../mod3.ts";
+import { enumerate, toChunkedLines } from "../mod3.ts";
 import { path } from "./deps.ts";
 
 const file = await Deno.open(
@@ -21,7 +21,7 @@ await enumerate(file.readable)
   .run("gunzip")
   .run("grep", "-v", "^$")
   .run("head")
-  .transform(toLines)
+  .transform(toChunkedLines)
   .flatten()
   .forEach((line) => console.log(line));
 

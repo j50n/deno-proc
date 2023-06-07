@@ -36,9 +36,29 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
 
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
+ *
+ * Note that this should probably only be used with small data. Consider {@link toChunkedLines}
+ * to improve performance with larger data.
+ *
  * @param buffs The iterable bytes.
  */
-export function toLines(
+export async function* toLines(
+  buffs: AsyncIterable<Uint8Array>,
+): AsyncIterable<string> {
+  for await (const lines of toChunkedLines(buffs)) {
+    yield* lines;
+  }
+}
+
+/**
+ * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string[]>` of lines.
+ *
+ * For larger data, this keeps the data being passed at reasonable sizes and avoids
+ * the "small string" problem. Consider using this instead of {@link toLines}
+ *
+ * @param buffs The iterable bytes.
+ */
+export function toChunkedLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string[]> {
   const decoder = new TextDecoder();
@@ -57,9 +77,10 @@ export function toLines(
  * (an array of lines chunked together based on buffer size)
  * split on `lf` and also suppressing trailing `cr`. `lf` and trailing `cr`
  * is removed from the returned lines.
+ *
  * @param buffs The iterable bytes.
  */
-export async function* toByteLines(
+async function* toByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<Uint8Array[]> {
   /*
@@ -190,6 +211,51 @@ export async function* toBytes(
         }`,
       );
     }
+  }
+}
+
+/**
+ * Transformer that conditionally forces buffering of a `Uint8Array` stream.
+ *
+ * This enforces that the size of the passed data is _at least_ `size`. Note that
+ * data is never reduced in size. It is either passed through unchanged (if it is
+ * big enough already) or held and concatenated with the next data until it there
+ * is enough data to write through.
+ *
+ * If `size` is 0 or negative, the input data is passed through unaltered.
+ */
+export function buffer(
+  size = 0,
+): (iter: AsyncIterable<Uint8Array>) => AsyncIterable<Uint8Array> {
+  if (size <= 0) {
+    return (iter) => iter;
+  } else {
+    // deno-lint-ignore no-inner-declarations
+    async function* buffergen(
+      iter: AsyncIterable<Uint8Array>,
+    ): AsyncIterable<Uint8Array> {
+      let len = 0;
+      let pieces: Uint8Array[] = [];
+
+      try {
+        for await (const piece of iter) {
+          len += piece.length;
+          pieces.push(piece);
+
+          if (len >= size) {
+            yield concat(pieces);
+            size = 0;
+            pieces = [];
+          }
+        }
+      } finally {
+        if (pieces.length > 0) {
+          yield concat(pieces);
+        }
+      }
+    }
+
+    return buffergen;
   }
 }
 

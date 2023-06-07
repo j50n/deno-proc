@@ -12,6 +12,7 @@ import {
 import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
+import { toChunkedLines, toLines } from "./utility.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
@@ -202,6 +203,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Run a process.
+   *
    * @param cmd The command.
    * @param options Options.
    * @returns A child process instance.
@@ -209,18 +211,18 @@ export class Enumerable<T> implements AsyncIterable<T> {
   run<S>(
     options: ProcessOptions<S>,
     ...cmd: Cmd
-  ): Enumerable<Uint8Array>;
+  ): Uint8Enumerable;
 
   /**
    * Run a process.
    * @param cmd The command.
    * @returns A child process instance.
    */
-  run(...cmd: Cmd): Enumerable<Uint8Array>;
+  run(...cmd: Cmd): Uint8Enumerable;
 
   run<S>(
     ...cmd: unknown[]
-  ): Enumerable<Uint8Array> {
+  ): Uint8Enumerable {
     const { options, command, args } = parseArgs(cmd);
 
     const c = new Command(
@@ -238,7 +240,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
     this.writeTo(p.stdin as unknown as WritableIterable<T>);
 
-    return new Enumerable(p.stdout);
+    return new Uint8Enumerable(p.stdout);
   }
 
   tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
@@ -315,4 +317,40 @@ export class Enumerable<T> implements AsyncIterable<T> {
       },
     ) as Enumerable<T>;
   }
+}
+
+/**
+ * Enumerable which may be substituted when we know we are returning `Uint8Array` data.
+ */
+export class Uint8Enumerable extends Enumerable<Uint8Array> {
+  constructor(protected iter: AsyncIterable<Uint8Array>) {
+    super(iter);
+  }
+
+  /**
+   * Convert the output to text lines.
+   *
+   * Note that this should probably only be used with small data. Consider {@link chunkedLines}
+   * to improve performance with larger data.
+   */
+  get lines(): Enumerable<string> {
+    return enumerate(toLines(this.iter));
+  }
+
+  /**
+   * Convert the output to arrays of text lines. Each array will be similar in size to the
+   * input byte data that was converted.
+   */
+  get chunkedLines(): Enumerable<string[]> {
+    return enumerate(toChunkedLines(this.iter));
+  }
+
+  /**
+   * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
+   *
+   * Note that this should probably only be used with small data. Consider {@link toChunkedLines}
+   * to improve performance with larger data.
+   *
+   * @param buffs The iterable bytes.
+   */
 }

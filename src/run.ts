@@ -1,6 +1,6 @@
 import { Command, ProcessOptions } from "./command.ts";
 import { parseArgs } from "./helpers.ts";
-import { Enumerable } from "./enumerable.ts";
+import { Uint8Enumerable } from "./enumerable.ts";
 
 /** The type signature for a command. */
 export type Cmd = [string | URL, ...string[]];
@@ -14,18 +14,18 @@ export type Cmd = [string | URL, ...string[]];
 export function run<S>(
   options: ProcessOptions<S>,
   ...cmd: Cmd
-): Enumerable<Uint8Array>;
+): Uint8Enumerable;
 
 /**
  * Run a process.
  * @param cmd The command.
  * @returns A child process instance.
  */
-export function run(...cmd: Cmd): Enumerable<Uint8Array>;
+export function run(...cmd: Cmd): Uint8Enumerable;
 
 export function run<S>(
   ...cmd: unknown[]
-): Enumerable<Uint8Array> {
+): Uint8Enumerable {
   const { options, command, args } = parseArgs<S>(cmd);
 
   const c = new Command(
@@ -38,5 +38,5 @@ export function run<S>(
     ...args,
   );
 
-  return new Enumerable(c.spawn().stdout);
+  return new Uint8Enumerable(c.spawn().stdout);
 }

@@ -1,4 +1,4 @@
-import { enumerate, ExitCodeError, run, toLines } from "../../mod3.ts";
+import { enumerate, ExitCodeError, run } from "../../mod3.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 import { gray } from "../deps/colors.ts";
 
@@ -29,9 +29,7 @@ Deno.test({
         echo "B"
         echo "C"
      `,
-    )
-      .transform(toLines)
-      .flatten()
+    ).lines
       .collect();
 
     assertEquals(stderr, ["excelsior"], "I can get lines from stderr.");
@@ -84,9 +82,7 @@ Deno.test({
 
         exit 7
      `,
-      )
-        .transform(toLines)
-        .flatten();
+      ).lines;
 
       for await (const line of output) {
         result.push(line);

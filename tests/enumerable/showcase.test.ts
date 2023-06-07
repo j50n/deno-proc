@@ -1,4 +1,4 @@
-import { enumerate, toLines } from "../../mod3.ts";
+import { enumerate } from "../../mod3.ts";
 import { assertEquals } from "../deps/asserts.ts";
 import { fromFileUrl } from "../deps/path.ts";
 
@@ -9,21 +9,26 @@ Deno.test({
       fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
     );
 
-    const output = await enumerate(file.readable)
+    const buffer = true;
+
+    const count = await enumerate(file.readable)
       .run("gunzip")
-      .run("grep", "-oE", "(\\w|')+")
-      .run("tr", "[:upper:]", "[:lower:]")
-      .run("sort")
+      .run("grep", "-oE", "(\\w|')+").chunkedLines
+      .map((lines) => {
+        const result: string[] = [];
+        for (const line of lines) {
+          result.push(line.toLocaleLowerCase());
+        }
+        return result;
+      })
+      .run({ buffer }, "sort")
       .run("uniq")
-      .run("wc", "-l")
-      .transform(toLines)
-      .flatten()
-      .map((it) => parseInt(it, 10))
-      .collect();
+      .lines
+      .reduce(0, (c, _item) => c + 1);
 
     assertEquals(
-      output[0],
-      17558,
+      count,
+      17557,
       "The words I count match the value I believe I should get.",
     );
   },

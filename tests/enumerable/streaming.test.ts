@@ -1,4 +1,4 @@
-import { ExitCodeError, run, StreamError, toLines } from "../../mod3.ts";
+import { ExitCodeError, run, StreamError } from "../../mod3.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 
 Deno.test({
@@ -14,7 +14,7 @@ Deno.test({
         echo "B"
         echo "C"
      `,
-    ).transform(toLines).flatten().collect();
+    ).lines.collect();
 
     assertEquals(result, ["A", "B", "C"], "I can get lines from a process.");
   },
@@ -35,7 +35,7 @@ Deno.test({
 
           exit 7
        `,
-    ).transform(toLines).flatten();
+    ).lines;
 
     const result: string[] = [];
     try {
@@ -72,7 +72,7 @@ Deno.test({
 
             exit 7
          `,
-    ).run("tr", "[:upper:]", "[:lower:]").transform(toLines).flatten();
+    ).run("tr", "[:upper:]", "[:lower:]").lines;
 
     const result: string[] = [];
     try {

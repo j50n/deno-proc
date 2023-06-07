@@ -1,4 +1,4 @@
-import { ExitCodeError, run, toLines } from "../../mod3.ts";
+import { ExitCodeError, run } from "../../mod3.ts";
 import { assertEquals } from "../deps/asserts.ts";
 
 async function* suppressExitCodeError<T>(
@@ -28,10 +28,8 @@ Deno.test({
 
         exit 7
      `,
-    )
+    ).lines
       .transform(suppressExitCodeError)
-      .transform(toLines)
-      .flatten()
       .collect();
 
     assertEquals(result, ["A", "B", "C"], "I can get lines from a process.");
@@ -60,10 +58,8 @@ Deno.test({
 
         exit 7
      `,
-    )
+    ).lines
       .transform(suppressExitCodeError)
-      .transform(toLines)
-      .flatten()
       .collect();
 
     assertEquals(result, ["A", "B", "C"], "I can get lines from a process.");
