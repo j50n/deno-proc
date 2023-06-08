@@ -4,7 +4,7 @@ import { assertEquals } from "../deps/asserts.ts";
 Deno.test({
   name: "I can take a couple of items at the head.",
   async fn() {
-    const result = await range({ until: 10 }).take(2).collect();
+    const result = await range({ from: 1, until: 10 }).take(2).collect();
 
     assertEquals(
       result,
@@ -17,7 +17,7 @@ Deno.test({
 Deno.test({
   name: "I can drop a couple of items at the head and take the rest.",
   async fn() {
-    const result = await range({ until: 10 }).drop(2).collect();
+    const result = await range({ from: 1, until: 10 }).drop(2).collect();
 
     assertEquals(
       result,
@@ -34,7 +34,7 @@ Deno.test({
 Deno.test({
   name: "I can use tee to get the head and tail simultaneously.",
   async fn() {
-    const [rh, rt] = range({ until: 10 }).tee();
+    const [rh, rt] = range({ from: 1, until: 10 }).tee();
 
     const [head, tail] = await Promise.all([
       rh.take(2).collect(),
@@ -57,7 +57,7 @@ Deno.test({
 Deno.test({
   name: "Head of 0 is empty.",
   async fn() {
-    const result = await range({ until: 10 }).take(0).collect();
+    const result = await range({ from: 1, until: 10 }).take(0).collect();
 
     assertEquals(
       result,
@@ -70,11 +70,11 @@ Deno.test({
 Deno.test({
   name: "Tail of 0 is the original thing.",
   async fn() {
-    const result = await range({ until: 10 }).drop(0).collect();
+    const result = await range({ from: 1, until: 10 }).drop(0).collect();
 
     assertEquals(
       result,
-      await range({ until: 10 }).collect(),
+      await range({ from: 1, until: 10 }).collect(),
       "0 items dropped, all items delivered.",
     );
   },

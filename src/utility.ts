@@ -48,7 +48,7 @@ export interface RangeToOptions {
  * An `until` range.
  */
 export interface RangeUntilOptions {
-  /** Starting number inclusive; defaults to 1. */
+  /** Starting number inclusive; defaults to 0. */
   from?: number;
   /** Ending number inclusive. */
   until: number;
@@ -60,8 +60,8 @@ export interface RangeUntilOptions {
  * Lazily produce a range of numbers.
  *
  * There are two forms:
- * - _from/to/step_: default 0 based, `to` is exclusive, and
- * - _from/until/step_: default 1 based, `until` is inclusive.
+ * - _from/to/step_: `to` is exclusive, and
+ * - _from/until/step_:  `until` is inclusive.
  *
  * **Example**
  *
@@ -89,12 +89,12 @@ export function range(
           yield i;
         }
       } else {
-        for (let i = f; i >= t; i += s) {
+        for (let i = f; i > t; i += s) {
           yield i;
         }
       }
     } else {
-      const f = options.from ?? 1;
+      const f = options.from ?? 0;
       const u = options.until;
 
       if (s > 0) {
@@ -102,7 +102,7 @@ export function range(
           yield i;
         }
       } else {
-        for (let i = f; i > u; i += s) {
+        for (let i = f; i >= u; i += s) {
           yield i;
         }
       }
@@ -115,7 +115,7 @@ export function range(
  * Sleep for a while.
  * @param delayms Delay in milliseconds.
  */
-export async function sleep(delayms: number ): Promise<void> {
+export async function sleep(delayms: number): Promise<void> {
   await new Promise<void>((resolve, _reject) =>
     setTimeout(() => resolve(), delayms)
   );

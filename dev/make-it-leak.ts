@@ -40,7 +40,7 @@
  * be able to see this!
  */
 
-import { enumerate, sleep, toChunkedLines } from "../mod3.ts";
+import { enumerate, range, sleep, toChunkedLines } from "../mod3.ts";
 import { colors, path } from "./deps.ts";
 
 const file = await Deno.open(
@@ -72,7 +72,7 @@ function test(
        * `Uint8Array[]`, we add line feeds. It is a consistent way to do it.
        */
       for (const line of lines) {
-        await sleep(100);
+        await sleep(500);
         count += 1;
         console.error(
           colors.gray(
@@ -91,9 +91,9 @@ function test(
   return transform;
 }
 
-let count = 0;
+const buffer = false;
 
-const buffer = true;
+let count = 0;
 
 OUTER:
 for await (
@@ -127,7 +127,12 @@ console.error(colors.red("Waiting 60 seconds..."));
 /*
  * The wait period is necessary to show the cleanup behavior. The underlying processes
  * continue to process data until they figure out they are no longer needed and automagically
- * close.
+ * close. At this point, I no longer have any control over what is going on, but it is
+ * still going on.
  */
-await sleep(60000);
+await range({ from: 60, until: 1, step: -1 }).forEach(async (i) => {
+  await sleep(1000);
+  console.error(`🐑 ${colors.gray(`... ${i.toLocaleString()}`)}`);
+});
+
 console.error(colors.red("Done."));
