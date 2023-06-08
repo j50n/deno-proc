@@ -62,9 +62,9 @@ export interface RangeUntilOptions {
  * There are two forms:
  * - _from/to/step_: default 0 based, `to` is exclusive, and
  * - _from/until/step_: default 1 based, `until` is inclusive.
- * 
+ *
  * **Example**
- * 
+ *
  * ```typescript
  * const result = await range({to: 10}).collect();
  *
