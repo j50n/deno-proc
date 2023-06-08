@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">4.</strong> Utility Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -333,28 +333,81 @@ upstream process has side effects, though, weird things could happen.</p>
 <p>This is fine:</p>
 <pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>The next example results in an error: <em>A spread argument must either have a tuple type or be
-passed to a rest parameter.</em></p>
+<p>The next example results in an error: <em>A spread argument must either have a
+tuple type or be passed to a rest parameter.</em></p>
 <pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
 </code></pre>
 <p>What gives?</p>
 <p>Typescript needs a specific tuple type here, but assumes an array type instead.
-<em>This is a Typescript thing,</em> and I am sure they will get around to fixing it one
-day.</p>
+<em>This is a Typescript thing,</em> and I am sure they will get around to fixing it
+one day.</p>
 <p>Here is the longer version. The <em>rest</em> parameter passed to <code>run</code> is a tuple of
 type <code>Cmd</code>. The type signature is <code>[string|URL, ...string[]]</code>. Typescript
-assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code> and must be told otherwise. It is not able to figure out
-that <code>string[]</code> of guaranteed non-zero length is compatible with the tuple type
-<code>Cmd</code>.</p>
+assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code> and must be told otherwise.
+It is not able to figure out that <code>string[]</code> of guaranteed non-zero length is
+compatible with the tuple type <code>Cmd</code>.</p>
 <p>Until Typescript addresses this issue, the idiomatic fix is to simply specify
 the tuple type:</p>
 <pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd);
 </code></pre>
-<p>This is a practical exmple of building up a command in piecemeal fashion. It seems a little cleaner to specify the type where you create the tuple:</p>
+<p>This is a practical exmple of building up a command in piecemeal fashion. It
+seems a little cleaner to specify the type where you create the tuple:</p>
 <pre><code class="language-typescript">const cmd: Cmd = [&quot;ls&quot;];
 cmd.push(&quot;-la&quot;);
 
 run(...cmd);
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h1>
+<h2 id="sleep"><a class="header" href="#sleep">Sleep</a></h2>
+<p>Pause for some amount of time (measured in milliseconds) without blocking.</p>
+<p><strong>Example</strong></p>
+<p>Sleep for two seconds:</p>
+<pre><code class="language-typescript">await sleep(2000);
+</code></pre>
+<h2 id="range"><a class="header" href="#range">Range</a></h2>
+<p>This lazily produces a sequence of numbers in <code>for...next</code> fashion.</p>
+<p>There are two variants. In the <code>to</code> variant, the end number is exclusive. In the
+<code>until</code> variant, the end number is inclusive. The default starting number is
+always 0, and the default step is 1.</p>
+<p>This is a lazy operation. It is creating the results one at a time rather than
+all at once in memory. Therefore it is perfectly reasonable to do something like
+create an infinite range.</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example 1</a></h3>
+<p>Prints the numbers <code>0</code>, <code>1</code>, and <code>2</code>. Using <code>to</code> so the end number is exclusive.
+Default <code>from</code> is <code>0</code>.</p>
+<pre><code class="language-typescript">for (const i of range({ to: 3 })) {
+  console.log(i);
+}
+</code></pre>
+<h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
+<p>Prints the numbers <code>0</code>, <code>1</code>, <code>2</code>, and <code>3</code>. Using <code>from</code> so the end number is
+inclusive. Default <code>from</code> is <code>0</code>.</p>
+<pre><code class="language-typescript">for (const i of range({ until: 3 })) {
+  console.log(i);
+}
+</code></pre>
+<h3 id="example-3"><a class="header" href="#example-3">Example 3</a></h3>
+<p>Prints the numbers from <code>10</code> to <code>1</code>, descending order.</p>
+<pre><code class="language-typescript">for (const i of range({ from: 10, to: 0, step: -1 })) {
+  console.log(i);
+}
+</code></pre>
+<h3 id="example-4"><a class="header" href="#example-4">Example 4</a></h3>
+<p>Prinst the numbers from <code>0</code> to <code>99</code>.</p>
+<pre><code class="language-typescript">for (const i of range({ to: 10 })) {
+  for (const j of range({ to: 10 })) {
+    console.log(i * 10 + j);
+  }
+}
+</code></pre>
+<h3 id="example-5"><a class="header" href="#example-5">Example 5</a></h3>
+<p>An infinite loop that breaks at 20.</p>
+<pre><code class="language-typescript">for await (const n of range({ to: Number.POSITIVE_INFINITY })) {
+  if (n &gt; 20) {
+    break;
+  }
+  console.log(n)
+}
 </code></pre>
 
                     </main>

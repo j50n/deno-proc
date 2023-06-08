@@ -77,6 +77,6 @@ for await (const n of range({ to: Number.POSITIVE_INFINITY })) {
   if (n > 20) {
     break;
   }
-  console.log(n)
+  console.log(n);
 }
 ```

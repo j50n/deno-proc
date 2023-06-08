@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Page not found - Proc for Deno</title>
-        <base href="/">
+        <title>Utility Functions - Proc for Deno</title>
 
 
         <!-- Custom HTML head -->
@@ -84,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">4.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="utility.html" class="active"><strong aria-hidden="true">4.</strong> Utility Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -145,13 +144,66 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="document-not-found-404"><a class="header" href="#document-not-found-404">Document not found (404)</a></h1>
-<p>This URL is invalid, sorry. Please use the navigation bar or search to continue.</p>
+                        <h1 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h1>
+<h2 id="sleep"><a class="header" href="#sleep">Sleep</a></h2>
+<p>Pause for some amount of time (measured in milliseconds) without blocking.</p>
+<p><strong>Example</strong></p>
+<p>Sleep for two seconds:</p>
+<pre><code class="language-typescript">await sleep(2000);
+</code></pre>
+<h2 id="range"><a class="header" href="#range">Range</a></h2>
+<p>This lazily produces a sequence of numbers in <code>for...next</code> fashion.</p>
+<p>There are two variants. In the <code>to</code> variant, the end number is exclusive. In the
+<code>until</code> variant, the end number is inclusive. The default starting number is
+always 0, and the default step is 1.</p>
+<p>This is a lazy operation. It is creating the results one at a time rather than
+all at once in memory. Therefore it is perfectly reasonable to do something like
+create an infinite range.</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example 1</a></h3>
+<p>Prints the numbers <code>0</code>, <code>1</code>, and <code>2</code>. Using <code>to</code> so the end number is exclusive.
+Default <code>from</code> is <code>0</code>.</p>
+<pre><code class="language-typescript">for (const i of range({ to: 3 })) {
+  console.log(i);
+}
+</code></pre>
+<h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
+<p>Prints the numbers <code>0</code>, <code>1</code>, <code>2</code>, and <code>3</code>. Using <code>from</code> so the end number is
+inclusive. Default <code>from</code> is <code>0</code>.</p>
+<pre><code class="language-typescript">for (const i of range({ until: 3 })) {
+  console.log(i);
+}
+</code></pre>
+<h3 id="example-3"><a class="header" href="#example-3">Example 3</a></h3>
+<p>Prints the numbers from <code>10</code> to <code>1</code>, descending order.</p>
+<pre><code class="language-typescript">for (const i of range({ from: 10, to: 0, step: -1 })) {
+  console.log(i);
+}
+</code></pre>
+<h3 id="example-4"><a class="header" href="#example-4">Example 4</a></h3>
+<p>Prinst the numbers from <code>0</code> to <code>99</code>.</p>
+<pre><code class="language-typescript">for (const i of range({ to: 10 })) {
+  for (const j of range({ to: 10 })) {
+    console.log(i * 10 + j);
+  }
+}
+</code></pre>
+<h3 id="example-5"><a class="header" href="#example-5">Example 5</a></h3>
+<p>An infinite loop that breaks at 20.</p>
+<pre><code class="language-typescript">for await (const n of range({ to: Number.POSITIVE_INFINITY })) {
+  if (n &gt; 20) {
+    break;
+  }
+  console.log(n)
+}
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="spread.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
 
                         <div style="clear: both"></div>
@@ -160,6 +212,9 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="spread.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
             </nav>
 
