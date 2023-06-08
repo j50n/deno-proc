@@ -28,7 +28,7 @@ type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
 /**
  * {@link Enumerable} factory.
  *
- * Use this instead of creating an {@link Enumerable} directly as it more fliexible
+ * Use this instead of creating an {@link Enumerable} directly as it more flexible
  * and prevents stacking (a potential performance issue).
  *
  * @param iter An `Iterable` or `AsynIterable`; `null` or `undefined` assume empty.
