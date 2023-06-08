@@ -66,8 +66,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
   constructor(protected iter: AsyncIterable<T>) {
   }
 
+  protected async *identity(): AsyncIterableIterator<T> {
+    yield* this.iter;
+  }
+
   [Symbol.asyncIterator](): AsyncGenerator<T, void, unknown> {
-    return this.iter as AsyncGenerator<T, void, unknown>;
+    if ("next" in this.iter) {
+      return this.iter as AsyncGenerator<T, void, unknown>;
+    } else {
+      return this.identity() as AsyncGenerator<T, void, unknown>;
+    }
   }
 
   /**
