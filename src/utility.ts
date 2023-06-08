@@ -1,10 +1,9 @@
 import { Enumerable, enumerate } from "./enumerable.ts";
 
 /**
- * Concatenate arrays together, returning a single array containing the result.
+ * Fast-concatenate `Uint8Arrays` arrays together, returning a single array containing the result.
  *
- * Note that this may return the original source data rather than a copy in some
- * circumstances.
+ * Note that this may return the original source data or a copy.
  *
  * @param arrays The arrays to concatenate together.
  * @returns The result of the concatenation.
@@ -63,6 +62,14 @@ export interface RangeUntilOptions {
  * There are two forms:
  * - _from/to/step_: default 0 based, `to` is exclusive, and
  * - _from/until/step_: default 1 based, `until` is inclusive.
+ * 
+ * **Example**
+ * 
+ * ```typescript
+ * const result = await range({to: 10}).collect();
+ *
+ * // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+ * ```
  *
  * @param options Range options.
  * @see {@link RangeToOptions}
