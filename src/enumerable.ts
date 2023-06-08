@@ -132,9 +132,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
     mapFn: (item: T) => Promise<U>,
     concurrency?: number,
   ): Enumerable<U> {
-    const iterable = this.iter;
+    const iter = this.iter;
     return new Enumerable(
-      concurrentMap(iterable, mapFn, concurrency),
+      concurrentMap(iter, mapFn, concurrency),
     ) as Enumerable<U>;
   }
 
@@ -153,9 +153,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
     mapFn: (item: T) => Promise<U>,
     concurrency?: number,
   ): Enumerable<U> {
-    const iterable = this.iter;
+    const iter = this.iter;
     return new Enumerable(
-      concurrentUnorderedMap(iterable, mapFn, concurrency),
+      concurrentUnorderedMap(iter, mapFn, concurrency),
     ) as Enumerable<U>;
   }
 

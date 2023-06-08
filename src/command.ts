@@ -274,8 +274,8 @@ export class Process<S> implements Deno.Closer {
    * This is the "backdoor" way to write directly to the underlying process `stdin`
    * without the overhead of a {@link WritableIterable}. Use instead of {@link stdin}
    * for streamed data.
-   * 
-   * {@link stdin} is the way to go if you are passing ad-hoc, non-continuous data to 
+   *
+   * {@link stdin} is the way to go if you are passing ad-hoc, non-continuous data to
    * process `stdin`. However, it adds a substantial amount of overhead, and it is very
    * slow for processing small data. Using this function instead of {@link stdin} greatly
    * improves performance where small data is a factor.

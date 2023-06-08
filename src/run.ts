@@ -32,11 +32,14 @@ export function run<S>(
     {
       ...options,
       stdout: "piped",
+      stdin: "null",
       stderr: options.fnStderr == null ? "inherit" : "piped",
     },
     command,
     ...args,
   );
 
-  return new Uint8Enumerable(c.spawn().stdout);
+  const process = c.spawn();
+
+  return new Uint8Enumerable(process.stdout);
 }
