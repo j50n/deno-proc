@@ -40,8 +40,7 @@
  * be able to see this!
  */
 
-import { sleep } from "../legacy/runners/utility.ts";
-import { enumerate, toChunkedLines } from "../mod3.ts";
+import { enumerate, sleep, toChunkedLines } from "../mod3.ts";
 import { colors, path } from "./deps.ts";
 
 const file = await Deno.open(
