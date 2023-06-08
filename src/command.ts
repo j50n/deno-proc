@@ -1,4 +1,4 @@
-import { buffer, toBytes, toChunkedLines } from "./utility.ts";
+import { buffer, toBytes, toChunkedLines } from "./transformers.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";

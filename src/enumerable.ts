@@ -12,7 +12,7 @@ import {
 import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
-import { toChunkedLines, toLines } from "./utility.ts";
+import { toChunkedLines, toLines } from "./transformers.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
