@@ -25,31 +25,49 @@ type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
   ? R
   : TupleOf<T, N, [T, ...R]>;
 
-async function* asAsyncIterable<T>(
-  iter: AsyncIterable<T> | Iterable<T>,
-): AsyncIterable<T> {
-  yield* iter;
+/**
+ * {@link Enumerable} factory.
+ *
+ * Use this instead of creating an {@link Enumerable} directly as it more fliexible
+ * and prevents stacking (a potential performance issue).
+ *
+ * @param iter An `Iterable` or `AsynIterable`; `null` or `undefined` assume empty.
+ * @returns An {@link Enumerable}.
+ */
+export function enumerate<T>(
+  iter?: AsyncIterable<T> | Iterable<T> | null,
+): Enumerable<T> {
+  async function* asAsyncIterable<T>(
+    iter: Iterable<T>,
+  ): AsyncIterable<T> {
+    yield* iter;
+  }
+
+  if (iter == null) {
+    return new Enumerable(asAsyncIterable(new Array(0)));
+  } else if (iter instanceof Enumerable) {
+    return iter;
+  } else if (
+    typeof (iter as AsyncIterable<T>)[Symbol.asyncIterator] === "function"
+  ) {
+    return new Enumerable(iter as AsyncIterable<T>);
+  } else {
+    return new Enumerable(asAsyncIterable(iter as Iterable<T>));
+  }
 }
 
 /**
- * Wrap in an `Enumerable`.
- * @param iter The wrapped iterator.
- * @returns A new runnable.
+ * Enumerable wrapper for `AsyncIterable`.
+ *
+ * Use the factory function {@link enumerate} to create new instances
+ * to get better performance.
  */
-export function enumerate<T>(
-  iter: AsyncIterable<T> | Iterable<T>,
-): Enumerable<T> {
-  return new Enumerable(asAsyncIterable(iter));
-}
-
 export class Enumerable<T> implements AsyncIterable<T> {
   constructor(protected iter: AsyncIterable<T>) {
   }
 
-  async *[Symbol.asyncIterator](): AsyncGenerator<T, void, unknown> {
-    for await (const item of this.iter) {
-      yield item;
-    }
+  [Symbol.asyncIterator](): AsyncGenerator<T, void, unknown> {
+    return this.iter as AsyncGenerator<T, void, unknown>;
   }
 
   /**
