@@ -45,3 +45,14 @@ Deno.test({
     ], "Range to backward is correct.");
   },
 });
+
+Deno.test({
+  name: "Range to infinity.",
+  async fn() {
+    for await (const n of range({ to: Number.POSITIVE_INFINITY })) {
+      if (n > 20) {
+        break;
+      }
+    }
+  },
+});

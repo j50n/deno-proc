@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="spread.html" class="active"><strong aria-hidden="true">2.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html" class="active"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -148,26 +148,27 @@
 <p>This is fine:</p>
 <pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>This results in an error: <em>A spread argument must either have a tuple type or be
+<p>The next example results in an error: <em>A spread argument must either have a tuple type or be
 passed to a rest parameter.</em></p>
-<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]);
+<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
 </code></pre>
 <p>What gives?</p>
 <p>Typescript needs a specific tuple type here, but assumes an array type instead.
-<em>This is a Typescript thing, and I am sure they will get around to fixing it one
-day.</em></p>
+<em>This is a Typescript thing,</em> and I am sure they will get around to fixing it one
+day.</p>
 <p>Here is the longer version. The <em>rest</em> parameter passed to <code>run</code> is a tuple of
 type <code>Cmd</code>. The type signature is <code>[string|URL, ...string[]]</code>. Typescript
-assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code>. It is not able to figure out
+assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code> and must be told otherwise. It is not able to figure out
 that <code>string[]</code> of guaranteed non-zero length is compatible with the tuple type
 <code>Cmd</code>.</p>
 <p>Until Typescript addresses this issue, the idiomatic fix is to simply specify
 the tuple type:</p>
 <pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd);
 </code></pre>
-<p>This is a practical exmple of building up a command in piecemeal fashion:</p>
+<p>This is a practical exmple of building up a command in piecemeal fashion. It seems a little cleaner to specify the type where you create the tuple:</p>
 <pre><code class="language-typescript">const cmd: Cmd = [&quot;ls&quot;];
 cmd.push(&quot;-la&quot;);
+
 run(...cmd);
 </code></pre>
 
@@ -175,13 +176,10 @@ run(...cmd);
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="errors.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="errors.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -189,13 +187,10 @@ run(...cmd);
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="errors.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="errors.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
             </nav>
 
         </div>

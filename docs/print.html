@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">2.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -146,6 +146,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<blockquote>
+<p>This is all going to be redone. Ignore it.</p>
+</blockquote>
 <p><code>proc</code> simplifies working with child processes in Typescript/Deno. Its goal is
 to achieve the simplicity of shell scripts.</p>
 <p>Deno is a great choice to replace your <code>bash</code> scripts when they become too
@@ -234,32 +237,29 @@ access to <code>stdout</code>):</p>
 gone.</p>
 <p><a href="https://github.com/j50n/deno-proc/blob/main/src/transformers.ts">transformers.ts</a>
 <a href="https://github.com/j50n/deno-proc/blob/main/src/transformers.ts" target="_blank">transformers.ts</a></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="using-the-spread-operator-in-run"><a class="header" href="#using-the-spread-operator-in-run">Using the Spread Operator in Run</a></h1>
-<p>This is fine:</p>
-<pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
+<div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
+<p>A transformer is just a function with this signature:</p>
+<pre><code class="language-typescript">((it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;);
 </code></pre>
-<p>This results in an error: <em>A spread argument must either have a tuple type or be
-passed to a rest parameter.</em></p>
-<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]);
+<p>A transformer transforms objects from one type to another. The chief difference
+between this and a <code>map</code> operation is that you control the whole transformation,
+so you can catch and throw errors emanating from the iteration and manage state.</p>
+<p>You can easily create a transformer using an asynchronous generator. This one
+will transform strings to lower-case:</p>
+<pre><code class="language-typescript">async function* toLower(texts: AsyncIterable&lt;string&gt;) {
+  for await (const text of texts) {
+    yield text.toLocaleLowerCase();
+  }
+}
 </code></pre>
-<p>What gives?</p>
-<p>Typescript needs a specific tuple type here, but assumes an array type instead.
-<em>This is a Typescript thing, and I am sure they will get around to fixing it one
-day.</em></p>
-<p>Here is the longer version. The <em>rest</em> parameter passed to <code>run</code> is a tuple of
-type <code>Cmd</code>. The type signature is <code>[string|URL, ...string[]]</code>. Typescript
-assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code>. It is not able to figure out
-that <code>string[]</code> of guaranteed non-zero length is compatible with the tuple type
-<code>Cmd</code>.</p>
-<p>Until Typescript addresses this issue, the idiomatic fix is to simply specify
-the tuple type:</p>
-<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd);
+<p>Here is an example:</p>
+<pre><code class="language-typescript">const lowered = await enumerable([&quot;A&quot;, &quot;B&quot;, &quot;C&quot;])
+  .transform(toLower)
+  .collect();
+
+assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
 </code></pre>
-<p>This is a practical exmple of building up a command in piecemeal fashion:</p>
-<pre><code class="language-typescript">const cmd: Cmd = [&quot;ls&quot;];
-cmd.push(&quot;-la&quot;);
-run(...cmd);
-</code></pre>
+<p>The <code>transform</code> operation is analogous to <code>pipeThrough</code> in the streaming API.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-zen-of-errors"><a class="header" href="#the-zen-of-errors">The Zen of Errors</a></h1>
 <p>Error handling should just work. You should not have to check the exit code of
 every process. Errors that occur upstream should flow downstream. You should not
@@ -329,29 +329,33 @@ place.</p>
 after the downstream processes have exited, assuming the downstream processes
 don't need to process input fully. In most cases this should not matter. If an
 upstream process has side effects, though, weird things could happen.</p>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
-<p>A transformer is just a function with this signature:</p>
-<pre><code class="language-typescript">((it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;);
+<div style="break-before: page; page-break-before: always;"></div><h1 id="using-the-spread-operator-in-run"><a class="header" href="#using-the-spread-operator-in-run">Using the Spread Operator in Run</a></h1>
+<p>This is fine:</p>
+<pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>A transformer transforms objects from one type to another. The chief difference
-between this and a <code>map</code> operation is that you control the whole transformation,
-so you can catch and throw errors emanating from the iteration and manage state.</p>
-<p>You can easily create a transformer using an asynchronous generator. This one
-will transform strings to lower-case:</p>
-<pre><code class="language-typescript">async function* toLower(texts: AsyncIterable&lt;string&gt;) {
-  for await (const text of texts) {
-    yield text.toLocaleLowerCase();
-  }
-}
+<p>The next example results in an error: <em>A spread argument must either have a tuple type or be
+passed to a rest parameter.</em></p>
+<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
 </code></pre>
-<p>Here is an example:</p>
-<pre><code class="language-typescript">const lowered = await enumerable([&quot;A&quot;, &quot;B&quot;, &quot;C&quot;])
-  .transform(toLower)
-  .collect();
+<p>What gives?</p>
+<p>Typescript needs a specific tuple type here, but assumes an array type instead.
+<em>This is a Typescript thing,</em> and I am sure they will get around to fixing it one
+day.</p>
+<p>Here is the longer version. The <em>rest</em> parameter passed to <code>run</code> is a tuple of
+type <code>Cmd</code>. The type signature is <code>[string|URL, ...string[]]</code>. Typescript
+assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code> and must be told otherwise. It is not able to figure out
+that <code>string[]</code> of guaranteed non-zero length is compatible with the tuple type
+<code>Cmd</code>.</p>
+<p>Until Typescript addresses this issue, the idiomatic fix is to simply specify
+the tuple type:</p>
+<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd);
+</code></pre>
+<p>This is a practical exmple of building up a command in piecemeal fashion. It seems a little cleaner to specify the type where you create the tuple:</p>
+<pre><code class="language-typescript">const cmd: Cmd = [&quot;ls&quot;];
+cmd.push(&quot;-la&quot;);
 
-assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
+run(...cmd);
 </code></pre>
-<p>The <code>transform</code> operation is analogous to <code>pipeThrough</code> in the streaming API.</p>
 
                     </main>
 

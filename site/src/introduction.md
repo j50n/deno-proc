@@ -1,5 +1,7 @@
 # Introduction
 
+> This is all going to be redone. Ignore it.
+
 `proc` simplifies working with child processes in Typescript/Deno. Its goal is
 to achieve the simplicity of shell scripts.
 
