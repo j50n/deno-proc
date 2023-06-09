@@ -7,6 +7,7 @@ HERE="$(realpath "$(dirname "$0")")"
 deno install -rf --allow-read="$HERE/" --allow-write="$HERE/" --allow-net https://deno.land/x/udd/main.ts
 
 cd "$HERE/site/" && (
+    rustup self update
     rustup update 
     cargo install mdbook
     cargo install mdbook-graphviz 

@@ -8,7 +8,7 @@ Format, lint, and run tests.
 
 ## Dependency Maintenance
 
-Integrated into the build. 
+Integrated into the build.
 
 ## Release
 

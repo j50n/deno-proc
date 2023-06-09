@@ -1,45 +1,34 @@
 # proc
 
-Blue sky. Let's make something wonderful!
+Maybe the easiest way to run child processes in Deno ever.
 
-## A Warning
-
-**The new API is in work and not yet ready (not even really close).** Big (good)
-changes coming. Stay tuned.
-
-## Documentation (Legacy API)
+## The Old API
 
 The documentation for the legacy API is available at
-[Legacy Documentation](./legacy/README.md). It is recommended that you continue
-to use the legacy API for the time being.
+[Legacy Documentation](./legacy/README.md).
 
-Note that only the legacy API is available from
-`https://deno.land/x/proc/mod.ts`.
+TO use the old API:
 
-## Documentation (New API)
+- https://deno.land/x/proc/mod.ts
+- https://deno.land/x/proc/mod1.ts
+
+When the new API is ready, there will be a 1.0 release and `mod.ts` will be
+switched to the new API. The old API will continue to be maintained at `mod1.ts`
+for some time after the Deno 2.0 release.
+
+The old API was built on `Command.run()` which is now deprecated and scheduled
+to be removed in Deno 2.0. There were other reasons to start over from scratch,
+but this was the primary reason everything changed.
+
+## The New API
 
 The documentation is available at
 [https://j50n.github.io/deno-proc/](https://j50n.github.io/deno-proc/).
 
-## A Big Change is Underway
+To use the new API:
 
-> **Pardon our mess!** The deprecation of `Deno.run` is both a blessing and a
-> curse. `Deno.Command` is a _great_ improvement ... and it breaks pretty much
-> everything. I was going to have to redo the old library as it had gone in some
-> wrong directions.
->
-> - The old API will remain available, unchanged, until Deno 2.0 is released.
-> - When Deno 2.0 is release, the `mod.ts` for the old library will be
-  > relocated. Imports will have to change, but it will still work with Deno
-  > 1.0.
-> - The old API will **not** be upgraded to work with `Deno.Command`. Once
-  > `Deno.run` is removed, the old API will no longer function.
->
-> See [Legacy Documentation](./legacy/README.md) for the old documentation.
+- http://deno.land/x/proc/mod3.ts
 
-I am working on a new version of this library that makes common usage patterns
-in `Deno.Command` much easier.
-
-For now, this is a work in progress. Refer to the source code for the tests -
-like [count-words.test](./tests/examples/count-words.test.md) - for examples
-that are guaranteed to work with the current version.
+The new API is stabilizing and the code is working. New tests are being added
+regularly. Obviously the documentation is a work in progress. Refactors are
+likely before the 1.0.0 release.

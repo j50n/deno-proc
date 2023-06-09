@@ -375,9 +375,9 @@ directly.</p>
 // [2, 4, 6]
 </code></pre>
 <h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
-<p>Open a file. Use <code>enumerate</code> to wrap the <code>ReadableStream</code> from the file into an <code>Enumerable</code>.
-Uncompress, strip out empty lines, and count them. Convert the output from
-<code>wc -l</code> into a number.</p>
+<p>Open a file. Use <code>enumerate</code> to wrap the <code>ReadableStream</code> from the file into an
+<code>Enumerable</code>. Uncompress, strip out empty lines, and count them. Convert the
+output from <code>wc -l</code> into a number.</p>
 <pre><code class="language-typescript">const file = await Deno.open(
   fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
 );
