@@ -365,7 +365,8 @@ run(...cmd);
 <p>This can wrap another <code>AsyncIterable</code> or an <code>Iterable</code>. Passing <code>null</code> results
 in an empty enumeration.</p>
 <blockquote>
-<p>⚠️ Use the <code>enumerate</code> method rather than creating a <code>new Enumerable()</code> directly.</p>
+<p>⚠️ Use the <code>enumerate</code> method rather than creating a <code>new Enumerable()</code>
+directly.</p>
 </blockquote>
 <h3 id="example-1"><a class="header" href="#example-1">Example 1</a></h3>
 <p>Use <code>enumerate</code> to turn an array of numbers into an <code>AsyncIterable</code>.</p>
@@ -374,7 +375,7 @@ in an empty enumeration.</p>
 // [2, 4, 6]
 </code></pre>
 <h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
-<p>Open a file. Wrap the <code>ReadableStream</code> from the file into an <code>Enumerable</code>.
+<p>Open a file. Use <code>enumerate</code> to wrap the <code>ReadableStream</code> from the file into an <code>Enumerable</code>.
 Uncompress, strip out empty lines, and count them. Convert the output from
 <code>wc -l</code> into a number.</p>
 <pre><code class="language-typescript">const file = await Deno.open(
