@@ -57,6 +57,14 @@ export function enumerate<T>(
 }
 
 /**
+ * Options for {@link Enumerable.concurrentMap} and {@link Enumerable.concurrentUnorderedMap}.
+ */
+export interface ConcurrentOptions {
+  /** Maximum concurrency. */
+  concurrency?: number;
+}
+
+/**
  * Enumerable wrapper for `AsyncIterable`.
  *
  * Use the factory function {@link enumerate} to create new instances
@@ -151,16 +159,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * Results are returned in order.
    *
    * @param mapFn The mapping function.
-   * @param concurrency The maximum concurrency.
+   * @param options {@link ConcurrentOptions}
    * @returns An iterable of mapped values.
    */
   concurrentMap<U>(
     mapFn: (item: T) => Promise<U>,
-    concurrency?: number,
+    options?: ConcurrentOptions,
   ): Enumerable<U> {
     const iter = this.iter;
     return new Enumerable(
-      concurrentMap(iter, mapFn, concurrency),
+      concurrentMap(iter, mapFn, options?.concurrency),
     ) as Enumerable<U>;
   }
 
@@ -172,16 +180,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * same as the input order.
    *
    * @param mapFn The mapping function.
-   * @param concurrency The maximum concurrency.
+   * @param options {@link ConcurrentOptions}
    * @returns An iterable of mapped values.
    */
   concurrentUnorderedMap<U>(
     mapFn: (item: T) => Promise<U>,
-    concurrency?: number,
+    options?: ConcurrentOptions,
   ): Enumerable<U> {
     const iter = this.iter;
     return new Enumerable(
-      concurrentUnorderedMap(iter, mapFn, concurrency),
+      concurrentUnorderedMap(iter, mapFn, options?.concurrency),
     ) as Enumerable<U>;
   }
 

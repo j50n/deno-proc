@@ -386,7 +386,8 @@ const count = await enumerate(file.readable)
   .run(&quot;gunzip&quot;)
   .run(&quot;grep&quot;, &quot;\S&quot;)
   .run(&quot;wc&quot;, &quot;-l&quot;)
-  .lines.map((n) =&gt; parseInt(n, 10))
+  .lines
+  .map((n) =&gt; parseInt(n, 10))
   .first;
 
 console.log(count);
@@ -401,10 +402,12 @@ console.log(count);
   .run(&quot;gunzip&quot;)
   .run(&quot;grep&quot;, &quot;\S&quot;)
   .run(&quot;wc&quot;, &quot;-l&quot;)
-  .lines.map((n) =&gt; parseInt(n, 10))
+  .lines
+  .map((n) =&gt; parseInt(n, 10))
   .first;
 
 console.log(count);
+
 // 2102
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="transformers-1"><a class="header" href="#transformers-1">Transformers</a></h1>

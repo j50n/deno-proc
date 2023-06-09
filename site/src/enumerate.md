@@ -33,7 +33,8 @@ const count = await enumerate(file.readable)
   .run("gunzip")
   .run("grep", "\S")
   .run("wc", "-l")
-  .lines.map((n) => parseInt(n, 10))
+  .lines
+  .map((n) => parseInt(n, 10))
   .first;
 
 console.log(count);
@@ -51,9 +52,11 @@ const count = await read(
   .run("gunzip")
   .run("grep", "\S")
   .run("wc", "-l")
-  .lines.map((n) => parseInt(n, 10))
+  .lines
+  .map((n) => parseInt(n, 10))
   .first;
 
 console.log(count);
+
 // 2102
 ```
