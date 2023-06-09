@@ -40,3 +40,20 @@ console.log(count);
 
 // 2102
 ```
+
+We can make this a little bit shorter using the `read` method (which wraps
+`enumerate`).
+
+```typescript
+const count = await read(
+  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
+)
+  .run("gunzip")
+  .run("grep", "\S")
+  .run("wc", "-l")
+  .lines.map((n) => parseInt(n, 10))
+  .first;
+
+console.log(count);
+// 2102
+```

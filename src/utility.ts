@@ -1,6 +1,19 @@
 import { Enumerable, enumerate } from "./enumerable.ts";
 
 /**
+ * Open a file for reading.
+ * @param path The path of the file.
+ */
+export function read(path: string | URL): Enumerable<Uint8Array> {
+  async function* openForRead(): AsyncIterable<Uint8Array> {
+    const file = await Deno.open(path);
+    yield* file.readable;
+  }
+
+  return enumerate(openForRead());
+}
+
+/**
  * Fast-concatenate `Uint8Arrays` arrays together, returning a single array containing the result.
  *
  * Note that this may return the original source data or a copy.

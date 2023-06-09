@@ -1,4 +1,4 @@
-import { enumerate } from "../../mod3.ts";
+import { enumerate, read } from "../../mod3.ts";
 import { fromFileUrl } from "../deps/path.ts";
 
 Deno.test({
@@ -9,6 +9,22 @@ Deno.test({
     );
 
     const count = await enumerate(file.readable)
+      .run("gunzip")
+      .run("grep", "\S")
+      .run("wc", "-l")
+      .lines.map((n) => parseInt(n, 10))
+      .first;
+
+    console.log(count);
+  },
+});
+
+Deno.test({
+  name: "Read a file.",
+  async fn() {
+    const count = await read(
+      fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
+    )
       .run("gunzip")
       .run("grep", "\S")
       .run("wc", "-l")

@@ -177,6 +177,20 @@ console.log(count);
 
 // 2102
 </code></pre>
+<p>We can make this a little bit shorter using the <code>read</code> method (which wraps
+<code>enumerate</code>).</p>
+<pre><code class="language-typescript">const count = await read(
+  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
+)
+  .run(&quot;gunzip&quot;)
+  .run(&quot;grep&quot;, &quot;\S&quot;)
+  .run(&quot;wc&quot;, &quot;-l&quot;)
+  .lines.map((n) =&gt; parseInt(n, 10))
+  .first;
+
+console.log(count);
+// 2102
+</code></pre>
 
                     </main>
 
