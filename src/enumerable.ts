@@ -305,6 +305,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Take the head of the enumeration.
+   *
+   * This operation is equivalent to `take(1)` and consumes the enumeration.
+   */
+  get first(): Promise<T> {
+    return (async () => {
+      for await (const item of this.take(1)) {
+        return item;
+      }
+      throw new RangeError("enumeration missing head");
+    })();
+  }
+
+  /**
    * Drop the first `n` items, return the rest.
    * @param n The number of items to drop.
    * @returns The items that were not dropped.

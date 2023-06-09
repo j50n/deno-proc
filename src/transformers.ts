@@ -225,3 +225,27 @@ export function buffer(
     return buffergen;
   }
 }
+
+/**
+ * Convert objects into JSON.
+ * @param items The objects to convert.
+ */
+export async function* jsonStringify<T>(
+  items: AsyncIterable<T>,
+): AsyncIterable<string> {
+  for await (const item of items) {
+    yield JSON.stringify(item);
+  }
+}
+
+/**
+ * Convert JSON-encoded lines into objects.
+ * @param items The JSON-encoded lines.
+ */
+export async function* jsonParse<T>(
+  items: AsyncIterable<string>,
+): AsyncIterable<T> {
+  for await (const item of items) {
+    yield JSON.parse(item);
+  }
+}

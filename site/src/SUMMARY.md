@@ -19,8 +19,9 @@
 
 ---
 
-- [Enumerables]()
-  - [Map]()
-  - [Transform]()
+- [Enumerable](enumerable.md)
+  - [enumerate (Factory)](./enumerate.md)
+  - [map]()
+  - [transform]()
 - [Transformers](./transformers.md)
 - [Utility Functions](./utility.md)

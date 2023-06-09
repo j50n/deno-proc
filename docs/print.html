@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Enumerables</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> Map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> Transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">5.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">6.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">4.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">4.1.</strong> enumerate</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> Map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.3.</strong> Transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">5.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">6.</strong> Utility Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -357,6 +357,36 @@ cmd.push(&quot;-la&quot;);
 
 run(...cmd);
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="enumerable"><a class="header" href="#enumerable">Enumerable</a></h1>
+<p>See
+<a href="https://github.com/j50n/deno-proc/blob/main/src/enumerable.ts">enumerable.ts</a></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="enumerate"><a class="header" href="#enumerate">enumerate</a></h1>
+<p>Create a new <code>Enumerable</code> with the <code>enumerate</code> factory method.</p>
+<p>This can wrap another <code>AsyncIterable</code> or an <code>Iterable</code>. Passing <code>null</code> results
+in an empty enumeration.</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example 1</a></h3>
+<p>Use <code>enumerate</code> to turn an array of numbers into an <code>AsyncIterable</code>.</p>
+<pre><code class="language-typescript">await enumerate([1, 2, 3]).map((n) =&gt; n * 2).collect();
+
+// [2, 4, 6]
+</code></pre>
+<h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
+<p>Open a file. Wrap the <code>ReadableStream</code> in an <code>Enumerable</code>. Uncompress, strip out empty lines, and count them. Convert the output from <code>wc -l</code> into a number and take the result.</p>
+<pre><code class="language-typescript">const file = await Deno.open(
+  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
+);
+
+const count = await enumerate(file.readable)
+  .run(&quot;gunzip&quot;)
+  .run(&quot;grep&quot;, &quot;\S&quot;)
+  .run(&quot;wc&quot;, &quot;-l&quot;)
+  .lines.map((n) =&gt; parseInt(n, 10))
+  .first;
+
+console.log(count);
+
+// 2102
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="transformers-1"><a class="header" href="#transformers-1">Transformers</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h1>
 <h2 id="sleep"><a class="header" href="#sleep">Sleep</a></h2>
@@ -373,14 +403,14 @@ always 0, and the default step is 1.</p>
 <p>This is a lazy operation. It is creating the results one at a time rather than
 all at once in memory. Therefore it is perfectly reasonable to do something like
 create an infinite range.</p>
-<h3 id="example-1"><a class="header" href="#example-1">Example 1</a></h3>
+<h3 id="example-1-1"><a class="header" href="#example-1-1">Example 1</a></h3>
 <p>Prints the numbers <code>0</code>, <code>1</code>, and <code>2</code>. Using <code>to</code> so the end number is exclusive.
 Default <code>from</code> is <code>0</code>.</p>
 <pre><code class="language-typescript">for (const i of range({ to: 3 })) {
   console.log(i);
 }
 </code></pre>
-<h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
+<h3 id="example-2-1"><a class="header" href="#example-2-1">Example 2</a></h3>
 <p>Prints the numbers <code>0</code>, <code>1</code>, <code>2</code>, and <code>3</code>. Using <code>from</code> so the end number is
 inclusive. Default <code>from</code> is <code>0</code>.</p>
 <pre><code class="language-typescript">for (const i of range({ until: 3 })) {
