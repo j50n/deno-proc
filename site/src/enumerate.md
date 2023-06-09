@@ -5,6 +5,9 @@ Create a new `Enumerable` with the `enumerate` factory method.
 This can wrap another `AsyncIterable` or an `Iterable`. Passing `null` results
 in an empty enumeration.
 
+> ⚠️ Use the `enumerate` method rather than creating a `new Enumerable()`
+> directly.
+
 ### Example 1
 
 Use `enumerate` to turn an array of numbers into an `AsyncIterable`.
@@ -17,8 +20,9 @@ await enumerate([1, 2, 3]).map((n) => n * 2).collect();
 
 ### Example 2
 
-Open a file. Wrap the `ReadableStream` from the file into an `Enumerable`. Uncompress, strip out
-empty lines, and count them. Convert the output from `wc -l` into a number. 
+Open a file. Wrap the `ReadableStream` from the file into an `Enumerable`.
+Uncompress, strip out empty lines, and count them. Convert the output from
+`wc -l` into a number.
 
 ```typescript
 const file = await Deno.open(
