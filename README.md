@@ -16,9 +16,9 @@ When the new API is ready, there will be a 1.0 release and `mod.ts` will be
 switched to the new API. The old API will continue to be maintained at `mod1.ts`
 for some time after the Deno 2.0 release.
 
-The old API was built on `Command.run()` which is now deprecated and scheduled
-to be removed in Deno 2.0. There were other reasons to start over from scratch,
-but this was the primary reason everything changed.
+The old API was built on `Deno.run()` which is now deprecated and scheduled to
+be removed in Deno 2.0. There were other reasons to start over from scratch, but
+this was the primary reason everything changed.
 
 ## The New API
 
@@ -32,3 +32,7 @@ To use the new API:
 The new API is stabilizing and the code is working. New tests are being added
 regularly. Obviously the documentation is a work in progress. Refactors are
 likely before the 1.0.0 release.
+
+The new API is a nice way to work with `AsyncIterable` in general. It also
+blends in a really nice way to work with child processes where things like
+errors _just work_ and you don't have to worry about resource leaks.
