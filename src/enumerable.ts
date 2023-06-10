@@ -159,7 +159,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns An iterable of mapped values where one level of indirection has been "flattened" out.
    */
   flatMap<U>(mapFn: (item: T) => U | Promise<U>): Enumerable<ElementType<U>> {
-    return this.map(mapFn).flatten()
+    return this.map(mapFn).flatten();
   }
 
   /**
@@ -204,7 +204,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Filter the sequence to contain just the items that pass a test.
-   * 
+   *
    * @param filterFn The filter function.
    * @returns An iterator returning the values that passed the filter function.
    */
@@ -218,7 +218,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
   /**
    * Filter the sequence to exclude the items that pass a test. This returns the
    * inverse of {@link filter}.
-   * 
+   *
    * @param filterFn The filter function.
    * @returns An iterator excluding the values that passed the filter function.
    */
@@ -226,7 +226,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
     filterFn: (item: T) => boolean | Promise<boolean>,
   ): Enumerable<T> {
     const iterable = this.iter;
-    return new Enumerable(filter(iterable, async (item:T) => !(await filterFn(item)))) as Enumerable<T>;
+    return new Enumerable(
+      filter(iterable, async (item: T) => !(await filterFn(item))),
+    ) as Enumerable<T>;
   }
 
   /**

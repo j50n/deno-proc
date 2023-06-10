@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Using the Spread Operator in Run - Proc</title>
+        <title>Stream Conversions - Proc</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">1.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html" class="active"><strong aria-hidden="true">4.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">5.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">5.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">6.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">7.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="conversions.html" class="active"><strong aria-hidden="true">1.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">4.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">5.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">5.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">6.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">7.</strong> Utility Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,44 +144,33 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="using-the-spread-operator-in-run"><a class="header" href="#using-the-spread-operator-in-run">Using the Spread Operator in Run</a></h1>
-<p>This is fine:</p>
-<pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
-</code></pre>
-<p>The next example results in an error: <em>A spread argument must either have a
-tuple type or be passed to a rest parameter.</em></p>
-<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
-</code></pre>
-<p>What gives?</p>
-<p>Typescript needs a specific tuple type here, but assumes an array type instead.
-<em>This is a Typescript thing,</em> and I am sure they will get around to fixing it
-one day.</p>
-<p>Here is the longer version. The <em>rest</em> parameter passed to <code>run</code> is a tuple of
-type <code>Cmd</code>. The type signature is <code>[string|URL, ...string[]]</code>. Typescript
-assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code> and must be told otherwise.
-It is not able to figure out that <code>string[]</code> of guaranteed non-zero length is
-compatible with the tuple type <code>Cmd</code>.</p>
-<p>Until Typescript addresses this issue, the idiomatic fix is to simply specify
-the tuple type:</p>
-<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd);
-</code></pre>
-<p>This is a practical exmple of building up a command in piecemeal fashion. It
-seems a little cleaner to specify the type where you create the tuple:</p>
-<pre><code class="language-typescript">const cmd: Cmd = [&quot;ls&quot;];
-cmd.push(&quot;-la&quot;);
-
-run(...cmd);
-</code></pre>
+                        <h1 id="stream-conversions"><a class="header" href="#stream-conversions">Stream Conversions</a></h1>
+<p>Deno has methods to convert between <code>AsyncIterable</code> and streams as well as
+readers and writers at
+<a href="https://deno.land/std/streams/mod.ts">https://deno.land/std/streams/mod.ts</a>.
+These libraries have moved around quite a bit so they can be difficult to search
+for.</p>
+<p><em>Note that error propagation through streams in Deno is somewhere between tricky
+and broken.</em> Be sure to test your code thoroughly for error handling if you need
+to convert to and use streams API.</p>
+<h2 id="asynciterable-to-stream"><a class="header" href="#asynciterable-to-stream"><code>AsyncIterable</code> to <code>Stream</code></a></h2>
+<p>To convert from an <code>AsyncIterable</code> (or <code>Enumerable</code>) to a <code>ReadableStream</code>, use
+the
+<a href="https://deno.land/std/streams/mod.ts?s=readableStreamFromIterable">readableStreamFromIterable</a>
+function.</p>
+<h2 id="stream-to-asynciterable"><a class="header" href="#stream-to-asynciterable"><code>Stream</code> to <code>AsyncIterable</code></a></h2>
+<p>A <code>ReadableStream</code> is an <code>AsyncIterable</code>. Avoid the use of <code>.pipeThrough()</code> and
+<code>.pipeTo()</code>. Use <code>for await</code> or <code>enumerate()</code> instead.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="errors.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="enumerable.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="transform.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -191,11 +180,11 @@ run(...cmd);
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="errors.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="enumerable.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="transform.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

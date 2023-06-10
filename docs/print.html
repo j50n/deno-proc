@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">1.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">2.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">3.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">4.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">4.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">5.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">6.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">1.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">4.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">5.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">5.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">6.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">7.</strong> Utility Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -237,6 +237,23 @@ access to <code>stdout</code>):</p>
 gone.</p>
 <p><a href="https://github.com/j50n/deno-proc/blob/main/src/transformers.ts">transformers.ts</a>
 <a href="https://github.com/j50n/deno-proc/blob/main/src/transformers.ts" target="_blank">transformers.ts</a></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="stream-conversions"><a class="header" href="#stream-conversions">Stream Conversions</a></h1>
+<p>Deno has methods to convert between <code>AsyncIterable</code> and streams as well as
+readers and writers at
+<a href="https://deno.land/std/streams/mod.ts">https://deno.land/std/streams/mod.ts</a>.
+These libraries have moved around quite a bit so they can be difficult to search
+for.</p>
+<p><em>Note that error propagation through streams in Deno is somewhere between tricky
+and broken.</em> Be sure to test your code thoroughly for error handling if you need
+to convert to and use streams API.</p>
+<h2 id="asynciterable-to-stream"><a class="header" href="#asynciterable-to-stream"><code>AsyncIterable</code> to <code>Stream</code></a></h2>
+<p>To convert from an <code>AsyncIterable</code> (or <code>Enumerable</code>) to a <code>ReadableStream</code>, use
+the
+<a href="https://deno.land/std/streams/mod.ts?s=readableStreamFromIterable">readableStreamFromIterable</a>
+function.</p>
+<h2 id="stream-to-asynciterable"><a class="header" href="#stream-to-asynciterable"><code>Stream</code> to <code>AsyncIterable</code></a></h2>
+<p>A <code>ReadableStream</code> is an <code>AsyncIterable</code>. Avoid the use of <code>.pipeThrough()</code> and
+<code>.pipeTo()</code>. Use <code>for await</code> or <code>enumerate()</code> instead.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
 <p>A transformer is just a function with this signature:</p>
 <pre><code class="language-typescript">((it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;);

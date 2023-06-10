@@ -4,16 +4,21 @@ import { concat } from "./utility.ts";
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
  *
- * Note that this should probably only be used with small data. Consider {@link toChunkedLines}
- * to improve performance with larger data.
+ * There is a small performance penalty to using asynchronous iteration over using
+ * an array directly. If you are working with a very large data set and the strings
+ * you are working with are very small (e.g., word size), consider using
+ * {@link toChunkedLines}.
  *
  * @param buffs The iterable bytes.
  */
 export async function* toLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string> {
-  for await (const lines of toChunkedLines(buffs)) {
-    yield* lines;
+  const decoder = new TextDecoder();
+  for await (const lines of toByteLines(buffs)) {
+    for (const line of lines) {
+      yield decoder.decode(line);
+    }
   }
 }
 
@@ -25,18 +30,14 @@ export async function* toLines(
  *
  * @param buffs The iterable bytes.
  */
-export function toChunkedLines(
+export async function* toChunkedLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string[]> {
   const decoder = new TextDecoder();
 
-  return {
-    async *[Symbol.asyncIterator]() {
-      for await (const lines of toByteLines(buffs)) {
-        yield lines.map((line) => decoder.decode(line));
-      }
-    },
-  };
+  for await (const lines of toByteLines(buffs)) {
+    yield lines.map((line) => decoder.decode(line));
+  }
 }
 
 /**
@@ -47,16 +48,34 @@ export function toChunkedLines(
  *
  * @param buffs The iterable bytes.
  */
-async function* toByteLines(
+export async function* toByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<Uint8Array[]> {
   /*
-   * Using subarray since that is just a view. No copy operation.
+   * Using subarray since that is just a view. No copy operation. Faster.
    *
    * Iterating and testing byte-wise rather than using `find()`, which requires a
    * call to a function for each byte. Should be pretty close to byte-at-a-time
    * C-style scanning. Not as fast as a SIMD operation, but that isn't an option
    * here.
+   *
+   * The `TextDecodeStream` and `TextLineStream` streams are written in Typescript,
+   * and they force a conversion to string before searching for line separators.
+   * That is a slower operation. I think they are also using operations that force
+   * buffers to be copied (depends on how V8 optimizes the operations), but
+   * `Uint8Array.subarray` is a view-only operation guaranteed, so no memory copies.
+   * So I think this is faster than the `std` library conversions. I real world cases
+   * it doesn't matter anyway, as the processing time for a line is (conversion to and
+   * from JSON, or Regexp parsing) is going to dominate splitting on lines.
+   *
+   * `async` and `yield` as well as iterables are first-class citizens of Javascript.
+   * The V8 team has put a lot of work into optimizing these. I expect the performance
+   * to be on par with anything in the streams library (maybe better?). Usage over time
+   * will shake out any bad actors in this library.
+   *
+   * The bigger problem with the `std` library streams is the error handling
+   * through streams. Maybe it is just broken as of 1.34.1 and will be fixed later.
+   * Will have to check back later.
    */
   let currentLine: Uint8Array[] = [];
   let lastline: undefined | Uint8Array;
