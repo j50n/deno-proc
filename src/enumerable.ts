@@ -140,17 +140,26 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Flatten the iterable.
-   * @returns An iterator where a level of indirection has been removed.
+   * @returns An iterator where a level of indirection has been "flattened" out.
    */
-  public flatten(): Enumerable<ElementType<T>> {
-    const iterable = this.iter;
+  flatten(): Enumerable<ElementType<T>> {
+    const iter = this.iter;
     return new Enumerable(
       flatten(
-        iterable as AsyncIterable<
+        iter as AsyncIterable<
           AsyncIterable<ElementType<T>> | Iterable<ElementType<T>>
         >,
       ),
     );
+  }
+
+  /**
+   * Equivalent to calling {@link map} followed by {@link flatten}.
+   * @param mapFn The mapping function.
+   * @returns An iterable of mapped values where one level of indirection has been "flattened" out.
+   */
+  flatMap<U>(mapFn: (item: T) => U | Promise<U>): Enumerable<ElementType<U>> {
+    return this.map(mapFn).flatten()
   }
 
   /**
@@ -195,6 +204,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Filter the sequence to contain just the items that pass a test.
+   * 
    * @param filterFn The filter function.
    * @returns An iterator returning the values that passed the filter function.
    */
@@ -203,6 +213,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   ): Enumerable<T> {
     const iterable = this.iter;
     return new Enumerable(filter(iterable, filterFn)) as Enumerable<T>;
+  }
+
+  /**
+   * Filter the sequence to exclude the items that pass a test. This returns the
+   * inverse of {@link filter}.
+   * 
+   * @param filterFn The filter function.
+   * @returns An iterator excluding the values that passed the filter function.
+   */
+  filterNot(
+    filterFn: (item: T) => boolean | Promise<boolean>,
+  ): Enumerable<T> {
+    const iterable = this.iter;
+    return new Enumerable(filter(iterable, async (item:T) => !(await filterFn(item)))) as Enumerable<T>;
   }
 
   /**
@@ -279,6 +303,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
     return new Uint8Enumerable(p.stdout);
   }
 
+  /**
+   * Split into 2 or more identical iterators.
+   * @param n The number of clones to create.
+   * @returns 2 or more identical clones.
+   */
   tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
     return tee(this.iter, n).map((it) => enumerate(it)) as Tuple<
       Enumerable<T>,
