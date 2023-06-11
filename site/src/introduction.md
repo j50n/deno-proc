@@ -1,6 +1,10 @@
 # Introduction
 
-## Efficient `du` for S3 Buckets
+## Concurrent Total Used Storage for S3 Buckets
+
+`proc` supports controlled concurrent operations. This is the feature missing from `Promise.all()`.
+
+If you have to work with S3 buckets, you know it is time consuming to determine how much storage space you are using/paying for, and where you are using the most storage. `proc` makes it possible to run `ls --summarize` with parallelism matching the number of CPU cores available (or whatever concurrency you specify).
 
 To list the `s3` buckets in your AWS account from terminal:
 
