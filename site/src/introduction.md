@@ -21,7 +21,7 @@ Grab those bucket names with `proc`:
 const buckets = await run("aws", "s3", "ls")
   .map((b) => b.split(/\s+/g, 3))
   .map((b) => b[b.length - 1])
-  .collect()
+  .collect();
 ```
 
 To get the total storage size in bytes from terminal:
@@ -30,19 +30,21 @@ To get the total storage size in bytes from terminal:
 aws s3 ls s3://mybucket --recursive --summarize
 ```
 
-This will list all objects in the bucket, but we can ignore that noise. At the end of the operation, we are looking for a line that looks like this:
+This will list all objects in the bucket, but we can ignore that noise. At the
+end of the operation, we are looking for a line that looks like this:
 
 ```
 Total Size: 2.9 MiB
 ```
 
-This is potentially a long-running operation (some buckets have a lot of objects), so we want to run it concurrently. With `proc`:
+This is potentially a long-running operation (some buckets have a lot of
+objects), so we want to run it concurrently. With `proc`:
 
 ```typescript
 enumerate(buckets).concurrentUnorderedMap(
   async (bucket) => {
     const answer: string = await run(
-        // "nice",
+        "nice", "-19",
         "aws", "s3", "ls", 
         `s3://${bucket}`, 
         "--recursive", "--summarize")
@@ -55,7 +57,9 @@ enumerate(buckets).concurrentUnorderedMap(
 )
 ```
 
-Use `nice` if you want to lower the priority of the `aws` processes. The method `.concurrentUnorderedMap()` will, by default, run one process for each CPU available concurrently until all work is done. 
+Use `nice` because this will eat your server otherwise. The method
+`.concurrentUnorderedMap()` will, by default, run one process for each CPU
+available concurrently until all work is done.
 
 The result will look something like this:
 
