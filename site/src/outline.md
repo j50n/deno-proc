@@ -1,3 +1,10 @@
+Next Up:
+
+- Count words, count unique words, with tee in bash and proc, and that's the
+  introduction.
+  - fast code - use C libraries, go out of process (parallel if possible)
+  - also simplified demo of AWS du? Byte size. With nice -19.
+
 - Introduction
 - A Simple Example
 - A More Complete Example

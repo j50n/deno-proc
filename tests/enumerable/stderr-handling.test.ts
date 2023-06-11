@@ -9,12 +9,10 @@ Deno.test({
 
     const result = await run(
       {
-        fnStderr: async (input: AsyncIterable<string[]>): Promise<void> => {
-          for await (const lines of input) {
-            for (const line of lines) {
-              console.error(gray(line));
-              stderr.push(line);
-            }
+        fnStderr: async (input: AsyncIterable<string>): Promise<void> => {
+          for await (const line of input) {
+            console.error(gray(line));
+            stderr.push(line);
           }
         },
       },
@@ -56,10 +54,10 @@ Deno.test({
       const output = run(
         {
           fnStderr: async (
-            input: AsyncIterable<string[]>,
+            input: AsyncIterable<string>,
           ): Promise<string[]> => {
             /* This supresses print of the stderr data. */
-            return await enumerate(input).flatten().collect();
+            return await enumerate(input).collect();
           },
           fnError: (error?: Error, stderrData?: string[]) => {
             if (error != null && error instanceof ExitCodeError) {

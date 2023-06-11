@@ -1,4 +1,4 @@
-import { buffer, toBytes, toChunkedLines } from "./transformers.ts";
+import { buffer, toBytes, toLines } from "./transformers.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -18,12 +18,12 @@ export type PipeKinds = "piped" | "inherit" | "null";
 export type ErrorHandler<S> = (error?: Error, stderrData?: S) => void;
 
 /**
- * Optionally handle lines of stderr (passed as arrays of lines as available), and also
- * optionally return a value that is passed to your custom `ErrorHandler`. **This function
- * may not throw an error**. If you wish to throw an error based on `stderr` data, the
- * `ErrorHandler` function is where you do that.
+ * Optionally handle lines of stderr (passed as text lines), and also
+ * optionally return a value that is passed to your custom `ErrorHandler`. **You are
+ * not allowed to throw an error from this function**. If you wish to throw an error
+ * based on `stderr` data, the `ErrorHandler` function is where you do that.
  */
-export type StderrHandler<S> = (it: AsyncIterable<string[]>) => Promise<S>;
+export type StderrHandler<S> = (it: AsyncIterable<string>) => Promise<S>;
 
 /**
  * Options passed to a process.
@@ -116,7 +116,7 @@ export class Process<S> implements Deno.Closer {
     public readonly args: readonly string[],
   ) {
     if (options.fnStderr != null) {
-      this.stderrResult = options.fnStderr(toChunkedLines(process.stderr));
+      this.stderrResult = options.fnStderr(toLines(process.stderr));
     }
   }
 

@@ -15,6 +15,7 @@ export async function* toLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string> {
   const decoder = new TextDecoder();
+
   for await (const lines of toByteLines(buffs)) {
     for (const line of lines) {
       yield decoder.decode(line);
