@@ -11,7 +11,7 @@ Documentation is at
 
 To use the new API:
 
-```typescript 
+```typescript
 import * as proc from "http://deno.land/x/proc/mod3.ts";
 ```
 

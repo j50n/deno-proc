@@ -49,8 +49,8 @@ Deno.test({
 Deno.test({
   name: "Range to infinity.",
   async fn() {
-    for await (const n of range({ to: Number.POSITIVE_INFINITY })) {
-      if (n > 20) {
+    for await (const n of range({ from: Number.MIN_SAFE_INTEGER, to: Number.MAX_SAFE_INTEGER })) {
+      if (n > Number.MIN_SAFE_INTEGER + 200) {
         break;
       }
     }

@@ -46,7 +46,7 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
 }
 
 /**
- * A `to` range.
+ * Options for a `to` range. The `to` range is exclusive.
  */
 export interface RangeToOptions {
   /** Starting number inclusive; defaults to 0. */
@@ -58,7 +58,7 @@ export interface RangeToOptions {
 }
 
 /**
- * An `until` range.
+ * Options for an `until` range. The `until` value is inclusive.
  */
 export interface RangeUntilOptions {
   /** Starting number inclusive; defaults to 0. */

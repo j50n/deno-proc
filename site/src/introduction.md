@@ -5,17 +5,15 @@ supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with `Deno` IO streams. With `proc`, writing
 shell-style solutions in Deno is painless.
 
+<a href="https://deno.land/x/proc@{{gitversion}}/mod3.ts" target="_blank">API
+Documentation</a>
+
 ## Import
 
 Import using this path (note the use of `mod3.ts` rather than `mod.ts`).
 
 ```typescript
-import {
-  Cmd,
-  enumerate,
-  read,
-  run,
-} from "https://deno.land/x/proc@{{gitversion}}/mod3.ts";
+import * as proc from "https://deno.land/x/proc@{{gitversion}}/mod3.ts";
 ```
 
 ## Examples
@@ -179,4 +177,22 @@ The result will look something like this:
 ```
 mybucket  Total Size: 2.9 MiB
 mybucket2 Total Size: 30.2 MiB
+```
+
+## A Lazy Way to Count
+
+Print the numbers from 0 to 99.
+
+```typescript
+for await (const i of range({to: 100})) {
+    console.log(i);
+}
+```
+
+## Sleep
+
+A convenient way to wait a little bit. This pauses for 1 second.
+
+```typescript
+await sleep(1000);
 ```
