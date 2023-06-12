@@ -144,98 +144,136 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<blockquote>
-<p>This is all going to be redone. Ignore it.</p>
-</blockquote>
-<p><code>proc</code> simplifies working with child processes in Typescript/Deno. Its goal is
-to achieve the simplicity of shell scripts.</p>
-<p>Deno is a great choice to replace your <code>bash</code> scripts when they become too
-complex. Typescript scales up. Type checking and Deno's security-by-default make
-it safer to use when you have to test in production. Deno has done away with the
-package-manager concept, so you can run scripts from source without an
-installation step. There is no project configuration needed by default.</p>
-<p><em>If only running child processes was not so damn complicated. It is easy in
-<code>bash</code>. Why is it so hard in Deno?</em></p>
-<p>At the start of 2023, there was a major change. The Deno team deprecated
-<code>Deno.run</code> in favor of <code>Deno.Command</code>. The new API was a major step forward.
-Resource cleanup and error checking worked automatically. The resulting code was
-cleaner. The performance was stellar.</p>
-<p><em>I think, though, that there is still some room for improvement.</em> Using the API
-could be simpler, and the resulting code could be a lot easier to read.</p>
-<hr />
-<p><strong>Introducing <code>proc</code>.</strong> This is is a lightweight rethinking of the
-<code>Deno.Command</code> API for use doing shell-script-like things. It makes the simple
-things dead-simple and really cleans up the more complex ones.</p>
-<p>The goal of <code>proc</code> is to make programming with processes as close to the
-experience of shell scripting as possible. While the resulting code isn't as
-terse as the equivalent shell script, it is pretty close to minimal for
-Typescript syntax.</p>
-<p>It should be possible to pipe the output of one process directly to another
-without boilerplate. Command syntax should be simpler. Processing the output as
-lines of text or as an array should be obvious. These are the kinds of things
-that <code>proc</code> give you.</p>
-<p>Note that <code>proc</code> is not reinventing or replacing <code>Deno.Command</code> at all. It is an
-extension. It uses the same interfaces, the same methods, streams, etc., so you
-can do things the same way you would - with the same performance - as
-<code>Deno.Command</code>. You can use as much or as little of <code>proc</code> as you wish, taking
-full control or doing it the &quot;easy way.&quot;</p>
-<p>Here are some working examples to give you an idea of some of the differences
-between <code>proc</code> and out-of-the-box <code>Deno.Command</code>.</p>
-<h2 id="the-denocommand-way"><a class="header" href="#the-denocommand-way">The <code>Deno.Command</code> Way</a></h2>
-<p>Here are some different approaches to listing files using <code>ls</code> using
-<code>Deno.Command</code>. The equivalent in <code>bash</code> would look like this:</p>
-<pre><code class="language-shell">ls -la
+                        <h1 id="proc-02017"><a class="header" href="#proc-02017"><code>proc 0.20.17</code></a></h1>
+<p><code>proc</code> is a powerful functional extension for <code>AsyncIterable</code> in Deno. It
+supports managing external processes, provides extensions for concurrent
+programming, and works seamlessly with <code>Deno</code> IO streams. With <code>proc</code>, writing
+shell-style solutions in Deno is painless.</p>
+<h2 id="import"><a class="header" href="#import">Import</a></h2>
+<p>Import using this path (note the use of <code>mod3.ts</code> rather than <code>mod.ts</code>).</p>
+<pre><code class="language-typescript">import {
+  Cmd,
+  enumerate,
+  read,
+  run,
+} from &quot;https://deno.land/x/proc@0.20.17/mod3.ts&quot;;
 </code></pre>
-<h5 id="example-1-for-command"><a class="header" href="#example-1-for-command">Example 1 (for <code>Command</code>)</a></h5>
-<p>To do this using <code>Deno.Command</code>, I can do this (output bytes captured all at
-once, decoded to text):</p>
-<pre><code class="language-typescript">const output = await new Deno.Command(&quot;ls&quot;, { args: [&quot;-la&quot;] }).output();
-console.log(new TextDecoder().decode(output.stdout));
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<p>These examples show some of the things <code>proc</code> can do.</p>
+<h3 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h3>
+<p>List the file names in the current directory (<code>-1</code> puts each on its own line),
+capture as lines, and collect the names into an array.</p>
+<pre><code class="language-typescript">const filesAndFolders = run(&quot;ls&quot;, &quot;-1&quot;, &quot;-a&quot;, &quot;.&quot;).lines.collect();
 </code></pre>
-<h5 id="example-2-for-command"><a class="header" href="#example-2-for-command">Example 2 (for <code>Command</code>)</a></h5>
-<p>Or this (output is streamed as text lines):</p>
-<pre><code class="language-typescript">for await (
-  const line of new Deno.Command(&quot;ls&quot;, { args: [&quot;-la&quot;], stdout: &quot;piped&quot; })
-    .spawn()
-    .stdout
-    .pipeThrough(new TextDecoderStream())
-    .pipeThrough(new TextLineStream())
-) {
-  console.log(line);
-}
+<h3 id="chaining-processes-together"><a class="header" href="#chaining-processes-together">Chaining Processes Together</a></h3>
+<p>Read &quot;War and Peace&quot; in from a compressed file. Uncompress the file. <code>grep</code> out
+empty lines. Print it.</p>
+<pre><code class="language-typescript">const warandpeace = resolve(&quot;./warandpeace.txt.gz&quot;);
+
+read(warandpeace)
+  .run(&quot;gunzip&quot;).
+  .run(&quot;grep&quot;, &quot;-v&quot;, &quot;^$&quot;)
+  .lines
+  .forEach((line) =&gt; console.log(line));
 </code></pre>
-<p>This is still really good compared to the old <code>Deno.run</code> - which would leak
-resources if you didn't close the process and (multiple) readers explicitly.
-Error handling in child processes could also be tricky. In the new
-<code>Deno.Command</code>, all that is handled in a sensible way, automatically. This is
-already a giant leap forward for child process support in Deno.</p>
-<p>There is still a lot of boilerplate. Remember, the <code>bash</code> command is just
-<code>ls -la</code> and everything works.</p>
-<p>We can do better.</p>
-<h2 id="the-easy-way-of-proc"><a class="header" href="#the-easy-way-of-proc">The (Easy) Way of <code>proc</code></a></h2>
-<p>Here are some approaches to running <code>ls</code> using <code>proc</code>. These are equivalent to
-the code in the previous section - but simpler.</p>
-<h5 id="example-1-for-proc"><a class="header" href="#example-1-for-proc">Example 1 (for <code>proc</code>)</a></h5>
-<p>This is equivalent to the first example. <code>stdout</code> of the process is fully
-captured, converted to text, and returned when the process exits.</p>
-<pre><code class="language-typescript">console.log(await run(&quot;ls&quot;, &quot;-la&quot;).asString());
+<p>This is equivalent to:</p>
+<pre><code class="language-sh">cat ./warandpeace.txt.gz | gunzip | grep -v '^$'
 </code></pre>
-<h5 id="example-2-for-proc"><a class="header" href="#example-2-for-proc">Example 2 (for <code>proc</code>)</a></h5>
-<p>Or how about this? This is equivalent to the second example. This is streaming
-<code>stdout</code> into text lines:</p>
-<pre><code class="language-typescript">for await (const line of lines(run(&quot;ls&quot;, &quot;-la&quot;))) {
-  console.log(line);
-}
+<h3 id="working-with-multiple-copies-of-the-same-data"><a class="header" href="#working-with-multiple-copies-of-the-same-data">Working with Multiple Copies of the Same Data</a></h3>
+<p>Read &quot;War and Peace&quot; and uncompress. Convert to lower case. Split into words.
+Split into <code>A</code> and <code>B</code> enumerations.</p>
+<p>With <code>A</code>, sort the words, find the unique words, and count them.</p>
+<p>With <code>B</code>, just count the total number of words.</p>
+<pre><code class="language-typescript">const warandpeace = resolve(&quot;./warandpeace.txt.gz&quot;);
+
+const [wordsA, wordsB] = read(warandpeace)
+  .run(&quot;gunzip&quot;).lines
+  .map((line) =&gt; line.toLocaleLowerCase())
+  .run(&quot;grep&quot;, &quot;-oE&quot;, &quot;(\\w|')+&quot;)
+  .tee();
+
+const [uniqueWords, totalWords] = await Promise.all([
+  wordsA.run(&quot;sort&quot;).run(&quot;uniq&quot;).run(&quot;wc&quot;, &quot;-l&quot;).lines
+    .map((n) =&gt; parseInt(n, 10))
+    .first,
+  wordsB.run(&quot;wc&quot;, &quot;-l&quot;).lines
+    .map((n) =&gt; parseInt(n, 10))
+    .first,
+]);
+
+console.log(`Total: ${totalWords.toLocaleString()}`);
+console.log(`Unique: ${uniqueWords.toLocaleString()}`);
 </code></pre>
-<p>If you really want the simplest version, there is also this (though you have no
-access to <code>stdout</code>):</p>
-<pre><code class="language-typescript">await execute(&quot;ls&quot;, &quot;-la&quot;);
+<p>This is (<em>almost</em>) equivalent to:</p>
+<pre><code class="language-sh"># Count unique words
+cat ./warandpeace.txt.gz \
+  | gunzip \
+  | tr '[:upper:]' '[:lower:]' \
+  | grep -oE &quot;(\\w|')+&quot; \
+  | sort \
+  | uniq \
+  | wc -l 
+
+# Count all words
+cat ./warandpeace.txt.gz \
+  | gunzip \
+  | tr '[:upper:]' '[:lower:]' \
+  | grep -oE &quot;(\\w|')+&quot; \
+  | wc -l
 </code></pre>
-<p>Ah! You may take a moment now and breathe in the minimalism. Boilerplate ...
-gone.</p>
-<p><a href="https://github.com/j50n/deno-proc/blob/main/src/transformers.ts">transformers.ts</a>
-<a href="https://github.com/j50n/deno-proc/blob/main/src/transformers.ts" target="_blank">transformers.ts</a></p>
+<h3 id="concurrent-total-used-storage-for-s3-buckets"><a class="header" href="#concurrent-total-used-storage-for-s3-buckets">Concurrent Total Used Storage for S3 Buckets</a></h3>
+<p><code>proc</code> supports concurrent operations with controlled (limited) concurrency.
+This is a way to run child processes in parallel without swamping your server.</p>
+<p>If you have to work with S3 buckets, you know it is time consuming to determine
+how much storage space you are using/paying for, and where you are using the
+most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
+matching the number of CPU cores available (or whatever concurrency you
+specify). The specific methods that support concurrent operations are
+<code>.concurrentMap()</code> and <code>.concurrentUnorderedMap()</code>.</p>
+<p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
+<pre><code class="language-sh">aws s3 ls
+</code></pre>
+<p>The result looks something like this:</p>
+<pre><code>2013-07-11 17:08:50 mybucket
+2013-07-24 14:55:44 mybucket2
+</code></pre>
+<p>Grab those bucket names with <code>proc</code>:</p>
+<pre><code class="language-typescript">const buckets = await run(&quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;)
+  .map((b) =&gt; b.split(/\s+/g, 3))
+  .map((b) =&gt; b[b.length - 1])
+  .collect();
+</code></pre>
+<p>To get the total storage size in bytes from terminal:</p>
+<pre><code class="language-sh">aws s3 ls s3://mybucket --recursive --summarize
+</code></pre>
+<p>This will list all objects in the bucket, but we can ignore that noise. At the
+end of the operation, we are looking for a line that looks like this:</p>
+<pre><code>Total Size: 2.9 MiB
+</code></pre>
+<p>This is potentially a long-running operation (some buckets have a lot of
+objects), so we want to run it concurrently. With <code>proc</code>:</p>
+<pre><code class="language-typescript">enumerate(buckets).concurrentUnorderedMap(
+  async (bucket) =&gt; {
+    const answer: string = await run(
+        &quot;nice&quot;, &quot;-19&quot;,
+        &quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;, 
+        `s3://${bucket}`, 
+        &quot;--recursive&quot;, &quot;--summarize&quot;)
+      .filter(line =&gt; line.includes(&quot;Total Size:&quot;))
+      .map(line =&gt; line.trim())
+      .first;
+
+    return {bucket, answer};
+  }.forEach(({bucket, answer}) =&gt; console.log(`${bucket}\t${answer}`))
+)
+</code></pre>
+<p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
+<code>.concurrentUnorderedMap()</code> will, by default, run one process for each CPU
+available concurrently until all work is done.</p>
+<p>The result will look something like this:</p>
+<pre><code>mybucket  Total Size: 2.9 MiB
+mybucket2 Total Size: 30.2 MiB
+</code></pre>
 
                     </main>
 
