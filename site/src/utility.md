@@ -58,7 +58,7 @@ for (const i of range({ from: 10, to: 0, step: -1 })) {
 
 ### Example 4
 
-Prinst the numbers from `0` to `99`.
+Prints the numbers from `0` to `99`.
 
 ```typescript
 for (const i of range({ to: 10 })) {

@@ -3,27 +3,39 @@ import { assertEquals } from "../deps/asserts.ts";
 import { fromFileUrl } from "../deps/path.ts";
 
 Deno.test({
-  name: "I can count the words in a file, shorthand version.",
+  name:
+    "I can count the words in a file two different ways (tee), shorthand version.",
   async fn() {
     const file = await Deno.open(
       fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
     );
 
-    const buffer = true;
-
-    const count = await enumerate(file.readable)
-      .run("gunzip")
-      .run("grep", "-oE", "(\\w|')+").lines
+    const [words1, words2] = enumerate(file.readable)
+      .run("gunzip").lines
       .map((line) => line.toLocaleLowerCase())
-      .run({ buffer }, "sort")
-      .run("uniq")
-      .lines
-      .reduce(0, (c, _item) => c + 1);
+      .run({ buffer: true }, "grep", "-oE", "(\\w|')+")
+      .tee();
+
+    const [uniqueWords, totalWords] = await Promise.all([
+      words1.run("sort").run("uniq").run("wc", "-l").lines.map((n) =>
+        parseInt(n, 10)
+      ).first,
+      words2.run("wc", "-l").lines.map((n) => parseInt(n, 10)).first,
+    ]);
+
+    console.log(`Total: ${totalWords.toLocaleString()}`);
+    console.log(`Unique: ${uniqueWords.toLocaleString()}`);
 
     assertEquals(
-      count,
-      17557,
-      "The words I count match the value I believe I should get.",
+      uniqueWords,
+      17_557,
+      "Unique words.",
+    );
+
+    assertEquals(
+      totalWords,
+      572_642,
+      "Total words.",
     );
   },
 });

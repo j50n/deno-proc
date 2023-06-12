@@ -8,3 +8,7 @@ title = "Proc"
 [preprocessor.graphviz]
 command = "mdbook-graphviz"
 output-to-file = false
+
+[preprocessor.gitversion]
+command = "./gitversion.ts"
+output-to-file = false
