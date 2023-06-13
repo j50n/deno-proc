@@ -40,7 +40,7 @@ export interface Writable<T> {
  * iterate on the other.
  *
  * The `write()` side **must** call `close()` when all write operations are done.
- * 
+ *
  * @typedef T The type of data that is written and read.
  */
 export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {

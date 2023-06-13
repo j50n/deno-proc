@@ -1,13 +1,12 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
-import { Command, toChunkedLines } from "../mod3.ts";
+import { Process, toChunkedLines } from "../mod3.ts";
 
-const process = new Command(
+const process = new Process(
   { stdout: "piped", stdin: "piped" },
   "cat",
-  "-",
-)
-  .spawn();
+  ["-"],
+);
 
 (async () => {
   try {

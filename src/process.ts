@@ -121,6 +121,10 @@ export class SignalError extends ProcessError {
 /**
  * A wrapper for `Deno.ChildProcess` that converts streams to `AsyncIterable<...>`,
  * corrects error handling, and adds other custom stuff.
+ *
+ * This is used as the basis for the `run` methods in this library. This can be used
+ * standalone but is more difficult to work with.
+ *
  * @typedef S The type shared by the `stderr` processor and the `error` handler.
  */
 export class Process<S> implements Deno.Closer {
@@ -373,35 +377,5 @@ export class Process<S> implements Deno.Closer {
         await closeWriter();
       }
     })();
-  }
-}
-
-/**
- * A factory for {@link Process}.
- */
-export class Command<S> {
-  readonly args: readonly string[];
-
-  /**
-   * Constructor.
-   * @param options Process options.
-   * @param cmd The command.
-   * @param args Arguments passed to the command.
-   */
-  constructor(
-    public readonly options: ProcessStreamOptions<S>,
-    public readonly cmd: string | URL,
-    ...args: string[]
-  ) {
-    this.args = [...args];
-  }
-
-  /** Spawn a new process. */
-  spawn() {
-    return new Process(
-      this.options,
-      this.cmd,
-      this.args,
-    );
   }
 }

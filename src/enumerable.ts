@@ -1,4 +1,4 @@
-import { Command, ProcessOptions } from "./command.ts";
+import { Process, ProcessOptions } from "./process.ts";
 import {
   collect,
   concurrentMap,
@@ -12,7 +12,6 @@ import {
 import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
-import { toChunkedLines, toLines } from "./transformers.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
@@ -280,21 +279,21 @@ export class Enumerable<T> implements AsyncIterable<T> {
   run<S>(
     options: ProcessOptions<S>,
     ...cmd: Cmd
-  ): Uint8Enumerable;
+  ): ProcessEnumerable<S>;
 
   /**
    * Run a process.
    * @param cmd The command.
    * @returns A child process instance.
    */
-  run(...cmd: Cmd): Uint8Enumerable;
+  run(...cmd: Cmd): ProcessEnumerable<unknown>;
 
   run<S>(
     ...cmd: unknown[]
-  ): Uint8Enumerable {
+  ): ProcessEnumerable<S> {
     const { options, command, args } = parseArgs(cmd);
 
-    const c = new Command(
+    const p = new Process(
       {
         ...options as ProcessOptions<S>,
         stdout: "piped",
@@ -302,16 +301,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
         stderr: options.fnStderr == null ? "inherit" : "piped",
       },
       command,
-      ...args,
+      args,
     );
-
-    const p = c.spawn();
 
     p.writeToStdin(
       this.iter as AsyncIterable<string | string[] | Uint8Array | Uint8Array[]>,
     );
 
-    return new Uint8Enumerable(p.stdout);
+    return new ProcessEnumerable(p);
   }
 
   /**
@@ -409,12 +406,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 }
 
+//import { Enumerable, enumerate } from "./enumerable.ts";
+//import { Process } from "./process.ts";
+import { toChunkedLines, toLines } from "./transformers.ts";
+
 /**
  * Enumerable which may be substituted when we know we are returning `Uint8Array` data.
  */
-export class Uint8Enumerable extends Enumerable<Uint8Array> {
-  constructor(protected iter: AsyncIterable<Uint8Array>) {
-    super(iter);
+export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
+  constructor(protected process: Process<S>) {
+    super(process.stdout);
   }
 
   /**
@@ -424,7 +425,7 @@ export class Uint8Enumerable extends Enumerable<Uint8Array> {
    * to improve performance with larger data.
    */
   get lines(): Enumerable<string> {
-    return enumerate(toLines(this.iter));
+    return enumerate(toLines(this.process.stdout));
   }
 
   /**
@@ -435,12 +436,13 @@ export class Uint8Enumerable extends Enumerable<Uint8Array> {
     return enumerate(toChunkedLines(this.iter));
   }
 
-  /**
-   * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
-   *
-   * Note that this should probably only be used with small data. Consider {@link toChunkedLines}
-   * to improve performance with larger data.
-   *
-   * @param buffs The iterable bytes.
-   */
+  /** Process PID. */
+  get pid() {
+    return this.process.pid;
+  }
+
+  /** Process status. */
+  get status() {
+    return this.process.status;
+  }
 }

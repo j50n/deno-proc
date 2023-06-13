@@ -1,4 +1,4 @@
-import { Command, ExitCodeError, toChunkedLines } from "../../mod3.ts";
+import { ExitCodeError, Process, toChunkedLines } from "../../mod3.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
 
 Deno.test({
@@ -7,13 +7,11 @@ Deno.test({
   async fn() {
     const results: string[] = [];
 
-    const process = new Command(
+    const process = new Process(
       { stdout: "piped" },
       "bash",
-      "-c",
-      "set -e\necho 'A'\necho 'B'\necho 'C'",
-    )
-      .spawn();
+      ["-c", "set -e\necho 'A'\necho 'B'\necho 'C'"],
+    );
 
     try {
       for await (
@@ -40,13 +38,11 @@ Deno.test({
 
     await assertRejects(
       async () => {
-        const process = new Command(
+        const process = new Process(
           { stdout: "piped" },
           "bash",
-          "-c",
-          "set -e\necho 'A'\necho 'B'\necho 'C'\necho 'D'\nexit 42",
-        )
-          .spawn();
+          ["-c", "set -e\necho 'A'\necho 'B'\necho 'C'\necho 'D'\nexit 42"],
+        );
 
         try {
           for await (
@@ -76,12 +72,11 @@ Deno.test({
   async fn() {
     const results: string[] = [];
 
-    const process = new Command(
+    const process = new Process(
       { stdout: "piped", stdin: "piped" },
       "cat",
-      "-",
-    )
-      .spawn();
+      ["-"],
+    );
 
     (async () => {
       try {
@@ -118,12 +113,11 @@ Deno.test({
 
     await assertRejects(
       async () => {
-        const process = new Command(
+        const process = new Process(
           { stdout: "piped", stdin: "piped" },
           "cat",
-          "-",
-        )
-          .spawn();
+          ["-"],
+        );
 
         (async () => {
           try {
