@@ -407,8 +407,6 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 }
 
-
-
 /**
  * Enumerable which may be substituted when we know we are returning `Uint8Array` data.
  */
