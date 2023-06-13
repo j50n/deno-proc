@@ -1,4 +1,4 @@
-import { ExitCodeError, run, StreamError } from "../../mod3.ts";
+import { ExitCodeError, run, UpstreamError } from "../../mod3.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 
 Deno.test({
@@ -81,7 +81,7 @@ Deno.test({
       }
       fail("This was supposed to throw an ExitCodeError.");
     } catch (e) {
-      assert(e instanceof StreamError, "Should throw a StreamError.");
+      assert(e instanceof UpstreamError, "Should throw a StreamError.");
       assert(e.cause instanceof ExitCodeError, "Caused by an ExitCodeError.");
       assertEquals(e.cause.code, 7, "Must return the expected exit code.");
     }

@@ -1,6 +1,7 @@
 import { buffer, toBytes, toLines } from "./transformers.ts";
 import { WritableIterable } from "./writable-iterable.ts";
 
+/** Pipe kinds, matching `Deno.Command`. */
 export type PipeKinds = "piped" | "inherit" | "null";
 
 /**
@@ -27,6 +28,8 @@ export type StderrHandler<S> = (it: AsyncIterable<string>) => Promise<S>;
 
 /**
  * Options passed to a process.
+ *
+ * @type S The type shared by the `stderr` processor and the `error` handler.
  */
 export interface ProcessOptions<S> {
   /** Current working directory. */
@@ -51,12 +54,16 @@ export interface ProcessOptions<S> {
 }
 
 /** Command options. */
-export interface ProcessStreamOptions<T> extends ProcessOptions<T> {
+export interface ProcessStreamOptions<S> extends ProcessOptions<S> {
+  /** Pipe kind for `stdin`. */
   stdin?: PipeKinds;
+  /** Pipe kind for `stdout`. */
   stdout?: PipeKinds;
+  /** Pipekind for `stderr`. */
   stderr?: PipeKinds;
 }
 
+/** A generic process error. */
 export abstract class ProcessError extends Error {
   constructor(
     public readonly message: string,
@@ -67,7 +74,8 @@ export abstract class ProcessError extends Error {
   }
 }
 
-export class StreamError extends ProcessError {
+/** Thrown to indicate an error occurred upstream and is being passed forward. */
+export class UpstreamError extends ProcessError {
   constructor(
     public readonly message: string,
     public readonly command: string[],
@@ -78,6 +86,10 @@ export class StreamError extends ProcessError {
   }
 }
 
+/**
+ * Thrown because the process returned an exit code that indicates an error occurred.
+ * By default, this indicates a non-zero exit code but may be overridden.
+ */
 export class ExitCodeError extends ProcessError {
   constructor(
     public readonly message: string,
@@ -90,6 +102,10 @@ export class ExitCodeError extends ProcessError {
   }
 }
 
+/**
+ * Thrown because the process exited due to a signal. By default, this is thrown for
+ * any signal but may be overridden.
+ */
 export class SignalError extends ProcessError {
   constructor(
     public readonly message: string,
@@ -105,18 +121,33 @@ export class SignalError extends ProcessError {
 /**
  * A wrapper for `Deno.ChildProcess` that converts streams to `AsyncIterable<...>`,
  * corrects error handling, and adds other custom stuff.
+ * @type S The type shared by the `stderr` processor and the `error` handler.
  */
 export class Process<S> implements Deno.Closer {
   private stderrResult: Promise<S> | undefined;
 
+  /** The wrapped process. */
+  protected readonly process: Deno.ChildProcess;
+
+  /**
+   * Constructor.
+   * @param options Process options.
+   * @param cmd The command.
+   * @param args Arguments to the command.
+   */
   constructor(
-    protected readonly process: Deno.ChildProcess,
     public readonly options: ProcessStreamOptions<S>,
     public readonly cmd: string | URL,
     public readonly args: readonly string[],
   ) {
+    this.process = new Deno.Command(this.cmd, {
+      ...this.options,
+      args: [...this.args],
+    })
+      .spawn();
+
     if (options.fnStderr != null) {
-      this.stderrResult = options.fnStderr(toLines(process.stderr));
+      this.stderrResult = options.fnStderr(toLines(this.process.stderr));
     }
   }
 
@@ -129,10 +160,15 @@ export class Process<S> implements Deno.Closer {
   private _isClosed = false;
   private _passError: Error | undefined;
 
+  /** Indicates {@link close} has been called. */
   get isClosed(): boolean {
     return this._isClosed;
   }
 
+  /**
+   * Do all necessary normal steps to close the process.
+   * This does not kill the process but attempts a normal close.
+   */
   async close(): Promise<void> {
     if (!this.isClosed) {
       this._isClosed = true;
@@ -143,14 +179,17 @@ export class Process<S> implements Deno.Closer {
     }
   }
 
+  /** Process PID. */
   get pid() {
     return this.process.pid;
   }
 
-  async status() {
-    return await this.process.status;
+  /** Process status. */
+  get status() {
+    return this.process.status;
   }
 
+  /** `stderr` of the process. */
   get stderr(): AsyncIterable<Uint8Array> {
     if (this.options.stderr !== "piped") {
       throw new Deno.errors.NotConnected("stderr only available when 'piped'");
@@ -168,6 +207,7 @@ export class Process<S> implements Deno.Closer {
     return this._stderr;
   }
 
+  /** `stdout` of the process. */
   get stdout(): AsyncIterable<Uint8Array> {
     if (this.options.stdout !== "piped") {
       throw new Deno.errors.NotConnected("stdout only available when 'piped'");
@@ -237,7 +277,7 @@ export class Process<S> implements Deno.Closer {
                   cause == null ? undefined : { cause },
                 );
               } else if (cause) {
-                throw new StreamError(
+                throw new UpstreamError(
                   cause.message,
                   cmd,
                   cause == null ? undefined : { cause },
@@ -258,6 +298,10 @@ export class Process<S> implements Deno.Closer {
 
   /**
    * `stdin` as a {@link WritableIterable}.
+   *
+   * This property is here to make the interface philosophically compatible with `stdin` of
+   * the wrapped process, but uses a mechanism that JavaScript does not optimize very well.
+   * Recommend using {@link writeToStdin} instead if that is possible.
    */
   get stdin(): WritableIterable<Uint8Array | Uint8Array[] | string | string[]> {
     if (this._stdin == null) {
@@ -333,11 +377,17 @@ export class Process<S> implements Deno.Closer {
 }
 
 /**
- * A factory for [[Process]].
+ * A factory for {@link Process}.
  */
 export class Command<S> {
   readonly args: readonly string[];
 
+  /**
+   * Constructor.
+   * @param options Process options.
+   * @param cmd The command.
+   * @param args Arguments passed to the command.
+   */
   constructor(
     public readonly options: ProcessStreamOptions<S>,
     public readonly cmd: string | URL,
@@ -346,10 +396,9 @@ export class Command<S> {
     this.args = [...args];
   }
 
+  /** Spawn a new process. */
   spawn() {
     return new Process(
-      new Deno.Command(this.cmd, { ...this.options, args: [...this.args] })
-        .spawn(),
       this.options,
       this.cmd,
       this.args,

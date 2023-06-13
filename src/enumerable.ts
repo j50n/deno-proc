@@ -69,15 +69,24 @@ export interface ConcurrentOptions {
  *
  * Use the factory function {@link enumerate} to create new instances
  * to get better performance.
+ *
+ * @type T The type of contained data.
  */
 export class Enumerable<T> implements AsyncIterable<T> {
+  /**
+   * Construct a new enumerable wrapper.
+   * @param iter The iterator being wrapped.
+   */
   constructor(protected iter: AsyncIterable<T>) {
   }
 
-  protected async *identity(): AsyncIterableIterator<T> {
+  private async *identity(): AsyncIterableIterator<T> {
     yield* this.iter;
   }
 
+  /**
+   * Implement `AsyncIterable<T>`.
+   */
   [Symbol.asyncIterator](): AsyncGenerator<T, void, unknown> {
     if ("next" in this.iter) {
       return this.iter as AsyncGenerator<T, void, unknown>;
