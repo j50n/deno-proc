@@ -13,6 +13,7 @@ import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
 import { WritableIterable } from "./writable-iterable.ts";
+import { toChunkedLines, toLines } from "./transformers.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -406,9 +407,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 }
 
-//import { Enumerable, enumerate } from "./enumerable.ts";
-//import { Process } from "./process.ts";
-import { toChunkedLines, toLines } from "./transformers.ts";
+
 
 /**
  * Enumerable which may be substituted when we know we are returning `Uint8Array` data.
