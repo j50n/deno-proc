@@ -23,8 +23,16 @@ export interface Writable<T> {
    *
    * Once closed, subsequent calls to `write(...)` will throw an error.
    *
-   * It is safe to call `close()` multiple times. The error (or no error)
-   * passed on the first call will be honored.
+   * It is safe to call `close()` multiple times. 
+   * 
+   * If an error is passed on close, it is propagated forward. 
+   * 
+   * The error (or `undefined`) passed on the first call will be honored.
+   * Error conditions passed on subsequent calls to `close` will be
+   * ignored.
+   * 
+   * @param error If an error is passed on close, it is propagated 
+   *     forward.
    */
   close(error?: Error): Promise<void>;
 

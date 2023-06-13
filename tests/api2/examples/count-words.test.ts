@@ -34,7 +34,14 @@ async function countWords(
  * `{ stdin: "piped", stdout: "piped" }` and call to `.spawn()`, along with
  * separate call to link `stdout` to `stdin` of next process. At first glance,
  * much better than the old `Deno.run` library.
+ * 
+ * **REVISED**
+ * 
+ * There is no way to pass errors along the stream. You have to handle them 
+ * separately. This is broken.
  *
+ * ---
+ * 
  * Does the following:
  *
  *   - read file `warandpeace.txt.gz` (out of copyright, so legal)
