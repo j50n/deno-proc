@@ -10,15 +10,43 @@ class None {
 }
 
 /**
+ * A writable.
+ *
+ * @typedef T The type of data that may be written.
+ */
+export interface Writable<T> {
+  /** Indicates this is closed. */
+  get isClosed(): boolean;
+
+  /**
+   * Close the writable. This must be called.
+   *
+   * Once closed, subsequent calls to `write(...)` will throw an error.
+   *
+   * It is safe to call `close()` multiple times. The error (or no error)
+   * passed on the first call will be honored.
+   */
+  close(error?: Error): Promise<void>;
+
+  /**
+   * Write an item.
+   * @param item The item.
+   */
+  write(item: T): Promise<void>;
+}
+
+/**
  * Invert the normal data flow of an `AsyncIterable`, allowing you to push writes on one side and
  * iterate on the other.
  *
  * The `write()` side **must** call `close()` when all write operations are done.
+ * 
+ * @typedef T The type of data that is written and read.
  */
-export class WritableIterable<T> implements AsyncIterable<T> {
+export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
   private _closed = false;
 
-  get closed() {
+  get isClosed() {
     return this._closed;
   }
 
@@ -42,16 +70,8 @@ export class WritableIterable<T> implements AsyncIterable<T> {
     this.queue.push({ promise, resolve: resolve! });
   }
 
-  /**
-   * Close the iterable. This must be called.
-   *
-   * Once closed, subsequent calls to `write(...)` will throw an error.
-   *
-   * It is safe to call `close()` multiple times. The error (or no error)
-   * passed on the first call will be honored.
-   */
   async close(error?: Error): Promise<void> {
-    if (!this.closed) {
+    if (!this.isClosed) {
       this._closed = true;
       this.queue[this.queue.length - 1].resolve(new None(error));
       if (this.options?.onclose != null) {
@@ -60,12 +80,8 @@ export class WritableIterable<T> implements AsyncIterable<T> {
     }
   }
 
-  /**
-   * Write an item.
-   * @param item The item.
-   */
   async write(item: T): Promise<void> {
-    if (this.closed) {
+    if (this.isClosed) {
       throw new Error("writable is already closed");
     }
 
@@ -77,6 +93,9 @@ export class WritableIterable<T> implements AsyncIterable<T> {
     }
   }
 
+  /**
+   * It is an `AsyncIterable<T>`.
+   */
   async *[Symbol.asyncIterator]() {
     while (true) {
       try {

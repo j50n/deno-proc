@@ -1,5 +1,5 @@
 import { buffer, toBytes, toLines } from "./transformers.ts";
-import { WritableIterable } from "./writable-iterable.ts";
+import { Writable, WritableIterable } from "./writable-iterable.ts";
 
 /** Pipe kinds, matching `Deno.Command`. */
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -29,7 +29,7 @@ export type StderrHandler<S> = (it: AsyncIterable<string>) => Promise<S>;
 /**
  * Options passed to a process.
  *
- * @type S The type shared by the `stderr` processor and the `error` handler.
+ * @typedef S The type shared by the `stderr` processor and the `error` handler.
  */
 export interface ProcessOptions<S> {
   /** Current working directory. */
@@ -121,7 +121,7 @@ export class SignalError extends ProcessError {
 /**
  * A wrapper for `Deno.ChildProcess` that converts streams to `AsyncIterable<...>`,
  * corrects error handling, and adds other custom stuff.
- * @type S The type shared by the `stderr` processor and the `error` handler.
+ * @typedef S The type shared by the `stderr` processor and the `error` handler.
  */
 export class Process<S> implements Deno.Closer {
   private stderrResult: Promise<S> | undefined;
@@ -303,12 +303,12 @@ export class Process<S> implements Deno.Closer {
    * the wrapped process, but uses a mechanism that JavaScript does not optimize very well.
    * Recommend using {@link writeToStdin} instead if that is possible.
    */
-  get stdin(): WritableIterable<Uint8Array | Uint8Array[] | string | string[]> {
+  get stdin(): Writable<Uint8Array | Uint8Array[] | string | string[]> {
     if (this._stdin == null) {
       const pi = new WritableIterable<
         Uint8Array | Uint8Array[] | string | string[]
       >();
-      this.writeToStdin(pi);
+      this.writeToStdin(pi); //hanging promise by design
       this._stdin = pi;
     }
     return this._stdin;
@@ -328,7 +328,7 @@ export class Process<S> implements Deno.Closer {
    */
   writeToStdin(
     iter: AsyncIterable<Uint8Array | Uint8Array[] | string | string[]>,
-  ) {
+  ): Promise<void> {
     if (this.options.stdin !== "piped") {
       throw new Deno.errors.NotConnected("stdin only available when 'piped'");
     }
@@ -353,7 +353,7 @@ export class Process<S> implements Deno.Closer {
       }
     };
 
-    (async () => {
+    return (async () => {
       try {
         for await (const it of buffer(bufferInput ? 16384 : 0)(toBytes(iter))) {
           if (writerIsClosed) {

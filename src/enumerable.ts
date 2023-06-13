@@ -70,7 +70,7 @@ export interface ConcurrentOptions {
  * Use the factory function {@link enumerate} to create new instances
  * to get better performance.
  *
- * @type T The type of contained data.
+ * @typedef T The type of contained data.
  */
 export class Enumerable<T> implements AsyncIterable<T> {
   /**
@@ -108,7 +108,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     (async () => {
       try {
         for await (const it of iter) {
-          if (writer.closed) {
+          if (writer.isClosed) {
             break;
           }
 
