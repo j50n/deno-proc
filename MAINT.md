@@ -63,5 +63,5 @@ gh release create --generate-notes 0.0.0
 If everything worked, the tag should be the latest at
 [https://deno.land/x/proc](https://deno.land/x/proc).
 
-USe `gh release create` rather than releasing manually. The release notes are
+Use `gh release create` rather than releasing manually. The release notes are
 much better and more consistent as they are based on the actual commits.
