@@ -1,11 +1,11 @@
-# `proc {{gitversion}}`
+# `proc {{gitv}}`
 
 `proc` is a powerful functional extension for `AsyncIterable` in Deno. It
 supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with `Deno` IO streams. With `proc`, writing
 shell-style solutions in Deno is painless.
 
-<a href="https://deno.land/x/proc@{{gitversion}}/mod3.ts" target="_blank">API
+<a href="https://deno.land/x/proc@{{gitv}}/mod3.ts" target="_blank">API
 Documentation</a>
 
 ## Import
@@ -13,10 +13,10 @@ Documentation</a>
 Import using this path (note the use of `mod3.ts` rather than `mod.ts`).
 
 ```typescript
-import * as proc from "https://deno.land/x/proc@{{gitversion}}/mod3.ts";
+import * as proc from "https://deno.land/x/proc@{{gitv}}/mod3.ts";
 ```
 
-## Examples
+## A Few Examples
 
 These examples show some of the things `proc` can do.
 
@@ -49,6 +49,22 @@ This is equivalent to:
 ```sh
 cat ./warandpeace.txt.gz | gunzip | grep -v '^$'
 ```
+
+### Functional Style
+
+For all even numbers between 1 and 100, multiply by 2 and print. So 4, 8, 12
+... 200.
+
+```typescript
+await range({ from: 1, until: 100 })
+  .filter((n) => n % 2 === 0)
+  .map((n) => n * 2)
+  .forEach((n) => console.log(n));
+```
+
+## A Few More Examples
+
+These examples are longer. More involved. Good stuff.
 
 ### Working with Multiple Copies of the Same Data
 
@@ -179,17 +195,22 @@ mybucket  Total Size: 2.9 MiB
 mybucket2 Total Size: 30.2 MiB
 ```
 
-## A Lazy Way to Count
+## Odd Ducks
+
+Other useful stuff. These might be a little off topic for this library, but here
+they are.
+
+### A Lazy Way to Count
 
 Print the numbers from 0 to 99.
 
 ```typescript
-for await (const i of range({to: 100})) {
-    console.log(i);
+for await (const i of range({ to: 100 })) {
+  console.log(i);
 }
 ```
 
-## Sleep
+### Sleep
 
 A convenient way to wait a little bit. This pauses for 1 second.
 

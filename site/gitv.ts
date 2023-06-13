@@ -1,15 +1,13 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 /**
- * Convert `{{gitversion}}` in the content to the latest `git` tag.
+ * Convert `{{gitv}}` in the book content to the latest `git` tag, like `0.20.17`.
  *
  * My very first `mdbook` plugin.
  */
 
 import { run, toLines } from "../mod3.ts";
 import { enumerate } from "../src/enumerable.ts";
-
-console.error(Deno.args);
 
 type Section = {
   Chapter: {
@@ -36,14 +34,14 @@ if (Deno.args[0] === "supports") {
       .join("\n"),
   );
 
-  const gitversion = (await run("git", "describe", "--tags").lines.first)
+  const gitv = (await run("git", "describe", "--tags").lines.first)
     .split("-")[0];
 
   for (const section of book.sections) {
     if (isSection(section)) {
       section.Chapter.content = section.Chapter.content.replaceAll(
-        "{{gitversion}}",
-        gitversion,
+        "{{gitv}}",
+        gitv,
       );
     }
   }
