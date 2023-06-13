@@ -9,27 +9,27 @@ programming, and works seamlessly with `Deno` IO streams.
 Documentation is at
 [https://j50n.github.io/deno-proc/](https://j50n.github.io/deno-proc/).
 
-To use the new API:
+To use the new library:
 
 ```typescript
 import * as proc from "http://deno.land/x/proc/mod3.ts";
 ```
 
-The new API is stabilizing and the code is working. New features and tests are
+The new library is stabilizing and the code is working. New features and tests are
 being added regularly. Changes to existing features are settling down. The
 documentation is still a work in progress.
 
 ## The Old Stuff
 
-The documentation for the legacy API is available at
+The documentation for the legacy library is available at
 [Legacy Documentation](./legacy/README.md).
 
-TO use the old API:
+TO use the old library:
 
 ```typescript
 import * as proc from "https://deno.land/x/proc/mod.ts";
 ```
 
-The old API was built on `Deno.run()` which is now deprecated and scheduled to
+The old library was built on `Deno.run()` which is now deprecated and scheduled to
 be removed in Deno 2.0. There were other reasons to start over from scratch, but
 this was the primary reason everything changed.

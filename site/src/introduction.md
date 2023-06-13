@@ -5,7 +5,7 @@ supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with `Deno` IO streams. With `proc`, writing
 shell-style solutions in Deno is painless.
 
-<a href="https://deno.land/x/proc@{{gitv}}/mod3.ts" target="_blank">API
+<a href="https://deno.land/x/proc@{{gitv}}/mod3.ts" target="_blank">Developer
 Documentation</a>
 
 ## Import
@@ -18,7 +18,7 @@ import * as proc from "https://deno.land/x/proc@{{gitv}}/mod3.ts";
 
 ## A Few Examples
 
-These examples show some of the things `proc` can do.
+Here are some of the things `proc` can do.
 
 ### Running a Process
 

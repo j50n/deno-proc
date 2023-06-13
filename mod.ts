@@ -1,2 +1,2 @@
-/* Stable (legacy) API only for now. */
+/* Stable (legacy) library only for now. */
 export * from "./mod1.ts";

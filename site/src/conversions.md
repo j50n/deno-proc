@@ -8,7 +8,7 @@ for.
 
 _Note that error propagation through streams in Deno is somewhere between tricky
 and broken._ Be sure to test your code thoroughly for error handling if you need
-to convert to and use streams API.
+to convert to and use Deno's streams.
 
 ## `AsyncIterable` to `Stream`
 

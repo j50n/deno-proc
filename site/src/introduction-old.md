@@ -15,17 +15,17 @@ _If only running child processes was not so damn complicated. It is easy in
 `bash`. Why is it so hard in Deno?_
 
 At the start of 2023, there was a major change. The Deno team deprecated
-`Deno.run` in favor of `Deno.Command`. The new API was a major step forward.
+`Deno.run` in favor of `Deno.Command`. The new library was a major step forward.
 Resource cleanup and error checking worked automatically. The resulting code was
 cleaner. The performance was stellar.
 
-_I think, though, that there is still some room for improvement._ Using the API
+_I think, though, that there is still some room for improvement._ Using the ...
 could be simpler, and the resulting code could be a lot easier to read.
 
 ---
 
 **Introducing `proc`.** This is is a lightweight rethinking of the
-`Deno.Command` API for use doing shell-script-like things. It makes the simple
+`Deno.Command` ... for use doing shell-script-like things. It makes the simple
 things dead-simple and really cleans up the more complex ones.
 
 The goal of `proc` is to make programming with processes as close to the

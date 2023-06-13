@@ -31,4 +31,4 @@ const lowered = await enumerable(["A", "B", "C"])
 assertEquals(lowered, ["a", "b", "c"], "Transformed to lower-case.");
 ```
 
-The `transform` operation is analogous to `pipeThrough` in the streaming API.
+The `transform` operation is analogous to `pipeThrough` in streaming.

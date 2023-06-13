@@ -33,7 +33,7 @@ async function countWords(
  * This doesn't appear to be a horrible way to do things. Nitpicks are boilerplate
  * `{ stdin: "piped", stdout: "piped" }` and call to `.spawn()`, along with
  * separate call to link `stdout` to `stdin` of next process. At first glance,
- * much better than the old `Deno.run` API.
+ * much better than the old `Deno.run` library.
  *
  * Does the following:
  *
