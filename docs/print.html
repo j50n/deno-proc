@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Proc</title>
+        <title>proc</title>
         <meta name="robots" content="noindex" />
 
 
@@ -113,7 +113,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Proc</h1>
+                    <h1 class="menu-title">proc</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -150,16 +150,13 @@
 supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with <code>Deno</code> IO streams. With <code>proc</code>, writing
 shell-style solutions in Deno is painless.</p>
+<p><a href="https://deno.land/x/proc@0.20.17/mod3.ts" target="_blank">API
+Documentation</a></p>
 <h2 id="import"><a class="header" href="#import">Import</a></h2>
 <p>Import using this path (note the use of <code>mod3.ts</code> rather than <code>mod.ts</code>).</p>
-<pre><code class="language-typescript">import {
-  Cmd,
-  enumerate,
-  read,
-  run,
-} from &quot;https://deno.land/x/proc@0.20.17/mod3.ts&quot;;
+<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.17/mod3.ts&quot;;
 </code></pre>
-<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<h2 id="a-few-examples"><a class="header" href="#a-few-examples">A Few Examples</a></h2>
 <p>These examples show some of the things <code>proc</code> can do.</p>
 <h3 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h3>
 <p>List the file names in the current directory (<code>-1</code> puts each on its own line),
@@ -180,6 +177,16 @@ read(warandpeace)
 <p>This is equivalent to:</p>
 <pre><code class="language-sh">cat ./warandpeace.txt.gz | gunzip | grep -v '^$'
 </code></pre>
+<h3 id="functional-style"><a class="header" href="#functional-style">Functional Style</a></h3>
+<p>For all even numbers between 1 and 100, multiply by 2 and print. So 4, 8, 12
+... 200.</p>
+<pre><code class="language-typescript">await range({ from: 1, until: 100 })
+  .filter((n) =&gt; n % 2 === 0)
+  .map((n) =&gt; n * 2)
+  .forEach((n) =&gt; console.log(n));
+</code></pre>
+<h2 id="a-few-more-examples"><a class="header" href="#a-few-more-examples">A Few More Examples</a></h2>
+<p>These examples are longer. More involved. Good stuff.</p>
 <h3 id="working-with-multiple-copies-of-the-same-data"><a class="header" href="#working-with-multiple-copies-of-the-same-data">Working with Multiple Copies of the Same Data</a></h3>
 <p>Read &quot;War and Peace&quot; and uncompress. Convert to lower case. Split into words.
 Split into <code>A</code> and <code>B</code> enumerations.</p>
@@ -274,6 +281,19 @@ available concurrently until all work is done.</p>
 <p>The result will look something like this:</p>
 <pre><code>mybucket  Total Size: 2.9 MiB
 mybucket2 Total Size: 30.2 MiB
+</code></pre>
+<h2 id="odd-ducks"><a class="header" href="#odd-ducks">Odd Ducks</a></h2>
+<p>Other useful stuff. These might be a little off topic for this library, but here
+they are.</p>
+<h3 id="a-lazy-way-to-count"><a class="header" href="#a-lazy-way-to-count">A Lazy Way to Count</a></h3>
+<p>Print the numbers from 0 to 99.</p>
+<pre><code class="language-typescript">for await (const i of range({ to: 100 })) {
+  console.log(i);
+}
+</code></pre>
+<h3 id="sleep"><a class="header" href="#sleep">Sleep</a></h3>
+<p>A convenient way to wait a little bit. This pauses for 1 second.</p>
+<pre><code class="language-typescript">await sleep(1000);
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="stream-conversions"><a class="header" href="#stream-conversions">Stream Conversions</a></h1>
 <p>Deno has methods to convert between <code>AsyncIterable</code> and streams as well as
@@ -467,7 +487,7 @@ console.log(count);
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="transformers-1"><a class="header" href="#transformers-1">Transformers</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h1>
-<h2 id="sleep"><a class="header" href="#sleep">Sleep</a></h2>
+<h2 id="sleep-1"><a class="header" href="#sleep-1">Sleep</a></h2>
 <p>Pause for some amount of time (measured in milliseconds) without blocking.</p>
 <p><strong>Example</strong></p>
 <p>Sleep for two seconds:</p>
