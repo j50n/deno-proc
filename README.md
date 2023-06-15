@@ -15,8 +15,8 @@ To use the new library:
 import * as proc from "http://deno.land/x/proc/mod3.ts";
 ```
 
-The new library is stabilizing and the code is working. New features and tests are
-being added regularly. Changes to existing features are settling down. The
+The new library is stabilizing and the code is working. New features and tests
+are being added regularly. Changes to existing features are settling down. The
 documentation is still a work in progress.
 
 ## The Old Stuff
@@ -30,6 +30,6 @@ TO use the old library:
 import * as proc from "https://deno.land/x/proc/mod.ts";
 ```
 
-The old library was built on `Deno.run()` which is now deprecated and scheduled to
-be removed in Deno 2.0. There were other reasons to start over from scratch, but
-this was the primary reason everything changed.
+The old library was built on `Deno.run()` which is now deprecated and scheduled
+to be removed in Deno 2.0. There were other reasons to start over from scratch,
+but this was the primary reason everything changed.

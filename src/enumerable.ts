@@ -12,7 +12,7 @@ import {
 import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
-import { WritableIterable } from "./writable-iterable.ts";
+import { Writable } from "./writable-iterable.ts";
 import { toChunkedLines, toLines } from "./transformers.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
@@ -30,6 +30,26 @@ type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
  *
  * Use this instead of creating an {@link Enumerable} directly as it more flexible
  * and prevents stacking (a potential performance issue).
+ *
+ * **Examples**
+ *
+ * Convert an array into `AsyncIterable`.
+ *
+ * ```typescript
+ * for await (const n of enumerate([1, 2, 3])) {
+ *   console.log(n);
+ * }
+ * ```
+ *
+ * Use `enumerate` to read a file line by line.
+ *
+ * ```typescript
+ * const file = await Deno.open(resolve("./warandpeace.txt.gz"));
+ *
+ * for await (const line of enumerate(file.readable).run("gunzip").lines) {
+ *   console.log(line);
+ * }
+ * ```
  *
  * @param iter An `Iterable` or `AsynIterable`; `null` or `undefined` assume empty.
  * @returns An {@link Enumerable}.
@@ -103,9 +123,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
    *
    * @param writer The writer.
    */
-  writeTo(writer: WritableIterable<T>) {
+  async writeTo(writer: Writable<T>): Promise<void> {
     const iter = this.iter;
-    (async () => {
+
+    await (async () => {
       try {
         for await (const it of iter) {
           if (writer.isClosed) {
