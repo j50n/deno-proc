@@ -13,7 +13,7 @@ import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
 import { Writable } from "./writable-iterable.ts";
-import { toChunkedLines, toLines } from "./transformers.ts";
+import { toLines } from "./transformers.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -443,14 +443,6 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
    */
   get lines(): Enumerable<string> {
     return enumerate(toLines(this.process.stdout));
-  }
-
-  /**
-   * Convert the output to arrays of text lines. Each array will be similar in size to the
-   * input byte data that was converted.
-   */
-  get chunkedLines(): Enumerable<string[]> {
-    return enumerate(toChunkedLines(this.iter));
   }
 
   /** Process PID. */
