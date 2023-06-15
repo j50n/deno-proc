@@ -202,46 +202,48 @@ export async function* toBytes(
 }
 
 /**
- * Transformer that conditionally forces buffering of a `Uint8Array` stream.
+ * Transformer that conditionally adds buffering to a `Uint8Array` stream.
  *
  * This enforces that the size of the passed data is _at least_ `size`. Note that
  * data is never reduced in size. It is either passed through unchanged (if it is
  * big enough already) or held and concatenated with the next data until it there
  * is enough data to write through.
  *
- * If `size` is 0 or negative, the input data is passed through unaltered.
+ * If `size` is 0 or negative, the input data is passed through without buffering.
+ * 
+ * You do not normally need to use this transform directly as you can turn on 
+ * input buffering with a parameter to the `run` method or function. 
  */
 export function buffer(
   size = 0,
 ): (iter: AsyncIterable<Uint8Array>) => AsyncIterable<Uint8Array> {
-  if (size <= 0) {
-    return (iter) => iter;
-  } else {
-    // deno-lint-ignore no-inner-declarations
-    async function* buffergen(
-      iter: AsyncIterable<Uint8Array>,
-    ): AsyncIterable<Uint8Array> {
-      let len = 0;
-      let pieces: Uint8Array[] = [];
+  async function* buffergen(
+    iter: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<Uint8Array> {
+    let len = 0;
+    let pieces: Uint8Array[] = [];
 
-      try {
-        for await (const piece of iter) {
-          len += piece.length;
-          pieces.push(piece);
+    try {
+      for await (const piece of iter) {
+        len += piece.length;
+        pieces.push(piece);
 
-          if (len >= size) {
-            yield concat(pieces);
-            size = 0;
-            pieces = [];
-          }
-        }
-      } finally {
-        if (pieces.length > 0) {
+        if (len >= size) {
           yield concat(pieces);
+          size = 0;
+          pieces = [];
         }
       }
+    } finally {
+      if (pieces.length > 0) {
+        yield concat(pieces);
+      }
     }
+  }
 
+  if (size <= 0) {
+    return (iter) => iter;
+  } else {  
     return buffergen;
   }
 }
