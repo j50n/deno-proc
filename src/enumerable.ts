@@ -87,8 +87,7 @@ export interface ConcurrentOptions {
 /**
  * Enumerable wrapper for `AsyncIterable`.
  *
- * Use the factory function {@link enumerate} to create new instances
- * to get better performance.
+ * Use the factory function {@link enumerate} to create new instances.
  *
  * @typedef T The type of contained data.
  */
