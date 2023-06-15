@@ -1,4 +1,4 @@
-import { enumerate } from "../../mod3.ts";
+import { enumerate, gunzip, toLines } from "../../mod3.ts";
 import { assertEquals } from "../deps/asserts.ts";
 import { fromFileUrl } from "../deps/path.ts";
 
@@ -11,7 +11,8 @@ Deno.test({
     );
 
     const [words1, words2] = enumerate(file.readable)
-      .run("gunzip").lines
+      .transform(gunzip())
+      .transform(toLines)
       .map((line) => line.toLocaleLowerCase())
       .run({ buffer: true }, "grep", "-oE", "(\\w|')+")
       .tee();

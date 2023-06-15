@@ -280,12 +280,12 @@ export async function* jsonParse<T>(
  *
  * Wraps `TextDecoderStream`.
  *
- * @see {@link textToLines}
+ * @see {@link textLine}
  * @param label Any valid encoding. Default is "utf-8". See
  *     [Encoding API Encodings](https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API/Encodings).
  * @returns A transformer.
  */
-export function toText(
+export function textDecoder(
   label = "utf-8",
 ): (chunks: AsyncIterable<Uint8Array>) => AsyncIterable<string> {
   return transformerFromTransform(
@@ -298,15 +298,28 @@ export function toText(
  *
  * Wraps `TextLineStream`.
  *
- * @see {@link toText}
+ * @see {@link textDecoder}
  * @param options Options.
  * @returns A transformer.
  */
-export function textToLines(
+export function textLine(
   options?: { allowCR?: boolean },
 ): (chunks: AsyncIterable<string>) => AsyncIterable<string> {
   return transformerFromTransform(
     new TextLineStream({ allowCR: !!options?.allowCR }),
+  );
+}
+
+/**
+ * Decompress a `gzip` compressed stream.
+ *
+ * @returns A transformer.
+ */
+export function gunzip(): (
+  chunks: AsyncIterable<Uint8Array>,
+) => AsyncIterable<Uint8Array> {
+  return transformerFromTransform(
+    new DecompressionStream("gzip"),
   );
 }
 
