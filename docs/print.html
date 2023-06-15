@@ -145,19 +145,19 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-02020"><a class="header" href="#proc-02020"><code>proc 0.20.20</code></a></h1>
+                        <h1 id="proc-02021"><a class="header" href="#proc-02021"><code>proc 0.20.21</code></a></h1>
 <p><code>proc</code> is a powerful functional extension for <code>AsyncIterable</code> in Deno. It
 supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with <code>Deno</code> IO streams. With <code>proc</code>, writing
 shell-style solutions in Deno is painless.</p>
-<p><a href="https://deno.land/x/proc@0.20.20/mod3.ts" target="_blank">API
+<p><a href="https://deno.land/x/proc@0.20.21/mod3.ts" target="_blank">Developer
 Documentation</a></p>
 <h2 id="import"><a class="header" href="#import">Import</a></h2>
 <p>Import using this path (note the use of <code>mod3.ts</code> rather than <code>mod.ts</code>).</p>
-<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.20/mod3.ts&quot;;
+<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.21/mod3.ts&quot;;
 </code></pre>
 <h2 id="a-few-examples"><a class="header" href="#a-few-examples">A Few Examples</a></h2>
-<p>These examples show some of the things <code>proc</code> can do.</p>
+<p>Here are some of the things <code>proc</code> can do.</p>
 <h3 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h3>
 <p>List the file names in the current directory (<code>-1</code> puts each on its own line),
 capture as lines, and collect the names into an array.</p>
@@ -303,7 +303,7 @@ These libraries have moved around quite a bit so they can be difficult to search
 for.</p>
 <p><em>Note that error propagation through streams in Deno is somewhere between tricky
 and broken.</em> Be sure to test your code thoroughly for error handling if you need
-to convert to and use streams API.</p>
+to convert to and use Deno's streams.</p>
 <h2 id="asynciterable-to-stream"><a class="header" href="#asynciterable-to-stream"><code>AsyncIterable</code> to <code>Stream</code></a></h2>
 <p>To convert from an <code>AsyncIterable</code> (or <code>Enumerable</code>) to a <code>ReadableStream</code>, use
 the
@@ -334,7 +334,7 @@ will transform strings to lower-case:</p>
 
 assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
 </code></pre>
-<p>The <code>transform</code> operation is analogous to <code>pipeThrough</code> in the streaming API.</p>
+<p>The <code>transform</code> operation is analogous to <code>pipeThrough</code> in streaming.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-zen-of-errors"><a class="header" href="#the-zen-of-errors">The Zen of Errors</a></h1>
 <p>Error handling should just work. You should not have to check the exit code of
 every process. Errors that occur upstream should flow downstream. You should not
