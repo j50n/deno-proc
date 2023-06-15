@@ -1,4 +1,4 @@
-import { readableStreamFromIterable } from "./deps/streams.ts";
+import { readableStreamFromIterable, TextLineStream } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat } from "./utility.ts";
 
@@ -278,6 +278,9 @@ export async function* jsonParse<T>(
  * arbitrary places. Conversion is done as data is received, so this is good for passing `stderr` and/or
  * `stdout` data that shows progress (only `cr` or other positioning codes).
  *
+ * Wraps `TextDecoderStream`.
+ *
+ * @see {@link textToLines}
  * @param label Any valid encoding. Default is "utf-8". See
  *     [Encoding API Encodings](https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API/Encodings).
  * @returns A transformer.
@@ -285,26 +288,64 @@ export async function* jsonParse<T>(
 export function toText(
   label = "utf-8",
 ): (chunks: AsyncIterable<Uint8Array>) => AsyncIterable<string> {
+  return transformerFromTransform(
+    new TextDecoderStream(label, { fatal: true }),
+  );
+}
+
+/**
+ * Transform text in "chunk" form into lines.
+ *
+ * Wraps `TextLineStream`.
+ *
+ * @see {@link toText}
+ * @param options Options.
+ * @returns A transformer.
+ */
+export function textToLines(
+  options?: { allowCR?: boolean },
+): (chunks: AsyncIterable<string>) => AsyncIterable<string> {
+  return transformerFromTransform(
+    new TextLineStream({ allowCR: !!options?.allowCR }),
+  );
+}
+
+/**
+ * Convert a `TransformStream` into `AsyncIterable`. Errors occurring upstream
+ * are correctly propagated through the transformation.
+ *
+ * @param transform A [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream).
+ * @returns A transformer function.
+ */
+export function transformerFromTransform<R, T>(
+  transform: { writable: WritableStream<R>; readable: ReadableStream<T> },
+): (items: AsyncIterable<R>) => AsyncIterable<T> {
   let error: Error | undefined;
 
-  async function* errorTrap(chunks: AsyncIterable<Uint8Array>) {
+  async function* errorTrap(items: AsyncIterable<R>) {
     try {
-      for await (const b of chunks) {
-        yield b;
+      for await (const item of items) {
+        yield item;
       }
     } catch (e) {
       error = e;
     }
   }
 
-  async function* transform(
-    chunks: AsyncIterable<Uint8Array>,
-  ): AsyncIterable<string> {
-    for await (
-      const chunk of readableStreamFromIterable(errorTrap(chunks))
-        .pipeThrough(new TextDecoderStream(label, { fatal: true }))
-    ) {
-      yield chunk;
+  async function* converter(
+    items: AsyncIterable<R>,
+  ): AsyncIterable<T> {
+    try {
+      for await (
+        const item of readableStreamFromIterable(errorTrap(items))
+          .pipeThrough(transform)
+      ) {
+        yield item;
+      }
+    } catch (e) {
+      if (error == null) {
+        error = e;
+      }
     }
 
     if (error != null) {
@@ -312,5 +353,5 @@ export function toText(
     }
   }
 
-  return transform;
+  return converter;
 }
