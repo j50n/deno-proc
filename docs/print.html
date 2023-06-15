@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">1.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">3.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">4.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">5.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">5.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">6.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">7.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">2.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">3.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">4.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">5.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">6.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">6.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">7.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">8.</strong> Utility Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -145,16 +145,16 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-02022"><a class="header" href="#proc-02022"><code>proc 0.20.22</code></a></h1>
+                        <h1 id="proc-02023"><a class="header" href="#proc-02023"><code>proc 0.20.23</code></a></h1>
 <p><code>proc</code> is a powerful functional extension for <code>AsyncIterable</code> in Deno. It
 supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with <code>Deno</code> IO streams. With <code>proc</code>, writing
 shell-style solutions in Deno is painless.</p>
-<p><a href="https://deno.land/x/proc@0.20.22/mod3.ts" target="_blank">Developer
+<p><a href="https://deno.land/x/proc@0.20.23/mod3.ts" target="_blank">Developer
 Documentation</a></p>
 <h2 id="import"><a class="header" href="#import">Import</a></h2>
 <p>Import using this path (note the use of <code>mod3.ts</code> rather than <code>mod.ts</code>).</p>
-<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.22/mod3.ts&quot;;
+<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.23/mod3.ts&quot;;
 </code></pre>
 <h2 id="a-few-examples"><a class="header" href="#a-few-examples">A Few Examples</a></h2>
 <p>Here are some of the things <code>proc</code> can do.</p>
@@ -295,6 +295,20 @@ they are.</p>
 <p>A convenient way to wait a little bit. This pauses for 1 second.</p>
 <pre><code class="language-typescript">await sleep(1000);
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="working-with-text-data"><a class="header" href="#working-with-text-data">Working with Text Data</a></h1>
+<h2 id="utf-8-lines"><a class="header" href="#utf-8-lines"><code>UTF-8</code> Lines</a></h2>
+<p>Blah.</p>
+<h2 id="utf-8-chunked-lines"><a class="header" href="#utf-8-chunked-lines"><code>UTF-8</code> Chunked Lines</a></h2>
+<p>Blah.</p>
+<h2 id="traditional-text-and-lines"><a class="header" href="#traditional-text-and-lines">Traditional Text and Lines</a></h2>
+<p>Deno provides a native
+<a href="https://deno.land/api?s=TextDecoderStream">TextDecoderStream</a> to bulk-convert
+<code>Uint8Array</code> data into text. The boundaries are arbitrary. The characters will
+always be correct, but this can break within a word or within a
+control-character sequence.</p>
+<h2 id="something-something-positional-r-etc"><a class="header" href="#something-something-positional-r-etc">Something Something Positional \r Etc.</a></h2>
+<p>Blah.</p>
+<p>apt</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="stream-conversions"><a class="header" href="#stream-conversions">Stream Conversions</a></h1>
 <p>Deno has methods to convert between <code>AsyncIterable</code> and streams as well as
 readers and writers at
