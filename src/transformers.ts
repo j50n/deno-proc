@@ -1,3 +1,4 @@
+import { readableStreamFromIterable } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat } from "./utility.ts";
 
@@ -210,9 +211,9 @@ export async function* toBytes(
  * is enough data to write through.
  *
  * If `size` is 0 or negative, the input data is passed through without buffering.
- * 
- * You do not normally need to use this transform directly as you can turn on 
- * input buffering with a parameter to the `run` method or function. 
+ *
+ * You do not normally need to use this transform directly as you can turn on
+ * input buffering with a parameter to the `run` method or function.
  */
 export function buffer(
   size = 0,
@@ -243,13 +244,13 @@ export function buffer(
 
   if (size <= 0) {
     return (iter) => iter;
-  } else {  
+  } else {
     return buffergen;
   }
 }
 
 /**
- * Convert objects into JSON.
+ * Convert objects into JSON-encoded lines.
  * @param items The objects to convert.
  */
 export async function* jsonStringify<T>(
@@ -270,4 +271,46 @@ export async function* jsonParse<T>(
   for await (const item of items) {
     yield JSON.parse(item);
   }
+}
+
+/**
+ * Convert `Uint8Array` to text. The text is not split into lines, so it will contain `lf` and `cr` in
+ * arbitrary places. Conversion is done as data is received, so this is good for passing `stderr` and/or
+ * `stdout` data that shows progress (only `cr` or other positioning codes).
+ *
+ * @param label Any valid encoding. Default is "utf-8". See
+ *     [Encoding API Encodings](https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API/Encodings).
+ * @returns A transformer.
+ */
+export function toText(
+  label = "utf-8",
+): (chunks: AsyncIterable<Uint8Array>) => AsyncIterable<string> {
+  let error: Error | undefined;
+
+  async function* errorTrap(chunks: AsyncIterable<Uint8Array>) {
+    try {
+      for await (const b of chunks) {
+        yield b;
+      }
+    } catch (e) {
+      error = e;
+    }
+  }
+
+  async function* transform(
+    chunks: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<string> {
+    for await (
+      const chunk of readableStreamFromIterable(errorTrap(chunks))
+        .pipeThrough(new TextDecoderStream(label, { fatal: true }))
+    ) {
+      yield chunk;
+    }
+
+    if (error != null) {
+      throw error;
+    }
+  }
+
+  return transform;
 }

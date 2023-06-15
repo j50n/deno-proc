@@ -84,6 +84,10 @@ export interface ConcurrentOptions {
   concurrency?: number;
 }
 
+async function* identity<T>(iter: AsyncIterable<T>): AsyncIterableIterator<T> {
+  yield* iter;
+}
+
 /**
  * Enumerable wrapper for `AsyncIterable`.
  *
@@ -99,10 +103,6 @@ export class Enumerable<T> implements AsyncIterable<T> {
   constructor(protected iter: AsyncIterable<T>) {
   }
 
-  private async *identity(): AsyncIterableIterator<T> {
-    yield* this.iter;
-  }
-
   /**
    * Implement `AsyncIterable<T>`.
    */
@@ -110,7 +110,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     if ("next" in this.iter) {
       return this.iter as AsyncGenerator<T, void, unknown>;
     } else {
-      return this.identity() as AsyncGenerator<T, void, unknown>;
+      return identity(this.iter) as AsyncGenerator<T, void, unknown>;
     }
   }
 

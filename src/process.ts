@@ -1,4 +1,4 @@
-import { buffer, toBytes, toLines } from "./transformers.ts";
+import { buffer, toBytes } from "./transformers.ts";
 import { Writable, WritableIterable } from "./writable-iterable.ts";
 
 /** Pipe kinds, matching `Deno.Command`. */
@@ -24,7 +24,7 @@ export type ErrorHandler<S> = (error?: Error, stderrData?: S) => void;
  * not allowed to throw an error from this function**. If you wish to throw an error
  * based on `stderr` data, the `ErrorHandler` function is where you do that.
  */
-export type StderrHandler<S> = (it: AsyncIterable<string>) => Promise<S>;
+export type StderrHandler<S> = (it: AsyncIterable<Uint8Array>) => Promise<S>;
 
 /**
  * Options passed to a process.
@@ -151,7 +151,7 @@ export class Process<S> implements Deno.Closer {
       .spawn();
 
     if (options.fnStderr != null) {
-      this.stderrResult = options.fnStderr(toLines(this.process.stderr));
+      this.stderrResult = options.fnStderr(this.process.stderr);
     }
   }
 

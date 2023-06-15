@@ -1,16 +1,16 @@
-import { enumerate, ExitCodeError, run } from "../../mod3.ts";
+import { enumerate, ExitCodeError, run, toLines, toText } from "../../mod3.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 import { gray } from "../deps/colors.ts";
 
 Deno.test({
-  name: "I can process stderr.",
+  name: "I can process stderr as lines.",
   async fn() {
     const stderr: string[] = [];
 
     const result = await run(
       {
-        fnStderr: async (input: AsyncIterable<string>): Promise<void> => {
-          for await (const line of input) {
+        fnStderr: async (input: AsyncIterable<Uint8Array>): Promise<void> => {
+          for await (const line of enumerate(input).transform(toLines)) {
             console.error(gray(line));
             stderr.push(line);
           }
@@ -35,6 +35,49 @@ Deno.test({
   },
 });
 
+Deno.test({
+  name: "I can process stderr as text chunks.",
+  async fn() {
+    const stderr: string[] = [];
+
+    const result = await run(
+      {
+        fnStderr: async (input: AsyncIterable<Uint8Array>): Promise<void> => {
+          for await (const text of enumerate(input).transform(toText())) {
+            stderr.push(text);
+          }
+        },
+      },
+      "bash",
+      "-c",
+      `
+        set -e
+
+        echo "excelsior" 1>&2
+        echo "A"
+        echo "upward and onward" 1>&2
+        echo "B"
+        echo "to greater glory" 1>&2
+        echo "C"
+     `,
+    ).lines
+      .collect();
+
+    assertEquals(
+      stderr.join("").split(/\n/g),
+      [
+        "excelsior",
+        "upward and onward",
+        "to greater glory",
+        "",
+      ],
+      "I can get lines from stderr.",
+    );
+
+    assertEquals(result, ["A", "B", "C"], "I can get lines from a process.");
+  },
+});
+
 export class TestError extends Error {
   constructor(
     public readonly message: string,
@@ -54,10 +97,10 @@ Deno.test({
       const output = run(
         {
           fnStderr: async (
-            input: AsyncIterable<string>,
+            input: AsyncIterable<Uint8Array>,
           ): Promise<string[]> => {
             /* This supresses print of the stderr data. */
-            return await enumerate(input).collect();
+            return await enumerate(input).transform(toLines).collect();
           },
           fnError: (error?: Error, stderrData?: string[]) => {
             if (error != null && error instanceof ExitCodeError) {
