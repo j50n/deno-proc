@@ -1,5 +1,9 @@
 # Working with Text Data
 
+SUMMARY STUFF
+
+If maximum performance is needed, do as much work in child processes as possible. Streaming byte data from process to process is quite fast. Conversion to text and splitting into lines costs cycles. Command-line utilities written in C are usually faster than the equivalent in JavaScript. 
+
 ## `UTF-8` Lines
 
 Blah.
@@ -56,4 +60,8 @@ into lines.
 
 apt
 
-Reference Wiki for ANSI codes.
+Reference Wiki for ANSI codes. Positional ANSI codes.
+
+stripColor
+
+`\r`
