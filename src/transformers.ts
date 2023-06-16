@@ -5,11 +5,6 @@ import { concat } from "./utility.ts";
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
  *
- * There is a small performance penalty to using asynchronous iteration over using
- * an array directly. If you are working with a very large data set and the strings
- * you are working with are very small (e.g., word size), consider using
- * {@link toChunkedLines}.
- *
  * @param buffs The iterable bytes.
  */
 export async function* toLines(
@@ -27,8 +22,10 @@ export async function* toLines(
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string[]>` of lines.
  *
- * For larger data, this keeps the data being passed at reasonable sizes and avoids
- * the "small string" problem. Consider using this instead of {@link toLines}
+ * For larger data sets and very small lines (like broken into one word per line), 
+ * using this helps keep the data being passed at reasonable sizes and avoids
+ * the "small string" problem. Consider using this instead of {@link toLines} in that
+ * case.
  *
  * @param buffs The iterable bytes.
  */
@@ -60,24 +57,6 @@ export async function* toByteLines(
    * call to a function for each byte. Should be pretty close to byte-at-a-time
    * C-style scanning. Not as fast as a SIMD operation, but that isn't an option
    * here.
-   *
-   * The `TextDecodeStream` and `TextLineStream` streams are written in Typescript,
-   * and they force a conversion to string before searching for line separators.
-   * That is a slower operation. I think they are also using operations that force
-   * buffers to be copied (depends on how V8 optimizes the operations), but
-   * `Uint8Array.subarray` is a view-only operation guaranteed, so no memory copies.
-   * So I think this is faster than the `std` library conversions. I real world cases
-   * it doesn't matter anyway, as the processing time for a line is (conversion to and
-   * from JSON, or Regexp parsing) is going to dominate splitting on lines.
-   *
-   * `async` and `yield` as well as iterables are first-class citizens of Javascript.
-   * The V8 team has put a lot of work into optimizing these. I expect the performance
-   * to be on par with anything in the streams library (maybe better?). Usage over time
-   * will shake out any bad actors in this library.
-   *
-   * The bigger problem with the `std` library streams is the error handling
-   * through streams. Maybe it is just broken as of 1.34.1 and will be fixed later.
-   * Will have to check back later.
    */
   let currentLine: Uint8Array[] = [];
   let lastline: undefined | Uint8Array;
@@ -340,7 +319,7 @@ export function gunzip(
  * are correctly propagated through the transformation.
  *
  * @param transform A [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream).
- * @returns A transformer function.
+ * @returns A transformer.
  */
 export function transformerFromTransform<R, T>(
   transform: { writable: WritableStream<R>; readable: ReadableStream<T> },

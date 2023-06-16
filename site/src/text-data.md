@@ -2,7 +2,10 @@
 
 SUMMARY STUFF
 
-If maximum performance is needed, do as much work in child processes as possible. Streaming byte data from process to process is quite fast. Conversion to text and splitting into lines costs cycles. Command-line utilities written in C are usually faster than the equivalent in JavaScript. 
+If maximum performance is needed, do as much work in child processes as
+possible. Streaming byte data from process to process is quite fast. Conversion
+to text and splitting into lines costs cycles. Command-line utilities written in
+C are usually faster than the equivalent in JavaScript.
 
 ## `UTF-8` Lines
 
