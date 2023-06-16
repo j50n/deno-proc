@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>enumerate (Factory) - proc</title>
+        <title>IO - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">2.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">3.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">4.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">5.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">6.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html" class="active"><strong aria-hidden="true">6.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">7.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">8.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html" class="active"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Using the Spread Operator in Run</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,66 +144,31 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="enumerate"><a class="header" href="#enumerate">enumerate</a></h1>
-<p>Create a new <code>Enumerable</code> with the <code>enumerate</code> factory method.</p>
-<p>This can wrap another <code>AsyncIterable</code> or an <code>Iterable</code>. Passing <code>null</code> results
-in an empty enumeration.</p>
-<blockquote>
-<p>⚠️ Use the <code>enumerate</code> method rather than creating a <code>new Enumerable()</code>
-directly.</p>
-</blockquote>
-<h3 id="example-1"><a class="header" href="#example-1">Example 1</a></h3>
-<p>Use <code>enumerate</code> to turn an array of numbers into an <code>AsyncIterable</code>.</p>
-<pre><code class="language-typescript">await enumerate([1, 2, 3]).map((n) =&gt; n * 2).collect();
-
-// [2, 4, 6]
-</code></pre>
-<h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
-<p>Open a file. Use <code>enumerate</code> to wrap the <code>ReadableStream</code> from the file into an
-<code>Enumerable</code>. Uncompress, strip out empty lines, and count them. Convert the
-output from <code>wc -l</code> into a number.</p>
-<pre><code class="language-typescript">const file = await Deno.open(
-  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
-);
-
-const count = await enumerate(file.readable)
-  .run(&quot;gunzip&quot;)
-  .run(&quot;grep&quot;, &quot;\S&quot;)
-  .run(&quot;wc&quot;, &quot;-l&quot;)
-  .lines
-  .map((n) =&gt; parseInt(n, 10))
-  .first;
-
-console.log(count);
-
-// 2102
-</code></pre>
-<p>We can make this a little bit shorter using the <code>read</code> method (which wraps
-<code>enumerate</code>).</p>
-<pre><code class="language-typescript">const count = await read(
-  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
-)
-  .run(&quot;gunzip&quot;)
-  .run(&quot;grep&quot;, &quot;\S&quot;)
-  .run(&quot;wc&quot;, &quot;-l&quot;)
-  .lines
-  .map((n) =&gt; parseInt(n, 10))
-  .first;
-
-console.log(count);
-
-// 2102
-</code></pre>
+                        <h1 id="io"><a class="header" href="#io">IO</a></h1>
+<ul>
+<li>
+<p>read stdin</p>
+</li>
+<li>
+<p>write stdout</p>
+</li>
+<li>
+<p>write stderr with writable</p>
+</li>
+<li>
+<p>read and write files</p>
+</li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="enumerable.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="text-data.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="transformers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="conversions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -213,11 +178,11 @@ console.log(count);
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="enumerable.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="text-data.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="transformers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="conversions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

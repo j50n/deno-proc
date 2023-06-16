@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">2.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html" class="active"><strong aria-hidden="true">3.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">4.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">5.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">6.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">6.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">7.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">8.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html" class="active"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Using the Spread Operator in Run</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -145,12 +145,13 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
+<p><a href="https://deno.land/x/proc@0.20.24/src/transformers.ts">Available Transformers</a></p>
 <p>A transformer is just a function with this signature:</p>
-<pre><code class="language-typescript">((it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;);
+<pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
 <p>A transformer transforms objects from one type to another. The chief difference
-between this and a <code>map</code> operation is that you control the whole transformation,
-so you can catch and throw errors emanating from the iteration and manage state.</p>
+between this and a <code>map</code> operation is that you have full control over the
+iteration and the output, including access to errors thrown upstream.</p>
 <p>You can easily create a transformer using an asynchronous generator. This one
 will transform strings to lower-case:</p>
 <pre><code class="language-typescript">async function* toLower(texts: AsyncIterable&lt;string&gt;) {
@@ -159,14 +160,14 @@ will transform strings to lower-case:</p>
   }
 }
 </code></pre>
-<p>Here is an example:</p>
+<p>Here it is in action:</p>
 <pre><code class="language-typescript">const lowered = await enumerable([&quot;A&quot;, &quot;B&quot;, &quot;C&quot;])
   .transform(toLower)
   .collect();
 
 assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
 </code></pre>
-<p>The <code>transform</code> operation is analogous to <code>pipeThrough</code> in streaming.</p>
+<p>The <code>transform</code> operation works similarly to <code>pipeThrough</code> in streaming.</p>
 
                     </main>
 

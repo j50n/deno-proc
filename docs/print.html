@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">2.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">3.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">4.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">5.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">6.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">6.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">7.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">8.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Using the Spread Operator in Run</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -145,16 +145,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-02023"><a class="header" href="#proc-02023"><code>proc 0.20.23</code></a></h1>
+                        <h1 id="proc-02024"><a class="header" href="#proc-02024"><code>proc 0.20.24</code></a></h1>
 <p><code>proc</code> is a powerful functional extension for <code>AsyncIterable</code> in Deno. It
 supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with <code>Deno</code> IO streams. With <code>proc</code>, writing
 shell-style solutions in Deno is painless.</p>
-<p><a href="https://deno.land/x/proc@0.20.23/mod3.ts" target="_blank">Developer
-Documentation</a></p>
+<p><a href="https://deno.land/x/proc@0.20.24/mod3.ts">Developer Documentation</a></p>
 <h2 id="import"><a class="header" href="#import">Import</a></h2>
 <p>Import using this path (note the use of <code>mod3.ts</code> rather than <code>mod.ts</code>).</p>
-<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.23/mod3.ts&quot;;
+<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.24/mod3.ts&quot;;
 </code></pre>
 <h2 id="a-few-examples"><a class="header" href="#a-few-examples">A Few Examples</a></h2>
 <p>Here are some of the things <code>proc</code> can do.</p>
@@ -296,6 +295,11 @@ they are.</p>
 <pre><code class="language-typescript">await sleep(1000);
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="working-with-text-data"><a class="header" href="#working-with-text-data">Working with Text Data</a></h1>
+<p>SUMMARY STUFF</p>
+<p>If maximum performance is needed, do as much work in child processes as
+possible. Streaming byte data from process to process is quite fast. Conversion
+to text and splitting into lines costs cycles. Command-line utilities written in
+C are usually faster than the equivalent in JavaScript.</p>
 <h2 id="utf-8-lines"><a class="header" href="#utf-8-lines"><code>UTF-8</code> Lines</a></h2>
 <p>Blah.</p>
 <h2 id="utf-8-chunked-lines"><a class="header" href="#utf-8-chunked-lines"><code>UTF-8</code> Chunked Lines</a></h2>
@@ -306,20 +310,53 @@ they are.</p>
 <a href="https://deno.land/api?s=TextDecoderStream">TextDecoderStream</a> to bulk-convert
 <code>Uint8Array</code> data into text. The boundaries are arbitrary. The characters will
 always be correct, but this can break within a word or within a
-control-character sequence.</p>
-<p>To parse this data into lines, Deno provides <a href="https://deno.land/std/streams/mod.ts?s=TextLineStream">TextLineStream</a>. This splits the data into lines on <code>\n</code> and optionally <code>\r</code>. </p>
-<p><code>proc</code> provides a transformer wrapper around <code>TextDecoderStream</code> with <a href="https://deno.land/x/proc@0.20.23/mod3.ts?s=textDecoder">textDecoder</a> and around <code>TextLineStream</code> with <a href="https://deno.land/x/proc@0.20.23/mod3.ts?s=textLine">textLine</a>. </p>
-<p>These transformers are a little slower than the <code>utf-8</code>-specialized transformers, but support different character encodings and allow some flexibility in splitting lines.</p>
+control-character sequence. <code>TextDecoderStream</code> supports many standard character
+encodings.</p>
+<p>To parse this data into lines, Deno provides
+<a href="https://deno.land/std/streams/mod.ts?s=TextLineStream">TextLineStream</a>. This
+splits the data into lines on <code>\n</code> and optionally <code>\r</code>.</p>
+<p><code>proc</code> provides a transformer wrapper around <code>TextDecoderStream</code> with
+<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textDecoder">textDecoder</a> and
+around <code>TextLineStream</code> with
+<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textLine">textLine</a>.</p>
+<p>These transformers are a little slower than the <code>utf-8</code>-specialized
+transformers, but support different character encodings and allow some
+flexibility in splitting lines.</p>
+<p><strong>Example</strong></p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
-  .transform(gunzip())
+  .transform(gunzip)
   .transform(textDecoder())
   .transform(textLine())
   .map((line) =&gt; line.toLowerCase())
-  .forEach(line =&gt; console.log(line));
+  .forEach((line) =&gt; console.log(line));
 </code></pre>
+<p>Note that most of the library assumes strings and arrays of strings represent
+line data. You can use
+<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textEncoder">textEncoder</a> to
+convert text chunks to <code>utf-8</code> encoded bytes correctly, assuming the data is not
+line-delimited.</p>
 <h2 id="something-something-positional-r-etc"><a class="header" href="#something-something-positional-r-etc">Something Something Positional \r Etc.</a></h2>
-<p>Blah.</p>
+<p>Not all processes that output text produce text that can be trivially be parsed
+into lines.</p>
 <p>apt</p>
+<p>Reference Wiki for ANSI codes. Positional ANSI codes.</p>
+<p>stripColor</p>
+<p><code>\r</code></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="io"><a class="header" href="#io">IO</a></h1>
+<ul>
+<li>
+<p>read stdin</p>
+</li>
+<li>
+<p>write stdout</p>
+</li>
+<li>
+<p>write stderr with writable</p>
+</li>
+<li>
+<p>read and write files</p>
+</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="stream-conversions"><a class="header" href="#stream-conversions">Stream Conversions</a></h1>
 <p>Deno has methods to convert between <code>AsyncIterable</code> and streams as well as
 readers and writers at
@@ -338,12 +375,13 @@ function.</p>
 <p>A <code>ReadableStream</code> is an <code>AsyncIterable</code>. Avoid the use of <code>.pipeThrough()</code> and
 <code>.pipeTo()</code>. Use <code>for await</code> or <code>enumerate()</code> instead.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
+<p><a href="https://deno.land/x/proc@0.20.24/src/transformers.ts">Available Transformers</a></p>
 <p>A transformer is just a function with this signature:</p>
-<pre><code class="language-typescript">((it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;);
+<pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
 <p>A transformer transforms objects from one type to another. The chief difference
-between this and a <code>map</code> operation is that you control the whole transformation,
-so you can catch and throw errors emanating from the iteration and manage state.</p>
+between this and a <code>map</code> operation is that you have full control over the
+iteration and the output, including access to errors thrown upstream.</p>
 <p>You can easily create a transformer using an asynchronous generator. This one
 will transform strings to lower-case:</p>
 <pre><code class="language-typescript">async function* toLower(texts: AsyncIterable&lt;string&gt;) {
@@ -352,14 +390,14 @@ will transform strings to lower-case:</p>
   }
 }
 </code></pre>
-<p>Here is an example:</p>
+<p>Here it is in action:</p>
 <pre><code class="language-typescript">const lowered = await enumerable([&quot;A&quot;, &quot;B&quot;, &quot;C&quot;])
   .transform(toLower)
   .collect();
 
 assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
 </code></pre>
-<p>The <code>transform</code> operation is analogous to <code>pipeThrough</code> in streaming.</p>
+<p>The <code>transform</code> operation works similarly to <code>pipeThrough</code> in streaming.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-zen-of-errors"><a class="header" href="#the-zen-of-errors">The Zen of Errors</a></h1>
 <p>Error handling should just work. You should not have to check the exit code of
 every process. Errors that occur upstream should flow downstream. You should not
@@ -456,112 +494,6 @@ seems a little cleaner to specify the type where you create the tuple:</p>
 cmd.push(&quot;-la&quot;);
 
 run(...cmd);
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="enumerable"><a class="header" href="#enumerable">Enumerable</a></h1>
-<p>See
-<a href="https://github.com/j50n/deno-proc/blob/main/src/enumerable.ts">enumerable.ts</a></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="enumerate"><a class="header" href="#enumerate">enumerate</a></h1>
-<p>Create a new <code>Enumerable</code> with the <code>enumerate</code> factory method.</p>
-<p>This can wrap another <code>AsyncIterable</code> or an <code>Iterable</code>. Passing <code>null</code> results
-in an empty enumeration.</p>
-<blockquote>
-<p>⚠️ Use the <code>enumerate</code> method rather than creating a <code>new Enumerable()</code>
-directly.</p>
-</blockquote>
-<h3 id="example-1"><a class="header" href="#example-1">Example 1</a></h3>
-<p>Use <code>enumerate</code> to turn an array of numbers into an <code>AsyncIterable</code>.</p>
-<pre><code class="language-typescript">await enumerate([1, 2, 3]).map((n) =&gt; n * 2).collect();
-
-// [2, 4, 6]
-</code></pre>
-<h3 id="example-2"><a class="header" href="#example-2">Example 2</a></h3>
-<p>Open a file. Use <code>enumerate</code> to wrap the <code>ReadableStream</code> from the file into an
-<code>Enumerable</code>. Uncompress, strip out empty lines, and count them. Convert the
-output from <code>wc -l</code> into a number.</p>
-<pre><code class="language-typescript">const file = await Deno.open(
-  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
-);
-
-const count = await enumerate(file.readable)
-  .run(&quot;gunzip&quot;)
-  .run(&quot;grep&quot;, &quot;\S&quot;)
-  .run(&quot;wc&quot;, &quot;-l&quot;)
-  .lines
-  .map((n) =&gt; parseInt(n, 10))
-  .first;
-
-console.log(count);
-
-// 2102
-</code></pre>
-<p>We can make this a little bit shorter using the <code>read</code> method (which wraps
-<code>enumerate</code>).</p>
-<pre><code class="language-typescript">const count = await read(
-  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
-)
-  .run(&quot;gunzip&quot;)
-  .run(&quot;grep&quot;, &quot;\S&quot;)
-  .run(&quot;wc&quot;, &quot;-l&quot;)
-  .lines
-  .map((n) =&gt; parseInt(n, 10))
-  .first;
-
-console.log(count);
-
-// 2102
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="transformers-1"><a class="header" href="#transformers-1">Transformers</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h1>
-<h2 id="sleep-1"><a class="header" href="#sleep-1">Sleep</a></h2>
-<p>Pause for some amount of time (measured in milliseconds) without blocking.</p>
-<p><strong>Example</strong></p>
-<p>Sleep for two seconds:</p>
-<pre><code class="language-typescript">await sleep(2000);
-</code></pre>
-<h2 id="range"><a class="header" href="#range">Range</a></h2>
-<p>This lazily produces a sequence of numbers in <code>for...next</code> fashion.</p>
-<p>There are two variants. In the <code>to</code> variant, the end number is exclusive. In the
-<code>until</code> variant, the end number is inclusive. The default starting number is
-always 0, and the default step is 1.</p>
-<p>This is a lazy operation. It is creating the results one at a time rather than
-all at once in memory. Therefore it is perfectly reasonable to do something like
-create an infinite range.</p>
-<h3 id="example-1-1"><a class="header" href="#example-1-1">Example 1</a></h3>
-<p>Prints the numbers <code>0</code>, <code>1</code>, and <code>2</code>. Using <code>to</code> so the end number is exclusive.
-Default <code>from</code> is <code>0</code>.</p>
-<pre><code class="language-typescript">for (const i of range({ to: 3 })) {
-  console.log(i);
-}
-</code></pre>
-<h3 id="example-2-1"><a class="header" href="#example-2-1">Example 2</a></h3>
-<p>Prints the numbers <code>0</code>, <code>1</code>, <code>2</code>, and <code>3</code>. Using <code>from</code> so the end number is
-inclusive. Default <code>from</code> is <code>0</code>.</p>
-<pre><code class="language-typescript">for (const i of range({ until: 3 })) {
-  console.log(i);
-}
-</code></pre>
-<h3 id="example-3"><a class="header" href="#example-3">Example 3</a></h3>
-<p>Prints the numbers from <code>10</code> to <code>1</code>, descending order.</p>
-<pre><code class="language-typescript">for (const i of range({ from: 10, to: 0, step: -1 })) {
-  console.log(i);
-}
-</code></pre>
-<h3 id="example-4"><a class="header" href="#example-4">Example 4</a></h3>
-<p>Prints the numbers from <code>0</code> to <code>99</code>.</p>
-<pre><code class="language-typescript">for (const i of range({ to: 10 })) {
-  for (const j of range({ to: 10 })) {
-    console.log(i * 10 + j);
-  }
-}
-</code></pre>
-<h3 id="example-5"><a class="header" href="#example-5">Example 5</a></h3>
-<p>An infinite loop that breaks at 20.</p>
-<pre><code class="language-typescript">for await (const n of range({ to: Number.POSITIVE_INFINITY })) {
-  if (n &gt; 20) {
-    break;
-  }
-  console.log(n);
-}
 </code></pre>
 
                     </main>

@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="spacer"></li><li class="chapter-item expanded "><a href="text-data.html" class="active"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">2.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">3.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">4.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="spacer"></li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">5.</strong> Using the Spread Operator in Run</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="spacer"></li><li class="chapter-item expanded "><a href="enumerable.html"><strong aria-hidden="true">6.</strong> Enumerable</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="enumerate.html"><strong aria-hidden="true">6.1.</strong> enumerate (Factory)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.</strong> map</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.3.</strong> transform</div></li></ol></li><li class="chapter-item expanded "><a href="transformers.html"><strong aria-hidden="true">7.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="utility.html"><strong aria-hidden="true">8.</strong> Utility Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html" class="active"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Using the Spread Operator in Run</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -145,6 +145,11 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="working-with-text-data"><a class="header" href="#working-with-text-data">Working with Text Data</a></h1>
+<p>SUMMARY STUFF</p>
+<p>If maximum performance is needed, do as much work in child processes as
+possible. Streaming byte data from process to process is quite fast. Conversion
+to text and splitting into lines costs cycles. Command-line utilities written in
+C are usually faster than the equivalent in JavaScript.</p>
 <h2 id="utf-8-lines"><a class="header" href="#utf-8-lines"><code>UTF-8</code> Lines</a></h2>
 <p>Blah.</p>
 <h2 id="utf-8-chunked-lines"><a class="header" href="#utf-8-chunked-lines"><code>UTF-8</code> Chunked Lines</a></h2>
@@ -155,20 +160,38 @@
 <a href="https://deno.land/api?s=TextDecoderStream">TextDecoderStream</a> to bulk-convert
 <code>Uint8Array</code> data into text. The boundaries are arbitrary. The characters will
 always be correct, but this can break within a word or within a
-control-character sequence.</p>
-<p>To parse this data into lines, Deno provides <a href="https://deno.land/std/streams/mod.ts?s=TextLineStream">TextLineStream</a>. This splits the data into lines on <code>\n</code> and optionally <code>\r</code>. </p>
-<p><code>proc</code> provides a transformer wrapper around <code>TextDecoderStream</code> with <a href="https://deno.land/x/proc@0.20.23/mod3.ts?s=textDecoder">textDecoder</a> and around <code>TextLineStream</code> with <a href="https://deno.land/x/proc@0.20.23/mod3.ts?s=textLine">textLine</a>. </p>
-<p>These transformers are a little slower than the <code>utf-8</code>-specialized transformers, but support different character encodings and allow some flexibility in splitting lines.</p>
+control-character sequence. <code>TextDecoderStream</code> supports many standard character
+encodings.</p>
+<p>To parse this data into lines, Deno provides
+<a href="https://deno.land/std/streams/mod.ts?s=TextLineStream">TextLineStream</a>. This
+splits the data into lines on <code>\n</code> and optionally <code>\r</code>.</p>
+<p><code>proc</code> provides a transformer wrapper around <code>TextDecoderStream</code> with
+<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textDecoder">textDecoder</a> and
+around <code>TextLineStream</code> with
+<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textLine">textLine</a>.</p>
+<p>These transformers are a little slower than the <code>utf-8</code>-specialized
+transformers, but support different character encodings and allow some
+flexibility in splitting lines.</p>
+<p><strong>Example</strong></p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
-  .transform(gunzip())
+  .transform(gunzip)
   .transform(textDecoder())
   .transform(textLine())
   .map((line) =&gt; line.toLowerCase())
-  .forEach(line =&gt; console.log(line));
+  .forEach((line) =&gt; console.log(line));
 </code></pre>
+<p>Note that most of the library assumes strings and arrays of strings represent
+line data. You can use
+<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textEncoder">textEncoder</a> to
+convert text chunks to <code>utf-8</code> encoded bytes correctly, assuming the data is not
+line-delimited.</p>
 <h2 id="something-something-positional-r-etc"><a class="header" href="#something-something-positional-r-etc">Something Something Positional \r Etc.</a></h2>
-<p>Blah.</p>
+<p>Not all processes that output text produce text that can be trivially be parsed
+into lines.</p>
 <p>apt</p>
+<p>Reference Wiki for ANSI codes. Positional ANSI codes.</p>
+<p>stripColor</p>
+<p><code>\r</code></p>
 
                     </main>
 
@@ -178,7 +201,7 @@ control-character sequence.</p>
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="conversions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="io.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -192,7 +215,7 @@ control-character sequence.</p>
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="conversions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="io.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
