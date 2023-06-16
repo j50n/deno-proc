@@ -2,6 +2,9 @@ import { readableStreamFromIterable, TextLineStream } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat } from "./utility.ts";
 
+/**
+ * Type signature of a transformer.
+ */
 export type Transformer<T, U> = (it: AsyncIterable<T>) => AsyncIterable<U>;
 
 /**
@@ -269,7 +272,7 @@ export async function* jsonParse<T>(
 export function textDecoder(
   label = "utf-8",
 ): Transformer<Uint8Array, string> {
-  return transformerFromTransform(
+  return transformerFromTransformStream(
     new TextDecoderStream(label, { fatal: true }),
   );
 }
@@ -285,7 +288,7 @@ export function textEncoder(): (
   chunks: AsyncIterable<string>,
 ) => AsyncIterable<Uint8Array> {
   const tes = new TextEncoderStream();
-  return transformerFromTransform(tes);
+  return transformerFromTransformStream(tes);
 }
 
 /**
@@ -300,7 +303,7 @@ export function textEncoder(): (
 export function textLine(
   options?: { allowCR?: boolean },
 ): Transformer<string, string> {
-  return transformerFromTransform(
+  return transformerFromTransformStream(
     new TextLineStream({ allowCR: !!options?.allowCR }),
   );
 }
@@ -311,19 +314,19 @@ export function textLine(
 export function gunzip(
   chunks: AsyncIterable<Uint8Array>,
 ): AsyncIterable<Uint8Array> {
-  return transformerFromTransform(
+  return transformerFromTransformStream(
     new DecompressionStream("gzip"),
   )(chunks);
 }
 
 /**
- * Convert a `TransformStream` into `AsyncIterable`. Errors occurring upstream
+ * Convert a `TransformStream` into a {@link Transformer}. Errors occurring upstream
  * are correctly propagated through the transformation.
  *
  * @param transform A [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream).
  * @returns A transformer.
  */
-export function transformerFromTransform<R, T>(
+export function transformerFromTransformStream<R, T>(
   transform: { writable: WritableStream<R>; readable: ReadableStream<T> },
 ): Transformer<R, T> {
   let error: Error | undefined;
