@@ -43,9 +43,11 @@ await read(resolve("./warandpeace.txt.gz"))
   .forEach((line) => console.log(line));
 ```
 
-Note that most of the library assumes strings and arrays of strings represent line data. 
-You can use [textEncoder](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=textEncoder) to convert
-text chunks to `utf-8` encoded bytes correctly, assuming the data is not line-delimited.
+Note that most of the library assumes strings and arrays of strings represent
+line data. You can use
+[textEncoder](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=textEncoder) to
+convert text chunks to `utf-8` encoded bytes correctly, assuming the data is not
+line-delimited.
 
 ## Something Something Positional \r Etc.
 
