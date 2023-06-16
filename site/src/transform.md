@@ -5,12 +5,12 @@
 A transformer is just a function with this signature:
 
 ```typescript
-type transform = (it: AsyncIterable<T>) => AsyncIterable<U>;
+type Transformer<T, U> = (it: AsyncIterable<T>) => AsyncIterable<U>;
 ```
 
 A transformer transforms objects from one type to another. The chief difference
-between this and a `map` operation is that you have full control over the iteration and
-the output, including access to errors thrown upstream.
+between this and a `map` operation is that you have full control over the
+iteration and the output, including access to errors thrown upstream.
 
 You can easily create a transformer using an asynchronous generator. This one
 will transform strings to lower-case:

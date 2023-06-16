@@ -13,5 +13,3 @@
 # Minutia
 
 - [Using the Spread Operator in Run](./spread.md)
-
-

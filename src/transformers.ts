@@ -2,6 +2,8 @@ import { readableStreamFromIterable, TextLineStream } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat } from "./utility.ts";
 
+export type Transformer<T, U> = (it: AsyncIterable<T>) => AsyncIterable<U>;
+
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
  *
@@ -22,7 +24,7 @@ export async function* toLines(
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string[]>` of lines.
  *
- * For larger data sets and very small lines (like broken into one word per line), 
+ * For larger data sets and very small lines (like broken into one word per line),
  * using this helps keep the data being passed at reasonable sizes and avoids
  * the "small string" problem. Consider using this instead of {@link toLines} in that
  * case.
@@ -196,7 +198,7 @@ export async function* toBytes(
  */
 export function buffer(
   size = 0,
-): (iter: AsyncIterable<Uint8Array>) => AsyncIterable<Uint8Array> {
+): Transformer<Uint8Array, Uint8Array> {
   async function* buffergen(
     iter: AsyncIterable<Uint8Array>,
   ): AsyncIterable<Uint8Array> {
@@ -266,7 +268,7 @@ export async function* jsonParse<T>(
  */
 export function textDecoder(
   label = "utf-8",
-): (chunks: AsyncIterable<Uint8Array>) => AsyncIterable<string> {
+): Transformer<Uint8Array, string> {
   return transformerFromTransform(
     new TextDecoderStream(label, { fatal: true }),
   );
@@ -297,7 +299,7 @@ export function textEncoder(): (
  */
 export function textLine(
   options?: { allowCR?: boolean },
-): (chunks: AsyncIterable<string>) => AsyncIterable<string> {
+): Transformer<string, string> {
   return transformerFromTransform(
     new TextLineStream({ allowCR: !!options?.allowCR }),
   );
@@ -323,7 +325,7 @@ export function gunzip(
  */
 export function transformerFromTransform<R, T>(
   transform: { writable: WritableStream<R>; readable: ReadableStream<T> },
-): (items: AsyncIterable<R>) => AsyncIterable<T> {
+): Transformer<R, T> {
   let error: Error | undefined;
 
   async function* errorTrap(items: AsyncIterable<R>) {
