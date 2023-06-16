@@ -19,3 +19,19 @@ Deno.test({
     assertEquals(lowered, ["a", "b", "c"], "Transformed to lower-case.");
   },
 });
+
+// Deno.test({
+//   name: "Another way to filter empty lines. Not necessarily better.",
+//   async fn() {
+//     const lf = new TextEncoder().encode("\n");
+
+//     await read(fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")))
+//       .transform(gunzip)
+//       .transform(toByteLines)
+//       .flatten()
+//       .filterNot((line) => line.length === 0)
+//       .flatMap((line) => [line, lf])
+//       .transform(buffer())
+//       .writeTo(Deno.stdout.writable, { noclose: true });
+//   },
+// });

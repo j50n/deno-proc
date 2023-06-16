@@ -122,23 +122,45 @@ export class Enumerable<T> implements AsyncIterable<T> {
    *
    * @param writer The writer.
    */
-  async writeTo(writer: Writable<T>): Promise<void> {
+  async writeTo(
+    writer: Writable<T> | WritableStream<T>,
+    options?: { noclose?: boolean },
+  ): Promise<void> {
     const iter = this.iter;
 
-    await (async () => {
+    if ("getWriter" in writer) {
+      const w = writer.getWriter();
+
       try {
         for await (const it of iter) {
-          if (writer.isClosed) {
-            break;
-          }
-
-          writer.write(it);
+          await w.write(it);
         }
-        await writer.close();
-      } catch (e) {
-        await writer.close(e);
+      } finally {
+        w.releaseLock();
+        if (!options?.noclose) {
+          await writer.close();
+        }
       }
-    })();
+    } else {
+      await (async () => {
+        try {
+          for await (const it of iter) {
+            if (writer.isClosed) {
+              break;
+            }
+
+            writer.write(it);
+          }
+          if (!options?.noclose) {
+            await writer.close();
+          }
+        } catch (e) {
+          if (!options?.noclose) {
+            await writer.close(e);
+          }
+        }
+      })();
+    }
   }
 
   /**
