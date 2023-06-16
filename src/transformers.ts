@@ -294,6 +294,20 @@ export function textDecoder(
 }
 
 /**
+ * Convert (non line-delimited) text into `utf-8` encoded bytes.
+ *
+ * Wraps `TextEncoderStream`.
+ *
+ * @returns A transformer.
+ */
+export function textEncoder(): (
+  chunks: AsyncIterable<string>,
+) => AsyncIterable<Uint8Array> {
+  const tes = new TextEncoderStream();
+  return transformerFromTransform(tes);
+}
+
+/**
  * Transform text in "chunk" form into lines.
  *
  * Wraps `TextLineStream`.
@@ -312,15 +326,13 @@ export function textLine(
 
 /**
  * Decompress a `gzip` compressed stream.
- *
- * @returns A transformer.
  */
-export function gunzip(): (
+export function gunzip(
   chunks: AsyncIterable<Uint8Array>,
-) => AsyncIterable<Uint8Array> {
+): AsyncIterable<Uint8Array> {
   return transformerFromTransform(
     new DecompressionStream("gzip"),
-  );
+  )(chunks);
 }
 
 /**

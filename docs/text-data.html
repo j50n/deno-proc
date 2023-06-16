@@ -149,12 +149,23 @@
 <p>Blah.</p>
 <h2 id="utf-8-chunked-lines"><a class="header" href="#utf-8-chunked-lines"><code>UTF-8</code> Chunked Lines</a></h2>
 <p>Blah.</p>
+<p>Mention as string and as Uint8Array, since this is much faster.</p>
 <h2 id="traditional-text-and-lines"><a class="header" href="#traditional-text-and-lines">Traditional Text and Lines</a></h2>
 <p>Deno provides a native
 <a href="https://deno.land/api?s=TextDecoderStream">TextDecoderStream</a> to bulk-convert
 <code>Uint8Array</code> data into text. The boundaries are arbitrary. The characters will
 always be correct, but this can break within a word or within a
 control-character sequence.</p>
+<p>To parse this data into lines, Deno provides <a href="https://deno.land/std/streams/mod.ts?s=TextLineStream">TextLineStream</a>. This splits the data into lines on <code>\n</code> and optionally <code>\r</code>. </p>
+<p><code>proc</code> provides a transformer wrapper around <code>TextDecoderStream</code> with <a href="https://deno.land/x/proc@0.20.23/mod3.ts?s=textDecoder">textDecoder</a> and around <code>TextLineStream</code> with <a href="https://deno.land/x/proc@0.20.23/mod3.ts?s=textLine">textLine</a>. </p>
+<p>These transformers are a little slower than the <code>utf-8</code>-specialized transformers, but support different character encodings and allow some flexibility in splitting lines.</p>
+<pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
+  .transform(gunzip())
+  .transform(textDecoder())
+  .transform(textLine())
+  .map((line) =&gt; line.toLowerCase())
+  .forEach(line =&gt; console.log(line));
+</code></pre>
 <h2 id="something-something-positional-r-etc"><a class="header" href="#something-something-positional-r-etc">Something Something Positional \r Etc.</a></h2>
 <p>Blah.</p>
 <p>apt</p>

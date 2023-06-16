@@ -11,7 +11,7 @@ Deno.test({
     );
 
     const [words1, words2] = enumerate(file.readable)
-      .transform(gunzip())
+      .transform(gunzip)
       .transform(toLines)
       .map((line) => line.toLocaleLowerCase())
       .run({ buffer: true }, "grep", "-oE", "(\\w|')+")
