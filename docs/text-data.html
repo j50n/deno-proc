@@ -145,16 +145,41 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="working-with-text-data"><a class="header" href="#working-with-text-data">Working with Text Data</a></h1>
-<p>SUMMARY STUFF</p>
-<p>If maximum performance is needed, do as much work in child processes as
-possible. Streaming byte data from process to process is quite fast. Conversion
-to text and splitting into lines costs cycles. Command-line utilities written in
-C are usually faster than the equivalent in JavaScript.</p>
+<p>Streaming data doesn't have to be line-delimited text, but it probably will be
+most of the time. Many *nix tools work with this type of data or some variation
+of it.</p>
+<p>Line-delimited text data is simply:</p>
+<ul>
+<li><code>utf-8</code> encoded bytes</li>
+<li>logically separated into lines with <code>\n</code> or alternately <code>\r\n</code> (Windows style)
+characters</li>
+</ul>
+<p>Here is how you process text data in <code>proc</code>.</p>
 <h2 id="utf-8-lines"><a class="header" href="#utf-8-lines"><code>UTF-8</code> Lines</a></h2>
-<p>Blah.</p>
-<h2 id="utf-8-chunked-lines"><a class="header" href="#utf-8-chunked-lines"><code>UTF-8</code> Chunked Lines</a></h2>
-<p>Blah.</p>
-<p>Mention as string and as Uint8Array, since this is much faster.</p>
+<p>This is the &quot;normal&quot; way to work with line-delimited text. It should be a good
+solution most of the time.</p>
+<p>For a child process, the
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
+method converts a line at a time.</p>
+<pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
+  .lines
+  .forEach((it) =&gt; console.log(it));
+</code></pre>
+<p>In other cases, use
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+with the <a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=toLines">toLines</a>
+transformer function.</p>
+<pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
+  .transform(toLines)
+  .forEach((it) =&gt; console.log(it));
+</code></pre>
+<p>The <a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable#method_run_0">run</a>
+method will automatically treat <code>string</code> values as lines, adding <code>\n</code> to them
+and converting back into <code>utf-8</code> encoded bytes.</p>
+<p>Note that this <em>always</em> assumes string data passed to it is line-delimited. If
+that isn't the case (you may be working with buffered text data that is not
+delimited at all, for example), you <strong>must</strong> convert text data back to
+<code>Uint8Array</code> yourself or <code>\n</code> characters will be added.</p>
 <h2 id="traditional-text-and-lines"><a class="header" href="#traditional-text-and-lines">Traditional Text and Lines</a></h2>
 <p>Deno provides a native
 <a href="https://deno.land/api?s=TextDecoderStream">TextDecoderStream</a> to bulk-convert
@@ -165,33 +190,42 @@ encodings.</p>
 <p>To parse this data into lines, Deno provides
 <a href="https://deno.land/std/streams/mod.ts?s=TextLineStream">TextLineStream</a>. This
 splits the data into lines on <code>\n</code> and optionally <code>\r</code>.</p>
-<p><code>proc</code> provides a transformer wrapper around <code>TextDecoderStream</code> with
-<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textDecoder">textDecoder</a> and
-around <code>TextLineStream</code> with
-<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textLine">textLine</a>.</p>
-<p>These transformers are a little slower than the <code>utf-8</code>-specialized
-transformers, but support different character encodings and allow some
-flexibility in splitting lines.</p>
-<p><strong>Example</strong></p>
+<p>These are meant to be used together to convert to text then split into lines.</p>
+<p>The traditional stream implementation is a little slower than the
+<code>utf-8</code>-specialized transformers, but they support different character encodings
+and allow some flexibility in defining the split.</p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
   .transform(gunzip)
-  .transform(textDecoder())
-  .transform(textLine())
+  .transform(new TextDecoderStream())
+  .transform(new TextLineStream())
   .map((line) =&gt; line.toLowerCase())
   .forEach((line) =&gt; console.log(line));
 </code></pre>
 <p>Note that most of the library assumes strings and arrays of strings represent
-line data. You can use
-<a href="https://deno.land/x/proc@0.20.24/mod3.ts?s=textEncoder">textEncoder</a> to
-convert text chunks to <code>utf-8</code> encoded bytes correctly, assuming the data is not
-line-delimited.</p>
-<h2 id="something-something-positional-r-etc"><a class="header" href="#something-something-positional-r-etc">Something Something Positional \r Etc.</a></h2>
-<p>Not all processes that output text produce text that can be trivially be parsed
-into lines.</p>
-<p>apt</p>
-<p>Reference Wiki for ANSI codes. Positional ANSI codes.</p>
-<p>stripColor</p>
-<p><code>\r</code></p>
+line data. For text that is not divided on lines, you can use
+<a href="https://deno.land/api?s=TextEncoderStream">TextEncoderStream</a> to convert back
+to <code>utf-8</code> bytes. Note that unlike <code>TextDecoderStream</code> this does not support
+multiple encodings. This is in line with the official specification.</p>
+<h2 id="not-all-text-data-is-text-data"><a class="header" href="#not-all-text-data-is-text-data">Not All Text Data is Text Data</a></h2>
+<p>There are many command-line utilities that use ANSI color and position
+sequences, as well as raw carriage-returns (<code>\r</code>) to enhance the user experience
+at the console. The codes are normally interpreted by the terminal, but if you
+dump them to file, you can see they make a mess. You've probably seen this in
+log files before.</p>
+<p>This type of streamed text data can't be strictly interpreted as lines. You may
+be able to hack around the fluff. Use
+<a href="https://deno.land/std/fmt/colors.ts?doc=&amp;s=stripColor">stripColor</a> (Deno <code>std</code>
+library) to remove ANSI escape codes from strings. If the utility is using raw
+<code>\r</code>, you may have to deal with that as well.</p>
+<p>The best solution is to turn off color and progress for command-line utilities
+you use for processing. This is not always possible (Debian <code>apt</code> is a famous
+example of this).</p>
+<p>Reference the <a href="https://en.wikipedia.org/wiki/ANSI_escape_code">ANSI escape code</a>
+wiki page.</p>
+<p>You can <em>always</em> get around this problem by never attempting to split on lines.</p>
+<pre><code class="language-typescript">await run(&quot;apt&quot;, &quot;install&quot;, &quot;build-essential&quot;)
+  .writeTo(Deno.stdout.writable, { noclose: true });
+</code></pre>
 
                     </main>
 

@@ -145,15 +145,20 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
-<p><a href="https://deno.land/x/proc@0.20.24/src/transformers.ts">Available Transformers</a></p>
-<p>A transformer is just a function with this signature:</p>
+<p><a href="https://deno.land/x/proc@0.20.25/src/transformers.ts">Available Transformers</a></p>
+<p>A transformer is just a plain-old JavaScript function with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
-<p>A transformer transforms objects from one type to another. The chief difference
-between this and a <code>map</code> operation is that you have full control over the
-iteration and the output, including access to errors thrown upstream.</p>
-<p>You can easily create a transformer using an asynchronous generator. This one
-will transform strings to lower-case:</p>
+<p>Transformers are just functions (possibly asynchronous generator functions). You
+can compose them into new functions relatively easily because this is just
+JavaScript iteration. The
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+operation works similarly to <code>pipeThrough</code> in streaming.</p>
+<p>A transformer transforms objects from one type to another. It is like <code>map</code> but
+with with complete control over the whole stream of data - including control
+over error handling.</p>
+<p>You can create a transformer using an asynchronous generator. This one will
+transform strings to lower-case:</p>
 <pre><code class="language-typescript">async function* toLower(texts: AsyncIterable&lt;string&gt;) {
   for await (const text of texts) {
     yield text.toLocaleLowerCase();
@@ -167,7 +172,6 @@ will transform strings to lower-case:</p>
 
 assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
 </code></pre>
-<p>The <code>transform</code> operation works similarly to <code>pipeThrough</code> in streaming.</p>
 
                     </main>
 
