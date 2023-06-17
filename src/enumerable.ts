@@ -13,7 +13,11 @@ import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
 import { Writable } from "./writable-iterable.ts";
-import { toLines } from "./transformers.ts";
+import {
+  toLines,
+  transformerFromTransformStream,
+  TransformerFunction,
+} from "./transformers.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -24,6 +28,11 @@ type Tuple<T, N extends number> = N extends N
 type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
   ? R
   : TupleOf<T, N, [T, ...R]>;
+
+type TransformStream<R, S> = {
+  writable: WritableStream<R>;
+  readable: ReadableStream<S>;
+};
 
 /**
  * {@link Enumerable} factory.
@@ -166,13 +175,17 @@ export class Enumerable<T> implements AsyncIterable<T> {
   /**
    * Transform the iterable from one type to another with an opportunity to catch
    * and handle errors.
-   * @param fn The transform function.
+   * @param fn The transformer function or `TransformStream`.
    * @returns The transformed iterable.
    */
   transform<U>(
-    fn: (it: AsyncIterable<T>) => AsyncIterable<U>,
+    fn: TransformerFunction<T, U> | TransformStream<T, U>,
   ): Enumerable<U> {
-    return new Enumerable(fn(this.iter));
+    if ("writable" in fn && "readable" in fn) {
+      return new Enumerable(transformerFromTransformStream(fn)(this.iter));
+    } else {
+      return new Enumerable(fn(this.iter));
+    }
   }
 
   /**

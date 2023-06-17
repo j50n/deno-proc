@@ -1,11 +1,13 @@
-import { readableStreamFromIterable, TextLineStream } from "./deps/streams.ts";
+import { readableStreamFromIterable } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat } from "./utility.ts";
 
 /**
  * Type signature of a transformer.
  */
-export type Transformer<T, U> = (it: AsyncIterable<T>) => AsyncIterable<U>;
+export type TransformerFunction<T, U> = (
+  it: AsyncIterable<T>,
+) => AsyncIterable<U>;
 
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
@@ -201,7 +203,7 @@ export async function* toBytes(
  */
 export function buffer(
   size = 0,
-): Transformer<Uint8Array, Uint8Array> {
+): TransformerFunction<Uint8Array, Uint8Array> {
   async function* buffergen(
     iter: AsyncIterable<Uint8Array>,
   ): AsyncIterable<Uint8Array> {
@@ -257,56 +259,56 @@ export async function* jsonParse<T>(
   }
 }
 
-/**
- * Convert `Uint8Array` to text. The text is not split into lines, so it will contain `lf` and `cr` in
- * arbitrary places. Conversion is done as data is received, so this is good for passing `stderr` and/or
- * `stdout` data that shows progress (only `cr` or other positioning codes).
- *
- * Wraps `TextDecoderStream`.
- *
- * @see {@link textLine}
- * @param label Any valid encoding. Default is "utf-8". See
- *     [Encoding API Encodings](https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API/Encodings).
- * @returns A transformer.
- */
-export function textDecoder(
-  label = "utf-8",
-): Transformer<Uint8Array, string> {
-  return transformerFromTransformStream(
-    new TextDecoderStream(label, { fatal: true }),
-  );
-}
+// /**
+//  * Convert `Uint8Array` to text. The text is not split into lines, so it will contain `lf` and `cr` in
+//  * arbitrary places. Conversion is done as data is received, so this is good for passing `stderr` and/or
+//  * `stdout` data that shows progress (only `cr` or other positioning codes).
+//  *
+//  * Wraps `TextDecoderStream`.
+//  *
+//  * @see {@link textLine}
+//  * @param label Any valid encoding. Default is "utf-8". See
+//  *     [Encoding API Encodings](https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API/Encodings).
+//  * @returns A transformer.
+//  */
+// export function textDecoder(
+//   label = "utf-8",
+// ): TransformerFunction<Uint8Array, string> {
+//   return transformerFromTransformStream(
+//     new TextDecoderStream(label, { fatal: true }),
+//   );
+// }
 
-/**
- * Convert (non line-delimited) text into `utf-8` encoded bytes.
- *
- * Wraps `TextEncoderStream`.
- *
- * @returns A transformer.
- */
-export function textEncoder(): (
-  chunks: AsyncIterable<string>,
-) => AsyncIterable<Uint8Array> {
-  const tes = new TextEncoderStream();
-  return transformerFromTransformStream(tes);
-}
+// /**
+//  * Convert (non line-delimited) text into `utf-8` encoded bytes.
+//  *
+//  * Wraps `TextEncoderStream`.
+//  *
+//  * @returns A transformer.
+//  */
+// export function textEncoder(): (
+//   chunks: AsyncIterable<string>,
+// ) => AsyncIterable<Uint8Array> {
+//   const tes = new TextEncoderStream();
+//   return transformerFromTransformStream(tes);
+// }
 
-/**
- * Transform text in "chunk" form into lines.
- *
- * Wraps `TextLineStream`.
- *
- * @see {@link textDecoder}
- * @param options Options.
- * @returns A transformer.
- */
-export function textLine(
-  options?: { allowCR?: boolean },
-): Transformer<string, string> {
-  return transformerFromTransformStream(
-    new TextLineStream({ allowCR: !!options?.allowCR }),
-  );
-}
+// /**
+//  * Transform text in "chunk" form into lines.
+//  *
+//  * Wraps `TextLineStream`.
+//  *
+//  * @see {@link textDecoder}
+//  * @param options Options.
+//  * @returns A transformer.
+//  */
+// export function textLine(
+//   options?: { allowCR?: boolean },
+// ): TransformerFunction<string, string> {
+//   return transformerFromTransformStream(
+//     new TextLineStream({ allowCR: !!options?.allowCR }),
+//   );
+// }
 
 /**
  * Decompress a `gzip` compressed stream.
@@ -320,7 +322,7 @@ export function gunzip(
 }
 
 /**
- * Convert a `TransformStream` into a {@link Transformer}. Errors occurring upstream
+ * Convert a `TransformStream` into a {@link TransformerFunction}. Errors occurring upstream
  * are correctly propagated through the transformation.
  *
  * @param transform A [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream).
@@ -328,7 +330,7 @@ export function gunzip(
  */
 export function transformerFromTransformStream<R, T>(
   transform: { writable: WritableStream<R>; readable: ReadableStream<T> },
-): Transformer<R, T> {
+): TransformerFunction<R, T> {
   let error: Error | undefined;
 
   async function* errorTrap(items: AsyncIterable<R>) {

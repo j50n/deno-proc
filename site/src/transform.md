@@ -2,18 +2,24 @@
 
 [Available Transformers](https://deno.land/x/proc@{{gitv}}/src/transformers.ts)
 
-A transformer is just a function with this signature:
+A transformer is just a plain-old JavaScript function with this signature:
 
 ```typescript
 type Transformer<T, U> = (it: AsyncIterable<T>) => AsyncIterable<U>;
 ```
 
-A transformer transforms objects from one type to another. The chief difference
-between this and a `map` operation is that you have full control over the
-iteration and the output, including access to errors thrown upstream.
+Transformers are just functions (possibly asynchronous generator functions). You
+can compose them into new functions relatively easily because this is just
+JavaScript iteration. The
+[transform](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable#method_transform_0)
+operation works similarly to `pipeThrough` in streaming.
 
-You can easily create a transformer using an asynchronous generator. This one
-will transform strings to lower-case:
+A transformer transforms objects from one type to another. It is like `map` but
+with with complete control over the whole stream of data - including control
+over error handling.
+
+You can create a transformer using an asynchronous generator. This one will
+transform strings to lower-case:
 
 ```typescript
 async function* toLower(texts: AsyncIterable<string>) {
@@ -32,5 +38,3 @@ const lowered = await enumerable(["A", "B", "C"])
 
 assertEquals(lowered, ["a", "b", "c"], "Transformed to lower-case.");
 ```
-
-The `transform` operation works similarly to `pipeThrough` in streaming.

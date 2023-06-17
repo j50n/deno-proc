@@ -1,10 +1,4 @@
-import {
-  enumerate,
-  ExitCodeError,
-  run,
-  textDecoder,
-  toLines,
-} from "../../mod3.ts";
+import { enumerate, ExitCodeError, run, toLines } from "../../mod3.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 import { gray } from "../deps/colors.ts";
 
@@ -49,7 +43,9 @@ Deno.test({
     const result = await run(
       {
         fnStderr: async (input: AsyncIterable<Uint8Array>): Promise<void> => {
-          for await (const text of enumerate(input).transform(textDecoder())) {
+          for await (
+            const text of enumerate(input).transform(new TextDecoderStream())
+          ) {
             stderr.push(text);
           }
         },

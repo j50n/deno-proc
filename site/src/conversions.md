@@ -21,3 +21,5 @@ function.
 
 A `ReadableStream` is an `AsyncIterable`. Avoid the use of `.pipeThrough()` and
 `.pipeTo()`. Use `for await` or `enumerate()` instead.
+
+## **Conversion of TransformStream to Transformer**
