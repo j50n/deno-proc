@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 import { fromFileUrl } from "./deps/path.ts";
-import { enumerate, gunzip, read, toLines } from "../../mod3.ts";
+import { enumerate, gunzip, read, run, toLines } from "../../mod3.ts";
 
 console.time("count");
 
@@ -18,7 +18,7 @@ export function splitOnWordsAlt(lines: AsyncIterable<string>) {
   return enumerate(lines)
     .filterNot((line) => line.length === 0)
     .map((it) => it.toLocaleLowerCase())
-        .run("grep", "-oE", "(\\w|'|’|-)+")
+    .run("grep", "-oE", "(\\w|'|’|-)+")
     .lines
     .filterNot((it) => it.length === 0 || /[0-9]|CHAPTER/.test(it));
 }
@@ -73,3 +73,59 @@ console.timeEnd("count");
 // console.log(words.length);
 
 // console.log(unique.size);
+
+// zcat ./warandpeace.txt.gz \
+//   | tr '[:upper:]' '[:lower:]' \
+//   | grep -oE "(\\w|'|’|-)+" \
+//   | wc -l
+
+// #count unique words
+// zcat ./warandpeace.txt.gz \
+//   | tr '[:upper:]' '[:lower:]' \
+//   | grep -oE "(\\w|'|’|-)+" \
+//   | sort \
+//   | uniq \
+//   | wc -l
+
+async function blah() {
+  const [total, unique] = await Promise.all([
+    read(fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")))
+      .run("gunzip")
+      .run("tr", "[:upper:]", "[:lower:]")
+      .run("grep", "-oE", "(\\w|'|’|-)+")
+      .run("wc", "-l")
+      .lines
+      .map((n) => parseInt(n, 10))
+      .first,
+
+    read(fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")))
+      .run("gunzip")
+      .run("tr", "[:upper:]", "[:lower:]")
+      .run("grep", "-oE", "(\\w|'|’|-)+")
+      .run("sort")
+      .run("uniq")
+      .run("wc", "-l")
+      .lines
+      .map((n) => parseInt(n, 10))
+      .first,
+  ]);
+
+  console.log(total);
+  console.log(unique);
+}
+await blah();
+
+await run(
+  "/bin/bash",
+  "-c",
+  ` set -e
+    zcat ${fromFileUrl(import.meta.resolve("./warandpeace.txt.gz"))} \
+      | tr '[:upper:]' '[:lower:]' \
+      | grep -oE "(\\w|'|’|-)+" \
+      | sort \
+      | uniq \
+      | wc -l
+  `,
+)
+  .lines
+  .forEach((line) => console.log(line));
