@@ -1,12 +1,13 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 import { fromFileUrl } from "./deps/path.ts";
-import { enumerate, gunzip, read, toLines } from "../../mod3.ts";
+import {  enumerate, gunzip, read, toLines } from "../../mod3.ts";
 
 console.time("count");
 
-function splitOnWords(lines: AsyncIterable<string>) {
+export function splitOnWords(lines: AsyncIterable<string>) {
   return enumerate(lines)
+  .filterNot(line => line.length === 0)
     .map((it) => it.toLocaleLowerCase())
     .flatMap((it) => it.split(/[\s—]+/g))
     .map((it) => it.replaceAll(/(?![’'-])[^\p{L}\p{N}]/ug, ""))
@@ -15,8 +16,9 @@ function splitOnWords(lines: AsyncIterable<string>) {
 
 export function splitOnWordsAlt(lines: AsyncIterable<string>) {
   return enumerate(lines)
+  .filterNot(line => line.length === 0)
     .run("tr", "[:upper:]", "[:lower:]")
-    .run("grep", "-oE", "(\\w|')+")
+    .run("grep", "-oE", "(\\w|'|’|-)+")
     .lines
     .filterNot((it) => it.length === 0 || /[0-9]|CHAPTER/.test(it));
 }
@@ -37,7 +39,8 @@ const words = read(
 )
   .transform(gunzip)
   .transform(toLines)
-  .transform(splitOnWords);
+  .transform(splitOnWords)
+  // .transform(debug<string>)
 
 const [w1, w2] = words.tee();
 
