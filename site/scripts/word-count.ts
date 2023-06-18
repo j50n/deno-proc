@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 import { fromFileUrl } from "./deps/path.ts";
-import { enumerate, gunzip, read, run, toLines } from "../../mod3.ts";
+import { debug, enumerate, gunzip, read, run, toLines } from "../../mod3.ts";
 
 console.time("count");
 
@@ -9,9 +9,14 @@ export function splitOnWords(lines: AsyncIterable<string>) {
   return enumerate(lines)
     .filterNot((line) => line.length === 0)
     .map((it) => it.toLocaleLowerCase())
-    .flatMap((it) => it.split(/[\s—]+/g))
-    .map((it) => it.replaceAll(/(?![’'-])[^\p{L}\p{N}]/ug, ""))
-    .filterNot((it) => it.length === 0 || /[0-9]|CHAPTER/.test(it));
+    // .transform(debug<string>)
+    .flatMap((it) =>
+      [...it.matchAll(/(\p{L}|\p{N}|['’-])+/gu)].map((a) => a[0])
+    )
+    //.transform(debug<string>)
+    .filterNot((it) =>
+      /^['’-]+$/.test(it) || /[0-9]/.test(it) || /CHAPTER/.test(it)
+    );
 }
 
 export function splitOnWordsAlt(lines: AsyncIterable<string>) {
@@ -43,7 +48,7 @@ const words = read(
 )
   .transform(gunzip)
   .transform(toLines)
-  .transform(splitOnWordsAlt);
+  .transform(splitOnWords);
 // .transform(debug<string>)
 
 const [w1, w2] = words.tee();
