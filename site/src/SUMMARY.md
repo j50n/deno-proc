@@ -10,6 +10,10 @@
 - [Transformers](./transform.md)
 - [The Zen of Errors](./errors.md)
 
+# Examples
+
+- [Counting Words](./example-counting-words.md)
+
 # Minutia
 
 - [Using the Spread Operator in Run](./spread.md)

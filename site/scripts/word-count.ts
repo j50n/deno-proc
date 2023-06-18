@@ -1,13 +1,13 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 import { fromFileUrl } from "./deps/path.ts";
-import {  enumerate, gunzip, read, toLines } from "../../mod3.ts";
+import { enumerate, gunzip, read, toLines } from "../../mod3.ts";
 
 console.time("count");
 
 export function splitOnWords(lines: AsyncIterable<string>) {
   return enumerate(lines)
-  .filterNot(line => line.length === 0)
+    .filterNot((line) => line.length === 0)
     .map((it) => it.toLocaleLowerCase())
     .flatMap((it) => it.split(/[\s—]+/g))
     .map((it) => it.replaceAll(/(?![’'-])[^\p{L}\p{N}]/ug, ""))
@@ -16,22 +16,26 @@ export function splitOnWords(lines: AsyncIterable<string>) {
 
 export function splitOnWordsAlt(lines: AsyncIterable<string>) {
   return enumerate(lines)
-  .filterNot(line => line.length === 0)
-    .run("tr", "[:upper:]", "[:lower:]")
-    .run("grep", "-oE", "(\\w|'|’|-)+")
+    .filterNot((line) => line.length === 0)
+    .map((it) => it.toLocaleLowerCase())
+        .run("grep", "-oE", "(\\w|'|’|-)+")
     .lines
     .filterNot((it) => it.length === 0 || /[0-9]|CHAPTER/.test(it));
 }
 
 export function distinctStreaming(words: AsyncIterable<string>) {
   return enumerate(words)
-    .run({ buffer: true }, "sort", "-S", "10%")
+    .run("sort")
     .run("uniq")
     .lines;
 }
 
 export async function* distinctInMemory(words: AsyncIterable<string>) {
-  yield* new Set(await enumerate(words).collect());
+  const uniqueWords = new Set();
+  for await (const word of words) {
+    uniqueWords.add(word);
+  }
+  yield* uniqueWords;
 }
 
 const words = read(
@@ -39,14 +43,14 @@ const words = read(
 )
   .transform(gunzip)
   .transform(toLines)
-  .transform(splitOnWords)
-  // .transform(debug<string>)
+  .transform(splitOnWordsAlt);
+// .transform(debug<string>)
 
 const [w1, w2] = words.tee();
 
 const [count, unique] = await Promise.all([
   w1.count(),
-  w2.transform(distinctStreaming).count(),
+  w2.transform(distinctInMemory).count(),
 ]);
 
 console.log(`Total word count:  ${count.toLocaleString()}`);
