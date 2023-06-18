@@ -1,3 +1,4 @@
+import { blue } from "./deps/colors.ts";
 import { readableStreamFromIterable } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat } from "./utility.ts";
@@ -259,57 +260,6 @@ export async function* jsonParse<T>(
   }
 }
 
-// /**
-//  * Convert `Uint8Array` to text. The text is not split into lines, so it will contain `lf` and `cr` in
-//  * arbitrary places. Conversion is done as data is received, so this is good for passing `stderr` and/or
-//  * `stdout` data that shows progress (only `cr` or other positioning codes).
-//  *
-//  * Wraps `TextDecoderStream`.
-//  *
-//  * @see {@link textLine}
-//  * @param label Any valid encoding. Default is "utf-8". See
-//  *     [Encoding API Encodings](https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API/Encodings).
-//  * @returns A transformer.
-//  */
-// export function textDecoder(
-//   label = "utf-8",
-// ): TransformerFunction<Uint8Array, string> {
-//   return transformerFromTransformStream(
-//     new TextDecoderStream(label, { fatal: true }),
-//   );
-// }
-
-// /**
-//  * Convert (non line-delimited) text into `utf-8` encoded bytes.
-//  *
-//  * Wraps `TextEncoderStream`.
-//  *
-//  * @returns A transformer.
-//  */
-// export function textEncoder(): (
-//   chunks: AsyncIterable<string>,
-// ) => AsyncIterable<Uint8Array> {
-//   const tes = new TextEncoderStream();
-//   return transformerFromTransformStream(tes);
-// }
-
-// /**
-//  * Transform text in "chunk" form into lines.
-//  *
-//  * Wraps `TextLineStream`.
-//  *
-//  * @see {@link textDecoder}
-//  * @param options Options.
-//  * @returns A transformer.
-//  */
-// export function textLine(
-//   options?: { allowCR?: boolean },
-// ): TransformerFunction<string, string> {
-//   return transformerFromTransformStream(
-//     new TextLineStream({ allowCR: !!options?.allowCR }),
-//   );
-// }
-
 /**
  * Decompress a `gzip` compressed stream.
  */
@@ -365,4 +315,16 @@ export function transformerFromTransformStream<R, T>(
   }
 
   return converter;
+}
+
+/**
+ * Debug output using `console.dir` through {@link Enumerable#transform}.
+ *
+ * @param items The items to log.
+ */
+export async function* debug<T>(items: AsyncIterable<T>): AsyncIterable<T> {
+  for await (const item of items) {
+    console.log(blue(JSON.stringify(item)));
+    yield item;
+  }
 }

@@ -182,9 +182,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
     fn: TransformerFunction<T, U> | TransformStream<T, U>,
   ): Enumerable<U> {
     if ("writable" in fn && "readable" in fn) {
-      return new Enumerable(transformerFromTransformStream(fn)(this.iter));
+      return new Enumerable(
+        transformerFromTransformStream(fn)(enumerate(this.iter)),
+      );
     } else {
-      return new Enumerable(fn(this.iter));
+      return new Enumerable(fn(enumerate(this.iter)));
     }
   }
 
@@ -279,6 +281,23 @@ export class Enumerable<T> implements AsyncIterable<T> {
     return new Enumerable(filter(iterable, filterFn)) as Enumerable<T>;
   }
 
+  /**
+   * Count the number of items; optionally with a filter.
+   * @param filterFn Includes items where filter returns `true`.
+   * @returns A count of the items.
+   */
+  async count(
+    filterFn?: (item: T) => boolean | Promise<boolean>,
+  ): Promise<number> {
+    if (filterFn == null) {
+      return await enumerate(this.iter).reduce(0, (acc, _item) => acc + 1);
+    } else {
+      return await enumerate(this.iter).filter(filterFn).reduce(
+        0,
+        (acc, _item) => acc + 1,
+      );
+    }
+  }
   /**
    * Filter the sequence to exclude the items that pass a test. This returns the
    * inverse of {@link filter}.
