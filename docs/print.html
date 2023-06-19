@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">6.</strong> Counting Words</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">7.</strong> Using the Spread Operator in Run</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">6.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">7.</strong> Concurrent Processing</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">8.</strong> Using the Spread Operator in Run</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -186,101 +186,6 @@ read(warandpeace)
 </code></pre>
 <h2 id="a-few-more-examples"><a class="header" href="#a-few-more-examples">A Few More Examples</a></h2>
 <p>These examples are longer. More involved. Good stuff.</p>
-<h3 id="working-with-multiple-copies-of-the-same-data"><a class="header" href="#working-with-multiple-copies-of-the-same-data">Working with Multiple Copies of the Same Data</a></h3>
-<p>Read &quot;War and Peace&quot; and uncompress. Convert to lower case. Split into words.
-Split into <code>A</code> and <code>B</code> enumerations.</p>
-<p>With <code>A</code>, sort the words, find the unique words, and count them.</p>
-<p>With <code>B</code>, just count the total number of words.</p>
-<pre><code class="language-typescript">const warandpeace = resolve(&quot;./warandpeace.txt.gz&quot;);
-
-const [wordsA, wordsB] = read(warandpeace)
-  .run(&quot;gunzip&quot;).lines
-  .map((line) =&gt; line.toLocaleLowerCase())
-  .run(&quot;grep&quot;, &quot;-oE&quot;, &quot;(\\w|')+&quot;)
-  .tee();
-
-const [uniqueWords, totalWords] = await Promise.all([
-  wordsA.run(&quot;sort&quot;).run(&quot;uniq&quot;).run(&quot;wc&quot;, &quot;-l&quot;).lines
-    .map((n) =&gt; parseInt(n, 10))
-    .first,
-  wordsB.run(&quot;wc&quot;, &quot;-l&quot;).lines
-    .map((n) =&gt; parseInt(n, 10))
-    .first,
-]);
-
-console.log(`Total: ${totalWords.toLocaleString()}`);
-console.log(`Unique: ${uniqueWords.toLocaleString()}`);
-</code></pre>
-<p>This is (<em>almost</em>) equivalent to:</p>
-<pre><code class="language-sh"># Count unique words
-cat ./warandpeace.txt.gz \
-  | gunzip \
-  | tr '[:upper:]' '[:lower:]' \
-  | grep -oE &quot;(\\w|')+&quot; \
-  | sort \
-  | uniq \
-  | wc -l 
-
-# Count all words
-cat ./warandpeace.txt.gz \
-  | gunzip \
-  | tr '[:upper:]' '[:lower:]' \
-  | grep -oE &quot;(\\w|')+&quot; \
-  | wc -l
-</code></pre>
-<h3 id="concurrent-total-used-storage-for-s3-buckets"><a class="header" href="#concurrent-total-used-storage-for-s3-buckets">Concurrent Total Used Storage for S3 Buckets</a></h3>
-<p><code>proc</code> supports concurrent operations with controlled (limited) concurrency.
-This is a way to run child processes in parallel without swamping your server.</p>
-<p>If you have to work with S3 buckets, you know it is time consuming to determine
-how much storage space you are using/paying for, and where you are using the
-most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
-matching the number of CPU cores available (or whatever concurrency you
-specify). The specific methods that support concurrent operations are
-<code>.concurrentMap()</code> and <code>.concurrentUnorderedMap()</code>.</p>
-<p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
-<pre><code class="language-sh">aws s3 ls
-</code></pre>
-<p>The result looks something like this:</p>
-<pre><code>2013-07-11 17:08:50 mybucket
-2013-07-24 14:55:44 mybucket2
-</code></pre>
-<p>Grab those bucket names with <code>proc</code>:</p>
-<pre><code class="language-typescript">const buckets = await run(&quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;)
-  .map((b) =&gt; b.split(/\s+/g, 3))
-  .map((b) =&gt; b[b.length - 1])
-  .collect();
-</code></pre>
-<p>To get the total storage size in bytes from terminal:</p>
-<pre><code class="language-sh">aws s3 ls s3://mybucket --recursive --summarize
-</code></pre>
-<p>This will list all objects in the bucket, but we can ignore that noise. At the
-end of the operation, we are looking for a line that looks like this:</p>
-<pre><code>Total Size: 2.9 MiB
-</code></pre>
-<p>This is potentially a long-running operation (some buckets have a lot of
-objects), so we want to run it concurrently. With <code>proc</code>:</p>
-<pre><code class="language-typescript">enumerate(buckets).concurrentUnorderedMap(
-  async (bucket) =&gt; {
-    const answer: string = await run(
-        &quot;nice&quot;, &quot;-19&quot;,
-        &quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;, 
-        `s3://${bucket}`, 
-        &quot;--recursive&quot;, &quot;--summarize&quot;)
-      .filter(line =&gt; line.includes(&quot;Total Size:&quot;))
-      .map(line =&gt; line.trim())
-      .first;
-
-    return {bucket, answer};
-  }.forEach(({bucket, answer}) =&gt; console.log(`${bucket}\t${answer}`))
-)
-</code></pre>
-<p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
-<code>.concurrentUnorderedMap()</code> will, by default, run one process for each CPU
-available concurrently until all work is done.</p>
-<p>The result will look something like this:</p>
-<pre><code>mybucket  Total Size: 2.9 MiB
-mybucket2 Total Size: 30.2 MiB
-</code></pre>
 <h2 id="odd-ducks"><a class="header" href="#odd-ducks">Odd Ducks</a></h2>
 <p>Other useful stuff. These might be a little off topic for this library, but here
 they are.</p>
@@ -626,13 +531,19 @@ memory required is quite small.</p>
 <h3 id="transformer-to-split-into-words"><a class="header" href="#transformer-to-split-into-words">Transformer to Split into Words</a></h3>
 <p>Convert each line to lower case. Use <code>Regex</code> to split the line into words.
 Remove anything without a character (all symbols), anything with a number, and
-&quot;CHAPTER&quot; titles.</p>
-<p>The document we are using, <code>./warandpeace.txt.gz</code>, uses unicode characters
-liberally. We know that the Typescript solution below works correctly with unicode characters (note the <code>u</code> flag on the regular expression). 
-Some of the *nix utilities were written a long time ago and still do not support unicode. 
-In particular, <code>tr</code> does not translate case correctly all of the time, and I am not
-sure what <code>grep</code> is doing - it sort of works, but the regular expression language has subtle differences to what I am used to.  A benefit of working in a tightly spec'd 
-language like Typescript is you know what your code should be doing at all times. The counts are very close, but they are not exactly the same, so we know something is a little bit off.</p>
+&quot;CHAPTER&quot; titles. The symbol characters in the regular expression are specific
+to the test document and probably won't work generally.</p>
+<p>The document we are targeting, <code>./warandpeace.txt.gz</code>, uses extended unicode
+letters and a few unicode symbols as well. We know that the Typescript solution
+below works correctly with unicode characters (note the <code>u</code> flag on the regular
+expression). Some of the *nix utilities were written a long time ago and still
+do not support unicode. In particular, <code>tr</code> does not translate case correctly
+all of the time, and I am not sure what <code>grep</code> is doing - it sort of works, but
+the regular expression language has subtle differences to what I am used to. A
+benefit of working in a tightly spec'd language like Typescript is you know what
+your code should be doing at all times. The counts are very close, but they are
+not exactly the same, so we know something is a little bit off with <code>tr</code> and/or
+<code>grep</code>.</p>
 <pre><code class="language-typescript">export function split(lines: AsyncIterable&lt;string&gt;) {
   return enumerate(lines)
     .map((it) =&gt; it.toLocaleLowerCase())
@@ -681,6 +592,63 @@ Unique word count: 18,609
 <p>Clean, readable code. Understandable error handling. Fast. The only downside is
 that the processing is done in-process (we only have one thread to work with in
 JavaScript), so if you are doing other things this could slow them down.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="concurrent-processes"><a class="header" href="#concurrent-processes">Concurrent Processes</a></h1>
+<p><code>proc</code> supports concurrent operations with controlled (limited) concurrency.
+This is a way to run child processes in parallel without swamping your server.</p>
+<p>If you have to work with S3 buckets, you know it is time consuming to determine
+how much storage space you are using/paying for, and where you are using the
+most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
+matching the number of CPU cores available (or whatever concurrency you
+specify). The specific methods that support concurrent operations are
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+and
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
+<pre><code class="language-sh">aws s3 ls
+</code></pre>
+<p>The result looks something like this:</p>
+<pre><code>2013-07-11 17:08:50 mybucket
+2013-07-24 14:55:44 mybucket2
+</code></pre>
+<p>Get all the bucket names in the account:</p>
+<pre><code class="language-typescript">const buckets = await run(&quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;)
+  .map((b) =&gt; b.split(/\s+/g, 3))
+  .map((b) =&gt; b[b.length - 1])
+  .collect();
+</code></pre>
+<p>This is the shell command to get the total storage size in bytes from terminal:</p>
+<pre><code class="language-shell">aws s3 ls s3://mybucket --recursive --summarize
+</code></pre>
+<p>This will list all objects in the bucket, and we can ignore most of this. At the
+end of the operation, we are looking for a line that looks like this:</p>
+<pre><code>Total Size: 2.9 MiB
+</code></pre>
+<p>This is potentially a long-running operation (some buckets have a lot of
+objects), so we want to run this for many buckets at once, in parallel, and
+report the results as soon as they are available.</p>
+<pre><code class="language-typescript">enumerate(buckets).concurrentUnorderedMap(
+  async (bucket) =&gt; {
+    const answer: string = await run(
+        &quot;nice&quot;, &quot;-19&quot;,
+        &quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;, 
+        `s3://${bucket}`, 
+        &quot;--recursive&quot;, &quot;--summarize&quot;)
+      .filter(line =&gt; line.includes(&quot;Total Size:&quot;))
+      .map(line =&gt; line.trim())
+      .first;
+
+    return {bucket, answer};
+  }.forEach(({bucket, answer}) =&gt; console.log(`${bucket}\t${answer}`))
+)
+</code></pre>
+<p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+will, by default, run one process for each CPU available concurrently until all
+work is done.</p>
+<p>The result will look something like this:</p>
+<pre><code>mybucket  Total Size: 2.9 MiB
+mybucket2 Total Size: 30.2 MiB
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="using-the-spread-operator-in-run"><a class="header" href="#using-the-spread-operator-in-run">Using the Spread Operator in Run</a></h1>
 <p>This is fine:</p>
 <pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);

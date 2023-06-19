@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Transformers - proc</title>
+        <title>Concurrent Processing - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html" class="active"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">6.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">7.</strong> Concurrent Processing</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">8.</strong> Using the Spread Operator in Run</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">6.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html" class="active"><strong aria-hidden="true">7.</strong> Concurrent Processing</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">8.</strong> Using the Spread Operator in Run</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,44 +144,73 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
-<p><a href="https://deno.land/x/proc@0.20.25/src/transformers.ts">Available Transformers</a></p>
-<p>A transformer is just a plain-old JavaScript function with this signature:</p>
-<pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
+                        <h1 id="concurrent-processes"><a class="header" href="#concurrent-processes">Concurrent Processes</a></h1>
+<p><code>proc</code> supports concurrent operations with controlled (limited) concurrency.
+This is a way to run child processes in parallel without swamping your server.</p>
+<p>If you have to work with S3 buckets, you know it is time consuming to determine
+how much storage space you are using/paying for, and where you are using the
+most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
+matching the number of CPU cores available (or whatever concurrency you
+specify). The specific methods that support concurrent operations are
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+and
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
+<pre><code class="language-sh">aws s3 ls
 </code></pre>
-<p>Transformers are just functions (possibly asynchronous generator functions). You
-can compose them into new functions relatively easily because this is just
-JavaScript iteration. The
-<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-operation works similarly to <code>pipeThrough</code> in streaming.</p>
-<p>A transformer transforms objects from one type to another. It is like <code>map</code> but
-with with complete control over the whole stream of data - including control
-over error handling.</p>
-<p>You can create a transformer using an asynchronous generator. This one will
-transform strings to lower-case:</p>
-<pre><code class="language-typescript">async function* toLower(texts: AsyncIterable&lt;string&gt;) {
-  for await (const text of texts) {
-    yield text.toLocaleLowerCase();
-  }
-}
+<p>The result looks something like this:</p>
+<pre><code>2013-07-11 17:08:50 mybucket
+2013-07-24 14:55:44 mybucket2
 </code></pre>
-<p>Here it is in action:</p>
-<pre><code class="language-typescript">const lowered = await enumerable([&quot;A&quot;, &quot;B&quot;, &quot;C&quot;])
-  .transform(toLower)
+<p>Get all the bucket names in the account:</p>
+<pre><code class="language-typescript">const buckets = await run(&quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;)
+  .map((b) =&gt; b.split(/\s+/g, 3))
+  .map((b) =&gt; b[b.length - 1])
   .collect();
+</code></pre>
+<p>This is the shell command to get the total storage size in bytes from terminal:</p>
+<pre><code class="language-shell">aws s3 ls s3://mybucket --recursive --summarize
+</code></pre>
+<p>This will list all objects in the bucket, and we can ignore most of this. At the
+end of the operation, we are looking for a line that looks like this:</p>
+<pre><code>Total Size: 2.9 MiB
+</code></pre>
+<p>This is potentially a long-running operation (some buckets have a lot of
+objects), so we want to run this for many buckets at once, in parallel, and
+report the results as soon as they are available.</p>
+<pre><code class="language-typescript">enumerate(buckets).concurrentUnorderedMap(
+  async (bucket) =&gt; {
+    const answer: string = await run(
+        &quot;nice&quot;, &quot;-19&quot;,
+        &quot;aws&quot;, &quot;s3&quot;, &quot;ls&quot;, 
+        `s3://${bucket}`, 
+        &quot;--recursive&quot;, &quot;--summarize&quot;)
+      .filter(line =&gt; line.includes(&quot;Total Size:&quot;))
+      .map(line =&gt; line.trim())
+      .first;
 
-assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
+    return {bucket, answer};
+  }.forEach(({bucket, answer}) =&gt; console.log(`${bucket}\t${answer}`))
+)
+</code></pre>
+<p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
+<a href="https://deno.land/x/proc@0.20.25/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+will, by default, run one process for each CPU available concurrently until all
+work is done.</p>
+<p>The result will look something like this:</p>
+<pre><code>mybucket  Total Size: 2.9 MiB
+mybucket2 Total Size: 30.2 MiB
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="conversions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="example-counting-words.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="errors.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="spread.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -191,11 +220,11 @@ assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Trans
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="conversions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="example-counting-words.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="errors.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="spread.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
