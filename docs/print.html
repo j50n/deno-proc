@@ -145,15 +145,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-02026"><a class="header" href="#proc-02026"><code>proc 0.20.26</code></a></h1>
+                        <h1 id="proc-02027"><a class="header" href="#proc-02027"><code>proc 0.20.27</code></a></h1>
 <p><code>proc</code> is a powerful functional extension for <code>AsyncIterable</code> in Deno. It
 supports managing external processes, provides extensions for concurrent
 programming, and works seamlessly with <code>Deno</code> IO streams. With <code>proc</code>, writing
 shell-style solutions in Deno is painless.</p>
-<p><a href="https://deno.land/x/proc@0.20.26/mod3.ts">Developer Documentation</a></p>
+<p><a href="https://deno.land/x/proc@0.20.27/mod3.ts">Developer Documentation</a></p>
 <h2 id="import"><a class="header" href="#import">Import</a></h2>
 <p>Import using this path (note the use of <code>mod3.ts</code> rather than <code>mod.ts</code>).</p>
-<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.26/mod3.ts&quot;;
+<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.27/mod3.ts&quot;;
 </code></pre>
 <h2 id="a-few-examples"><a class="header" href="#a-few-examples">A Few Examples</a></h2>
 <p>Here are some of the things <code>proc</code> can do.</p>
@@ -214,21 +214,21 @@ characters</li>
 <p>This is the &quot;normal&quot; way to work with line-delimited text. It should be a good
 solution most of the time.</p>
 <p>For a child process, the
-<a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
+<a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
 method converts a line at a time.</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
   .lines
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>In other cases, use
-<a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-with the <a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=toLines">toLines</a>
+<a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+with the <a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=toLines">toLines</a>
 transformer function.</p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
   .transform(toLines)
   .forEach((it) =&gt; console.log(it));
 </code></pre>
-<p>The <a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=Enumerable#method_run_0">run</a>
+<p>The <a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=Enumerable#method_run_0">run</a>
 method will automatically treat <code>string</code> values as lines, adding <code>\n</code> to them
 and converting back into <code>utf-8</code> encoded bytes.</p>
 <p>Note that this <em>always</em> assumes string data passed to it is line-delimited. If
@@ -315,14 +315,14 @@ function.</p>
 <code>.pipeTo()</code>. Use <code>for await</code> or <code>enumerate()</code> instead.</p>
 <h2 id="conversion-of-transformstream-to-transformer"><a class="header" href="#conversion-of-transformstream-to-transformer"><strong>Conversion of TransformStream to Transformer</strong></a></h2>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
-<p><a href="https://deno.land/x/proc@0.20.26/src/transformers.ts">Available Transformers</a></p>
+<p><a href="https://deno.land/x/proc@0.20.27/src/transformers.ts">Available Transformers</a></p>
 <p>A transformer is just a plain-old JavaScript function with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
 <p>Transformers are just functions (possibly asynchronous generator functions). You
 can compose them into new functions relatively easily because this is just
 JavaScript iteration. The
-<a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+<a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=Enumerable#method_transform_0">transform</a>
 operation works similarly to <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but
 with with complete control over the whole stream of data - including control
@@ -600,9 +600,9 @@ how much storage space you are using/paying for, and where you are using the
 most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
 matching the number of CPU cores available (or whatever concurrency you
 specify). The specific methods that support concurrent operations are
-<a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+<a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
 and
-<a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
 <p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
 <pre><code class="language-sh">aws s3 ls
 </code></pre>
@@ -642,7 +642,7 @@ report the results as soon as they are available.</p>
 )
 </code></pre>
 <p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
-<a href="https://deno.land/x/proc@0.20.26/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+<a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
 will, by default, run one process for each CPU available concurrently until all
 work is done.</p>
 <p>The result will look something like this:</p>
