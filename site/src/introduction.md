@@ -65,8 +65,6 @@ await range({ from: 1, until: 100 })
 
 These examples are longer. More involved. Good stuff.
 
-
-
 ## Odd Ducks
 
 Other useful stuff. These might be a little off topic for this library, but here

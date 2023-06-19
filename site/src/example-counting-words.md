@@ -139,14 +139,20 @@ export async function* distinct(words: AsyncIterable<string>) {
 
 Convert each line to lower case. Use `Regex` to split the line into words.
 Remove anything without a character (all symbols), anything with a number, and
-"CHAPTER" titles. The symbol characters in the regular expression are specific to the
-test document and probably won't work generally.
+"CHAPTER" titles. The symbol characters in the regular expression are specific
+to the test document and probably won't work generally.
 
-The document we are targeting, `./warandpeace.txt.gz`, uses extended unicode letters and a few unicode symbols as well. We know that the Typescript solution below works correctly with unicode characters (note the `u` flag on the regular expression). 
-Some of the *nix utilities were written a long time ago and still do not support unicode. 
-In particular, `tr` does not translate case correctly all of the time, and I am not
-sure what `grep` is doing - it sort of works, but the regular expression language has subtle differences to what I am used to.  A benefit of working in a tightly spec'd 
-language like Typescript is you know what your code should be doing at all times. The counts are very close, but they are not exactly the same, so we know something is a little bit off with `tr` and/or `grep`.
+The document we are targeting, `./warandpeace.txt.gz`, uses extended unicode
+letters and a few unicode symbols as well. We know that the Typescript solution
+below works correctly with unicode characters (note the `u` flag on the regular
+expression). Some of the *nix utilities were written a long time ago and still
+do not support unicode. In particular, `tr` does not translate case correctly
+all of the time, and I am not sure what `grep` is doing - it sort of works, but
+the regular expression language has subtle differences to what I am used to. A
+benefit of working in a tightly spec'd language like Typescript is you know what
+your code should be doing at all times. The counts are very close, but they are
+not exactly the same, so we know something is a little bit off with `tr` and/or
+`grep`.
 
 ```typescript
 export function split(lines: AsyncIterable<string>) {

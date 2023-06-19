@@ -8,7 +8,9 @@ how much storage space you are using/paying for, and where you are using the
 most storage. `proc` makes it possible to run `ls --summarize` with parallelism
 matching the number of CPU cores available (or whatever concurrency you
 specify). The specific methods that support concurrent operations are
-[.concurrentMap()](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable&p=prototype.concurrentMap) and [.concurrentUnorderedMap()](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable&p=prototype.concurrentUnorderedMap).
+[.concurrentMap()](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable&p=prototype.concurrentMap)
+and
+[.concurrentUnorderedMap()](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable&p=prototype.concurrentUnorderedMap).
 
 To list the `s3` buckets in your AWS account from terminal:
 
@@ -46,7 +48,8 @@ Total Size: 2.9 MiB
 ```
 
 This is potentially a long-running operation (some buckets have a lot of
-objects), so we want to run this for many buckets at once, in parallel, and report the results as soon as they are available.
+objects), so we want to run this for many buckets at once, in parallel, and
+report the results as soon as they are available.
 
 ```typescript
 enumerate(buckets).concurrentUnorderedMap(
@@ -66,8 +69,9 @@ enumerate(buckets).concurrentUnorderedMap(
 ```
 
 Use `nice` because _this will eat your server otherwise._ The method
-[.concurrentUnorderedMap()](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable&p=prototype.concurrentUnorderedMap) will, by default, run one process for each CPU
-available concurrently until all work is done.
+[.concurrentUnorderedMap()](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable&p=prototype.concurrentUnorderedMap)
+will, by default, run one process for each CPU available concurrently until all
+work is done.
 
 The result will look something like this:
 
