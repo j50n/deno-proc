@@ -34,6 +34,12 @@ type TransformStream<R, S> = {
   readable: ReadableStream<S>;
 };
 
+// type Tuple2<T, A, B> = T extends [A, B] ? [Enumerable<A>, Enumerable<B>]
+//   : never;
+
+type Unzip<T> = T extends [infer A, infer B] ? [Enumerable<A>, Enumerable<B>]
+  : never;
+
 /**
  * {@link Enumerable} factory.
  *
@@ -478,6 +484,89 @@ export class Enumerable<T> implements AsyncIterable<T> {
         },
       },
     ) as Enumerable<T>;
+  }
+
+  /**
+   * Zip two {@link Enumerable}s together. If collections are unequal length,
+   * the longer collection is truncated.
+   *
+   * **Example**
+   *
+   * ```typescript
+   * const a = range({ from: 1, until: 3 });
+   * const b = enumerate(["A", "B", "C"]);
+   *
+   * const result = a.zip(b);
+   *
+   * // [[1, "A"], [2, "B"], [3, "C"]]
+   * ```
+   *
+   * @param other The other iterable.
+   * @returns The result of zipping
+   */
+  zip<U>(other: AsyncIterable<U>): Enumerable<[T, U]> {
+    const iterA = identity(this);
+    const iterB = identity(other);
+
+    return enumerate(
+      {
+        async *[Symbol.asyncIterator]() {
+          try {
+            for (;;) {
+              const [a, b] = await Promise.all([
+                iterA.next(),
+                iterB.next(),
+              ]);
+
+              if (a.done || b.done) {
+                break;
+              }
+
+              yield [a.value, b.value];
+            }
+          } finally {
+            await Promise.all([
+              async () => {
+                for await (const _a of iterA) {
+                  break;
+                }
+              },
+              async () => {
+                for await (const _b of iterB) {
+                  break;
+                }
+              },
+            ]);
+          }
+        },
+      },
+    );
+  }
+
+  /**
+   * Unzip a collection of `[A, B]` into `Enumerable<A>` and `Enumerable<B>`.
+   * 
+   * Note that this operations uses {@link tee}, so it will use memory during the
+   * iteration.
+   * 
+   * **Example**
+   * 
+   * ```typescript
+   * const [a, b] = enumerate([[1, "A"], [2, "B"], [3, "C"]]).unzip();
+   * 
+   * // a is number[] -> [1, 2, 3]
+   * // b is string[] -> ["A", "B", "C"]
+   * ```
+   * 
+   * @returns Two enumerables, one for the left side of the tuple and the other for the right.
+   */
+  unzip<A, B>(): Unzip<T> {
+    const [a, b] = (this as Enumerable<[A,B]>).tee();
+
+    return [
+      enumerate(a.map((it) => it[0])),
+      enumerate(b.map((it) => it[1])),
+    ] as Unzip<T>;
   }
 }
 
