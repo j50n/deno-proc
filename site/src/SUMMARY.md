@@ -13,6 +13,7 @@
 # Examples
 
 - [Counting Words](./example-counting-words.md)
+- [Concurrent Processing](./example-concurrent-processing.md)
 
 # Minutia
 
