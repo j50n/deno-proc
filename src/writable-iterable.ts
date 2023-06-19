@@ -10,7 +10,7 @@ class None {
 }
 
 /**
- * A writable.
+ * Simplified writable.
  *
  * @typedef T The type of data that may be written.
  */
@@ -19,17 +19,18 @@ export interface Writable<T> {
   get isClosed(): boolean;
 
   /**
-   * Close the writable. This must be called.
+   * Close the writable. 
+   * 
+   * This must be called. The underlying resource will not be closed automatically.
    *
    * Once closed, subsequent calls to `write(...)` will throw an error.
    *
-   * It is safe to call `close()` multiple times.
+   * It is safe to call `close()` multiple times. Calls to `close()` after the first are a no-op.
    *
-   * If an error is passed on close, it is propagated forward.
+   * If an error is passed on `close()`, it propagates forward.
    *
-   * The error (or `undefined`) passed on the first call will be honored.
-   * Error conditions passed on subsequent calls to `close` will be
-   * ignored.
+   * The error (or `undefined`) passed on the first call to `close()` will be the one that is used.
+   * Error conditions passed on subsequent calls to `close` will be ignored.
    *
    * @param error If an error is passed on close, it is propagated
    *     forward.

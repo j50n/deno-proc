@@ -34,6 +34,9 @@ type TransformStream<R, S> = {
   readable: ReadableStream<S>;
 };
 
+/**
+ * Conditional type enforces that if T is a tuple2, we can split into enumerables.
+ */
 export type Unzip<T> = T extends [infer A, infer B] ? [Enumerable<A>, Enumerable<B>]
   : never;
 
@@ -128,9 +131,6 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Write all data to the writer.
-   *
-   * Note that this call returns immediately, although it continues to run
-   * until the source iterable data is exhausted.
    *
    * @param writer The writer.
    */
