@@ -34,10 +34,7 @@ type TransformStream<R, S> = {
   readable: ReadableStream<S>;
 };
 
-// type Tuple2<T, A, B> = T extends [A, B] ? [Enumerable<A>, Enumerable<B>]
-//   : never;
-
-type Unzip<T> = T extends [infer A, infer B] ? [Enumerable<A>, Enumerable<B>]
+export type Unzip<T> = T extends [infer A, infer B] ? [Enumerable<A>, Enumerable<B>]
   : never;
 
 /**
