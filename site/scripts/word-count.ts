@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 import { fromFileUrl } from "./deps/path.ts";
-import { enumerate, gunzip, read, run, toLines } from "../../mod3.ts";
+import { enumerate, gunzip, read, run } from "../../mod3.ts";
 
 console.time("count");
 
@@ -47,9 +47,8 @@ const words = read(
   fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
 )
   .transform(gunzip)
-  .transform(toLines)
+  .lines
   .transform(splitOnWords);
-// .transform(debug<string>)
 
 const [w1, w2] = words.tee();
 

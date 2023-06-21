@@ -19,8 +19,8 @@ export interface Writable<T> {
   get isClosed(): boolean;
 
   /**
-   * Close the writable. 
-   * 
+   * Close the writable.
+   *
    * This must be called. The underlying resource will not be closed automatically.
    *
    * Once closed, subsequent calls to `write(...)` will throw an error.

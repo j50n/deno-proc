@@ -133,3 +133,12 @@ export async function sleep(delayms: number): Promise<void> {
     setTimeout(() => resolve(), delayms)
   );
 }
+
+/**
+ * Correct check to see if something is a string.
+ * @param s The thing to be checked.
+ * @returns `true` if the thing is a string.
+ */
+export function isString(s: unknown): s is string {
+  return Object.prototype.toString.call(s) === "[object String]";
+}

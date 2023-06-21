@@ -34,10 +34,17 @@ type TransformStream<R, S> = {
   readable: ReadableStream<S>;
 };
 
-/**
- * Conditional type enforces that if T is a tuple2, we can split into enumerables.
- */
-export type Unzip<T> = T extends [infer A, infer B] ? [Enumerable<A>, Enumerable<B>]
+/** Conditional type for {@link Enumerable.unzip}. */
+export type Unzip<T> = T extends [infer A, infer B]
+  ? [Enumerable<A>, Enumerable<B>]
+  : never;
+
+/** Conditional type for {@link Enumerable.lines}. */
+export type Lines<T> = T extends Uint8Array ? Enumerable<string> : never;
+
+/** Conditional type for {@link Enumerable.run}. */
+export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
+  ? ProcessEnumerable<S>
   : never;
 
 /**
@@ -357,18 +364,18 @@ export class Enumerable<T> implements AsyncIterable<T> {
   run<S>(
     options: ProcessOptions<S>,
     ...cmd: Cmd
-  ): ProcessEnumerable<S>;
+  ): Run<S, T>;
 
   /**
    * Run a process.
    * @param cmd The command.
    * @returns A child process instance.
    */
-  run(...cmd: Cmd): ProcessEnumerable<unknown>;
+  run(...cmd: Cmd): Run<unknown, T>;
 
   run<S>(
     ...cmd: unknown[]
-  ): ProcessEnumerable<S> {
+  ): Run<S, T> {
     const { options, command, args } = parseArgs(cmd);
 
     const p = new Process(
@@ -386,7 +393,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       this.iter as AsyncIterable<string | string[] | Uint8Array | Uint8Array[]>,
     );
 
-    return new ProcessEnumerable(p);
+    return new ProcessEnumerable(p) as Run<S, T>;
   }
 
   /**
@@ -542,28 +549,38 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Unzip a collection of `[A, B]` into `Enumerable<A>` and `Enumerable<B>`.
-   * 
+   *
    * Note that this operations uses {@link tee}, so it will use memory during the
    * iteration.
-   * 
+   *
    * **Example**
-   * 
+   *
    * ```typescript
    * const [a, b] = enumerate([[1, "A"], [2, "B"], [3, "C"]]).unzip();
-   * 
+   *
    * // a is number[] -> [1, 2, 3]
    * // b is string[] -> ["A", "B", "C"]
    * ```
-   * 
+   *
    * @returns Two enumerables, one for the left side of the tuple and the other for the right.
    */
   unzip<A, B>(): Unzip<T> {
-    const [a, b] = (this as Enumerable<[A,B]>).tee();
+    const [a, b] = (this as Enumerable<[A, B]>).tee();
 
     return [
       enumerate(a.map((it) => it[0])),
       enumerate(b.map((it) => it[1])),
     ] as Unzip<T>;
+  }
+
+  /**
+   * Convert the output to text lines.
+   *
+   * Note that this should probably only be used with small data. Consider {@link chunkedLines}
+   * to improve performance with larger data.
+   */
+  get lines(): Lines<T> {
+    return enumerate(toLines(this as Enumerable<Uint8Array>)) as Lines<T>;
   }
 }
 
@@ -573,16 +590,6 @@ export class Enumerable<T> implements AsyncIterable<T> {
 export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
   constructor(protected process: Process<S>) {
     super(process.stdout);
-  }
-
-  /**
-   * Convert the output to text lines.
-   *
-   * Note that this should probably only be used with small data. Consider {@link chunkedLines}
-   * to improve performance with larger data.
-   */
-  get lines(): Enumerable<string> {
-    return enumerate(toLines(this.process.stdout));
   }
 
   /** Process PID. */

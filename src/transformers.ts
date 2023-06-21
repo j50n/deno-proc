@@ -1,7 +1,7 @@
 import { blue } from "./deps/colors.ts";
 import { readableStreamFromIterable } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
-import { concat } from "./utility.ts";
+import { concat, isString } from "./utility.ts";
 
 /**
  * Type signature of a transformer.
@@ -158,16 +158,16 @@ export async function* toBytes(
   const lf = encoder.encode("\n");
 
   for await (const item of iter) {
-    if (item instanceof Uint8Array) {
-      yield item;
-    } else if (typeof item === "string") {
+    if (isString(item)) {
       yield concat([encoder.encode(item), lf]);
+    } else if (item instanceof Uint8Array) {
+      yield item;
     } else if (Array.isArray(item)) {
       for (const piece of item) {
         const lines: Uint8Array[] = [];
         if (piece instanceof Uint8Array) {
           lines.push(piece);
-        } else if (typeof piece === "string") {
+        } else if (isString(piece)) {
           lines.push(encoder.encode(piece));
           lines.push(lf);
         } else {
