@@ -145,14 +145,14 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
-<p><a href="https://deno.land/x/proc@0.20.27/src/transformers.ts">Available Transformers</a></p>
+<p><a href="https://deno.land/x/proc@0.20.28/src/transformers.ts">Available Transformers</a></p>
 <p>A transformer is just a plain-old JavaScript function with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
 <p>Transformers are just functions (possibly asynchronous generator functions). You
 can compose them into new functions relatively easily because this is just
 JavaScript iteration. The
-<a href="https://deno.land/x/proc@0.20.27/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+<a href="https://deno.land/x/proc@0.20.28/mod3.ts?s=Enumerable#method_transform_0">transform</a>
 operation works similarly to <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but
 with with complete control over the whole stream of data - including control
