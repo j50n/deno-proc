@@ -1,13 +1,13 @@
-# Using the Spread Operator in Run
+# Run and the Spread Operator
 
-This is fine:
+This compiles:
 
 ```typescript
 run("ls", "-la");
 ```
 
-The next example results in an error: _A spread argument must either have a
-tuple type or be passed to a rest parameter._
+The next example results in this compile error: 
+> _A spread argument must either have a tuple type or be passed to a rest parameter._
 
 ```typescript
 run(...["ls", "-la"]); //Broken!

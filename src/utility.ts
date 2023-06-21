@@ -70,18 +70,33 @@ export interface RangeUntilOptions {
 }
 
 /**
- * Lazily produce a range of numbers.
+ * Lazily create a range of numbers.
  *
  * There are two forms:
  * - _from/to/step_: `to` is exclusive, and
  * - _from/until/step_:  `until` is inclusive.
  *
- * **Example**
+ * **Examples**
  *
+ * `to` is exclusive:
+ * 
  * ```typescript
- * const result = await range({to: 10}).collect();
- *
- * // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+ * const result = await range({to: 3}).collect();
+ * // [0, 1, 2]
+ * ```
+ * 
+ * `until` is inclusive. `from` starts at 0 by default.
+ * 
+ * ```typescript
+ * const result = await range({from: 1, until: 3}).collect();
+ * // [1, 2, 3]
+ * ```
+ * 
+ * `step` can be negative. Default is 1.
+ * 
+ * ```typescript
+ * const result = await range({from: -1, until: -3, step: -1}).collect();
+ * // [-1, -2, -3]
  * ```
  *
  * @param options Range options.

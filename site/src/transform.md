@@ -2,17 +2,16 @@
 
 [Available Transformers](https://deno.land/x/proc@{{gitv}}/src/transformers.ts)
 
-A transformer is just a plain-old JavaScript function with this signature:
+A transformer is just a _plain-old JavaScript function_ with this signature:
 
 ```typescript
 type Transformer<T, U> = (it: AsyncIterable<T>) => AsyncIterable<U>;
 ```
 
-Transformers are just functions (possibly asynchronous generator functions). You
-can compose them into new functions relatively easily because this is just
-JavaScript iteration. The
+Transformers are functions (possibly asynchronous generator functions). You
+can compose them into new functions relatively easily. The
 [transform](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable#method_transform_0)
-operation works similarly to `pipeThrough` in streaming.
+operation is similar to `pipeThrough` in streaming.
 
 A transformer transforms objects from one type to another. It is like `map` but
 with with complete control over the whole stream of data - including control

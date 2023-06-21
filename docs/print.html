@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="io.html"><strong aria-hidden="true">2.</strong> IO</a></li><li class="chapter-item expanded "><a href="conversions.html"><strong aria-hidden="true">3.</strong> Stream Conversions</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">4.</strong> Transformers</a></li><li class="chapter-item expanded "><a href="errors.html"><strong aria-hidden="true">5.</strong> The Zen of Errors</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">6.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">7.</strong> Concurrent Processing</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">8.</strong> Using the Spread Operator in Run</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">3.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">4.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">5.</strong> IO</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Run and the Spread Operator</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -281,49 +281,15 @@ wiki page.</p>
 <pre><code class="language-typescript">await run(&quot;apt&quot;, &quot;install&quot;, &quot;build-essential&quot;)
   .writeTo(Deno.stdout.writable, { noclose: true });
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="io"><a class="header" href="#io">IO</a></h1>
-<ul>
-<li>
-<p>read stdin</p>
-</li>
-<li>
-<p>write stdout</p>
-</li>
-<li>
-<p>write stderr with writable</p>
-</li>
-<li>
-<p>read and write files</p>
-</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="stream-conversions"><a class="header" href="#stream-conversions">Stream Conversions</a></h1>
-<p>Deno has methods to convert between <code>AsyncIterable</code> and streams as well as
-readers and writers at
-<a href="https://deno.land/std/streams/mod.ts">https://deno.land/std/streams/mod.ts</a>.
-These libraries have moved around quite a bit so they can be difficult to search
-for.</p>
-<p><em>Note that error propagation through streams in Deno is somewhere between tricky
-and broken.</em> Be sure to test your code thoroughly for error handling if you need
-to convert to and use Deno's streams.</p>
-<h2 id="asynciterable-to-stream"><a class="header" href="#asynciterable-to-stream"><code>AsyncIterable</code> to <code>Stream</code></a></h2>
-<p>To convert from an <code>AsyncIterable</code> (or <code>Enumerable</code>) to a <code>ReadableStream</code>, use
-the
-<a href="https://deno.land/std/streams/mod.ts?s=readableStreamFromIterable">readableStreamFromIterable</a>
-function.</p>
-<h2 id="stream-to-asynciterable"><a class="header" href="#stream-to-asynciterable"><code>Stream</code> to <code>AsyncIterable</code></a></h2>
-<p>A <code>ReadableStream</code> is an <code>AsyncIterable</code>. Avoid the use of <code>.pipeThrough()</code> and
-<code>.pipeTo()</code>. Use <code>for await</code> or <code>enumerate()</code> instead.</p>
-<h2 id="conversion-of-transformstream-to-transformer"><a class="header" href="#conversion-of-transformstream-to-transformer"><strong>Conversion of TransformStream to Transformer</strong></a></h2>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
 <p><a href="https://deno.land/x/proc@0.20.28/src/transformers.ts">Available Transformers</a></p>
-<p>A transformer is just a plain-old JavaScript function with this signature:</p>
+<p>A transformer is just a <em>plain-old JavaScript function</em> with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
-<p>Transformers are just functions (possibly asynchronous generator functions). You
-can compose them into new functions relatively easily because this is just
-JavaScript iteration. The
+<p>Transformers are functions (possibly asynchronous generator functions). You
+can compose them into new functions relatively easily. The
 <a href="https://deno.land/x/proc@0.20.28/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-operation works similarly to <code>pipeThrough</code> in streaming.</p>
+operation is similar to <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but
 with with complete control over the whole stream of data - including control
 over error handling.</p>
@@ -342,75 +308,6 @@ transform strings to lower-case:</p>
 
 assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Transformed to lower-case.&quot;);
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="the-zen-of-errors"><a class="header" href="#the-zen-of-errors">The Zen of Errors</a></h1>
-<p>Error handling should just work. You should not have to check the exit code of
-every process. Errors that occur upstream should flow downstream. You should not
-have to manually <code>close</code> stuff.</p>
-<p>This stuff should not be so complicated.</p>
-<h2 id="tldr"><a class="header" href="#tldr">TLDR</a></h2>
-<p>For the most part, you should just be able to use <code>proc</code> as is, letting most
-errors bubble up, catching and handling errors when needed. Errors work the way
-you would expect them to.</p>
-<h2 id="the-process-perspective"><a class="header" href="#the-process-perspective">The Process Perspective</a></h2>
-<p>If everything goes well, a process will read something from <code>stdin</code>, process it,
-and write something to <code>stdout</code>. This will continue until <code>stdin</code> is exhausted.
-At that point, the process with exit with code <code>0</code>.</p>
-<p>If an error occurs, the process stops reading from <code>stdin</code> and exits with a
-non-<code>0</code> error code.</p>
-<h2 id="streaming-and-propagating-errors"><a class="header" href="#streaming-and-propagating-errors">Streaming and Propagating Errors</a></h2>
-<p>Process <code>stdin</code>, <code>stdout</code>, and exit code match up well with asynchronous
-iteration in Typescript. In general, <code>proc</code> attempts to process all of <code>stdout</code>
-before checking for an exit code error, and it forwards errors that originate at
-the input.</p>
-<p>If a process has a non-zero <code>code</code>, an <code>ExitCodeError</code> is thrown. For a signal,
-a <code>SignalError</code> is thrown. Errors are wrapped in a <code>SteamError</code> as they
-propagate through a process in order to preserve the stack traces.</p>
-<p>In short, it works pretty much as you would expect.</p>
-<h2 id="an-example"><a class="header" href="#an-example">An Example</a></h2>
-<p>In <code>bash</code>:</p>
-<pre><code class="language-shell">cat ./warandpeace.txt.gz | grep -v '^$' | head -n 100
-</code></pre>
-<p>In <code>Typescript</code>:</p>
-<pre><code class="language-typescript">await enumerable(file.readable)
-  .run(&quot;gunzip&quot;)
-  .run(&quot;grep&quot;, &quot;-v&quot;, &quot;^$&quot;)
-  .run(&quot;head&quot;, &quot;-n&quot;, &quot;100&quot;)
-  .transform(toLines)
-  .flatten()
-  .forEach((line) =&gt; console.log(line));
-</code></pre>
-<p>Errors flow from process input to process output. <code>stderr</code> is redirected to
-process <code>stderr</code>.</p>
-<div><!-- Generated by graphviz version 2.43.0 (0)
- --><!-- Title: finite_state_machine Pages: 1 --><svg width="432pt" height="144pt"
- viewBox="0.00 0.00 431.99 143.70" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 139.7)"><title>finite_state_machine</title><polygon fill="white" stroke="transparent" points="-4,4 -4,-139.7 427.99,-139.7 427.99,4 -4,4"/><g id="clust1" class="cluster"><title>cluster_shell</title><polygon fill="lightgrey" stroke="lightgrey" points="75,-64.7 75,-116.7 336,-116.7 336,-64.7 75,-64.7"/></g><!-- A --><g id="node1" class="node"><title>A</title><polygon fill="none" stroke="black" points="148,-108.7 83,-108.7 83,-72.7 148,-72.7 148,-108.7"/><text text-anchor="middle" x="115.5" y="-87" font-family="Times,serif" font-size="14.00">gunzip</text></g><!-- B --><g id="node2" class="node"><title>B</title><polygon fill="none" stroke="black" points="238,-108.7 184,-108.7 184,-72.7 238,-72.7 238,-108.7"/><text text-anchor="middle" x="211" y="-87" font-family="Times,serif" font-size="14.00">grep</text></g><!-- A&#45;&gt;B --><g id="edge5" class="edge"><title>A&#45;&gt;B</title><path fill="none" stroke="black" d="M148.15,-90.7C156.44,-90.7 165.43,-90.7 173.93,-90.7"/><polygon fill="black" stroke="black" points="173.97,-94.2 183.97,-90.7 173.97,-87.2 173.97,-94.2"/></g><!-- err --><g id="node5" class="node"><title>err</title><ellipse fill="none" stroke="black" cx="393.99" cy="-28.7" rx="24.87" ry="24.87"/><ellipse fill="none" stroke="black" cx="393.99" cy="-28.7" rx="28.9" ry="28.9"/><text text-anchor="middle" x="393.99" y="-25" font-family="Times,serif" font-size="14.00">err</text></g><!-- A&#45;&gt;err --><g id="edge1" class="edge"><title>A:s&#45;&gt;err</title><path fill="none" stroke="red" d="M115.5,-72.7C115.5,-72.7 278.8,-46.9 355.31,-34.81"/><polygon fill="red" stroke="red" points="356.17,-38.22 365.5,-33.2 355.08,-31.3 356.17,-38.22"/></g><!-- C --><g id="node3" class="node"><title>C</title><polygon fill="none" stroke="black" points="328,-108.7 274,-108.7 274,-72.7 328,-72.7 328,-108.7"/><text text-anchor="middle" x="301" y="-87" font-family="Times,serif" font-size="14.00">head</text></g><!-- B&#45;&gt;C --><g id="edge6" class="edge"><title>B&#45;&gt;C</title><path fill="none" stroke="black" d="M238.4,-90.7C246.39,-90.7 255.31,-90.7 263.82,-90.7"/><polygon fill="black" stroke="black" points="263.92,-94.2 273.92,-90.7 263.92,-87.2 263.92,-94.2"/></g><!-- B&#45;&gt;err --><g id="edge2" class="edge"><title>B:s&#45;&gt;err</title><path fill="none" stroke="red" d="M211,-72.7C211,-72.7 302.32,-50.74 355.94,-37.85"/><polygon fill="red" stroke="red" points="356.9,-41.22 365.8,-35.48 355.26,-34.41 356.9,-41.22"/></g><!-- C&#45;&gt;err --><g id="edge3" class="edge"><title>C:s&#45;&gt;err</title><path fill="none" stroke="red" d="M301,-71.7C301,-71.7 332.05,-57.18 358.07,-45.02"/><polygon fill="red" stroke="red" points="359.79,-48.08 367.37,-40.68 356.83,-41.74 359.79,-48.08"/></g><!-- out --><g id="node6" class="node"><title>out</title><ellipse fill="none" stroke="black" cx="393.99" cy="-105.7" rx="26" ry="26"/><ellipse fill="none" stroke="black" cx="393.99" cy="-105.7" rx="30" ry="30"/><text text-anchor="middle" x="393.99" y="-102" font-family="Times,serif" font-size="14.00">out</text></g><!-- C&#45;&gt;out --><g id="edge7" class="edge"><title>C&#45;&gt;out</title><path fill="none" stroke="black" d="M328.32,-95.04C336.39,-96.37 345.45,-97.86 354.18,-99.3"/><polygon fill="black" stroke="black" points="353.75,-102.78 364.18,-100.95 354.89,-95.87 353.75,-102.78"/></g><!-- in --><g id="node4" class="node"><title>in</title><ellipse fill="none" stroke="black" cx="23.5" cy="-90.7" rx="19.5" ry="19.5"/><ellipse fill="none" stroke="black" cx="23.5" cy="-90.7" rx="23.5" ry="23.5"/><text text-anchor="middle" x="23.5" y="-87" font-family="Times,serif" font-size="14.00">in</text></g><!-- in&#45;&gt;A --><g id="edge4" class="edge"><title>in&#45;&gt;A</title><path fill="none" stroke="black" d="M47.21,-90.7C54.99,-90.7 63.97,-90.7 72.78,-90.7"/><polygon fill="black" stroke="black" points="72.96,-94.2 82.96,-90.7 72.96,-87.2 72.96,-94.2"/></g></g></svg></div>
-<p>Uncompress a file. Remove all the lines that are empty. Take the first 100
-lines.</p>
-<p>Assume there is an error in the data that causes <code>gunzip</code> to fail at some point.</p>
-<h3 id="scenario-1-a-data-error-in-the-first-100-lines"><a class="header" href="#scenario-1-a-data-error-in-the-first-100-lines">Scenario 1: A Data Error in the First 100 Lines</a></h3>
-<p><em>There is an error early in the compressed data.</em></p>
-<p><code>gunzip</code> will decompress data in chunks and write the result to <code>stdout</code> as it
-goes. When it reaches the error, it will exit with a non-zero <code>code</code>.</p>
-<p>Once the (partial) output from <code>gunzip</code> has been fully read, <code>proc</code> will check
-the <code>code</code> and throw an error. This will be propagated forward through the input
-of <code>head</code>, and then forward again through the input of <code>grep</code> as the output of
-each is exhausted.</p>
-<p>Note that it is also possible that bad data in results in invalid data coming
-out, and since we process all the output data before we get the error, we might
-see the data error first.</p>
-<h3 id="scenario-2-a-data-error-after-the-first-100-lines"><a class="header" href="#scenario-2-a-data-error-after-the-first-100-lines">Scenario 2: A Data Error After the First 100 Lines</a></h3>
-<p><em>There is an error later in the compressed data.</em></p>
-<p>Once we get to line 100, <code>head</code> is done. It shuts down its input stream and
-exits normally. Even if <code>gunzip</code> is unlucky enough to process the error data,
-<code>head</code> is already done and success propagated forward. The error from <code>gunzip</code>
-won't be able to propagate. Of course, if the error is <em>much</em> later in the data,
-it will never even be read. Once <code>head</code> has found 100 lines, it shuts down its
-input, which in turn shuts down <code>gunzip</code>. The error never happens in the first
-place.</p>
-<p>In other words, upstream processes may continue to function for a short time
-after the downstream processes have exited, assuming the downstream processes
-don't need to process input fully. In most cases this should not matter. If an
-upstream process has side effects, though, weird things could happen.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="counting-words"><a class="header" href="#counting-words">Counting Words <!-- omit from toc --></a></h1>
 <ul>
 <li><a href="example-counting-words.html#direct-translation-from-bash">Direct Translation from Bash</a></li>
@@ -649,12 +546,29 @@ work is done.</p>
 <pre><code>mybucket  Total Size: 2.9 MiB
 mybucket2 Total Size: 30.2 MiB
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="using-the-spread-operator-in-run"><a class="header" href="#using-the-spread-operator-in-run">Using the Spread Operator in Run</a></h1>
-<p>This is fine:</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="io"><a class="header" href="#io">IO</a></h1>
+<ul>
+<li>
+<p>read stdin</p>
+</li>
+<li>
+<p>write stdout</p>
+</li>
+<li>
+<p>write stderr with writable</p>
+</li>
+<li>
+<p>read and write files</p>
+</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="run-and-the-spread-operator"><a class="header" href="#run-and-the-spread-operator">Run and the Spread Operator</a></h1>
+<p>This compiles:</p>
 <pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>The next example results in an error: <em>A spread argument must either have a
-tuple type or be passed to a rest parameter.</em></p>
+<p>The next example results in this compile error: </p>
+<blockquote>
+<p><em>A spread argument must either have a tuple type or be passed to a rest parameter.</em></p>
+</blockquote>
 <pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
 </code></pre>
 <p>What gives?</p>
