@@ -217,5 +217,5 @@ Unique word count: 18,609
 
 Clean, readable code. Understandable error handling. Fast. The only downside is
 that the processing is done in-process (we only have one thread to work with in
-JavaScript). If you are doing other things at the same time, this will slow them 
+JavaScript). If you are doing other things at the same time, this will slow them
 down.

@@ -4,7 +4,7 @@ A better way to work with processes in Deno.
 
 ## The New Stuff
 
-Documentation is at
+Documentation:
 [https://j50n.github.io/deno-proc/](https://j50n.github.io/deno-proc/).
 
 To use:
@@ -13,13 +13,14 @@ To use:
 import * as proc from "http://deno.land/x/proc/mod3.ts";
 ```
 
-This is now stable enough to use. It is moving toward the 1.0 release. Please
-report any bugs you find.
+This is now stable enough to use and moving toward a 1.0 release. The
+documentation is correct and still incomplete.
+
+Please report any bugs you find.
 
 ## The Old Stuff
 
-The documentation for the legacy library is available at
-[Legacy Documentation](./legacy/README.md).
+Documentation: [Legacy Documentation](./legacy/README.md).
 
 To use:
 
