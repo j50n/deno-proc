@@ -17,7 +17,7 @@ Here is how you process text data in `proc`.
 This is the "normal" way to work with line-delimited text. It should be a good
 solution most of the time.
 
-For a child process, the
+The
 [lines](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=ProcessEnumerable#accessor_lines)
 method converts a line at a time.
 
@@ -27,7 +27,7 @@ await run("ls", "-la")
   .forEach((it) => console.log(it));
 ```
 
-In other cases, use
+Alternately you can use
 [transform](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable#method_transform_0)
 with the [toLines](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=toLines)
 transformer function.
@@ -38,7 +38,8 @@ await read(resolve("./warandpeace.txt.gz"))
   .forEach((it) => console.log(it));
 ```
 
-The [run](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable#method_run_0)
+The
+[Enumerable.run](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable#method_run_0)
 method will automatically treat `string` values as lines, adding `\n` to them
 and converting back into `utf-8` encoded bytes.
 

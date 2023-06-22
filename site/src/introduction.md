@@ -1,6 +1,6 @@
 # `proc {{gitv}}`
 
-`proc` is a better way to work with processes in Deno.
+A better way to work with processes in Deno.
 
 [Developer Documentation](https://deno.land/x/proc@{{gitv}}/mod3.ts)
 
