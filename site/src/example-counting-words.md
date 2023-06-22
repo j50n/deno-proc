@@ -174,7 +174,7 @@ export function split(lines: AsyncIterable<string>) {
 ### Putting It All Together
 
 Read the file. Uncompress it and convert to lines (`string`). Use the
-transformer function, `split`, to split into words.
+transformer function we created earlier, `split`, to split into words.
 
 ```typescript
 const words = read(
@@ -217,4 +217,5 @@ Unique word count: 18,609
 
 Clean, readable code. Understandable error handling. Fast. The only downside is
 that the processing is done in-process (we only have one thread to work with in
-JavaScript), so if you are doing other things this could slow them down.
+JavaScript). If you are doing other things at the same time, this will slow them 
+down.
