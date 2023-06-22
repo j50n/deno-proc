@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>IO - proc</title>
+        <title>Input and Output - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">3.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">4.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html" class="active"><strong aria-hidden="true">5.</strong> IO</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Run and the Spread Operator</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">3.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">4.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html" class="active"><strong aria-hidden="true">5.</strong> Input and Output</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Run and the Spread Operator</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,21 +144,42 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="io"><a class="header" href="#io">IO</a></h1>
-<ul>
-<li>
-<p>read stdin</p>
-</li>
-<li>
-<p>write stdout</p>
-</li>
-<li>
-<p>write stderr with writable</p>
-</li>
-<li>
-<p>read and write files</p>
-</li>
-</ul>
+                        <h1 id="input-and-output"><a class="header" href="#input-and-output">Input and Output</a></h1>
+<p>Use <code>ReadableStream</code> and <code>WritableStream</code> from Deno APIs for input and output.</p>
+<h2 id="write-to-stdout"><a class="header" href="#write-to-stdout">Write to Stdout</a></h2>
+<p>Write to <code>stdout</code> a line at a time using <code>console.log</code>.</p>
+<pre><code class="language-typescript">await range({ to: 3 })
+  .forEach((line) =&gt; console.log(line.toString()));
+</code></pre>
+<p>Write to <code>stdout</code> as a <code>WritableStream</code>. In the case of 
+<code>stdout</code>, we don't close it. To use <code>writeTo</code>, the data has to be
+in <code>Uint8Array</code> form. This also adds output buffering to consolidate the
+write operations into larger chunks.</p>
+<p><code>Deno.stdout.writable</code> is a <code>WritableStream</code>.</p>
+<pre><code class="language-typescript">await range({ to: 10000 })
+  .map((n) =&gt; n.toString())
+  .transform(toBytes)
+  .transform(buffer(8192))
+  .writeTo(Deno.stdout.writable, { noclose: true });
+
+</code></pre>
+<p>Run a child process and stream output directly to <code>stdout</code>.
+This has no conversion to lines and no additional buffering, so it
+will also work with ANSI escape codes and positioning characters.</p>
+<pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
+  .writeTo(Deno.stdout.writable, { noclose: true });
+</code></pre>
+<h2 id="read-from-stdin"><a class="header" href="#read-from-stdin">Read from Stdin</a></h2>
+<p>Read <code>stdin</code>. Uncompress it and convert to lines (<code>string</code>). Remove all the blank lines. Count them. Print the count.</p>
+<p><code>Deno.stdin.readable</code> is a <code>ReadableStream</code> which is an <code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
+<pre><code class="language-typescript">console.log(
+  await enumerate(Deno.stdin.readable)
+    .transform(gunzip)
+    .lines
+    .filter((line) =&gt; line.trim().length === 0)
+    .count(),
+);
+</code></pre>
 
                     </main>
 
