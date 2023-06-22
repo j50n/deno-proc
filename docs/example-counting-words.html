@@ -148,7 +148,7 @@
 <ul>
 <li><a href="#direct-translation-from-bash">Direct Translation from Bash</a></li>
 <li><a href="#embedding-a-shell-script">Embedding a Shell Script</a></li>
-<li><a href="#keeping-the-work-in-process">Keeping the Work In-Process</a>
+<li><a href="#doing-all-the-work-in-deno">Doing All the Work in Deno</a>
 <ul>
 <li><a href="#transformer-for-unique-words">Transformer for Unique Words</a></li>
 <li><a href="#transformer-to-split-into-words">Transformer to Split into Words</a></li>
@@ -240,10 +240,11 @@ path of our text file as determined by the Deno script.</p>
   .lines
   .forEach((line) =&gt; console.log(line));
 </code></pre>
-<h2 id="keeping-the-work-in-process"><a class="header" href="#keeping-the-work-in-process">Keeping the Work In-Process</a></h2>
-<p>This is a streaming solution staying fully in the Typescript/JavaScript VM. The
-avoids (most of) the memory overhead that would be needed to process the
-document in memory (non-streaming), and it is fast.</p>
+<h2 id="doing-all-the-work-in-deno"><a class="header" href="#doing-all-the-work-in-deno">Doing All the Work in Deno</a></h2>
+<p>This is a streaming solution staying fully in Deno, in a single
+Typescript/JavaScript VM (not using child processes at all). The avoids (most
+of) the memory overhead that would be needed to process the document in memory
+(non-streaming), and it is fast.</p>
 <p>This demonstrates <em>transformer-composition</em> in <code>proc</code>. Because transformers are
 just functions of iterable collections, you can compose them into logical units
 the same way you would any other code.</p>

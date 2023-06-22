@@ -146,58 +146,18 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="proc-02028"><a class="header" href="#proc-02028"><code>proc 0.20.28</code></a></h1>
-<p><code>proc</code> is a powerful functional extension for <code>AsyncIterable</code> in Deno. It
-supports managing external processes, provides extensions for concurrent
-programming, and works seamlessly with <code>Deno</code> IO streams. With <code>proc</code>, writing
-shell-style solutions in Deno is painless.</p>
+<p><code>proc</code> is a better way to work with processes in Deno.</p>
 <p><a href="https://deno.land/x/proc@0.20.28/mod3.ts">Developer Documentation</a></p>
-<h2 id="import"><a class="header" href="#import">Import</a></h2>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
 <p>Import using this path (note the use of <code>mod3.ts</code> rather than <code>mod.ts</code>).</p>
 <pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.20.28/mod3.ts&quot;;
 </code></pre>
-<h2 id="a-few-examples"><a class="header" href="#a-few-examples">A Few Examples</a></h2>
-<p>Here are some of the things <code>proc</code> can do.</p>
-<h3 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h3>
-<p>List the file names in the current directory (<code>-1</code> puts each on its own line),
-capture as lines, and collect the names into an array.</p>
-<pre><code class="language-typescript">const filesAndFolders = run(&quot;ls&quot;, &quot;-1&quot;, &quot;-a&quot;, &quot;.&quot;).lines.collect();
-</code></pre>
-<h3 id="chaining-processes-together"><a class="header" href="#chaining-processes-together">Chaining Processes Together</a></h3>
-<p>Read &quot;War and Peace&quot; in from a compressed file. Uncompress the file. <code>grep</code> out
-empty lines. Print it.</p>
-<pre><code class="language-typescript">const warandpeace = resolve(&quot;./warandpeace.txt.gz&quot;);
-
-read(warandpeace)
-  .run(&quot;gunzip&quot;).
-  .run(&quot;grep&quot;, &quot;-v&quot;, &quot;^$&quot;)
-  .lines
-  .forEach((line) =&gt; console.log(line));
-</code></pre>
-<p>This is equivalent to:</p>
-<pre><code class="language-sh">cat ./warandpeace.txt.gz | gunzip | grep -v '^$'
-</code></pre>
-<h3 id="functional-style"><a class="header" href="#functional-style">Functional Style</a></h3>
-<p>For all even numbers between 1 and 100, multiply by 2 and print. So 4, 8, 12
-... 200.</p>
-<pre><code class="language-typescript">await range({ from: 1, until: 100 })
-  .filter((n) =&gt; n % 2 === 0)
-  .map((n) =&gt; n * 2)
-  .forEach((n) =&gt; console.log(n));
-</code></pre>
-<h2 id="a-few-more-examples"><a class="header" href="#a-few-more-examples">A Few More Examples</a></h2>
-<p>These examples are longer. More involved. Good stuff.</p>
-<h2 id="odd-ducks"><a class="header" href="#odd-ducks">Odd Ducks</a></h2>
-<p>Other useful stuff. These might be a little off topic for this library, but here
-they are.</p>
-<h3 id="a-lazy-way-to-count"><a class="header" href="#a-lazy-way-to-count">A Lazy Way to Count</a></h3>
-<p>Print the numbers from 0 to 99.</p>
-<pre><code class="language-typescript">for await (const i of range({ to: 100 })) {
-  console.log(i);
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
+console.</p>
+<pre><code class="language-typescript">for await (const line of proc.run(&quot;ls&quot;, &quot;-la&quot;).lines) {
+  console.log(line);
 }
-</code></pre>
-<h3 id="sleep"><a class="header" href="#sleep">Sleep</a></h3>
-<p>A convenient way to wait a little bit. This pauses for 1 second.</p>
-<pre><code class="language-typescript">await sleep(1000);
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="working-with-text-data"><a class="header" href="#working-with-text-data">Working with Text Data</a></h1>
 <p>Streaming data doesn't have to be line-delimited text, but it probably will be
@@ -286,8 +246,8 @@ wiki page.</p>
 <p>A transformer is just a <em>plain-old JavaScript function</em> with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
-<p>Transformers are functions (possibly asynchronous generator functions). You
-can compose them into new functions relatively easily. The
+<p>Transformers are functions (possibly asynchronous generator functions). You can
+compose them into new functions relatively easily. The
 <a href="https://deno.land/x/proc@0.20.28/mod3.ts?s=Enumerable#method_transform_0">transform</a>
 operation is similar to <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but
@@ -312,7 +272,7 @@ assertEquals(lowered, [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], &quot;Trans
 <ul>
 <li><a href="example-counting-words.html#direct-translation-from-bash">Direct Translation from Bash</a></li>
 <li><a href="example-counting-words.html#embedding-a-shell-script">Embedding a Shell Script</a></li>
-<li><a href="example-counting-words.html#keeping-the-work-in-process">Keeping the Work In-Process</a>
+<li><a href="example-counting-words.html#doing-all-the-work-in-deno">Doing All the Work in Deno</a>
 <ul>
 <li><a href="example-counting-words.html#transformer-for-unique-words">Transformer for Unique Words</a></li>
 <li><a href="example-counting-words.html#transformer-to-split-into-words">Transformer to Split into Words</a></li>
@@ -404,10 +364,11 @@ path of our text file as determined by the Deno script.</p>
   .lines
   .forEach((line) =&gt; console.log(line));
 </code></pre>
-<h2 id="keeping-the-work-in-process"><a class="header" href="#keeping-the-work-in-process">Keeping the Work In-Process</a></h2>
-<p>This is a streaming solution staying fully in the Typescript/JavaScript VM. The
-avoids (most of) the memory overhead that would be needed to process the
-document in memory (non-streaming), and it is fast.</p>
+<h2 id="doing-all-the-work-in-deno"><a class="header" href="#doing-all-the-work-in-deno">Doing All the Work in Deno</a></h2>
+<p>This is a streaming solution staying fully in Deno, in a single
+Typescript/JavaScript VM (not using child processes at all). The avoids (most
+of) the memory overhead that would be needed to process the document in memory
+(non-streaming), and it is fast.</p>
 <p>This demonstrates <em>transformer-composition</em> in <code>proc</code>. Because transformers are
 just functions of iterable collections, you can compose them into logical units
 the same way you would any other code.</p>
@@ -553,27 +514,27 @@ mybucket2 Total Size: 30.2 MiB
 <pre><code class="language-typescript">await range({ to: 3 })
   .forEach((line) =&gt; console.log(line.toString()));
 </code></pre>
-<p>Write to <code>stdout</code> as a <code>WritableStream</code>. In the case of 
-<code>stdout</code>, we don't close it. To use <code>writeTo</code>, the data has to be
-in <code>Uint8Array</code> form. This also adds output buffering to consolidate the
-write operations into larger chunks.</p>
+<p>Write to <code>stdout</code> as a <code>WritableStream</code>. In the case of <code>stdout</code>, we don't close
+it. To use <code>writeTo</code>, the data has to be in <code>Uint8Array</code> form. This also adds
+output buffering to consolidate the write operations into larger chunks.</p>
 <p><code>Deno.stdout.writable</code> is a <code>WritableStream</code>.</p>
 <pre><code class="language-typescript">await range({ to: 10000 })
   .map((n) =&gt; n.toString())
   .transform(toBytes)
   .transform(buffer(8192))
   .writeTo(Deno.stdout.writable, { noclose: true });
-
 </code></pre>
-<p>Run a child process and stream output directly to <code>stdout</code>.
-This has no conversion to lines and no additional buffering, so it
-will also work with ANSI escape codes and positioning characters.</p>
+<p>Run a child process and stream output directly to <code>stdout</code>. This has no
+conversion to lines and no additional buffering, so it will also work with ANSI
+escape codes and positioning characters.</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
   .writeTo(Deno.stdout.writable, { noclose: true });
 </code></pre>
 <h2 id="read-from-stdin"><a class="header" href="#read-from-stdin">Read from Stdin</a></h2>
-<p>Read <code>stdin</code>. Uncompress it and convert to lines (<code>string</code>). Remove all the blank lines. Count them. Print the count.</p>
-<p><code>Deno.stdin.readable</code> is a <code>ReadableStream</code> which is an <code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
+<p>Read <code>stdin</code>. Uncompress it and convert to lines (<code>string</code>). Remove all the
+blank lines. Count them. Print the count.</p>
+<p><code>Deno.stdin.readable</code> is a <code>ReadableStream</code> which is an
+<code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
 <pre><code class="language-typescript">console.log(
   await enumerate(Deno.stdin.readable)
     .transform(gunzip)
@@ -586,9 +547,10 @@ will also work with ANSI escape codes and positioning characters.</p>
 <p>This compiles:</p>
 <pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>The next example results in this compile error: </p>
+<p>The next example results in this compile error:</p>
 <blockquote>
-<p><em>A spread argument must either have a tuple type or be passed to a rest parameter.</em></p>
+<p><em>A spread argument must either have a tuple type or be passed to a rest
+parameter.</em></p>
 </blockquote>
 <pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
 </code></pre>

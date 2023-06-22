@@ -5,8 +5,11 @@
 # Concepts
 
 - [Working with Text Data](./text-data.md)
+
 <!-- - [Stream Conversions](./conversions.md) -->
+
 - [Transformers](./transform.md)
+
 <!-- - [The Zen of Errors](./errors.md) -->
 
 # Examples

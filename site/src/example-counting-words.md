@@ -2,7 +2,7 @@
 
 - [Direct Translation from Bash](#direct-translation-from-bash)
 - [Embedding a Shell Script](#embedding-a-shell-script)
-- [Keeping the Work In-Process](#keeping-the-work-in-process)
+- [Doing All the Work in Deno](#doing-all-the-work-in-deno)
   - [Transformer for Unique Words](#transformer-for-unique-words)
   - [Transformer to Split into Words](#transformer-to-split-into-words)
   - [Putting It All Together](#putting-it-all-together)
@@ -106,11 +106,12 @@ await run(
   .forEach((line) => console.log(line));
 ```
 
-## Keeping the Work In-Process
+## Doing All the Work in Deno
 
-This is a streaming solution staying fully in the Typescript/JavaScript VM. The
-avoids (most of) the memory overhead that would be needed to process the
-document in memory (non-streaming), and it is fast.
+This is a streaming solution staying fully in Deno, in a single
+Typescript/JavaScript VM (not using child processes at all). The avoids (most
+of) the memory overhead that would be needed to process the document in memory
+(non-streaming), and it is fast.
 
 This demonstrates _transformer-composition_ in `proc`. Because transformers are
 just functions of iterable collections, you can compose them into logical units

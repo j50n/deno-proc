@@ -149,8 +149,8 @@
 <p>A transformer is just a <em>plain-old JavaScript function</em> with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
-<p>Transformers are functions (possibly asynchronous generator functions). You
-can compose them into new functions relatively easily. The
+<p>Transformers are functions (possibly asynchronous generator functions). You can
+compose them into new functions relatively easily. The
 <a href="https://deno.land/x/proc@0.20.28/mod3.ts?s=Enumerable#method_transform_0">transform</a>
 operation is similar to <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but

@@ -8,8 +8,8 @@ A transformer is just a _plain-old JavaScript function_ with this signature:
 type Transformer<T, U> = (it: AsyncIterable<T>) => AsyncIterable<U>;
 ```
 
-Transformers are functions (possibly asynchronous generator functions). You
-can compose them into new functions relatively easily. The
+Transformers are functions (possibly asynchronous generator functions). You can
+compose them into new functions relatively easily. The
 [transform](https://deno.land/x/proc@{{gitv}}/mod3.ts?s=Enumerable#method_transform_0)
 operation is similar to `pipeThrough` in streaming.
 

@@ -11,10 +11,9 @@ await range({ to: 3 })
   .forEach((line) => console.log(line.toString()));
 ```
 
-Write to `stdout` as a `WritableStream`. In the case of 
-`stdout`, we don't close it. To use `writeTo`, the data has to be
-in `Uint8Array` form. This also adds output buffering to consolidate the
-write operations into larger chunks.
+Write to `stdout` as a `WritableStream`. In the case of `stdout`, we don't close
+it. To use `writeTo`, the data has to be in `Uint8Array` form. This also adds
+output buffering to consolidate the write operations into larger chunks.
 
 `Deno.stdout.writable` is a `WritableStream`.
 
@@ -24,12 +23,11 @@ await range({ to: 10000 })
   .transform(toBytes)
   .transform(buffer(8192))
   .writeTo(Deno.stdout.writable, { noclose: true });
-
 ```
 
-Run a child process and stream output directly to `stdout`.
-This has no conversion to lines and no additional buffering, so it
-will also work with ANSI escape codes and positioning characters.
+Run a child process and stream output directly to `stdout`. This has no
+conversion to lines and no additional buffering, so it will also work with ANSI
+escape codes and positioning characters.
 
 ```typescript
 await run("ls", "-la")
@@ -38,9 +36,11 @@ await run("ls", "-la")
 
 ## Read from Stdin
 
-Read `stdin`. Uncompress it and convert to lines (`string`). Remove all the blank lines. Count them. Print the count.
+Read `stdin`. Uncompress it and convert to lines (`string`). Remove all the
+blank lines. Count them. Print the count.
 
-`Deno.stdin.readable` is a `ReadableStream` which is an `AsyncIterable<Uint8Array>`.
+`Deno.stdin.readable` is a `ReadableStream` which is an
+`AsyncIterable<Uint8Array>`.
 
 ```typescript
 console.log(
@@ -51,4 +51,3 @@ console.log(
     .count(),
 );
 ```
-

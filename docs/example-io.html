@@ -151,27 +151,27 @@
 <pre><code class="language-typescript">await range({ to: 3 })
   .forEach((line) =&gt; console.log(line.toString()));
 </code></pre>
-<p>Write to <code>stdout</code> as a <code>WritableStream</code>. In the case of 
-<code>stdout</code>, we don't close it. To use <code>writeTo</code>, the data has to be
-in <code>Uint8Array</code> form. This also adds output buffering to consolidate the
-write operations into larger chunks.</p>
+<p>Write to <code>stdout</code> as a <code>WritableStream</code>. In the case of <code>stdout</code>, we don't close
+it. To use <code>writeTo</code>, the data has to be in <code>Uint8Array</code> form. This also adds
+output buffering to consolidate the write operations into larger chunks.</p>
 <p><code>Deno.stdout.writable</code> is a <code>WritableStream</code>.</p>
 <pre><code class="language-typescript">await range({ to: 10000 })
   .map((n) =&gt; n.toString())
   .transform(toBytes)
   .transform(buffer(8192))
   .writeTo(Deno.stdout.writable, { noclose: true });
-
 </code></pre>
-<p>Run a child process and stream output directly to <code>stdout</code>.
-This has no conversion to lines and no additional buffering, so it
-will also work with ANSI escape codes and positioning characters.</p>
+<p>Run a child process and stream output directly to <code>stdout</code>. This has no
+conversion to lines and no additional buffering, so it will also work with ANSI
+escape codes and positioning characters.</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
   .writeTo(Deno.stdout.writable, { noclose: true });
 </code></pre>
 <h2 id="read-from-stdin"><a class="header" href="#read-from-stdin">Read from Stdin</a></h2>
-<p>Read <code>stdin</code>. Uncompress it and convert to lines (<code>string</code>). Remove all the blank lines. Count them. Print the count.</p>
-<p><code>Deno.stdin.readable</code> is a <code>ReadableStream</code> which is an <code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
+<p>Read <code>stdin</code>. Uncompress it and convert to lines (<code>string</code>). Remove all the
+blank lines. Count them. Print the count.</p>
+<p><code>Deno.stdin.readable</code> is a <code>ReadableStream</code> which is an
+<code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
 <pre><code class="language-typescript">console.log(
   await enumerate(Deno.stdin.readable)
     .transform(gunzip)

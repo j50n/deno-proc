@@ -148,9 +148,10 @@
 <p>This compiles:</p>
 <pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
 </code></pre>
-<p>The next example results in this compile error: </p>
+<p>The next example results in this compile error:</p>
 <blockquote>
-<p><em>A spread argument must either have a tuple type or be passed to a rest parameter.</em></p>
+<p><em>A spread argument must either have a tuple type or be passed to a rest
+parameter.</em></p>
 </blockquote>
 <pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
 </code></pre>

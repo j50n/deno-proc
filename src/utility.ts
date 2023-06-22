@@ -79,21 +79,21 @@ export interface RangeUntilOptions {
  * **Examples**
  *
  * `to` is exclusive:
- * 
+ *
  * ```typescript
  * const result = await range({to: 3}).collect();
  * // [0, 1, 2]
  * ```
- * 
+ *
  * `until` is inclusive. `from` starts at 0 by default.
- * 
+ *
  * ```typescript
  * const result = await range({from: 1, until: 3}).collect();
  * // [1, 2, 3]
  * ```
- * 
+ *
  * `step` can be negative. Default is 1.
- * 
+ *
  * ```typescript
  * const result = await range({from: -1, until: -3, step: -1}).collect();
  * // [-1, -2, -3]

@@ -2,7 +2,6 @@
 
 import { enumerate, gunzip, range, run, toBytes } from "../../mod3.ts";
 import { buffer } from "../../src/transformers.ts";
-import { resolve } from "./deps/path.ts";
 
 await range({ to: 3 })
   .forEach((line) => console.log(line.toString()));
@@ -23,3 +22,7 @@ console.log(
     .filter((line) => line.trim().length === 0)
     .count(),
 );
+
+for await (const line of run("ls", "-la").lines) {
+  console.log(line);
+}
