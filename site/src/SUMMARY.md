@@ -13,7 +13,7 @@
 
 - [Counting Words](./example-counting-words.md)
 - [Concurrent Processing](./example-concurrent-processing.md)
-- [IO](./example-io.md)
+- [Input and Output](./example-io.md)
 
 # Minutia
 
