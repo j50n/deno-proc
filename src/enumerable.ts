@@ -139,6 +139,17 @@ export class Enumerable<T> implements AsyncIterable<T> {
   /**
    * Write all data to the writer.
    *
+   * **Example**
+   *
+   * Write some numbers to `stdout`.
+   *
+   * ```typescript
+   * range({to: 99})
+   *   .map(n => n.toString())
+   *   .transform(toBytes)
+   *   .writeTo(Deno.stdout.writable, {noclose: true});
+   * ```
+   *
    * @param writer The writer.
    */
   async writeTo(
