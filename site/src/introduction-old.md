@@ -130,3 +130,20 @@ gone.
 
 [transformers.ts](https://github.com/j50n/deno-proc/blob/main/src/transformers.ts)
 <a href="https://github.com/j50n/deno-proc/blob/main/src/transformers.ts" target="_blank">transformers.ts</a>
+
+```ts
+const n = 2;
+```
+
+```ts n
+const n = 2;
+```
+
+<script>
+const n=2;
+  type Blah = number;
+
+  function x(y: Blah): Blah {
+    return x * 2;
+  }
+</script>
