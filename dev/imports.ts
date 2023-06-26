@@ -1,6 +1,5 @@
-
-async function blah(){ 
-const uri = 'data:application/typescript,'+encodeURIComponent(
+async function blah() {
+  const uri = "data:application/typescript," + encodeURIComponent(
     `
     export default () => {
         console.log("Hi");
@@ -12,14 +11,15 @@ const uri = 'data:application/typescript,'+encodeURIComponent(
         return true;
     }
     console.log(3);
-    `.split(/\n/g).map(it => it.trim()).join("\n"))
+    `.split(/\n/g).map((it) => it.trim()).join("\n"),
+  );
 
-    console.log(uri)
+  console.log(uri);
 
-return await import(uri);
+  return await import(uri);
 }
 
-const BLAH = await blah()
+const BLAH = await blah();
 
 console.log(BLAH.crud());
 

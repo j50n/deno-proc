@@ -12,3 +12,7 @@ output-to-file = false
 [preprocessor.gitv]
 command = "./gitv.ts"
 output-to-file = false
+
+[preprocessor.type-template]
+command = "deno run ../tools/type-template.ts"
+output-to-file = false

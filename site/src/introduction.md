@@ -22,3 +22,9 @@ for await (const line of proc.run("ls", "-la").lines) {
   console.log(line);
 }
 ```
+
+<script>
+export default async (context) => {
+  return "hello.";
+}
+</script>
