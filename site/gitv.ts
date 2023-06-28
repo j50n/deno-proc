@@ -37,6 +37,8 @@ if (Deno.args[0] === "supports") {
   const gitv = (await run("git", "describe", "--tags").lines.first)
     .split("-")[0];
 
+  // deno eval --quiet 'import { run } from "https://deno.land/x/proc/mod3.ts"; console.log(JSON.stringify({ version: (await run("git", "describe", "--tags").lines.first).split("-")[0] }));'
+
   for (const section of book.sections) {
     if (isSection(section)) {
       section.Chapter.content = section.Chapter.content.replaceAll(

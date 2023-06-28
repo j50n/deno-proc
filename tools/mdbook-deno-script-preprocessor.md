@@ -5,9 +5,20 @@
 ## Installation
 
 You need a recent version of Deno. Refer to the
-[Deno Manual](https://deno.com/manual@v1.34.3/getting_started/installation).
+[Deno Manual](https://deno.com/manual/getting_started/installation).
 
 The preprocessor requires no additional installation. It runs from URL.
+
+## Getting Help
+
+The preprocessor is a command-line application. You can get help in the terminal
+by adding the `--help` flag.
+
+```bash
+deno --unstable run \
+  https://deno.land/x/proc/tools/mdbook-deno-script-preprocessor.ts \
+  --help
+```
 
 ## Configuration
 
@@ -15,23 +26,36 @@ Add the following to `book.toml`:
 
 ```toml
 [preprocessor.type-template]
-command = "deno run --allow-read=. https://deno.land/x/proc@0.20.30/tools/type-template.ts"
+command = "deno --unstable run --allow-read=. https://deno.land/x/proc/tools/mdbook-deno-script-preprocessor.ts process --concurrently --cache-duration=24.0"
 output-to-file = false
 ```
 
+Flags `--allow-read`, `--concurrently` and `--cache-duration` are optional.
+
+## Permissions
+
+Deno is secure by default. This means that if you don't explicitly give
+permission, the scripts won't be able to write to file, delete folders, etc.
+This is a _very good_ thing. The sandbox prevents you from accidentally causing
+havoc as you use scripts in your documents.
+
+I recommend you avoid giving your scripts the ability to write files. Network
+access should be restricted as much as possible. The ability to run processes
+should be minimal. The ability to read certain environment variables could
+expose secrets depending on your environment. This protects you from making
+mistakes that damage your environment. **Limit access as much as you can.** When
+allowing access, do so for specific folders, web addresses, processes, and
+environment variables rather than opening up permissions completely.
+
 If your script requires more permissions, you will need to add those to the
-`deno run` command. Deno is secure by default. Disk access (read or write),
-network access, and ability to see environment variables all require explicit
-permissions.
+`deno run` command.
 
 The preprocessor script is fully sandboxed by default, requiring no defined
-permissions to run - as long as you aren't doing things in your own scripts that
-require those permissions. Even the `--allow-read` is optional, but required if
-you are doing dynamic imports.
+permissions to run.
 
 ## Limitations on `stdout` Usage
 
-USe `console.error()` for logging out information. `stdout` is reserved. Any
+Use `console.error()` for logging out information. `stdout` is reserved. Any
 writes to `stdout` will break the preprocessor.
 
 ## Use
@@ -94,6 +118,13 @@ the markdown is defined.
 
 ## Caching
 
-This needs to implement caching so that active content is not **all** updated on
-every edit, but it is okay update just the page that is being changed. I can
-probably do this with safe data storage.
+By default, the preprocessor caches the results of executing scripts on pages
+where the source isn't changing (being edited) for 24 hours.
+
+To clear the cache from command line:
+
+```bash
+deno --unstable run \
+  https://deno.land/x/proc/tools/mdbook-deno-script-preprocessor.ts \
+  clear-cache
+```
