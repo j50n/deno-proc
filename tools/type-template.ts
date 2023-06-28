@@ -3,7 +3,9 @@
 import { isString, toLines } from "../mod3.ts";
 import { enumerate } from "../src/enumerable.ts";
 import { bestTypeNameOf } from "../src/helpers.ts";
-import { resolve, toFileUrl } from "../src/deps/path.ts";
+import { resolve, toFileUrl } from "./deps/path.ts";
+import { red } from "../legacy/deps-test.ts";
+import { toHashString } from "./deps/crypto.ts";
 
 interface Chapter {
   Chapter: {
@@ -28,8 +30,14 @@ interface Book {
   sections: Section[];
 }
 
-if (Deno.args[0] === "supports") {
-  Deno.exit(0);
+if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
+  const kind = Deno.args[Deno.args.length - 1];
+  if (kind === "html") {
+    Deno.exit(0);
+  } else {
+    console.error(red(`generator type not supported: '${kind}'`));
+    Deno.exit(1);
+  }
 } else {
   const [context, book]: [Context, Book] = JSON.parse(
     (await enumerate(Deno.stdin.readable).transform(toLines).collect())
@@ -53,6 +61,14 @@ async function parseChapter(
   const CLOSE_TAG = "</script>";
 
   const content = chapter.Chapter.content;
+
+  async function digestMessage(message: string) {
+    const data = new TextEncoder().encode(message);
+    const hash = await crypto.subtle.digest("SHA-1", data);
+    return toHashString(hash, "hex");
+  }
+
+  console.error(JSON.stringify(await digestMessage(content)));
 
   const chapterContext = (() => {
     const path = resolve(context.root);

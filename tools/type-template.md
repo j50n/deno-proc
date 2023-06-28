@@ -48,6 +48,10 @@ the default export. Example:
 The text (`string`) data returned from the function will be inserted into the
 markdown.
 
+Modules in the markdown are `JavaScript` - and **not** `Typescript`. The
+intended strategy is to keep the markdown code very light and do the middle and
+heavy-weight stuff in dynamically imported local `Typescript` modules.
+
 ### Chapter Context
 
 A context object is passed in for each chapter. You can modify this object to
@@ -87,3 +91,9 @@ export default (context) => {
 
 Note that the path is relative to the _root_ book folder, not the folder where
 the markdown is defined.
+
+## Caching
+
+This needs to implement caching so that active content is not **all** updated on
+every edit, but it is okay update just the page that is being changed. I can
+probably do this with safe data storage.
