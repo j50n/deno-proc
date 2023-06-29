@@ -179,24 +179,49 @@ async function parseChapter(
     }
 
     const script = content.substring(start + OPEN_TAG.length, end);
+    try {
+      const module = await import(
+        "data:application/javascript," + encodeURIComponent(script)
+      );
 
-    const module = await import(
-      "data:application/javascript," + encodeURIComponent(script)
-    );
+      if ("default" in module && typeof module.default === "function") {
+        const result = await module.default(chapterContext);
 
-    if ("default" in module && typeof module.default === "function") {
-      const result = await module.default(chapterContext);
-
-      if (isString(result)) {
-        chunks.push(result);
-      } else if (result != null) {
-        throw new TypeError(
-          `expected string but got ${bestTypeNameOf(result)} [line: ${line()}]`,
-        );
+        if (isString(result)) {
+          chunks.push(result);
+        } else if (result != null) {
+          throw new TypeError(
+            `expected string but got ${
+              bestTypeNameOf(result)
+            } [line: ${line()}]`,
+          );
+        }
+      } else {
+        console.error(JSON.stringify(module));
+        throw new EvalError(`module requires default export [line: ${line()}]`);
       }
-    } else {
-      console.error(JSON.stringify(module));
-      throw new EvalError(`module requires default export [line: ${line()}]`);
+    } catch (e) {
+      chunks.push(
+        `
+
+---
+⚠️ **Error**
+
+\`\`\`javascript
+${script}
+\`\`\`
+
+<pre><code style="white-space: pre-wrap !important;">
+${
+          e.toString().replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+        }
+</code></pre>
+
+---
+
+`,
+      );
     }
 
     pos = end + CLOSE_TAG.length;

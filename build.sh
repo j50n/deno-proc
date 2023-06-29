@@ -6,7 +6,8 @@ HERE="$(realpath "$(dirname "$0")")"
 
 deno install -rf --allow-read="$HERE/" --allow-write="$HERE/" --allow-net https://deno.land/x/udd/main.ts
 
-echo "{\"version\":\"`git describe --tags`\"}" > "$HERE/version.json"
+#echo "{\"version\":\"`git describe --tags`\"}" > "$HERE/version.json"
+
 cd "$HERE" && (
     udd `find . -type f -name "*.ts"`
 

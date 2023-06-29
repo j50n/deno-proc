@@ -14,5 +14,5 @@ command = "./gitv.ts"
 output-to-file = false
 
 [preprocessor.type-template]
-command = "time -p deno --unstable run ../tools/mdbook-deno-script-preprocessor.ts process --concurrently"
+command = "time -p deno --unstable run ../tools/mdbook-deno-script-preprocessor.ts process --concurrently --cache-duration=0.001"
 output-to-file = false
