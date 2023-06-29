@@ -82,15 +82,11 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
       "Execute chapters concurrently.",
     )
     .option(
-      "--no-cache",
-      "Do not cache. Rerun scripts on any build.",
-    )
-    .option(
-      "--cache-duration <duration:number>",
-      "Cache duration (in hours). May be fractional.",
+      "--cache-timeout <timeout:number>",
+      "Cache timeout (in hours). May be fractional.",
       { default: 24.0 },
     )
-    .action(async ({ concurrently, cache, cacheDuration }) => {
+    .action(async ({ concurrently, cacheTimeout }) => {
       const [context, book]: [Context, Book] = JSON.parse(
         (await enumerate(Deno.stdin.readable).transform(toLines).collect())
           .join("\n"),
@@ -112,8 +108,8 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
                 | null;
 
               if (
-                cache && cachedContent?.hash === hash &&
-                now - cachedContent?.timestamp.getTime() < cacheDuration * hour
+                cachedContent?.hash === hash &&
+                now - cachedContent?.timestamp.getTime() < cacheTimeout * hour
               ) {
                 console.error(
                   blue(
@@ -196,9 +192,6 @@ async function parseChapter(
             } [line: ${line()}]`,
           );
         }
-      } else {
-        console.error(JSON.stringify(module));
-        throw new EvalError(`module requires default export [line: ${line()}]`);
       }
     } catch (e) {
       chunks.push(

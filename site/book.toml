@@ -5,14 +5,22 @@ multilingual = false
 src = "src"
 title = "proc"
 
+
+
+[preprocessor.type-template]
+command = """deno --unstable run \
+  --allow-net=deno.land \
+  --allow-run=git \
+  ../tools/mdbook-deno-script-preprocessor.ts \
+  process \
+  --concurrently \
+  --cache-duration=0.001"""
+output-to-file = false
+
 [preprocessor.graphviz]
 command = "mdbook-graphviz"
 output-to-file = false
 
 [preprocessor.gitv]
 command = "./gitv.ts"
-output-to-file = false
-
-[preprocessor.type-template]
-command = "time -p deno --unstable run ../tools/mdbook-deno-script-preprocessor.ts process --concurrently --cache-duration=0.001"
 output-to-file = false
