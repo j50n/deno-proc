@@ -1,7 +1,3 @@
 # Preprocessor Test
 
-<script>
-export default async (context) => {
-  return "oooooo.";
-}
-</script>
+<script>export default () => "This is a simple test. It just works.";</script>
