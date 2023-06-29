@@ -146,6 +146,99 @@
                     <main>
                         <h1 id="preprocessor-test"><a class="header" href="#preprocessor-test">Preprocessor Test</a></h1>
 <p>This is a simple test. It just works.</p>
+<!-- It isn't JSP, but it will do. -->
+<p>The project version is 0.20.32.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<p>You need a recent version of Deno. Refer to the
+<a href="https://deno.com/manual/getting_started/installation">Deno Manual</a>.</p>
+<p>The preprocessor requires no additional installation. It runs from URL.</p>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<p>The preprocessor is a command-line application. You can get help in the terminal
+by adding the <code>--help</code> flag.</p>
+<pre><code class="language-bash">deno --unstable run \
+  https://deno.land/x/proc@0.20.32/tools/mdbook-deno-script-preprocessor.ts \
+  --help
+</code></pre>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>Add the following to <code>book.toml</code>:</p>
+<pre><code class="language-toml">[preprocessor.type-template]
+command = &quot;&quot;&quot;deno --unstable run \
+  --allow-net=deno.land \
+  --allow-run=git \
+  --allow-read=. https://deno.land/x/proc@0.20.32/tools/mdbook-deno-script-preprocessor.ts \
+  process \
+  --concurrently \
+  --cache-duration=24.0&quot;&quot;&quot;
+output-to-file = false
+</code></pre>
+<p>Flags <code>--allow-read</code>, <code>--concurrently</code> and <code>--cache-duration</code> are optional.</p>
+<h2 id="permissions"><a class="header" href="#permissions">Permissions</a></h2>
+<p>Deno is secure by default. This means that if you don't explicitly give
+permission, the scripts won't be able to write to file, delete folders, etc.
+This is a <em>very good</em> thing. The sandbox prevents you from accidentally causing
+havoc as you use scripts in your documents.</p>
+<details>
+<summary>🔐 Limit access as much as possible.</summary>
+<blockquote>
+<p>I recommend you avoid giving your scripts the ability to write files. Network
+access should be restricted as much as possible. The ability to run processes
+should be minimal. The ability to read certain environment variables could
+expose secrets depending on your environment. This protects you from making
+mistakes that damage your environment. When allowing access, do so for
+specific folders, web addresses, processes, and environment variables rather
+than opening up permissions completely.</p>
+</blockquote>
+</details>
+<p>If your script requires more permissions, you will need to add those to the
+<code>deno run</code> command.</p>
+<p>The preprocessor script is fully sandboxed by default, requiring no defined
+permissions to run.</p>
+<h2 id="limitations-on-stdout-usage"><a class="header" href="#limitations-on-stdout-usage">Limitations on <code>stdout</code> Usage</a></h2>
+<p>Use <code>console.error()</code> for logging out information. <code>stdout</code> is reserved. Any
+writes to <code>stdout</code> will break the preprocessor.</p>
+<h2 id="use"><a class="header" href="#use">Use</a></h2>
+<p>This will import undecorated script tags in your markdown as modules and execute
+the default export. Example:</p>
+<pre><code class="language-javascript">This text is included in the document.;
+</code></pre>
+<p>The text (<code>string</code>) data returned from the function will be inserted into the
+markdown.</p>
+<p>Modules in the markdown are <code>JavaScript</code> - and <strong>not</strong> <code>Typescript</code>. The
+intended strategy is to keep the markdown code very light and do the middle and
+heavy-weight stuff in dynamically imported local <code>Typescript</code> modules.</p>
+<h3 id="chapter-context"><a class="header" href="#chapter-context">Chapter Context</a></h3>
+<p>A context object is passed in for each chapter. You can modify this object to
+pass data from one module to the next. In this example, the value <code>count</code> is
+being defined as <code>1</code> on the context object.</p>
+<pre><code class="language-javascript">This text is included in the document.
+</code></pre>
+<p>Chapter context comes pre-loaded with the following:</p>
+<div class="table-wrapper"><table><thead><tr><th>name</th><th>type</th><th>description</th></tr></thead><tbody>
+<tr><td>path</td><td>(string) =&gt; string</td><td>Converts a relative path based at the book root into absolute file URL path.</td></tr>
+</tbody></table>
+</div>
+<p>To set globals, use the standard <code>window</code> global object.</p>
+<h3 id="local-imports"><a class="header" href="#local-imports">Local Imports</a></h3>
+<p>Standard imports don't work with relative paths. Instead, use a dynamic import
+with the passed-in context:</p>
+<!-- A trick so I can include a script tag in my code. -->
+<pre><code class="language-javascript">&lt;script&gt;
+export default (context) =&gt; {
+    const util = await import(context.path(&quot;./lib/util.ts&quot;));
+    return util.someUtilityThing(&quot;something&quot;);
+}
+&lt;/script&gt;
+</code></pre>
+<p>Note that the path is relative to the <em>root</em> book folder, not the folder where
+the markdown is defined.</p>
+<h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
+<p>By default, the preprocessor caches the results of executing scripts on pages
+where the source isn't changing (being edited) for 24 hours.</p>
+<p>To clear the cache from command line:</p>
+<pre><code class="language-bash">deno --unstable run \
+  https://deno.land/x/proc@0.20.32/tools/mdbook-deno-script-preprocessor.ts \
+  clear-cache
+</code></pre>
 
                     </main>
 

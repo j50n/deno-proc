@@ -14,7 +14,7 @@ command = """deno --unstable run \
   ../tools/mdbook-deno-script-preprocessor.ts \
   process \
   --concurrently \
-  --cache-duration=0.001"""
+  --cache-timeout=0.01"""
 output-to-file = false
 
 [preprocessor.graphviz]
