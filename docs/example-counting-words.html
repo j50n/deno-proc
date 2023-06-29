@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html" class="active"><strong aria-hidden="true">3.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">4.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">5.</strong> Input and Output</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Run and the Spread Operator</a></li></ol>
+                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html" class="active"><strong aria-hidden="true">3.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">4.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">5.</strong> Input and Output</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Run and the Spread Operator</a></li><li class="spacer"></li><li class="chapter-item expanded affix "><a href="preprocessor-test.html">Preprocessor Test</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -294,7 +294,7 @@ not exactly the same, so we know something is a little bit off with <code>tr</co
 </code></pre>
 <h3 id="putting-it-all-together"><a class="header" href="#putting-it-all-together">Putting It All Together</a></h3>
 <p>Read the file. Uncompress it and convert to lines (<code>string</code>). Use the
-transformer function, <code>split</code>, to split into words.</p>
+transformer function we created earlier, <code>split</code>, to split into words.</p>
 <pre><code class="language-typescript">const words = read(
   fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
 )
@@ -325,7 +325,8 @@ Unique word count: 18,609
 </code></pre>
 <p>Clean, readable code. Understandable error handling. Fast. The only downside is
 that the processing is done in-process (we only have one thread to work with in
-JavaScript), so if you are doing other things this could slow them down.</p>
+JavaScript). If you are doing other things at the same time, this will slow them
+down.</p>
 
                     </main>
 

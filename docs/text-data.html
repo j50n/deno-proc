@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html" class="active"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">3.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">4.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">5.</strong> Input and Output</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Run and the Spread Operator</a></li></ol>
+                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html" class="active"><strong aria-hidden="true">1.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">2.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">3.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">4.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">5.</strong> Input and Output</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">6.</strong> Run and the Spread Operator</a></li><li class="spacer"></li><li class="chapter-item expanded affix "><a href="preprocessor-test.html">Preprocessor Test</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -159,22 +159,22 @@ characters</li>
 <p>This is the &quot;normal&quot; way to work with line-delimited text. It should be a good
 solution most of the time.</p>
 <p>The
-<a href="https://deno.land/x/proc@0.20.29/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
+<a href="https://deno.land/x/proc@0.20.31/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
 method converts a line at a time.</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
   .lines
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>Alternately you can use
-<a href="https://deno.land/x/proc@0.20.29/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-with the <a href="https://deno.land/x/proc@0.20.29/mod3.ts?s=toLines">toLines</a>
+<a href="https://deno.land/x/proc@0.20.31/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+with the <a href="https://deno.land/x/proc@0.20.31/mod3.ts?s=toLines">toLines</a>
 transformer function.</p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
   .transform(toLines)
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>The
-<a href="https://deno.land/x/proc@0.20.29/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
+<a href="https://deno.land/x/proc@0.20.31/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
 method will automatically treat <code>string</code> values as lines, adding <code>\n</code> to them
 and converting back into <code>utf-8</code> encoded bytes.</p>
 <p>Note that this <em>always</em> assumes string data passed to it is line-delimited. If
