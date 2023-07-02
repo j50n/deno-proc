@@ -22,12 +22,18 @@ window.projectVersion = (await run("git", "describe", "--tags").lines.first).spl
 You need a recent version of Deno. Refer to the
 [Deno Manual](https://deno.com/manual/getting_started/installation).
 
+The easiest way (not the fastest) to install if you use `cargo` is:
+
+```bash
+cargo install deno
+```
+
 The preprocessor requires no additional installation. It runs from URL.
 
 ## Getting Help
 
 The preprocessor is a command-line application. You can get help in the terminal
-by adding the `--help` flag.
+with the `--help` flag.
 
 ```bash
 deno --unstable run \
@@ -37,7 +43,8 @@ deno --unstable run \
 
 ## Configuration
 
-Add the following to `book.toml`:
+Add the following to `book.toml`. `--allow-*` are for demonstration purposes;
+customize for your needs:
 
 ```toml
 [preprocessor.type-template]
@@ -61,15 +68,13 @@ This is a _very good_ thing. The sandbox prevents you from accidentally causing
 havoc as you use scripts in your documents.
 
 <details>
-<summary>🔐 Limit access as much as possible.</summary>
+<summary>🔐 Default security (the sandbox) protects you from making costly mistakes.</summary>
 
 > I recommend you avoid giving your scripts the ability to write files. Network
 > access should be restricted as much as possible. The ability to run processes
 > should be minimal. The ability to read certain environment variables could
-> expose secrets depending on your environment. This protects you from making
-> mistakes that damage your environment. When allowing access, do so for
-> specific folders, web addresses, processes, and environment variables rather
-> than opening up permissions completely.
+> expose secrets. When allowing access, do so for specific folders, web
+> addresses, processes, and environment variables.
 
 </details>
 
@@ -90,9 +95,9 @@ This will import undecorated script tags in your markdown as modules and execute
 the default export. Example:
 
 ```javascript
-<script>
+<script>export default ()=> "<" + "script>";</script>
   export default () => "This text is included in the document.";
-</script>;
+</script>
 ```
 
 The text (`string`) data returned from the function will be inserted into the
@@ -109,7 +114,7 @@ pass data from one module to the next. In this example, the value `count` is
 being defined as `1` on the context object.
 
 ```javascript
-<script>
+<script>export default ()=> "<" + "script>";</script>
 export default (context) => {
     context.count = 1;
     return "This text is included in the document.";

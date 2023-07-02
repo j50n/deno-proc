@@ -87,12 +87,33 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
       { default: 24.0 },
     )
     .action(async ({ concurrently, cacheTimeout }) => {
+      const SECOND = 1000;
+      const HOUR = 60 * 60 * SECOND;
+
       const [context, book]: [Context, Book] = JSON.parse(
         (await enumerate(Deno.stdin.readable).transform(toLines).collect())
           .join("\n"),
       );
 
-      await enumerate(book.sections.filter((it) => isChapter(it)) as Chapter[])
+      /*
+       * Used to allow forcing regeneration of the newest chapter. Sometimes we
+       * can't tell where the file change came from, so it is a good bet that the
+       * last active chapter worked on would be the target of the change. Not
+       * perfect, but better than nothing.
+       */
+      let maxTimestamp = Number.MIN_SAFE_INTEGER;
+      const start = new Date().getTime();
+
+      type ChapterCalc = {
+        chapter: Chapter;
+        key: string[];
+        hash: string;
+        cachedContent: CacheEntry | null;
+      };
+
+      const chapters = await enumerate(
+        book.sections.filter((it) => isChapter(it)) as Chapter[],
+      )
         .concurrentUnorderedMap(async (chapter) => {
           if (chapter.Chapter.content.indexOf("<script>") >= 0) {
             const hash = await digestMessage(chapter.Chapter.content);
@@ -100,27 +121,59 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
 
             const kv = await Deno.openKv();
             try {
-              const now = new Date().getTime();
-              const hour = 60 * 60 * 1000;
-
               const cachedContent = (await kv.get(key)).value as
                 | CacheEntry
                 | null;
 
               if (
-                cachedContent?.hash === hash &&
-                now - cachedContent?.timestamp.getTime() < cacheTimeout * hour
+                cachedContent != null &&
+                cachedContent.timestamp.getTime() > maxTimestamp
               ) {
+                maxTimestamp = cachedContent.timestamp.getTime();
+              }
+
+              const now = new Date().getTime();
+
+              const useCache = cachedContent?.hash === hash &&
+                now - cachedContent?.timestamp.getTime() < cacheTimeout * HOUR;
+
+              return {
+                chapter,
+                key,
+                hash,
+                cachedContent: useCache ? cachedContent : null,
+              };
+            } finally {
+              kv.close();
+            }
+          }
+        }).filterNot((it) => it == null).collect() as ChapterCalc[];
+
+      await enumerate(chapters)
+        .concurrentUnorderedMap(
+          async ({ chapter, key, hash, cachedContent }) => {
+            const timestamp = cachedContent == null
+              ? 0
+              : cachedContent.timestamp.getTime();
+
+            /*
+             * Force the update on the newest timestamp if more than a few seconds old.
+             * Pretty good bet that is the one that is being edited, and it doesn't cost
+             * much to regenerate one chapter.
+             */
+            const forceUpdate = cachedContent != null &&
+              maxTimestamp === timestamp &&
+              start - timestamp > 10 * SECOND;
+
+            if (forceUpdate || cachedContent == null) {
+              const kv = await Deno.openKv();
+              try {
                 console.error(
-                  blue(
-                    `cached [from ${cachedContent.timestamp.toISOString()}]: ${
-                      JSON.stringify(key)
-                    }`,
-                  ),
+                  `${cyan(`generated: ${JSON.stringify(key)}`)} ${
+                    forceUpdate ? blue("[FORCE]") : ""
+                  }`,
                 );
-                chapter.Chapter.content = cachedContent.content;
-              } else {
-                console.error(cyan(`generated: ${JSON.stringify(key)}`));
+
                 const postContent = await parseChapter(context, chapter);
                 kv.set(key, {
                   timestamp: new Date(),
@@ -128,12 +181,23 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
                   content: postContent,
                 });
                 chapter.Chapter.content = postContent;
+              } finally {
+                kv.close();
               }
-            } finally {
-              kv.close();
+            } else {
+              console.error(
+                blue(
+                  `cached [from ${cachedContent.timestamp.toISOString()}]: ${
+                    JSON.stringify(key)
+                  }`,
+                ),
+              );
+
+              chapter.Chapter.content = cachedContent.content;
             }
-          }
-        }, { concurrency: concurrently ? undefined : 1 }).forEach((_) => {});
+          },
+          { concurrency: concurrently ? undefined : 1 },
+        ).forEach((_) => {});
 
       console.log(JSON.stringify(book));
     }).parse();

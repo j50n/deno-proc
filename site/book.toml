@@ -5,16 +5,17 @@ multilingual = false
 src = "src"
 title = "proc"
 
+[build]
+create-missing = false
 
-
-[preprocessor.type-template]
+[preprocessor.mdbook-deno-script-preprocessor]
 command = """deno --unstable run \
   --allow-net=deno.land \
   --allow-run=git \
   ../tools/mdbook-deno-script-preprocessor.ts \
   process \
   --concurrently \
-  --cache-timeout=0.01"""
+  --cache-timeout=1.0"""
 output-to-file = false
 
 [preprocessor.graphviz]
