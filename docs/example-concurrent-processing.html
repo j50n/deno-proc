@@ -88,11 +88,33 @@
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
                                 <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky bordered">
+                <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
                             <i class="fa fa-bars"></i>
@@ -152,9 +174,9 @@ how much storage space you are using/paying for, and where you are using the
 most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
 matching the number of CPU cores available (or whatever concurrency you
 specify). The specific methods that support concurrent operations are
-<a href="https://deno.land/x/proc@0.20.32/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+<a href="https://deno.land/x/proc@0.20.33/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
 and
-<a href="https://deno.land/x/proc@0.20.32/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<a href="https://deno.land/x/proc@0.20.33/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
 <p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
 <pre><code class="language-sh">aws s3 ls
 </code></pre>
@@ -194,7 +216,7 @@ report the results as soon as they are available.</p>
 )
 </code></pre>
 <p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
-<a href="https://deno.land/x/proc@0.20.32/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+<a href="https://deno.land/x/proc@0.20.33/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
 will, by default, run one process for each CPU available concurrently until all
 work is done.</p>
 <p>The result will look something like this:</p>
