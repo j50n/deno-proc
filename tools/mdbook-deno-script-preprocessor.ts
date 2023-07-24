@@ -13,6 +13,8 @@ interface Chapter {
     name: string;
     content: string;
     path: string;
+    number: number[];
+    sub_items?: unknown[];
   };
 }
 
@@ -83,12 +85,11 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
     )
     .option(
       "--cache-timeout <timeout:number>",
-      "Cache timeout (in hours). May be fractional.",
-      { default: 24.0 },
+      "Cache timeout (in seconds). May be fractional.",
+      { default: 10 },
     )
     .action(async ({ concurrently, cacheTimeout }) => {
       const SECOND = 1000;
-      const HOUR = 60 * 60 * SECOND;
 
       const [context, book]: [Context, Book] = JSON.parse(
         (await enumerate(Deno.stdin.readable).transform(toLines).collect())
@@ -102,7 +103,6 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
        * perfect, but better than nothing.
        */
       let maxTimestamp = Number.MIN_SAFE_INTEGER;
-      const start = new Date().getTime();
 
       type ChapterCalc = {
         chapter: Chapter;
@@ -111,12 +111,24 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
         cachedContent: CacheEntry | null;
       };
 
-      const chapters = await enumerate(
-        book.sections.filter((it) => isChapter(it)) as Chapter[],
-      )
+      function extractChapters(items: unknown[] | undefined): Chapter[] {
+        return (items ?? [])
+          .filter(isChapter)
+          .flatMap(
+            (item) => [item, ...extractChapters(item.Chapter.sub_items)],
+          );
+      }
+
+      const chapters = await enumerate(extractChapters(book.sections))
         .concurrentUnorderedMap(async (chapter) => {
           if (chapter.Chapter.content.indexOf("<script>") >= 0) {
-            const hash = await digestMessage(chapter.Chapter.content);
+            const hash = await digestMessage(
+              JSON.stringify({
+                content: chapter.Chapter.content,
+                name: chapter.Chapter.name,
+                number: chapter.Chapter.number,
+              }),
+            );
             const key = [context.root, chapter.Chapter.path];
 
             const kv = await Deno.openKv();
@@ -135,7 +147,7 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
               const now = new Date().getTime();
 
               const useCache = cachedContent?.hash === hash &&
-                now - cachedContent?.timestamp.getTime() < cacheTimeout * HOUR;
+                now - cachedContent?.timestamp.getTime() < cacheTimeout * SECOND;
 
               return {
                 chapter,
@@ -152,26 +164,11 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
       await enumerate(chapters)
         .concurrentUnorderedMap(
           async ({ chapter, key, hash, cachedContent }) => {
-            const timestamp = cachedContent == null
-              ? 0
-              : cachedContent.timestamp.getTime();
-
-            /*
-             * Force the update on the newest timestamp if more than a few seconds old.
-             * Pretty good bet that is the one that is being edited, and it doesn't cost
-             * much to regenerate one chapter.
-             */
-            const forceUpdate = cachedContent != null &&
-              maxTimestamp === timestamp &&
-              start - timestamp > 10 * SECOND;
-
-            if (forceUpdate || cachedContent == null) {
+            if (/*forceUpdate ||*/ cachedContent == null) {
               const kv = await Deno.openKv();
               try {
                 console.error(
-                  `${cyan(`generated: ${JSON.stringify(key)}`)} ${
-                    forceUpdate ? blue("[FORCE]") : ""
-                  }`,
+                  `${cyan(`generated: ${JSON.stringify(key)}`)}`,
                 );
 
                 const postContent = await parseChapter(context, chapter);
