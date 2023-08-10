@@ -1,1 +1,1 @@
-export * from "https://deno.land/std@0.195.0/crypto/mod.ts";
+export * from "https://deno.land/std@0.198.0/crypto/mod.ts";

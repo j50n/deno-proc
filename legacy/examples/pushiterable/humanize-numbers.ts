@@ -16,8 +16,8 @@ for await (
   console.error(`humanize errors process question: ${n}`);
   const answer: Answer = {
     n: question.n,
-    roman: (n).toRoman(),
-    words: (n).toWords(),
+    roman: n.toRoman(),
+    words: n.toWords(),
   };
   console.log(JSON.stringify(answer));
 }

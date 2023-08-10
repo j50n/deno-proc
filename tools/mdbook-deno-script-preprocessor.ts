@@ -6,6 +6,7 @@ import { resolve, toFileUrl } from "./deps/path.ts";
 import { toHashString } from "./deps/crypto.ts";
 import { blue, cyan, red } from "./deps/colors.ts";
 import { Command } from "./deps/cliffy.ts";
+import { retry } from "./deps/retry.ts";
 import config from "../version.json" assert { type: "json" };
 
 interface Chapter {
@@ -61,7 +62,7 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
     .command("clear-cache")
     .description("Clear cached chapters/data.")
     .action(async () => {
-      const kv = await Deno.openKv();
+      const kv = await retry(async () => await Deno.openKv());
 
       try {
         for await (const { key } of kv.list({ prefix: [] })) {
@@ -131,7 +132,7 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
             );
             const key = [context.root, chapter.Chapter.path];
 
-            const kv = await Deno.openKv();
+            const kv = await retry(async () => await Deno.openKv());
             try {
               const cachedContent = (await kv.get(key)).value as
                 | CacheEntry
@@ -147,7 +148,8 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
               const now = new Date().getTime();
 
               const useCache = cachedContent?.hash === hash &&
-                now - cachedContent?.timestamp.getTime() < cacheTimeout * SECOND;
+                now - cachedContent?.timestamp.getTime() <
+                  cacheTimeout * SECOND;
 
               return {
                 chapter,
@@ -165,7 +167,7 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
         .concurrentUnorderedMap(
           async ({ chapter, key, hash, cachedContent }) => {
             if (/*forceUpdate ||*/ cachedContent == null) {
-              const kv = await Deno.openKv();
+              const kv = await retry(async () => await Deno.openKv());
               try {
                 console.error(
                   `${cyan(`generated: ${JSON.stringify(key)}`)}`,

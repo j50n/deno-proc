@@ -612,4 +612,13 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
   get status() {
     return this.process.status;
   }
+
+  /**
+   * Dump output to `stdout`. Shorthand for `p.writeTo(Deon.stdout.writable, {noclose: true});`.
+   */
+  async toStdout() {
+    await this.writeTo(Deno.stdout.writable, {
+      noclose: true,
+    });
+  }
 }
