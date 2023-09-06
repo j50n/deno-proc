@@ -484,9 +484,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Drop the first `n` items, return the rest.
-   * @param n The number of items to drop.
-   * @returns The items that were not dropped.
+   * Concatenate the iterables together.
+   * @param other The other iterable.
+   * @returns The iterables concatenated.
    */
   concat(other: AsyncIterable<T>): Enumerable<T> {
     const iter = this.iter;
