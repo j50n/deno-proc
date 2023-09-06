@@ -64,14 +64,14 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
     .action(async () => {
       const kv = await retry(async () => await Deno.openKv());
 
-      try {
+      //try {
         for await (const { key } of kv.list({ prefix: [] })) {
           console.error(cyan(`removing cache entry: ${key}`));
           kv.delete(key);
         }
-      } finally {
-        kv.close();
-      }
+      //} finally {
+      //  kv.close();
+      //}
     })
     .command("process")
     .description(
@@ -133,7 +133,7 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
             const key = [context.root, chapter.Chapter.path];
 
             const kv = await retry(async () => await Deno.openKv());
-            try {
+           // try {
               const cachedContent = (await kv.get(key)).value as
                 | CacheEntry
                 | null;
@@ -157,9 +157,9 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
                 hash,
                 cachedContent: useCache ? cachedContent : null,
               };
-            } finally {
-              kv.close();
-            }
+           // } finally {
+           //   kv.close();
+           // }
           }
         }).filterNot((it) => it == null).collect() as ChapterCalc[];
 
@@ -168,7 +168,7 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
           async ({ chapter, key, hash, cachedContent }) => {
             if (/*forceUpdate ||*/ cachedContent == null) {
               const kv = await retry(async () => await Deno.openKv());
-              try {
+             // try {
                 console.error(
                   `${cyan(`generated: ${JSON.stringify(key)}`)}`,
                 );
@@ -180,9 +180,9 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
                   content: postContent,
                 });
                 chapter.Chapter.content = postContent;
-              } finally {
-                kv.close();
-              }
+              //} finally {
+              //  kv.close();
+              //}
             } else {
               console.error(
                 blue(
