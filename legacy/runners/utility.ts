@@ -1,5 +1,5 @@
 import { BufReader, BufWriter } from "../deps.ts";
-import * as path from "https://deno.land/std@0.198.0/path/mod.ts";
+import * as path from "https://deno.land/std@0.201.0/path/mod.ts";
 
 export const DEFAULT_BUFFER_SIZE = 4096;
 

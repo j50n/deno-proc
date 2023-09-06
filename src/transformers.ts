@@ -1,5 +1,4 @@
 import { blue } from "./deps/colors.ts";
-import { readableStreamFromIterable } from "./deps/streams.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat, isString } from "./utility.ts";
 
@@ -298,7 +297,7 @@ export function transformerFromTransformStream<R, T>(
   ): AsyncIterable<T> {
     try {
       for await (
-        const item of readableStreamFromIterable(errorTrap(items))
+        const item of ReadableStream.from(errorTrap(items))
           .pipeThrough(transform)
       ) {
         yield item;
