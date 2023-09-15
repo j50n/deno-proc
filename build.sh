@@ -11,17 +11,17 @@ deno install -rf --allow-read="$HERE/" --allow-write="$HERE/" --allow-net https:
 cd "$HERE" && (
     udd `find . -type f -name "*.ts"`
 
-    deno fmt `find . -type f -name "*.md"`
-    deno fmt `find . -type f -name "*.ts"`
+    deno --unstable fmt `find . -type f -name "*.md"`
+    deno --unstable fmt `find . -type f -name "*.ts"`
 
     # This detects the hack pattern, only on the second line of the file
     # and removes the added semicolon if present. `deno fmt` breaks the
     # hack shebang pattern, so we have to fix it up.
     sed -i '2s|^":";\s[/][/]#;|":" //#;|' `find . -type f -name "*.ts"`
 
-    deno lint `find . -type f -name "*.ts"`
+    deno --unstable lint `find . -type f -name "*.ts"`
     deno --unstable check `find . -type f -name "*.ts"`
 
-    deno test --trace-ops --reload --allow-read --allow-run=grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head ./tests
+    deno --unstable test --trace-ops --reload --allow-read --allow-run=grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head ./tests
 )
 
