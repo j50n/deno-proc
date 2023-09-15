@@ -4,3 +4,4 @@ export * from "./src/run.ts";
 export * from "./src/enumerable.ts";
 export * from "./src/transformers.ts";
 export * from "./src/writable-iterable.ts";
+export * from "./src/cache.ts";

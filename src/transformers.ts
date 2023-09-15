@@ -50,7 +50,9 @@ export async function* toChunkedLines(
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
  * (an array of lines chunked together based on buffer size)
  * split on `lf` and also suppressing trailing `cr`. `lf` and trailing `cr`
- * is removed from the returned lines.
+ * is removed from the returned lines. As this is line-oriented data, if the
+ * last line is empty (the last byte was a line feed, splitting into one extra line),
+ * it is suppressed.
  *
  * @param buffs The iterable bytes.
  */

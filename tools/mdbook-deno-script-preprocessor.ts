@@ -65,10 +65,10 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
       const kv = await retry(async () => await Deno.openKv());
 
       //try {
-        for await (const { key } of kv.list({ prefix: [] })) {
-          console.error(cyan(`removing cache entry: ${key}`));
-          kv.delete(key);
-        }
+      for await (const { key } of kv.list({ prefix: [] })) {
+        console.error(cyan(`removing cache entry: ${key}`));
+        kv.delete(key);
+      }
       //} finally {
       //  kv.close();
       //}
@@ -133,33 +133,33 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
             const key = [context.root, chapter.Chapter.path];
 
             const kv = await retry(async () => await Deno.openKv());
-           // try {
-              const cachedContent = (await kv.get(key)).value as
-                | CacheEntry
-                | null;
+            // try {
+            const cachedContent = (await kv.get(key)).value as
+              | CacheEntry
+              | null;
 
-              if (
-                cachedContent != null &&
-                cachedContent.timestamp.getTime() > maxTimestamp
-              ) {
-                maxTimestamp = cachedContent.timestamp.getTime();
-              }
+            if (
+              cachedContent != null &&
+              cachedContent.timestamp.getTime() > maxTimestamp
+            ) {
+              maxTimestamp = cachedContent.timestamp.getTime();
+            }
 
-              const now = new Date().getTime();
+            const now = new Date().getTime();
 
-              const useCache = cachedContent?.hash === hash &&
-                now - cachedContent?.timestamp.getTime() <
-                  cacheTimeout * SECOND;
+            const useCache = cachedContent?.hash === hash &&
+              now - cachedContent?.timestamp.getTime() <
+                cacheTimeout * SECOND;
 
-              return {
-                chapter,
-                key,
-                hash,
-                cachedContent: useCache ? cachedContent : null,
-              };
-           // } finally {
-           //   kv.close();
-           // }
+            return {
+              chapter,
+              key,
+              hash,
+              cachedContent: useCache ? cachedContent : null,
+            };
+            // } finally {
+            //   kv.close();
+            // }
           }
         }).filterNot((it) => it == null).collect() as ChapterCalc[];
 
@@ -168,18 +168,18 @@ if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
           async ({ chapter, key, hash, cachedContent }) => {
             if (/*forceUpdate ||*/ cachedContent == null) {
               const kv = await retry(async () => await Deno.openKv());
-             // try {
-                console.error(
-                  `${cyan(`generated: ${JSON.stringify(key)}`)}`,
-                );
+              // try {
+              console.error(
+                `${cyan(`generated: ${JSON.stringify(key)}`)}`,
+              );
 
-                const postContent = await parseChapter(context, chapter);
-                kv.set(key, {
-                  timestamp: new Date(),
-                  hash,
-                  content: postContent,
-                });
-                chapter.Chapter.content = postContent;
+              const postContent = await parseChapter(context, chapter);
+              kv.set(key, {
+                timestamp: new Date(),
+                hash,
+                content: postContent,
+              });
+              chapter.Chapter.content = postContent;
               //} finally {
               //  kv.close();
               //}
