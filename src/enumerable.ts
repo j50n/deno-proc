@@ -317,14 +317,30 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns The first item that satisfies the testing function, or `undefined`.
    */
   async find(
-    findFn: (item: T) => boolean | Promise<boolean>,
+    findFn: (element: T) => boolean | Promise<boolean>,
   ): Promise<T | undefined> {
-    for await (const item of this.iter) {
-      if (findFn(item)) {
-        return item;
+    for await (const element of this.iter) {
+      if (findFn(element)) {
+        return element;
       }
     }
     return undefined;
+  }
+
+  /**
+   * Return `true` if every element satisfies the provided testing function.
+   * @param allFn The testing function.
+   * @returns `true` if every element satisfies the provided testing function.
+   */
+  async all(
+    allFn: (element: T) => boolean | Promise<boolean>,
+  ): Promise<boolean> {
+    for await (const element of this.iter) {
+      if (!allFn(element)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
