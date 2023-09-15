@@ -137,6 +137,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Adds a counter from 0 to `n`-1 of the items being enumerated.
+   */
+  enum(): Enumerable<[T, number]> {
+    let count = 0;
+    return this.map((item) => [item, count++]);
+  }
+
+  /**
    * Write all data to the writer.
    *
    * **Example**
