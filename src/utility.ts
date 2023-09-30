@@ -33,7 +33,11 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
     return arrays[0];
   }
 
-  const totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
+  let totalLength = 0;
+  for (const array of arrays) {
+    totalLength += array.length;
+  }
+
   const result = new Uint8Array(totalLength);
 
   let pos = 0;
