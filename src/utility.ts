@@ -161,3 +161,15 @@ export async function sleep(delayms: number): Promise<void> {
 export function isString(s: unknown): s is string {
   return Object.prototype.toString.call(s) === "[object String]";
 }
+
+/**
+ * Perfect in-place array shuffle in linear time.
+ */
+export function shuffle<T>(items: T[]) {
+  for (let i = 0; i < items.length; i++) {
+    const j = Math.floor(Math.random() * items.length);
+    const tmp = items[i];
+    items[i] = items[j];
+    items[j] = tmp;
+  }
+}
