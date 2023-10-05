@@ -317,10 +317,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns The first item that satisfies the testing function, or `undefined`.
    */
   async find(
-    findFn: (element: T) => boolean | Promise<boolean>,
+    findFn: (element: T) => unknown | Promise<unknown>,
   ): Promise<T | undefined> {
     for await (const element of this.iter) {
-      if (findFn(element)) {
+      if (await findFn(element)) {
         return element;
       }
     }
