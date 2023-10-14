@@ -173,3 +173,18 @@ export function shuffle<T>(items: T[]) {
     items[j] = tmp;
   }
 }
+
+/**
+ * Low level write without locking, writing in multiple chunks if needed.
+ *
+ * Data is written completely. Does not attempt to close the writer.
+ *
+ * @param data The data to write.
+ * @param writer The writer.
+ */
+export async function writeAll(data: Uint8Array, writer: Deno.Writer) {
+  let nwritten = 0;
+  while (nwritten < data.length) {
+    nwritten += await writer.write(data.subarray(nwritten));
+  }
+}

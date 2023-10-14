@@ -18,6 +18,7 @@ import {
   transformerFromTransformStream,
   TransformerFunction,
 } from "./transformers.ts";
+import { writeAll } from "./utility.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -454,7 +455,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns 2 or more identical clones.
    */
   tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
-    return tee(this.iter, n).map((it) => enumerate(it)) as Tuple<
+    return tee(this.iter, n).map((it: AsyncIterable<T>) =>
+      enumerate(it)
+    ) as Tuple<
       Enumerable<T>,
       N
     >;
@@ -655,11 +658,19 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
   }
 
   /**
-   * Dump output to `stdout`. Shorthand for `p.writeTo(Deon.stdout.writable, {noclose: true});`.
+   * Dump output to `stdout`. Non-locking.
    */
   async toStdout() {
-    await this.writeTo(Deno.stdout.writable, {
-      noclose: true,
-    });
+    /* Allow concurrent read and write by changing await order. */
+    let p: undefined | Promise<void>;
+
+    for await (const buff of this.iter) {
+      if (p != null) {
+        await p;
+      }
+
+      p = writeAll(buff, Deno.stdout);
+    }
+    await p;
   }
 }
