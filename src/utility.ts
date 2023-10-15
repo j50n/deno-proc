@@ -183,8 +183,11 @@ export function shuffle<T>(items: T[]) {
  * @param writer The writer.
  */
 export async function writeAll(data: Uint8Array, writer: Deno.Writer) {
-  let nwritten = 0;
-  while (nwritten < data.length) {
-    nwritten += await writer.write(data.subarray(nwritten));
+  const len = data.length;
+
+  let n = await writer.write(data);
+
+  while (n < len) {
+    n += await writer.write(data.subarray(n));
   }
 }

@@ -1,14 +1,4 @@
 import { Process, ProcessOptions } from "./process.ts";
-import {
-  collect,
-  concurrentMap,
-  concurrentUnorderedMap,
-  filter,
-  flatten,
-  forEach,
-  map,
-  reduce,
-} from "./deps/asynciter.ts";
 import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
@@ -19,6 +9,7 @@ import {
   TransformerFunction,
 } from "./transformers.ts";
 import { writeAll } from "./utility.ts";
+import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -229,7 +220,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
     const iter = this.iter;
     return new Enumerable({
       async *[Symbol.asyncIterator]() {
-        yield* map(iter, mapFn);
+        let p: undefined | Promise<U> | U;
+        let first = true;
+
+        for await (const it of iter) {
+          if (first) {
+            first = false;
+          } else {
+            yield await p;
+          }
+          p = mapFn(it);
+        }
+        if (p !== undefined) {
+          yield p;
+        }
       },
     }) as Enumerable<U>;
   }
@@ -239,14 +243,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns An iterator where a level of indirection has been "flattened" out.
    */
   flatten(): Enumerable<ElementType<T>> {
-    const iter = this.iter;
-    return new Enumerable(
-      flatten(
-        iter as AsyncIterable<
-          AsyncIterable<ElementType<T>> | Iterable<ElementType<T>>
-        >,
-      ),
-    );
+    const iter = this.iter as AsyncIterable<
+      AsyncIterable<ElementType<T>> | Iterable<ElementType<T>>
+    >;
+    return new Enumerable({
+      async *[Symbol.asyncIterator]() {
+        for await (const it of iter) {
+          yield* it;
+        }
+      },
+    });
   }
 
   /**
@@ -308,7 +314,15 @@ export class Enumerable<T> implements AsyncIterable<T> {
     filterFn: (item: T) => boolean | Promise<boolean>,
   ): Enumerable<T> {
     const iterable = this.iter;
-    return new Enumerable(filter(iterable, filterFn)) as Enumerable<T>;
+    return new Enumerable({
+      async *[Symbol.asyncIterator]() {
+        for await (const item of iterable) {
+          if (await filterFn(item)) {
+            yield item;
+          }
+        }
+      },
+    }) as Enumerable<T>;
   }
 
   /**
@@ -373,7 +387,15 @@ export class Enumerable<T> implements AsyncIterable<T> {
   ): Enumerable<T> {
     const iterable = this.iter;
     return new Enumerable(
-      filter(iterable, async (item: T) => !(await filterFn(item))),
+      {
+        async *[Symbol.asyncIterator]() {
+          for await (const item of iterable) {
+            if (!(await filterFn(item))) {
+              yield item;
+            }
+          }
+        },
+      },
     ) as Enumerable<T>;
   }
 
@@ -386,7 +408,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
     zero: U,
     reduceFn: (acc: U, item: T) => U | Promise<U>,
   ): Promise<U> {
-    return await reduce(this.iter, zero, reduceFn);
+    let acc = zero;
+    for await (const item of this.iter) {
+      acc = await reduceFn(acc, item);
+    }
+    return acc;
   }
 
   /**
@@ -396,7 +422,12 @@ export class Enumerable<T> implements AsyncIterable<T> {
   async forEach(
     forEachFn: (item: T) => void | Promise<void>,
   ): Promise<void> {
-    await forEach(this.iter, forEachFn);
+    let p: undefined | Promise<void> | void;
+
+    for await (const item of this.iter) {
+      await p;
+      p = forEachFn(item);
+    }
   }
 
   /**
@@ -404,7 +435,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns The items of this iterator collected to an array.
    */
   async collect(): Promise<T[]> {
-    return await collect(this.iter);
+    const result = [];
+    for await (const item of this.iter) {
+      result.push(item);
+    }
+    return result;
   }
 
   /**
