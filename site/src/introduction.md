@@ -16,5 +16,5 @@ Run `ls -la` as a child process. Decode `stdout` as lines of text. Print to
 console.
 
 ```typescript
-await proc.run("ls", "-la").toStdout()
+await proc.run("ls", "-la").toStdout();
 ```

@@ -11,6 +11,8 @@ To use:
 
 ```typescript
 import * as proc from "http://deno.land/x/proc/mod.ts";
+
+await proc.run("ls", "-la").toStdout();
 ```
 
 The API is stabilizing and moving toward a 1.0 release. Documentation is a work
