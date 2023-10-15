@@ -277,7 +277,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
   /**
    * Map the sequence from one type to another, concurrently.
    *
-   * Results are returned in order.
+   * Results are returned in order. The order of processing
+   * is concurrent, and therefore somewhat arbitrary.
    *
    * @param mapFn The mapping function.
    * @param options {@link ConcurrentOptions}
@@ -299,6 +300,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * Items are iterated out of order. This allows maximum concurrency
    * at all times, but the output order cannot be assumed to be the
    * same as the input order.
+   * 
+   * This guarantees maximum concurrency whereas {@link concurrentMap} does 
+   * not if the workload isn't balanced. Prefer {@link concurrentUnorderedMap}
+   * to {@link concurrentMap} for best/consistent performance.
    *
    * @param mapFn The mapping function.
    * @param options {@link ConcurrentOptions}
