@@ -300,8 +300,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * Items are iterated out of order. This allows maximum concurrency
    * at all times, but the output order cannot be assumed to be the
    * same as the input order.
-   * 
-   * This guarantees maximum concurrency whereas {@link concurrentMap} does 
+   *
+   * This guarantees maximum concurrency whereas {@link concurrentMap} does
    * not if the workload isn't balanced. Prefer {@link concurrentUnorderedMap}
    * to {@link concurrentMap} for best/consistent performance.
    *
@@ -730,7 +730,7 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
     let p: undefined | Promise<void>;
 
     for await (const buff of this.iter) {
-      await p
+      await p;
       p = writeAll(buff, Deno.stdout);
     }
     await p;
@@ -738,9 +738,9 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
 
   /**
    * Dump output to a writer and close it.
-   * 
+   *
    * This is a low-level asynchronous write of bytes without locking.
-   * 
+   *
    * @param writer The target writer.
    */
   async toWriter(writer: Deno.Writer & Deno.Closer) {
@@ -748,7 +748,7 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
       let p: undefined | Promise<void>;
 
       for await (const buff of this.iter) {
-        await p
+        await p;
         p = writeAll(buff, writer);
       }
       await p;
