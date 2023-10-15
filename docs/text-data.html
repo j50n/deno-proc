@@ -186,22 +186,22 @@ characters</li>
 <p>This is the &quot;normal&quot; way to work with line-delimited text. It should be a good
 solution most of the time.</p>
 <p>The
-<a href="https://deno.land/x/proc@0.20.48/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
+<a href="https://deno.land/x/proc@0.21.0/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
 method converts a line at a time.</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
   .lines
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>Alternately you can use
-<a href="https://deno.land/x/proc@0.20.48/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-with the <a href="https://deno.land/x/proc@0.20.48/mod3.ts?s=toLines">toLines</a>
+<a href="https://deno.land/x/proc@0.21.0/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+with the <a href="https://deno.land/x/proc@0.21.0/mod3.ts?s=toLines">toLines</a>
 transformer function.</p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
   .transform(toLines)
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>The
-<a href="https://deno.land/x/proc@0.20.48/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
+<a href="https://deno.land/x/proc@0.21.0/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
 method will automatically treat <code>string</code> values as lines, adding <code>\n</code> to them
 and converting back into <code>utf-8</code> encoded bytes.</p>
 <p>Note that this <em>always</em> assumes string data passed to it is line-delimited. If
