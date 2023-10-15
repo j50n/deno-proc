@@ -162,9 +162,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
       const w = writer.getWriter();
 
       try {
+        let p: undefined | Promise<void>;
+
         for await (const it of iter) {
-          await w.write(it);
+          await p;
+          p = w.write(it);
         }
+
+        await p;
       } finally {
         w.releaseLock();
         if (!options?.noclose) {
@@ -172,24 +177,29 @@ export class Enumerable<T> implements AsyncIterable<T> {
         }
       }
     } else {
-      await (async () => {
-        try {
-          for await (const it of iter) {
-            if (writer.isClosed) {
-              break;
-            }
+      try {
+        let p: undefined | Promise<void>;
 
-            writer.write(it);
+        for await (const it of iter) {
+          await p;
+
+          if (writer.isClosed) {
+            break;
           }
-          if (!options?.noclose) {
-            await writer.close();
-          }
-        } catch (e) {
-          if (!options?.noclose) {
-            await writer.close(e);
-          }
+
+          p = writer.write(it);
         }
-      })();
+
+        await p;
+
+        if (!options?.noclose) {
+          await writer.close();
+        }
+      } catch (e) {
+        if (!options?.noclose) {
+          await writer.close(e);
+        }
+      }
     }
   }
 
@@ -712,16 +722,33 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
    * Dump output to `stdout`. Non-locking.
    */
   async toStdout() {
-    /* Allow concurrent read and write by changing await order. */
     let p: undefined | Promise<void>;
 
     for await (const buff of this.iter) {
-      if (p != null) {
-        await p;
-      }
-
+      await p
       p = writeAll(buff, Deno.stdout);
     }
     await p;
+  }
+
+  /**
+   * Dump output to a writer and close it.
+   * 
+   * This is a low-level asynchronous write of bytes without locking.
+   * 
+   * @param writer The target writer.
+   */
+  async toWriter(writer: Deno.Writer & Deno.Closer) {
+    try {
+      let p: undefined | Promise<void>;
+
+      for await (const buff of this.iter) {
+        await p
+        p = writeAll(buff, writer);
+      }
+      await p;
+    } finally {
+      writer.close();
+    }
   }
 }
