@@ -344,18 +344,34 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Return `true` if every element satisfies the provided testing function.
-   * @param allFn The testing function.
+   * @param everyFn The testing function.
    * @returns `true` if every element satisfies the provided testing function.
    */
-  async all(
-    allFn: (element: T) => boolean | Promise<boolean>,
+  async every(
+    everyFn: (element: T) => boolean | Promise<boolean>,
   ): Promise<boolean> {
     for await (const element of this.iter) {
-      if (!allFn(element)) {
+      if (!everyFn(element)) {
         return false;
       }
     }
     return true;
+  }
+
+  /**
+   * Return `true` if some element satisfies the provided testing function.
+   * @param someFn The testing function.
+   * @returns `true` if some element satisfies the provided testing function.
+   */
+  async some(
+    someFn: (element: T) => boolean | Promise<boolean>,
+  ): Promise<boolean> {
+    for await (const element of this.iter) {
+      if (someFn(element)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
