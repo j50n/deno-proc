@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Working with Process Output</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Input to Processes</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Process Errors</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Working with Process Stderr</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Sleep</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">7.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">8.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">9.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">10.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">11.</strong> Input and Output</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">12.</strong> Run and the Spread Operator</a></li><li class="chapter-item expanded "><a href="level1.html"><strong aria-hidden="true">13.</strong> Level 1</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="level2.html"><strong aria-hidden="true">13.1.</strong> Level 2</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="level3.html"><strong aria-hidden="true">13.1.1.</strong> Level 3</a></li><li class="spacer"></li></ol></li></ol></li><li class="chapter-item expanded "><a href="preprocessor-test.html">Preprocessor Test</a></li></ol>
+                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Process Output</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Process Input</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Process Errors</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Process Stderr</div></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Reading Stuff</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">9.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">10.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Sleep</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">13.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">14.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">15.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -173,42 +173,134 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="proc-0211"><a class="header" href="#proc-0211"><code>proc 0.21.1</code></a></h1>
-<p>A better way to work with processes in Deno.</p>
+<p><code>proc</code> let's you use child processes with
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator"><code>AsyncIterable</code></a>
+instead of the streams API, and it includes a library of higher-order functions
+for <code>AsyncIterator</code> via
+<a href="https://deno.land/x/proc@0.21.1/mod.ts?s=Enumerable"><code>Enumerable</code></a> that
+roughly matches what you can do with an array (<code>map</code>, <code>filter</code>, <code>find</code>), but for
+asynchronous code.</p>
+<p><code>proc</code> simplifies the process of converting a <code>bash</code> script into a Deno
+application. The intention is to make writing code that uses lots of IO and
+child processes <em>almost</em> as easy as shell scripting, but you also get proper
+error handling, type checking, and Deno's security-by-default.</p>
 <p><a href="https://deno.land/x/proc@0.21.1/mod.ts">Developer Documentation</a></p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-typescript">import * as proc from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
+<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
 </code></pre>
-<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
 <p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
 console.</p>
-<pre><code class="language-typescript">await proc.run(&quot;ls&quot;, &quot;-la&quot;).toStdout();
+<pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;).toStdout();
 </code></pre>
+<h2 id="a-better-example"><a class="header" href="#a-better-example">A Better Example</a></h2>
+<p>Don't worry about understanding everything in this example yet. This shows a
+little of what is possible using <code>proc</code>.</p>
+<p>Given the text for <em>War and Peace</em>:</p>
+<ul>
+<li>Read the file into an <code>AsyncIterable</code> of <code>Uint8Array</code>.</li>
+<li>Uncompress it (the file is GZ'd).</li>
+<li>Convert to lowercase using JavaScript, because the JavaScript conversion is
+more correct than the one in <code>tr</code>.</li>
+<li><code>grep</code> out all the words on word boundaries.</li>
+<li><code>tee</code> this into two streams of words.
+<ul>
+<li>Count the total number of words.</li>
+<li>Use <code>sort</code> with <code>uniq</code> to count the unique words.</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-typescript">const [words1, words2] = read(
+  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
+)
+  .transform(gunzip)
+  .lines
+  .map((line) =&gt; line.toLocaleLowerCase())
+  .run({ buffer: true }, &quot;grep&quot;, &quot;-oE&quot;, &quot;(\\w|')+&quot;)
+  .tee();
+
+const [uniqueWords, totalWords] = await Promise.all([
+  words1.run(&quot;sort&quot;).run(&quot;uniq&quot;).lines.count(),
+  words2.lines.count(),
+]);
+
+console.log(`Total:  ${totalWords.toLocaleString()}`);
+console.log(`Unique: ${uniqueWords.toLocaleString()}`);
+</code></pre>
+<p>Up to the point where we run <code>Promise.all</code>, this is asynchronous, streaming,
+lazily evaluated code. It is trivially running three child processes (<code>grep</code>,
+<code>sort</code>, and <code>uniq</code>), a <code>DecompressionStream</code> transform, and in-process logic to
+normalize to lower-case. This is all happening concurrently, mostly in parallel,
+one buffer, one line, or one word at a time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h1>
-<pre><code class="language-typescript">import {run} from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
+<p><code>proc</code> lets you run a process from Deno with as little boilerplate as possible.</p>
+<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
 </code></pre>
 <p>To <code>ls -la</code>:</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;).toStdout();
 </code></pre>
 <p>To capture the lines as an array:</p>
-<pre><code class="language-typescript">const lines : string[] = await run(&quot;ls&quot;, &quot;-la&quot;).lines.collect();
+<pre><code class="language-typescript">const lines: string[] = await run(&quot;ls&quot;, &quot;-la&quot;).lines.collect();
 </code></pre>
 <h2 id="create-a-command-programmatically"><a class="header" href="#create-a-command-programmatically">Create a Command Programmatically</a></h2>
-<pre><code class="language-typescript">import {run, Cmd} from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
+<pre><code class="language-typescript">import { Cmd, run } from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
 </code></pre>
-<p>A command requires that the first parameter be defined, and that it be either
-a string or a URL. Additional parameters are string values. This doesn't quite 
-fit the signature of an array. Use <a href="https://deno.land/x/proc@0.21.1/mod.ts?s=Cmd">Cmd</a> as the type of the array.
+<p>A command requires that the first parameter be defined, and that it be either a
+string or a URL. Additional parameters are string values. This doesn't quite fit
+the signature of an array. Use
+<a href="https://deno.land/x/proc@0.21.1/mod.ts?s=Cmd">Cmd</a> as the type of the array.
 This can be spread into <code>run</code>.</p>
 <pre><code class="language-typescript">// Assume options.all is a defined boolean.
 
 const cmd: Cmd = [&quot;ls&quot;];
-if(options.all){
-    ls.push(&quot;-la&quot;);
+if (options.all) {
+  ls.push(&quot;-la&quot;);
 }
 
-run(...cmd).toStdout();
+await run(...cmd).toStdout();
 </code></pre>
-<p><em>The command array is type <code>Cmd</code>, not <code>string[]</code>. You need to declare this explicitly.</em></p>
+<p><em>The command array is type <code>Cmd</code>, not <code>string[]</code>. You need to declare this
+explicitly.</em></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="performance"><a class="header" href="#performance">Performance</a></h1>
+<p>A few notes on performance.</p>
+<h2 id="avoid-string-conversions"><a class="header" href="#avoid-string-conversions">Avoid String Conversions</a></h2>
+<p>Avoid unnecessary string conversions.</p>
+<p>Conversions from bytes to JavaScript strings and back are expensive. String data
+is typically represented at UTF-8, which is one to six bytes per unicode code
+point. JavaScript strings are represented in memory as UTF-16, or 16 bits or 32
+bits (2 bytes or 4 bytes) to represent one unicode code point. Conversion logic
+is non-trivial.</p>
+<p>Whenever possible, <code>proc</code> allows passing raw byte arrays between processes so
+conversion is optional.</p>
+<p>Do this:</p>
+<pre><code class="language-typescript">const lineCount = parseInt(
+  await read(&quot;warandpeace.txt&quot;).run(&quot;wc&quot;, &quot;-l&quot;).lines.first,
+  10,
+);
+</code></pre>
+<p>Not this. This will work, as the lines will automatically be converted back to
+UTF-8 before being passed to <code>wc -l</code> (which counts lines). However, this makes
+the V8 engine do a lot of extra work and slows down execution.</p>
+<pre><code class="language-typescript">const lineCount = parseInt(
+  await read(&quot;warandpeace.txt&quot;).lines.run(&quot;wc&quot;, &quot;-l&quot;).lines.first,
+  10,
+);
+</code></pre>
+<h2 id="asynchronous-code"><a class="header" href="#asynchronous-code">Asynchronous Code</a></h2>
+<p>Asynchronous code is fast, but it's not as fast as code using for-loops, arrays,
+and simple types.</p>
+<p>Given what it is doing, V8 does a stellar job of optimizing asynchronous code.
+Most of the time, you shouldn't have to worry about performance of code written
+this way. However, <code>async</code>/<code>await</code> isn't (quite) a zero-cost abstraction.</p>
+<p>When performance is a concern and data size allows, it may be more performant to
+move operations to in-memory arrays. Code that does lots of small operations or
+works on very small data can usually be reworked into non-asynchronous code for
+better performance.</p>
+<p>Keep in mind that code written using promises, <code>AsyncIterable</code>, and
+<code>async</code>/<code>await</code> is going to be very well optimized and run quickly. A <em>lot</em> of
+work went into making promise code run as quickly as possible in V8. Write clean
+code first and measure your performance before you start trying to hand-optimize
+things.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="working-with-text-data"><a class="header" href="#working-with-text-data">Working with Text Data</a></h1>
 <p>Streaming data doesn't have to be line-delimited text, but it probably will be
 most of the time. Many *nix tools work with this type of data or some variation
@@ -595,147 +687,6 @@ blank lines. Count them. Print the count.</p>
     .filter((line) =&gt; line.trim().length === 0)
     .count(),
 );
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="run-and-the-spread-operator"><a class="header" href="#run-and-the-spread-operator">Run and the Spread Operator</a></h1>
-<p>This compiles:</p>
-<pre><code class="language-typescript">run(&quot;ls&quot;, &quot;-la&quot;);
-</code></pre>
-<p>The next example results in this compile error:</p>
-<blockquote>
-<p><em>A spread argument must either have a tuple type or be passed to a rest
-parameter.</em></p>
-</blockquote>
-<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;]); //Broken!
-</code></pre>
-<p>What gives?</p>
-<p>Typescript needs a specific tuple type here, but assumes an array type instead.
-<em>This is a Typescript thing,</em> and I am sure they will get around to fixing it
-one day.</p>
-<p>Here is the longer version. The <em>rest</em> parameter passed to <code>run</code> is a tuple of
-type <code>Cmd</code>. The type signature is <code>[string|URL, ...string[]]</code>. Typescript
-assumes that <code>[&quot;ls&quot;, &quot;-la&quot;]</code> is of type <code>string[]</code> and must be told otherwise.
-It is not able to figure out that <code>string[]</code> of guaranteed non-zero length is
-compatible with the tuple type <code>Cmd</code>.</p>
-<p>Until Typescript addresses this issue, the idiomatic fix is to simply specify
-the tuple type:</p>
-<pre><code class="language-typescript">run(...[&quot;ls&quot;, &quot;-la&quot;] as Cmd);
-</code></pre>
-<p>This is a practical exmple of building up a command in piecemeal fashion. It
-seems a little cleaner to specify the type where you create the tuple:</p>
-<pre><code class="language-typescript">const cmd: Cmd = [&quot;ls&quot;];
-cmd.push(&quot;-la&quot;);
-
-run(...cmd);
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="leve1-1"><a class="header" href="#leve1-1">Leve1 1</a></h1>
-<p>Put some <strong>content</strong> at <code>Level 1</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="level-2"><a class="header" href="#level-2">Level 2</a></h1>
-<p>Put some <strong>content</strong> at <code>Level 2</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="level-3"><a class="header" href="#level-3">Level 3</a></h1>
-<p>Put some <strong>content</strong> at <code>Level 3</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="preprocessor-test"><a class="header" href="#preprocessor-test">Preprocessor Test</a></h1>
-<p>This is a simple test. It just works.</p>
-<!-- It isn't JSP, but it will do. -->
-<p>The project version is 0.21.1.</p>
-<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<p>You need a recent version of Deno. Refer to the
-<a href="https://deno.com/manual/getting_started/installation">Deno Manual</a>.</p>
-<p>The easiest way (not the fastest) to install if you use <code>cargo</code> is:</p>
-<pre><code class="language-bash">cargo install deno
-</code></pre>
-<p>The preprocessor requires no additional installation. It runs from URL.</p>
-<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
-<p>The preprocessor is a command-line application. You can get help in the terminal
-with the <code>--help</code> flag.</p>
-<pre><code class="language-bash">deno --unstable run \
-  https://deno.land/x/proc@0.21.1/tools/mdbook-deno-script-preprocessor.ts \
-  --help
-</code></pre>
-<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
-<p>Add the following to <code>book.toml</code>. <code>--allow-*</code> are for demonstration purposes;
-customize for your needs:</p>
-<pre><code class="language-toml">[preprocessor.type-template]
-command = &quot;&quot;&quot;deno --unstable run \
-  --allow-net=deno.land \
-  --allow-run=git \
-  --allow-read=. https://deno.land/x/proc@0.21.1/tools/mdbook-deno-script-preprocessor.ts \
-  process \
-  --concurrently \
-  --cache-duration=24.0&quot;&quot;&quot;
-output-to-file = false
-</code></pre>
-<p>Flags <code>--allow-read</code>, <code>--concurrently</code> and <code>--cache-duration</code> are optional.</p>
-<h2 id="permissions"><a class="header" href="#permissions">Permissions</a></h2>
-<p>Deno is secure by default. This means that if you don't explicitly give
-permission, the scripts won't be able to write to file, delete folders, etc.
-This is a <em>very good</em> thing. The sandbox prevents you from accidentally causing
-havoc as you use scripts in your documents.</p>
-<details>
-<summary>🔐 Default security (the sandbox) protects you from making costly mistakes.</summary>
-<blockquote>
-<p>I recommend you avoid giving your scripts the ability to write files. Network
-access should be restricted as much as possible. The ability to run processes
-should be minimal. The ability to read certain environment variables could
-expose secrets. When allowing access, do so for specific folders, web
-addresses, processes, and environment variables.</p>
-</blockquote>
-</details>
-<p>If your script requires more permissions, you will need to add those to the
-<code>deno run</code> command.</p>
-<p>The preprocessor script is fully sandboxed by default, requiring no defined
-permissions to run.</p>
-<h2 id="limitations-on-stdout-usage"><a class="header" href="#limitations-on-stdout-usage">Limitations on <code>stdout</code> Usage</a></h2>
-<p>Use <code>console.error()</code> for logging out information. <code>stdout</code> is reserved. Any
-writes to <code>stdout</code> will break the preprocessor.</p>
-<h2 id="use"><a class="header" href="#use">Use</a></h2>
-<p>This will import undecorated script tags in your markdown as modules and execute
-the default export. Example:</p>
-<pre><code class="language-javascript">&lt;script&gt;
-  export default () =&gt; &quot;This text is included in the document.&quot;;
-&lt;/script&gt;
-</code></pre>
-<p>The text (<code>string</code>) data returned from the function will be inserted into the
-markdown.</p>
-<p>Modules in the markdown are <code>JavaScript</code> - and <strong>not</strong> <code>Typescript</code>. The
-intended strategy is to keep the markdown code very light and do the middle and
-heavy-weight stuff in dynamically imported local <code>Typescript</code> modules.</p>
-<h3 id="chapter-context"><a class="header" href="#chapter-context">Chapter Context</a></h3>
-<p>A context object is passed in for each chapter. You can modify this object to
-pass data from one module to the next. In this example, the value <code>count</code> is
-being defined as <code>1</code> on the context object.</p>
-<pre><code class="language-javascript">&lt;script&gt;
-export default (context) =&gt; {
-    context.count = 1;
-    return &quot;This text is included in the document.&quot;;
-}
-&lt;/script&gt;
-</code></pre>
-<p>Chapter context comes pre-loaded with the following:</p>
-<div class="table-wrapper"><table><thead><tr><th>name</th><th>type</th><th>description</th></tr></thead><tbody>
-<tr><td>path</td><td>(string) =&gt; string</td><td>Converts a relative path based at the book root into absolute file URL path.</td></tr>
-</tbody></table>
-</div>
-<p>To set globals, use the standard <code>window</code> global object.</p>
-<h3 id="local-imports"><a class="header" href="#local-imports">Local Imports</a></h3>
-<p>Standard imports don't work with relative paths. Instead, use a dynamic import
-with the passed-in context:</p>
-<!-- A trick so I can include a script tag in my code. -->
-<pre><code class="language-javascript">&lt;script&gt;
-export default (context) =&gt; {
-    const util = await import(context.path(&quot;./lib/util.ts&quot;));
-    return util.someUtilityThing(&quot;something&quot;);
-}
-&lt;/script&gt;
-</code></pre>
-<p>Note that the path is relative to the <em>root</em> book folder, not the folder where
-the markdown is defined.</p>
-<h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
-<p>By default, the preprocessor caches the results of executing scripts on pages
-where the source isn't changing (being edited) for 24 hours.</p>
-<p>To clear the cache from command line:</p>
-<pre><code class="language-bash">deno --unstable run \
-  https://deno.land/x/proc@0.21.1/tools/mdbook-deno-script-preprocessor.ts \
-  clear-cache
 </code></pre>
 
                     </main>

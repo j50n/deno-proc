@@ -7,18 +7,29 @@
 # Processes
 
 - [Running a Process](./process-run.md)
-- [Working with Process Output]()
-- [Input to Processes]()
+- [Process Output]()
+- [Process Input]()
 - [Process Errors]()
-- [Working with Process Stderr]()
+- [Process Stderr]()
+
+# Input/Output
+
+- [Reading Stuff]()
+- [Writing Stuff]()
 
 # Higher Order Functions for AsyncIterable
+
+- [Enumeration]()
+- [Compatibility with Streams]()
+- [Performance](./performance.md)
 
 # Concurrency and Parallel Processing
 
 # Miscellaneous
 
 - [Sleep]()
+- [Range]()
+- [Shuffle]()
 
 # Concepts
 
@@ -36,14 +47,15 @@
 - [Concurrent Processing](./example-concurrent-processing.md)
 - [Input and Output](./example-io.md)
 
-# Minutia
+<!-- # Minutia
 
 - [Run and the Spread Operator](./spread.md)
 
 - [Level 1](./level1.md)
   - [Level 2](./level2.md)
-    - [Level 3](./level3.md)
+    - [Level 3](./level3.md) -->
 
----
+<!-- ---
 
 [Preprocessor Test](./preprocessor-test.md)
+-->

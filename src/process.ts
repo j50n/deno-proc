@@ -359,13 +359,18 @@ export class Process<S> implements Deno.Closer {
 
     return (async () => {
       try {
+        let p: undefined | Promise<void>;
+
         for await (const it of buffer(bufferInput ? 16384 : 0)(toBytes(iter))) {
           if (writerIsClosed) {
             break;
           }
 
-          await writer.write(it);
+          await p;
+          p = writer.write(it);
         }
+
+        await p;
       } catch (e) {
         if (
           this._passError == null &&

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Level 3 - proc</title>
+        <title>Performance - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Working with Process Output</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Input to Processes</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Process Errors</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Working with Process Stderr</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Sleep</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">7.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">8.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">9.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">10.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">11.</strong> Input and Output</a></li><li class="chapter-item expanded affix "><li class="part-title">Minutia</li><li class="chapter-item expanded "><a href="spread.html"><strong aria-hidden="true">12.</strong> Run and the Spread Operator</a></li><li class="chapter-item expanded "><a href="level1.html"><strong aria-hidden="true">13.</strong> Level 1</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="level2.html"><strong aria-hidden="true">13.1.</strong> Level 2</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="level3.html" class="active"><strong aria-hidden="true">13.1.1.</strong> Level 3</a></li><li class="spacer"></li></ol></li></ol></li><li class="chapter-item expanded "><a href="preprocessor-test.html">Preprocessor Test</a></li></ol>
+                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Process Output</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Process Input</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Process Errors</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Process Stderr</div></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Reading Stuff</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">9.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html" class="active"><strong aria-hidden="true">10.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Sleep</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">13.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">14.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">15.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -171,18 +171,56 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="level-3"><a class="header" href="#level-3">Level 3</a></h1>
-<p>Put some <strong>content</strong> at <code>Level 3</code>.</p>
+                        <h1 id="performance"><a class="header" href="#performance">Performance</a></h1>
+<p>A few notes on performance.</p>
+<h2 id="avoid-string-conversions"><a class="header" href="#avoid-string-conversions">Avoid String Conversions</a></h2>
+<p>Avoid unnecessary string conversions.</p>
+<p>Conversions from bytes to JavaScript strings and back are expensive. String data
+is typically represented at UTF-8, which is one to six bytes per unicode code
+point. JavaScript strings are represented in memory as UTF-16, or 16 bits or 32
+bits (2 bytes or 4 bytes) to represent one unicode code point. Conversion logic
+is non-trivial.</p>
+<p>Whenever possible, <code>proc</code> allows passing raw byte arrays between processes so
+conversion is optional.</p>
+<p>Do this:</p>
+<pre><code class="language-typescript">const lineCount = parseInt(
+  await read(&quot;warandpeace.txt&quot;).run(&quot;wc&quot;, &quot;-l&quot;).lines.first,
+  10,
+);
+</code></pre>
+<p>Not this. This will work, as the lines will automatically be converted back to
+UTF-8 before being passed to <code>wc -l</code> (which counts lines). However, this makes
+the V8 engine do a lot of extra work and slows down execution.</p>
+<pre><code class="language-typescript">const lineCount = parseInt(
+  await read(&quot;warandpeace.txt&quot;).lines.run(&quot;wc&quot;, &quot;-l&quot;).lines.first,
+  10,
+);
+</code></pre>
+<h2 id="asynchronous-code"><a class="header" href="#asynchronous-code">Asynchronous Code</a></h2>
+<p>Asynchronous code is fast, but it's not as fast as code using for-loops, arrays,
+and simple types.</p>
+<p>Given what it is doing, V8 does a stellar job of optimizing asynchronous code.
+Most of the time, you shouldn't have to worry about performance of code written
+this way. However, <code>async</code>/<code>await</code> isn't (quite) a zero-cost abstraction.</p>
+<p>When performance is a concern and data size allows, it may be more performant to
+move operations to in-memory arrays. Code that does lots of small operations or
+works on very small data can usually be reworked into non-asynchronous code for
+better performance.</p>
+<p>Keep in mind that code written using promises, <code>AsyncIterable</code>, and
+<code>async</code>/<code>await</code> is going to be very well optimized and run quickly. A <em>lot</em> of
+work went into making promise code run as quickly as possible in V8. Write clean
+code first and measure your performance before you start trying to hand-optimize
+things.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="level2.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="process-run.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="preprocessor-test.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="text-data.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -192,11 +230,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="level2.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="process-run.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="preprocessor-test.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="text-data.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
