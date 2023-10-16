@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Running a Process - proc</title>
+        <title>Process Output - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html" class="active"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Process Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Process Input</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Process Errors</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Process Stderr</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Reading Stuff</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">9.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">10.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">11.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Sleep</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">13.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">15.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">16.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">17.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">18.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">19.</strong> Input and Output</a></li></ol>
+                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html" class="active"><strong aria-hidden="true">2.</strong> Process Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Process Input</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Process Errors</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Process Stderr</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Reading Stuff</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">9.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">10.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">11.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Sleep</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">13.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">15.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">16.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">17.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">18.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">19.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -171,45 +171,50 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h1>
-<p><code>proc</code> lets you run a process from Deno with as little boilerplate as possible.</p>
-<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
+                        <h1 id="process-output"><a class="header" href="#process-output">Process Output</a></h1>
+<p>Process standard output, or <em>stdout</em>, is an <code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
+<p>This can be efficiently piped to another process with <code>run</code>:</p>
+<pre><code class="language-typescript">// Count the words and print the result.
+await run(&quot;echo&quot;, &quot;Hello, world.&quot;).run(&quot;wc&quot;, &quot;-w&quot;).toStdout();
 </code></pre>
-<p>To <code>ls -la</code>:</p>
-<pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;).toStdout();
-</code></pre>
-<p>To capture the lines as an array:</p>
-<pre><code class="language-typescript">const lines: string[] = await run(&quot;ls&quot;, &quot;-la&quot;).lines.collect();
-</code></pre>
-<h2 id="create-a-command-programmatically"><a class="header" href="#create-a-command-programmatically">Create a Command Programmatically</a></h2>
-<pre><code class="language-typescript">import { Cmd, run } from &quot;https://deno.land/x/proc@0.21.1/mod.ts&quot;;
-</code></pre>
-<p>A command requires that the first parameter be defined, and that it be either a
-string or a URL. Additional parameters are string values. This doesn't quite fit
-the signature of an array. Use
-<a href="https://deno.land/x/proc@0.21.1/mod.ts?s=Cmd">Cmd</a> as the type of the array.
-This can be spread into <code>run</code>.</p>
-<pre><code class="language-typescript">// Assume options.all is a defined boolean.
+<p>You can't assume much about the data you are receiving from a process. It may be
+written out line by line, or it may be in large or small chunks.</p>
+<pre><code class="language-typescript">await run(&quot;echo&quot;, &quot;Hello, world.&quot;).forEach((it) =&gt; console.dir(it));
 
-const cmd: Cmd = [&quot;ls&quot;];
-if (options.all) {
-  ls.push(&quot;-la&quot;);
-}
-
-await run(...cmd).toStdout();
+// Uint8Array(14) [
+//    72, 101, 108, 108, 111,
+//    44,  32, 119, 111, 114,
+//   108, 100,  46,  10
+// ]
 </code></pre>
-<p><em>The command array is type <code>Cmd</code>, not <code>string[]</code>. You need to declare this
-explicitly.</em></p>
+<p>That's not very useful. Let's try again, converting to text.</p>
+<pre><code class="language-typescript">await run(&quot;echo&quot;, &quot;Hello,\nworld.&quot;).lines.forEach((it) =&gt; console.dir(it));
+
+// Hello,
+// world.
+</code></pre>
+<p>To convert the lines to an array, <code>collect</code> them.</p>
+<pre><code class="language-typescript">const data: string[] = await run(&quot;echo&quot;, &quot;Hello,\nworld.&quot;).lines.collect();
+console.dir(data);
+
+// [ &quot;Hello,&quot;, &quot;world.&quot; ]
+</code></pre>
+<p>If you just want to dump the output from the child process to stdout, there is
+an easy way to do that.</p>
+<pre><code class="language-typescript">await run(&quot;echo&quot;, &quot;Hello, world.&quot;).toStdout();
+
+// Hello, world.
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="process-run.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="process-output.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="process-input.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -219,11 +224,11 @@ explicitly.</em></p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="process-run.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="process-output.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="process-input.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

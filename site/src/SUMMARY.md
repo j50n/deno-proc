@@ -7,10 +7,11 @@
 # Processes
 
 - [Running a Process](./process-run.md)
-- [Process Output]()
-- [Process Input]()
+- [Process Output](./process-output.md)
+- [Process Input](./process-input.md)
 - [Process Errors]()
 - [Process Stderr]()
+- [Embed a Bash Script]()
 
 # Input/Output
 

@@ -42,7 +42,7 @@ Given the text for _War and Peace_:
 - Convert to lowercase using JavaScript, because the JavaScript conversion is
   more correct than the one in `tr`.
 - `grep` out all the words on word boundaries.
-- `tee` this into two streams of words.
+- `tee` this into two streams (`AsyncIterable` of `Uint8Array`) of words.
   - Count the total number of words.
   - Use `sort` with `uniq` to count the unique words.
 
