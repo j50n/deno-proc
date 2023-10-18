@@ -174,7 +174,7 @@
                         <h1 id="process-input"><a class="header" href="#process-input">Process Input</a></h1>
 <p><code>proc</code> supports standard input (<em>stdin</em>) of processes as
 <code>AsyncIterable&lt;Uint8Array | Uint8Array[] | string | string[]&gt;</code>. This means that
-you can pass in text data directly, or you can use byte data directly.</p>
+you can pass in text data or byte data.</p>
 <p>Note that for every <code>string</code> value (including each <code>string</code> in a <code>string[]</code>),
 <code>proc</code> will insert a line-feed character. This is not done for byte data in
 <code>Uint8Array</code> form, of course. If you need to use text data without the automatic
