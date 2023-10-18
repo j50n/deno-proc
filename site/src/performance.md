@@ -58,3 +58,7 @@ things.
 [Async Iterators: These Promises Are Killing My Performance!](https://medium.com/netscape/async-iterators-these-promises-are-killing-my-performance-4767df03d85b)
 on Medium and supporting benchmarks in
 [async-iteration](https://github.com/danvk/async-iteration) on Github.
+
+[The Performance Overhead of JavaScript Promises and Async Await](https://madelinemiller.dev/blog/javascript-promise-overhead/)
+shows a couple of examples that isolate the performance difference to overhead
+due to promises.

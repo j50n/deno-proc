@@ -405,12 +405,12 @@ export class Enumerable<T> implements AsyncIterable<T> {
     filterFn?: (item: T) => boolean | Promise<boolean>,
   ): Promise<number> {
     if (filterFn == null) {
-      return await enumerate(this.iter).reduce(0, (acc, _item) => acc + 1);
+      return await enumerate(this.iter)
+        .reduce((acc) => acc + 1, 0);
     } else {
-      return await enumerate(this.iter).filter(filterFn).reduce(
-        0,
-        (acc, _item) => acc + 1,
-      );
+      return await enumerate(this.iter)
+        .filter(filterFn)
+        .reduce((acc) => acc + 1, 0);
     }
   }
   /**
@@ -438,31 +438,66 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Reduce a sequence to a single value.
-   * @param reduce The reducing function.
-   * @returns The result of applying the reducing function to each item and accumulating the result.
+   * Executes a user-supplied "reducer" callback function on each element of the array,
+   * in order, passing in the return value from the calculation on the preceding element.
+   * The final result of running the reducer across all elements of the array is a single value.
+   *
+   * @param reduceFn A function to execute for each element in the array.
+   *     Its return value becomes the value of the accumulator parameter on the next invocation of `reduceFn`.
+   *     For the last invocation, the return value becomes the return value of `reduce()`.
+   * @returns The value that results from running the "reducer" callback function to completion over the entire array.
+   * @throws TypeError The iteration was empty.
+   */
+  async reduce(
+    reduceFn: (acc: T, item: T, index: number) => T | Promise<T>,
+  ): Promise<T>;
+
+  /**
+   * Executes a user-supplied "reducer" callback function on each element of the array,
+   * in order, passing in the return value from the calculation on the preceding element.
+   * The final result of running the reducer across all elements of the array is a single value.
+   *
+   * @param reduceFn A function to execute for each element in the array.
+   *     Its return value becomes the value of the accumulator parameter on the next invocation of `reduceFn`.
+   *     For the last invocation, the return value becomes the return value of `reduce()`.
+   * @param zero A value to which accumulator is initialized the first time the callback is called.
+   * @returns The value that results from running the "reducer" callback function to completion over the entire array.
    */
   async reduce<U>(
-    zero: U,
-    reduceFn: (acc: U, item: T) => U | Promise<U>,
+    reduceFn: (acc: U, item: T, index: number) => U | Promise<U>,
+    zero?: U,
+  ): Promise<U>;
+
+  async reduce<U>(
+    reduceFn: (acc: U, item: T, index: number) => U | Promise<U>,
+    zero?: U,
   ): Promise<U> {
     let first = true;
     let p: undefined | U | Promise<U>;
 
-    let acc = zero;
+    let count = 0;
+    let acc: U | undefined;
     for await (const item of this.iter) {
       if (first) {
         first = false;
+        if (zero === undefined) {
+          acc = item as U;
+          continue;
+        } else {
+          acc = zero;
+        }
       } else {
         acc = (await p) as U;
       }
 
-      p = reduceFn(acc, item);
+      p = reduceFn(acc, item, count++);
     }
     if (!first) {
       acc = (await p) as U;
+    } else if (zero === undefined) {
+      throw new TypeError("empty array and uninitialized zero");
     }
-    return acc;
+    return acc as U;
   }
 
   /**
