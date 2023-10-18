@@ -4,6 +4,7 @@ import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
 import { Writable } from "./writable-iterable.ts";
 import {
+toChunkedLines,
   toLines,
   transformerFromTransformStream,
   TransformerFunction,
@@ -33,6 +34,10 @@ export type Unzip<T> = T extends [infer A, infer B]
 
 /** Conditional type for {@link Enumerable.lines}. */
 export type Lines<T> = T extends Uint8Array ? Enumerable<string> : never;
+
+/** Conditional type for {@link Enumerable.chunkedLines}. */
+export type ChunkedLines<T> = T extends Uint8Array ? Enumerable<string[]> : never;
+
 
 /** Conditional type for {@link Enumerable.run}. */
 export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
@@ -241,8 +246,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
           }
           p = mapFn(it);
         }
-        if (p !== undefined) {
-          yield p;
+        if (!first) {
+          yield await p;
         }
       },
     }) as Enumerable<U>;
@@ -439,9 +444,21 @@ export class Enumerable<T> implements AsyncIterable<T> {
     zero: U,
     reduceFn: (acc: U, item: T) => U | Promise<U>,
   ): Promise<U> {
+    let first = true;
+    let p: undefined | U | Promise<U>;
+
     let acc = zero;
     for await (const item of this.iter) {
-      acc = await reduceFn(acc, item);
+      if (first) {
+        first = false;
+      } else {
+        acc = (await p) as U;
+      }
+
+      p = reduceFn(acc, item);
+    }
+    if (!first) {
+      acc = (await p) as U;
     }
     return acc;
   }
@@ -695,13 +712,23 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Convert the output to text lines.
+   * Convert to text lines.
    *
    * Note that this should probably only be used with small data. Consider {@link chunkedLines}
    * to improve performance with larger data.
    */
   get lines(): Lines<T> {
     return enumerate(toLines(this as Enumerable<Uint8Array>)) as Lines<T>;
+  }
+
+  /**
+   * Convert to text lines, grouped into arrays.
+   * 
+   * For large data or data that is broken into many small lines, this can improve performance
+   * over {@link lines}.
+   */
+  get chunkedLines(): ChunkedLines<T> {
+    return enumerate(toChunkedLines(this as Enumerable<Uint8Array>)) as ChunkedLines<T>;
   }
 }
 

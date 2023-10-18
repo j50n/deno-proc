@@ -54,3 +54,7 @@ Keep in mind that code written using promises, `AsyncIterable`, and
 work went into making promise code run as quickly as possible in V8. Write clean
 code first and measure your performance before you start trying to hand-optimize
 things.
+
+[Async Iterators: These Promises Are Killing My Performance!](https://medium.com/netscape/async-iterators-these-promises-are-killing-my-performance-4767df03d85b) on Medium and supporting benchmarks in [async-iteration](https://github.com/danvk/async-iteration) on Github.
+
+

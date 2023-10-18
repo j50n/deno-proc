@@ -2,7 +2,7 @@
 
 `proc` supports standard input (_stdin_) of processes as
 `AsyncIterable<Uint8Array | Uint8Array[] | string | string[]>`. This means that
-you can pass in text data directly, or you can use byte data directly.
+you can pass in text data or byte data.
 
 Note that for every `string` value (including each `string` in a `string[]`),
 `proc` will insert a line-feed character. This is not done for byte data in
