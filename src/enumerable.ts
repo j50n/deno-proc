@@ -759,7 +759,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    *
    * @param writer The target writer.
    */
-  toWriter(writer: Deno.Writer & Deno.Closer): ByteSink<T> {
+  writeBytesTo(writer: Deno.Writer & Deno.Closer): ByteSink<T> {
     const iter = this.iter as AsyncIterable<Uint8Array>;
     async function inner() {
       try {
