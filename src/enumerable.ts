@@ -405,14 +405,22 @@ export class Enumerable<T> implements AsyncIterable<T> {
     filterFn?: (item: T) => boolean | Promise<boolean>,
   ): Promise<number> {
     if (filterFn == null) {
-      return await enumerate(this.iter)
-        .reduce((acc) => acc + 1, 0);
+      let count = 0
+      for await(const _item of this.iter){
+        count++
+      }
+      return count
     } else {
-      return await enumerate(this.iter)
-        .filter(filterFn)
-        .reduce((acc) => acc + 1, 0);
+      let count = 0
+      for await (const item of this.iter){
+        if(filterFn(item)){
+          count ++
+        }
+      }
+      return count
     }
   }
+  
   /**
    * Filter the sequence to exclude the items that pass a test. This returns the
    * inverse of {@link filter}.

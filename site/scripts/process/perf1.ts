@@ -12,8 +12,8 @@ async function* countArray() {
     const arr: number[] = [];
     for (let j = 0; j < 1_000; j++) {
       arr[j] = i * 1_000 + j;
-      yield arr;
     }
+    yield arr
   }
 }
 
@@ -23,37 +23,60 @@ for (let i = 0; i < 1_000_000; i++) {
   numbers.push(i);
 }
 
-Deno.bench("async add with range and filter/map/reduce", async () => {
+Deno.bench("naive async add with range and filter/map/reduce", async () => {
   await range({ to: 1_000_000 })
     .filter((i) => i % 2 === 0)
     .map((i) => i * 2)
-    .reduce((acc, item) => acc + item, 0);
+    .reduce((acc, item) => acc + item);
 });
 
-Deno.bench("async grouped add with range and filter/map/reduce", async () => {
+Deno.bench("async grouped add with filter/map/reduce", async () => {
+    /*
+     * By combining into arrays and doing the calculations on the groups of values,
+     * and only reducing at the end, the speedup is about 50x.
+     */
   await enumerate(countArray())
     .map((items) => {
       return items
         .filter((it) => it % 2 === 0)
         .map((it) => it * 2)
-        .reduce((acc, item) => acc + item, 0);
+        .reduce((acc, item) => acc + item);
     })
-    .reduce((acc, item) => acc + item, 0);
+    .reduce((acc, item) => acc + item);
 });
 
-Deno.bench("async add with range and map/reduce", async () => {
+Deno.bench("async grouped add with filter/map/reduce as for loop", async () => {
+    /*
+     * This is only a little bit faster. Memory allocation overhead. You have the
+     * same problem with fast-add if you don't cheat and pre-allocate the array.
+     * Still, about 30% faster than the version using higher order functions.
+     */
+  await enumerate(countArray())
+    .map((items) => {
+        let acc = 0
+        for(const item of items){
+            if(item % 2 === 0){
+                acc += item * 2
+            }
+        }
+        return acc
+    })
+    .reduce((acc, item) => acc + item);
+});
+
+Deno.bench("naive async add with range and map/reduce", async () => {
   await range({ to: 1_000_000 })
     .map((i) => i * 2)
-    .reduce((acc, item) => acc + item, 0);
+    .reduce((acc, item) => acc + item);
 });
 
-Deno.bench("async add with range and reduce", async () => {
+Deno.bench("naive async add with range and reduce", async () => {
   await range({ to: 1_000_000 })
-    .reduce((acc, item) => acc + item, 0);
+    .reduce((acc, item) => acc + item);
 });
 
 Deno.bench("async add with enumerable and reduce", async () => {
-  await enumerate(count()).reduce((acc, item) => acc + item, 0);
+  await enumerate(count()).reduce((acc, item) => acc + item);
 });
 
 Deno.bench("async simple add", async () => {
