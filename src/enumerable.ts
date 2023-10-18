@@ -4,7 +4,7 @@ import { parseArgs } from "./helpers.ts";
 import { Cmd } from "./run.ts";
 import { Writable } from "./writable-iterable.ts";
 import {
-toChunkedLines,
+  toChunkedLines,
   toLines,
   transformerFromTransformStream,
   TransformerFunction,
@@ -36,8 +36,10 @@ export type Unzip<T> = T extends [infer A, infer B]
 export type Lines<T> = T extends Uint8Array ? Enumerable<string> : never;
 
 /** Conditional type for {@link Enumerable.chunkedLines}. */
-export type ChunkedLines<T> = T extends Uint8Array ? Enumerable<string[]> : never;
+export type ChunkedLines<T> = T extends Uint8Array ? Enumerable<string[]>
+  : never;
 
+export type ByteSink<T> = T extends Uint8Array ? Promise<void> : never;
 
 /** Conditional type for {@link Enumerable.run}. */
 export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
@@ -723,12 +725,57 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Convert to text lines, grouped into arrays.
-   * 
+   *
    * For large data or data that is broken into many small lines, this can improve performance
    * over {@link lines}.
    */
   get chunkedLines(): ChunkedLines<T> {
-    return enumerate(toChunkedLines(this as Enumerable<Uint8Array>)) as ChunkedLines<T>;
+    return enumerate(
+      toChunkedLines(this as Enumerable<Uint8Array>),
+    ) as ChunkedLines<T>;
+  }
+
+  /**
+   * Dump output to `stdout`. Non-locking.
+   */
+  toStdout(): ByteSink<T> {
+    const iter = this.iter as AsyncIterable<Uint8Array>;
+    async function inner() {
+      let p: undefined | Promise<void>;
+
+      for await (const buff of iter) {
+        await p;
+        p = writeAll(buff, Deno.stdout);
+      }
+      await p;
+    }
+    return inner() as ByteSink<T>;
+  }
+
+  /**
+   * Dump output to a writer and close it.
+   *
+   * This is a low-level asynchronous write of bytes without locking.
+   *
+   * @param writer The target writer.
+   */
+  toWriter(writer: Deno.Writer & Deno.Closer): ByteSink<T> {
+    const iter = this.iter as AsyncIterable<Uint8Array>;
+    async function inner() {
+      try {
+        let p: undefined | Promise<void>;
+
+        for await (const buff of iter) {
+          await p;
+          p = writeAll(buff, writer);
+        }
+        await p;
+      } finally {
+        writer.close();
+      }
+    }
+
+    return inner() as ByteSink<T>;
   }
 }
 
@@ -748,39 +795,5 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
   /** Process status. */
   get status() {
     return this.process.status;
-  }
-
-  /**
-   * Dump output to `stdout`. Non-locking.
-   */
-  async toStdout() {
-    let p: undefined | Promise<void>;
-
-    for await (const buff of this.iter) {
-      await p;
-      p = writeAll(buff, Deno.stdout);
-    }
-    await p;
-  }
-
-  /**
-   * Dump output to a writer and close it.
-   *
-   * This is a low-level asynchronous write of bytes without locking.
-   *
-   * @param writer The target writer.
-   */
-  async toWriter(writer: Deno.Writer & Deno.Closer) {
-    try {
-      let p: undefined | Promise<void>;
-
-      for await (const buff of this.iter) {
-        await p;
-        p = writeAll(buff, writer);
-      }
-      await p;
-    } finally {
-      writer.close();
-    }
   }
 }

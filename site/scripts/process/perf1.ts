@@ -6,11 +6,11 @@ Deno.bench("async add with range and reduce", async () => {
 });
 
 Deno.bench("async add with range", async () => {
-    let acc = 0;
-    for await(const i of range({ to: 1_000_000 })){
-        acc += i;
-    }
-  });
+  let acc = 0;
+  for await (const i of range({ to: 1_000_000 })) {
+    acc += i;
+  }
+});
 
 const numbers: number[] = [];
 
