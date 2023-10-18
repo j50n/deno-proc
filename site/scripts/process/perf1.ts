@@ -1,5 +1,10 @@
+/*
+ * This is enough of a benchmark for me to be sure that I am not adding a significant
+ * amount of overhead to the promise-based code with the `Enumerator` wrapper, and that
+ * higher order functions are (in general) as performant as possible.
+ */
+
 import { enumerate, range } from "../../../mod.ts";
-// import { join } from "../../../tests/deps/path.ts";
 
 async function* count() {
   for (let i = 0; i < 1_000_000; i++) {
