@@ -7,11 +7,10 @@
 # Processes
 
 - [Running a Process](./process-run.md)
-- [Process Output](./process-output.md)
-- [Process Input](./process-input.md)
-- [Process Errors]()
-- [Process Stderr]()
-- [Embed a Bash Script]()
+- [Output](./process-output.md)
+- [Input](./process-input.md)
+- [Stderr and Error Handling](./process-stderr.md)
+
 
 # Input/Output
 
@@ -44,6 +43,7 @@
 
 # Examples
 
+- [Embed a Bash Script]()
 - [Counting Words](./example-counting-words.md)
 - [Concurrent Processing](./example-concurrent-processing.md)
 - [Input and Output](./example-io.md)

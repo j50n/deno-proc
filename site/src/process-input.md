@@ -1,4 +1,4 @@
-# Process Input
+# Input
 
 `proc` supports standard input (_stdin_) of processes as
 `AsyncIterable<Uint8Array | Uint8Array[] | string | string[]>`. This means that

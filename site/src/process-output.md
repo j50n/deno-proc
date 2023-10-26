@@ -1,4 +1,4 @@
-# Process Output
+# Output
 
 Process standard output, or _stdout_, is an `AsyncIterable<Uint8Array>`.
 
