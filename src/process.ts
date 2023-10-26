@@ -1,3 +1,4 @@
+import { Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
 import { Writable, WritableIterable } from "./writable-iterable.ts";
 
@@ -24,7 +25,7 @@ export type ErrorHandler<S> = (error?: Error, stderrData?: S) => void;
  * not allowed to throw an error from this function**. If you wish to throw an error
  * based on `stderr` data, the `ErrorHandler` function is where you do that.
  */
-export type StderrHandler<S> = (it: AsyncIterable<Uint8Array>) => Promise<S>;
+export type StderrHandler<S> = (it: Enumerable<Uint8Array>) => Promise<S>;
 
 /**
  * Options passed to a process.
@@ -151,7 +152,7 @@ export class Process<S> implements Deno.Closer {
       .spawn();
 
     if (options.fnStderr != null) {
-      this.stderrResult = options.fnStderr(this.process.stderr);
+      this.stderrResult = options.fnStderr(enumerate(this.process.stderr));
     }
   }
 
@@ -230,14 +231,21 @@ export class Process<S> implements Deno.Closer {
         if (errorHandler != null) {
           const stderrResult = async () => {
             if (this.stderrResult == null) {
-              return {};
+              return undefined;
             } else {
-              const stderrData: S = await this.stderrResult;
-              return { stderrData };
+              try {
+                return await this.stderrResult;
+              } catch {
+                /*
+                 * Looks a little weird, but the error is caught earlier
+                 * and passed as the primary error. We just ignore here.
+                 */
+                return undefined;
+              }
             }
           };
 
-          const { stderrData } = await stderrResult();
+          const stderrData = await stderrResult();
 
           if (error != null || stderrData != null) {
             try {
@@ -256,6 +264,7 @@ export class Process<S> implements Deno.Closer {
         }
       };
 
+      const ser = this.stderrResult;
       this._stdout = {
         async *[Symbol.asyncIterator]() {
           try {
@@ -265,6 +274,9 @@ export class Process<S> implements Deno.Closer {
 
               const status = await process.status;
               const cause = passError();
+
+              /* Allows error in custom fnStderr function to throw. */
+              await ser;
 
               if (status.signal != null) {
                 throw new SignalError(

@@ -12,6 +12,12 @@ async function* count() {
   }
 }
 
+function* countSync() {
+  for (let i = 0; i < 1_000_000; i++) {
+    yield i;
+  }
+}
+
 async function* countArray() {
   for (let i = 0; i < 1_000; i++) {
     const arr: number[] = [];
@@ -106,11 +112,39 @@ Deno.bench("in-memory array add with reduce", () => {
   numbers.reduce((acc, item) => acc + item, 0);
 });
 
-Deno.bench("in-memory array add", () => {
+Deno.bench("in-memory array add, indexed", () => {
   let acc = 0;
 
   for (let i = 0; i < numbers.length; i++) {
     acc += numbers[i];
+  }
+});
+
+Deno.bench("in-memory array add, iterable", () => {
+  let acc = 0;
+
+  for (const i of numbers) {
+    acc += numbers[i];
+  }
+});
+
+Deno.bench("in-memory array add, iterable generator", () => {
+  let acc = 0;
+
+  for (const i of countSync()) {
+    acc += numbers[i];
+  }
+});
+
+Deno.bench("fast add with function sum", () => {
+  function sum(a: number, b: number): number {
+    return a + b;
+  }
+
+  let acc = 0;
+
+  for (let i = 0; i < 1_000_000; i++) {
+    acc = sum(acc, i);
   }
 });
 

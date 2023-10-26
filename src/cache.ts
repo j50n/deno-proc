@@ -1,15 +1,19 @@
 import { retry } from "./deps/retry.ts";
 
-export const SECOND = 1000;
-export const SECONDS = SECOND;
-export const MINUTE = 60 * SECOND;
-export const MINUTES = MINUTE;
-export const HOUR = 60 * MINUTE;
-export const HOURS = HOUR;
-export const DAY = 24 * HOUR;
-export const DAYS = DAY;
-export const WEEK = 7 * DAY;
-export const WEEKS = WEEK;
+/** The number of milliseconds in a second. */
+export const SECONDS = 1000;
+
+/** The number of milliseconds in a minute. */
+export const MINUTES = 60 * SECONDS;
+
+/** The number of milliseconds in an hour. */
+export const HOURS = 60 * MINUTES;
+
+/** The number of milliseconds in a day. */
+export const DAYS = 24 * HOURS;
+
+/** The number of milliseconds in a week. */
+export const WEEKS = 7 * DAYS;
 
 function cacheKey(key: string | string[]): string[] {
   if (Array.isArray(key)) {
