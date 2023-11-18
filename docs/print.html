@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Process Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Process Input</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Process Errors</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Process Stderr</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Reading Stuff</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">9.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">10.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">11.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Sleep</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">13.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">15.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">16.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">17.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">18.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">19.</strong> Input and Output</a></li></ol>
+                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Reading Stuff</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">10.</strong> Sleep</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -172,21 +172,21 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-0213"><a class="header" href="#proc-0213"><code>proc 0.21.3</code></a></h1>
+                        <h1 id="proc-0214"><a class="header" href="#proc-0214"><code>proc 0.21.4</code></a></h1>
 <p><code>proc</code> let's you use child processes with
 <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator"><code>AsyncIterable</code></a>
 instead of the streams API, and it includes a library of higher-order functions
 for <code>AsyncIterator</code> via
-<a href="https://deno.land/x/proc@0.21.3/mod.ts?s=Enumerable"><code>Enumerable</code></a> that
+<a href="https://deno.land/x/proc@0.21.4/mod.ts?s=Enumerable"><code>Enumerable</code></a> that
 roughly matches what you can do with an array (<code>map</code>, <code>filter</code>, <code>find</code>), but for
 asynchronous code.</p>
 <p><code>proc</code> simplifies the process of converting a <code>bash</code> script into a Deno
 application. The intention is to make writing code that uses lots of IO and
 child processes <em>almost</em> as easy as shell scripting, but you also get proper
 error handling, type checking, and Deno's security-by-default.</p>
-<p><a href="https://deno.land/x/proc@0.21.3/mod.ts">Developer Documentation</a></p>
+<p><a href="https://deno.land/x/proc@0.21.4/mod.ts">Developer Documentation</a></p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.3/mod.ts&quot;;
+<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.4/mod.ts&quot;;
 </code></pre>
 <h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
 <p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
@@ -234,7 +234,7 @@ normalize to lower-case. This is all happening concurrently, mostly in parallel,
 one buffer, one line, or one word at a time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h1>
 <p><code>proc</code> lets you run a process from Deno with as little boilerplate as possible.</p>
-<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.3/mod.ts&quot;;
+<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.4/mod.ts&quot;;
 </code></pre>
 <p>To <code>ls -la</code>:</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;).toStdout();
@@ -243,12 +243,12 @@ one buffer, one line, or one word at a time.</p>
 <pre><code class="language-typescript">const lines: string[] = await run(&quot;ls&quot;, &quot;-la&quot;).lines.collect();
 </code></pre>
 <h2 id="create-a-command-programmatically"><a class="header" href="#create-a-command-programmatically">Create a Command Programmatically</a></h2>
-<pre><code class="language-typescript">import { Cmd, run } from &quot;https://deno.land/x/proc@0.21.3/mod.ts&quot;;
+<pre><code class="language-typescript">import { Cmd, run } from &quot;https://deno.land/x/proc@0.21.4/mod.ts&quot;;
 </code></pre>
 <p>A command requires that the first parameter be defined, and that it be either a
 string or a URL. Additional parameters are string values. This doesn't quite fit
 the signature of an array. Use
-<a href="https://deno.land/x/proc@0.21.3/mod.ts?s=Cmd">Cmd</a> as the type of the array.
+<a href="https://deno.land/x/proc@0.21.4/mod.ts?s=Cmd">Cmd</a> as the type of the array.
 This can be spread into <code>run</code>.</p>
 <pre><code class="language-typescript">// Assume options.all is a defined boolean.
 
@@ -261,7 +261,7 @@ await run(...cmd).toStdout();
 </code></pre>
 <p><em>The command array is type <code>Cmd</code>, not <code>string[]</code>. You need to declare this
 explicitly.</em></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="process-output"><a class="header" href="#process-output">Process Output</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="output"><a class="header" href="#output">Output</a></h1>
 <p>Process standard output, or <em>stdout</em>, is an <code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
 <p>This can be efficiently piped to another process with <code>run</code>:</p>
 <pre><code class="language-typescript">// Count the words and print the result.
@@ -295,7 +295,7 @@ an easy way to do that.</p>
 
 // Hello, world.
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="process-input"><a class="header" href="#process-input">Process Input</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="input"><a class="header" href="#input">Input</a></h1>
 <p><code>proc</code> supports standard input (<em>stdin</em>) of processes as
 <code>AsyncIterable&lt;Uint8Array | Uint8Array[] | string | string[]&gt;</code>. This means that
 you can pass in text data or byte data.</p>
@@ -320,6 +320,57 @@ await enumerate([
 
 // 2
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="stderr-and-error-handling"><a class="header" href="#stderr-and-error-handling">Stderr and Error Handling</a></h1>
+<p>Standard input and standard output from a process are handled directly as
+iterable data. There is a third data stream, standard error, that is a bit of an
+outlier. Standard error is meant to be used either purely for error text from
+the process or for some combination of logging and errors.</p>
+<p>We are going to discuss how to handle standard error and how this relates to
+error handling in the <code>proc</code> library. There are examples if you want to skip
+ahead.</p>
+<p>Default behavior of <code>stderr</code> and errors:</p>
+<ul>
+<li>all process <code>stderr</code> will be written to <code>Deno.stderr</code></li>
+<li>any exit code other than 0 will throw an
+<a href="https://deno.land/x/proc@0.21.4/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
+<li>if the process ends due to a signal, it will throw a
+<a href="https://deno.land/x/proc@0.21.4/mod.ts?s=SignalError"><code>SignalError</code></a></li>
+<li>an error coming from upstream (<code>stdin</code>) will be wrapped in an
+<a href="https://deno.land/x/proc@0.21.4/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
+</ul>
+<p>While the default behaviors are usually adequate, these can be overridden. There
+is no standard for standard error, so it may take some effort to get the results
+you want.</p>
+<h2 id="taking-control-of-stderr"><a class="header" href="#taking-control-of-stderr">Taking Control of Stderr</a></h2>
+<p>You can capture stderr by defining <code>fnStderr</code> in the process options. This
+example adds a timestamp and colors the stderr text red.</p>
+<pre><code class="language-typescript">const decoratedStderr: ProcessOptions&lt;void&gt; = {
+  fnStderr: async (stderr) =&gt; {
+    for await (const line of stderr.lines) {
+      console.error(`${gray(new Date().toISOString())} ${red(line)}`);
+    }
+  },
+};
+
+await run(
+  { ...decoratedStderr },
+  &quot;bash&quot;,
+  &quot;-c&quot;,
+  `
+    echo &quot;This goes to stderr.&quot; &gt;&amp;2 
+    echo &quot;This goes to stdout.&quot;
+  `,
+).toStdout();
+</code></pre>
+<h2 id="reinterpreting-process-errors"><a class="header" href="#reinterpreting-process-errors">Reinterpreting Process Errors</a></h2>
+<p>Catch and reinterpret exit code error, no stderr scraping.</p>
+<h2 id="throwing-errors-based-on-stderr"><a class="header" href="#throwing-errors-based-on-stderr">Throwing Errors based on Stderr</a></h2>
+<p>Scrape stderr to throw an error. Simple version. Mention the &quot;contract&quot; with
+process that all lines of stdout should be printed, or logged, or something -
+where ever you put it, make sure nothing gets dropped. So error goes at the end,
+once all lines have been processed.</p>
+<h2 id="throwing-errors-based-on-stderr-advanced"><a class="header" href="#throwing-errors-based-on-stderr-advanced">Throwing Errors based on Stderr (Advanced)</a></h2>
+<p>Scrape stderr to throw an error. Full version.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="performance"><a class="header" href="#performance">Performance</a></h1>
 <p>A few notes on performance.</p>
 <h2 id="avoid-string-conversions"><a class="header" href="#avoid-string-conversions">Avoid String Conversions</a></h2>
@@ -381,22 +432,22 @@ characters</li>
 <p>This is the &quot;normal&quot; way to work with line-delimited text. It should be a good
 solution most of the time.</p>
 <p>The
-<a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
+<a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
 method converts a line at a time.</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
   .lines
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>Alternately you can use
-<a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-with the <a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=toLines">toLines</a>
+<a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+with the <a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=toLines">toLines</a>
 transformer function.</p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
   .transform(toLines)
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>The
-<a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
+<a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
 method will automatically treat <code>string</code> values as lines, adding <code>\n</code> to them
 and converting back into <code>utf-8</code> encoded bytes.</p>
 <p>Note that this <em>always</em> assumes string data passed to it is line-delimited. If
@@ -451,13 +502,13 @@ wiki page.</p>
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
 <p><code>proc</code> ships with some useful
-<a href="https://deno.land/x/proc@0.21.3/src/transformers.ts">transformers</a>.</p>
+<a href="https://deno.land/x/proc@0.21.4/src/transformers.ts">transformers</a>.</p>
 <p>A transformer is a <em>plain-old JavaScript function</em> with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
 <p>Transformers are functions (and may be defined using asynchronous generator
 functions). You can compose them into new functions relatively easily. The
-<a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+<a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=Enumerable#method_transform_0">transform</a>
 operation is like <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but
 with with complete control over the whole stream of data - including control
@@ -668,9 +719,9 @@ how much storage space you are using/paying for, and where you are using the
 most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
 matching the number of CPU cores available (or whatever concurrency you
 specify). The specific methods that support concurrent operations are
-<a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+<a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
 and
-<a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
 <p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
 <pre><code class="language-sh">aws s3 ls
 </code></pre>
@@ -710,7 +761,7 @@ report the results as soon as they are available.</p>
 )
 </code></pre>
 <p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
-<a href="https://deno.land/x/proc@0.21.3/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+<a href="https://deno.land/x/proc@0.21.4/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
 will, by default, run one process for each CPU available concurrently until all
 work is done.</p>
 <p>The result will look something like this:</p>
