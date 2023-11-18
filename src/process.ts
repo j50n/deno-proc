@@ -270,13 +270,17 @@ export class Process<S> implements Deno.Closer {
           try {
             let error: Error | undefined;
             try {
-              yield* process.stdout;
+              let status: Deno.CommandStatus;
+              try {
+                yield* process.stdout;
+              } finally {
+                status = await process.status;
+                if (ser != null) {
+                  await ser;
+                }
+              }
 
-              const status = await process.status;
               const cause = passError();
-
-              /* Allows error in custom fnStderr function to throw. */
-              await ser;
 
               if (status.signal != null) {
                 throw new SignalError(
