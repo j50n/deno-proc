@@ -25,8 +25,8 @@ you want.
 
 ## Taking Control of Stderr
 
-You can capture stderr by defining `fnStderr` in the process options.
-This example adds a timestamp and colors the stderr text red.
+You can capture stderr by defining `fnStderr` in the process options. This
+example adds a timestamp and colors the stderr text red.
 
 ```typescript
 const decoratedStderr: ProcessOptions<void> = {

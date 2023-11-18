@@ -23,30 +23,41 @@ function cacheKey(key: string | string[]): string[] {
   }
 }
 
+/**
+ * Fetch a record from KV. Use {@link cache} instead; exported for debugging.
+ * @param key The cache key.
+ * @returns The cached record, or `null`.
+ */
+export async function fetchRecord<T>(
+  key: string | string[],
+) {
+  const kv = await retry(async () => await Deno.openKv(), { maxAttempts: 3 });
+  try {
+    return await kv.get<{ timestamp: Date; value: T }>(cacheKey(key));
+  } finally {
+    kv.close();
+  }
+}
+
 async function fetch<T>(
   key: string | string[],
   options?: { timeout?: number },
 ): Promise<T | null> {
-  const kv = await retry(async () => await Deno.openKv(), { maxAttempts: 3 });
-  try {
-    const item = await kv.get<{ timestamp: Date; value: T }>(cacheKey(key));
-    if (item.value == null) {
-      return null;
+  const item = await fetchRecord<T>(key);
+  if (item.value == null) {
+    return null;
+  } else {
+    const now = new Date().getTime();
+
+    const tout = options?.timeout == null
+      ? 24 * 60 * 60 * 1000
+      : options.timeout;
+
+    if (now - item.value.timestamp.getTime() < tout) {
+      return item.value.value;
     } else {
-      const now = new Date().getTime();
-
-      const tout = options?.timeout == null
-        ? 24 * 60 * 60 * 1000
-        : options.timeout;
-
-      if (now - item.value.timestamp.getTime() < tout) {
-        return item.value.value;
-      } else {
-        return null;
-      }
+      return null;
     }
-  } finally {
-    kv.close();
   }
 }
 
