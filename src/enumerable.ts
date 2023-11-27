@@ -489,7 +489,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       if (first) {
         first = false;
         if (zero === undefined) {
-          acc = item as U;
+          p = item as U;
           continue;
         } else {
           acc = zero;
