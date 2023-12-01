@@ -46,6 +46,98 @@ export async function* toChunkedLines(
   }
 }
 
+// /**
+//  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
+//  * (an array of lines chunked together based on buffer size)
+//  * split on `lf` and also suppressing trailing `cr`. `lf` and trailing `cr`
+//  * is removed from the returned lines. As this is line-oriented data, if the
+//  * last line is empty (the last byte was a line feed, splitting into one extra line),
+//  * it is suppressed.
+//  *
+//  * @param buffs The iterable bytes.
+//  */
+// export async function* toByteLines2(
+//   buffs: AsyncIterable<Uint8Array>,
+// ): AsyncIterable<Uint8Array[]> {
+//   /*
+//    * Using subarray since that is just a view. No copy operation. Faster.
+//    *
+//    * Iterating and testing byte-wise rather than using `find()`, which requires a
+//    * call to a function for each byte. Should be pretty close to byte-at-a-time
+//    * C-style scanning. Not as fast as a SIMD operation, but that isn't an option
+//    * here.
+//    */
+//   let currentLine: Uint8Array[] = [];
+//   let lastline: undefined | Uint8Array;
+
+//   function bufferLine(): Uint8Array | undefined {
+//     function createLine(): Uint8Array {
+//       const line = concat(currentLine);
+
+//       if (line.length > 0 && line[line.length - 1] === 13) {
+//         /*  Strip the carriage return. */
+//         return line.subarray(0, line.length - 1);
+//       } else {
+//         return line;
+//       }
+//     }
+
+//     const temp = lastline;
+//     lastline = createLine();
+//     return temp;
+//   }
+
+//   try {
+//     for await (const buff of buffs) {
+//       const length = buff.length;
+
+//       const chunk: Uint8Array[] = [];
+
+//       let start = 0;
+//       for (let pos = 0; pos < length; pos++) {
+//         if (buff[pos] === 10) {
+//           if (pos) {
+//             currentLine.push(buff.subarray(start, pos));
+//           }
+
+//           const b = bufferLine();
+//           if (b) {
+//             chunk.push(b);
+//           }
+
+//           currentLine = [];
+//           start = pos + 1;
+//         }
+//       }
+
+//       if (chunk.length > 0) {
+//         yield chunk;
+//       }
+
+//       if (start < length) {
+//         currentLine.push(buff.subarray(start));
+//       }
+//     }
+//   } finally {
+//     const chunk: Uint8Array[] = [];
+
+//     if (currentLine.length > 0) {
+//       const b = bufferLine();
+//       if (b) {
+//         chunk.push(b);
+//       }
+//     }
+
+//     if (lastline?.length) {
+//       chunk.push(lastline);
+//     }
+
+//     if (chunk.length > 0) {
+//       yield chunk;
+//     }
+//   }
+// }
+
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
  * (an array of lines chunked together based on buffer size)
@@ -59,82 +151,46 @@ export async function* toChunkedLines(
 export async function* toByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<Uint8Array[]> {
-  /*
-   * Using subarray since that is just a view. No copy operation. Faster.
-   *
-   * Iterating and testing byte-wise rather than using `find()`, which requires a
-   * call to a function for each byte. Should be pretty close to byte-at-a-time
-   * C-style scanning. Not as fast as a SIMD operation, but that isn't an option
-   * here.
-   */
-  let currentLine: Uint8Array[] = [];
-  let lastline: undefined | Uint8Array;
+  const completeLines: Uint8Array[] = [];
+  const currentLine: Uint8Array[] = [];
 
-  function bufferLine(): Uint8Array | undefined {
-    function createLine(): Uint8Array {
-      const line = concat(currentLine);
+  function makeCurrentLineComplete() {
+    const line = concat(currentLine);
+    currentLine.length = 0;
 
-      if (line.length > 0 && line[line.length - 1] === 13) {
-        /*  Strip the carriage return. */
-        return line.subarray(0, line.length - 1);
-      } else {
-        return line;
-      }
+    const lineLen = line.length;
+    if (lineLen > 0 && line[lineLen - 1] === 13) {
+      completeLines.push(line.subarray(0, lineLen - 1));
+    } else {
+      completeLines.push(line);
     }
-
-    const temp = lastline;
-    lastline = createLine();
-    return temp;
   }
 
-  try {
-    for await (const buff of buffs) {
-      const length = buff.length;
-
-      const chunk: Uint8Array[] = [];
-
-      let start = 0;
-      for (let pos = 0; pos < length; pos++) {
-        if (buff[pos] === 10) {
-          if (pos) {
-            currentLine.push(buff.subarray(start, pos));
-          }
-
-          const b = bufferLine();
-          if (b) {
-            chunk.push(b);
-          }
-
-          currentLine = [];
-          start = pos + 1;
-        }
-      }
-
-      if (chunk.length > 0) {
-        yield chunk;
-      }
-
-      if (start < length) {
-        currentLine.push(buff.subarray(start));
+  for await (const buff of buffs) {
+    const buffLen = buff.length;
+    let lastPos = 0;
+    for (let pos = 0; pos < buffLen; pos++) {
+      if (buff[pos] === 10) {
+        currentLine.push(buff.subarray(lastPos, pos));
+        makeCurrentLineComplete();
+        lastPos = pos + 1;
       }
     }
-  } finally {
-    const chunk: Uint8Array[] = [];
-
-    if (currentLine.length > 0) {
-      const b = bufferLine();
-      if (b) {
-        chunk.push(b);
-      }
+    if (lastPos < buffLen) {
+      currentLine.push(buff.subarray(lastPos));
     }
-
-    if (lastline?.length) {
-      chunk.push(lastline);
+    if (completeLines.length > 0) {
+      yield completeLines;
+      completeLines.length = 0;
     }
+  }
 
-    if (chunk.length > 0) {
-      yield chunk;
-    }
+  if (currentLine.length > 0) {
+    makeCurrentLineComplete();
+  }
+
+  if (completeLines.length > 0) {
+    yield completeLines;
   }
 }
 

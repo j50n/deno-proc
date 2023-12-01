@@ -275,9 +275,7 @@ export class Process<S> implements Deno.Closer {
                 yield* process.stdout;
               } finally {
                 status = await process.status;
-                if (ser != null) {
-                  await ser;
-                }
+                await ser;
               }
 
               const cause = passError();

@@ -9,86 +9,92 @@ class BadNewsError extends Error {
   }
 }
 
-Deno.test("error processing from stderr #1", async () => {
-  try {
-    const cmd: Cmd = [
-      "bash",
-      "-c",
-      `
+Deno.test(
+  { name: "error processing from stderr #1", sanitizeResources: false },
+  async () => {
+    try {
+      const cmd: Cmd = [
+        "bash",
+        "-c",
+        `
       echo "Hello,"
       echo "world."
       echo "BAD-NEWS" >&2
       exit 1
     `,
-    ];
+      ];
 
-    await run({
-      fnStderr: async (stderr) => {
-        let badResult = false;
+      await run({
+        fnStderr: async (stderr) => {
+          let badResult = false;
 
-        for await (const line of stderr.lines) {
-          if (line.includes("BAD-NEWS")) {
-            badResult = true;
+          for await (const line of stderr.lines) {
+            if (line.includes("BAD-NEWS")) {
+              badResult = true;
+            }
+            console.error(yellow(line));
           }
-          console.error(yellow(line));
-        }
 
-        return badResult;
-      },
-      fnError: (error?: Error, stderrData?: boolean) => {
-        if (stderrData === true) {
-          throw new BadNewsError("It's bad.");
-        } else if (error != null) {
-          throw error;
-        }
-      },
-    }, ...cmd).toStdout();
+          return badResult;
+        },
+        fnError: (error?: Error, stderrData?: boolean) => {
+          if (stderrData === true) {
+            throw new BadNewsError("It's bad.");
+          } else if (error != null) {
+            throw error;
+          }
+        },
+      }, ...cmd).toStdout();
 
-    fail("expected BadNewsError but no error thrown");
-  } catch (e) {
-    if (!(e instanceof BadNewsError)) {
-      fail(`expected BadNewsError error was ${e.name}`);
+      fail("expected BadNewsError but no error thrown");
+    } catch (e) {
+      if (!(e instanceof BadNewsError)) {
+        fail(`expected BadNewsError error was ${e.name}`);
+      }
     }
-  }
-});
+  },
+);
 
-Deno.test("error processing from stderr #2", async () => {
-  try {
-    const cmd: Cmd = [
-      "bash",
-      "-c",
-      `
+Deno.test(
+  { name: "error processing from stderr #2", sanitizeResources: false },
+  async () => {
+    try {
+      const cmd: Cmd = [
+        "bash",
+        "-c",
+        `
         echo "Hello,"
         echo "world."
         echo "BAD-NEWS" >&2
         exit 1
       `,
-    ];
+      ];
 
-    await run({
-      fnStderr: async (stderr) => {
-        let badResult = false;
+      await run({
+        fnStderr: async (stderr) => {
+          let badResult = false;
 
-        for await (const line of stderr.lines) {
-          if (line.includes("BAD-NEWS")) {
-            badResult = true;
+          for await (const line of stderr.lines) {
+            if (line.includes("BAD-NEWS")) {
+              badResult = true;
+            }
+            console.error(yellow(line));
           }
-          console.error(yellow(line));
-        }
 
-        if (badResult) {
-          throw new BadNewsError("It's bad, but at least it is simple.");
-        }
-      },
-    }, ...cmd).toStdout();
+          if (badResult) {
+            throw new BadNewsError("It's bad, but at least it is simple.");
+          }
+        },
+      }, ...cmd).toStdout();
 
-    fail("expected BadNewsError but no error thrown");
-  } catch (e) {
-    if (!(e instanceof BadNewsError)) {
-      fail(`expected BadNewsError error was ${e.name}`);
+      fail("expected BadNewsError but no error thrown");
+    } catch (e) {
+      if (!(e instanceof BadNewsError)) {
+        fail(`expected BadNewsError error was ${e.name}`);
+      }
     }
-  }
-});
+  },
+);
 
 Deno.test("error suppression", async () => {
   const cmd: Cmd = [

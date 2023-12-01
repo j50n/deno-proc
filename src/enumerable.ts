@@ -763,7 +763,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * to improve performance with larger data.
    */
   get lines(): Lines<T> {
-    return enumerate(toLines(this as Enumerable<Uint8Array>)) as Lines<T>;
+    return enumerate(toLines(this.iter as Enumerable<Uint8Array>)) as Lines<T>;
   }
 
   /**
