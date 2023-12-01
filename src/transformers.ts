@@ -141,16 +141,38 @@ export async function* toChunkedLines(
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
  * (an array of lines chunked together based on buffer size)
- * split on `lf` and also suppressing trailing `cr`. `lf` and trailing `cr`
+ * split on `lf` and also suppressing trailing `cr`.
+ *
+ * `lf` and trailing `cr`
  * is removed from the returned lines. As this is line-oriented data, if the
  * last line is empty (the last byte was a line feed, splitting into one extra line),
  * it is suppressed.
+ *
+ * Implementation attempts to minimize object creation.
  *
  * @param buffs The iterable bytes.
  */
 export async function* toByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<Uint8Array[]> {
+  /*
+   * Performance notes:
+   * 
+   * Uint8Array.subarray() returns a lightweight view into the original array.
+   * I can't get away from creating the object for the original array, and
+   * I also end up with disposable subarray objects. Can't be helped. GC pressure.
+   * 
+   * The inner loop is looking for '\n' (number 10) in the data and calling that
+   * the end of the line. This is an array index operation, whichs 10x faster than
+   * `for...of`, and I expect it is close to or at C speed. 
+   * 
+   * The overhead of async operations is relatively about 100x, so the buffer size
+   * matters, and the line size might matter as this data is usually flattened 
+   * downstream. 
+   * 
+   * I think this is as fast as I can make this in pure JavaScript.
+   */
+
   const completeLines: Uint8Array[] = [];
   const currentLine: Uint8Array[] = [];
 
@@ -169,6 +191,7 @@ export async function* toByteLines(
   for await (const buff of buffs) {
     const buffLen = buff.length;
     let lastPos = 0;
+
     for (let pos = 0; pos < buffLen; pos++) {
       if (buff[pos] === 10) {
         currentLine.push(buff.subarray(lastPos, pos));
@@ -176,9 +199,11 @@ export async function* toByteLines(
         lastPos = pos + 1;
       }
     }
+
     if (lastPos < buffLen) {
-      currentLine.push(buff.subarray(lastPos));
+      currentLine.push(buff.subarray(lastPos, buffLen));
     }
+
     if (completeLines.length > 0) {
       yield completeLines;
       completeLines.length = 0;
