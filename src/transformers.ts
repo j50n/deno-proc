@@ -157,19 +157,19 @@ export async function* toByteLines(
 ): AsyncIterable<Uint8Array[]> {
   /*
    * Performance notes:
-   * 
+   *
    * Uint8Array.subarray() returns a lightweight view into the original array.
    * I can't get away from creating the object for the original array, and
    * I also end up with disposable subarray objects. Can't be helped. GC pressure.
-   * 
+   *
    * The inner loop is looking for '\n' (number 10) in the data and calling that
    * the end of the line. This is an array index operation, whichs 10x faster than
-   * `for...of`, and I expect it is close to or at C speed. 
-   * 
+   * `for...of`, and I expect it is close to or at C speed.
+   *
    * The overhead of async operations is relatively about 100x, so the buffer size
-   * matters, and the line size might matter as this data is usually flattened 
-   * downstream. 
-   * 
+   * matters, and the line size might matter as this data is usually flattened
+   * downstream.
+   *
    * I think this is as fast as I can make this in pure JavaScript.
    */
 

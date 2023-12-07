@@ -2,58 +2,44 @@
 
 A few notes on performance.
 
-## Avoid String Conversions
+## Does Performance Matter?
 
-Avoid unnecessary string conversions.
+For 90% of the code you write, the bottom line is that performance does not
+matter. For example, if you have some code that reads configuration on startup
+and dumps it into an object, that code might be complicated, but it won't matter
+if it runs in 10 milliseconds or 100 nanoseconds. Write clear code first and
+optimize once things are working. Follow this process, and you will quickly
+figure out which things do and don't matter.
 
-Conversions from bytes to JavaScript strings and back are expensive. String data
-is typically represented at UTF-8, which is one to six bytes per unicode code
-point. JavaScript strings are represented in memory as UTF-16, or 16 bits or 32
-bits (2 bytes or 4 bytes) to represent one unicode code point. Conversion logic
-is non-trivial.
+## The Cost of Iteration
 
-Whenever possible, `proc` allows passing raw byte arrays between processes so
-conversion is optional.
+We use iteration everywhere. Doing it wrong can kill your performance. Doing it
+right can get you close to (single threaded) C performance. This is a quick
+summary of what you can expect. To keep it short, I am just going to cover the
+high points and not show my work.
 
-Do this:
+The fastest code you can write in pure JavaScript looks like
+[asm.js](https://en.wikipedia.org/wiki/Asm.js). If you stick to `for` loops that
+count and index simple types or data object lookups in arrays or numbers in
+typed-arrays (like `Uint8Array`), you can expect that code to run at or near
+single-threaded C speed.
 
-```typescript
-const lineCount = parseInt(
-  await read("warandpeace.txt").run("wc", "-l").lines.first,
-  10,
-);
-```
+Expect `for...of` with iterables and generators to be about 10x slower. This
+includes array methods like `map`, `filter`, and `reduce`. Anything that has to
+call a function in a loop is going to have extra overhead.
 
-Not this. This will work, as the lines will automatically be converted back to
-UTF-8 before being passed to `wc -l` (which counts lines). However, this makes
-the V8 engine do a lot of extra work and slows down execution.
+Promise-driven asynchronous code is another 10x slower, or 100x slower than the
+`asm.js`-style code. This affects code written using `proc`, particularly
+`Enumerable`.
 
-```typescript
-const lineCount = parseInt(
-  await read("warandpeace.txt").lines.run("wc", "-l").lines.first,
-  10,
-);
-```
-
-## Asynchronous Code
-
-Asynchronous code is fast, but it's not as fast as code using for-loops, arrays,
-and simple types.
-
-Given what it is doing, V8 does a stellar job of optimizing asynchronous code.
-Most of the time, you shouldn't have to worry about performance of code written
-this way. However, `async`/`await` isn't (quite) a zero-cost abstraction.
-
-When performance is a concern and data size allows, it may be more performant to
-move operations to in-memory arrays. Code that does lots of small operations or
-works on very small data can usually be reworked into non-asynchronous code for
-better performance.
-
-Keep in mind that code written using promises, `AsyncIterable`, and
-`async`/`await` is going to be very well optimized and run quickly. A _lot_ of
-work went into making promise code run as quickly as possible in V8. Write clean
-code first and measure your performance before you start trying to hand-optimize
-things.
+So does this mean you have to always use `asm.js` syntax? Not at all. `for...of`
+syntax and array methods make for cleaner code, and asynchronous operations are
+the whole reason we're here. Iteration performance is mostly about the inner
+loops. If your inner loops are tight, a little less efficiency in the outer
+loops won't matter much. Write clean code first. When things are working, look
+for opportunities to make it faster. Often this will mean a little profiling and
+rewriting a few routines in `asm.js` style. If you do it right, you should be
+able to get very good performance along with readable code.
 
 [Async Iterators: These Promises Are Killing My Performance!](https://medium.com/netscape/async-iterators-these-promises-are-killing-my-performance-4767df03d85b)
 on Medium and supporting benchmarks in

@@ -2,6 +2,14 @@ import { Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
 import { Writable, WritableIterable } from "./writable-iterable.ts";
 
+const runningChildProcesses: Map<string, Process<unknown>> = new Map();
+
+globalThis.addEventListener("unload", () => {
+  for (const p of runningChildProcesses.values()) {
+    p.process.kill();
+  }
+});
+
 /** Pipe kinds, matching `Deno.Command`. */
 export type PipeKinds = "piped" | "inherit" | "null";
 
@@ -129,10 +137,12 @@ export class SignalError extends ProcessError {
  * @typedef S The type shared by the `stderr` processor and the `error` handler.
  */
 export class Process<S> implements Deno.Closer {
+  readonly id = crypto.randomUUID();
+
   private stderrResult: Promise<S> | undefined;
 
   /** The wrapped process. */
-  protected readonly process: Deno.ChildProcess;
+  readonly process: Deno.ChildProcess;
 
   /**
    * Constructor.
@@ -150,6 +160,7 @@ export class Process<S> implements Deno.Closer {
       args: [...this.args],
     })
       .spawn();
+    runningChildProcesses.set(this.id, this as Process<unknown>);
 
     if (options.fnStderr != null) {
       this.stderrResult = options.fnStderr(enumerate(this.process.stderr));
@@ -181,6 +192,7 @@ export class Process<S> implements Deno.Closer {
       if (this._stdin != null) {
         await this._stdin.close();
       }
+      runningChildProcesses.delete(this.id);
     }
   }
 
