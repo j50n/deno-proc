@@ -174,21 +174,21 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-0216"><a class="header" href="#proc-0216"><code>proc 0.21.6</code></a></h1>
+                        <h1 id="proc-0217"><a class="header" href="#proc-0217"><code>proc 0.21.7</code></a></h1>
 <p><code>proc</code> let's you use child processes with
 <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator"><code>AsyncIterable</code></a>
 instead of the streams API, and it includes a library of higher-order functions
 for <code>AsyncIterator</code> via
-<a href="https://deno.land/x/proc@0.21.6/mod.ts?s=Enumerable"><code>Enumerable</code></a> that
+<a href="https://deno.land/x/proc@0.21.7/mod.ts?s=Enumerable"><code>Enumerable</code></a> that
 roughly matches what you can do with an array (<code>map</code>, <code>filter</code>, <code>find</code>), but for
 asynchronous code.</p>
 <p><code>proc</code> simplifies the process of converting a <code>bash</code> script into a Deno
 application. The intention is to make writing code that uses lots of IO and
 child processes <em>almost</em> as easy as shell scripting, but you also get proper
 error handling, type checking, and Deno's security-by-default.</p>
-<p><a href="https://deno.land/x/proc@0.21.6/mod.ts">Developer Documentation</a></p>
+<p><a href="https://deno.land/x/proc@0.21.7/mod.ts">Developer Documentation</a></p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.6/mod.ts&quot;;
+<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.7/mod.ts&quot;;
 </code></pre>
 <h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
 <p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
@@ -236,7 +236,7 @@ normalize to lower-case. This is all happening concurrently, mostly in parallel,
 one buffer, one line, or one word at a time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h1>
 <p><code>proc</code> lets you run a process from Deno with as little boilerplate as possible.</p>
-<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.6/mod.ts&quot;;
+<pre><code class="language-typescript">import { run } from &quot;https://deno.land/x/proc@0.21.7/mod.ts&quot;;
 </code></pre>
 <p>To <code>ls -la</code>:</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;).toStdout();
@@ -245,12 +245,12 @@ one buffer, one line, or one word at a time.</p>
 <pre><code class="language-typescript">const lines: string[] = await run(&quot;ls&quot;, &quot;-la&quot;).lines.collect();
 </code></pre>
 <h2 id="create-a-command-programmatically"><a class="header" href="#create-a-command-programmatically">Create a Command Programmatically</a></h2>
-<pre><code class="language-typescript">import { Cmd, run } from &quot;https://deno.land/x/proc@0.21.6/mod.ts&quot;;
+<pre><code class="language-typescript">import { Cmd, run } from &quot;https://deno.land/x/proc@0.21.7/mod.ts&quot;;
 </code></pre>
 <p>A command requires that the first parameter be defined, and that it be either a
 string or a URL. Additional parameters are string values. This doesn't quite fit
 the signature of an array. Use
-<a href="https://deno.land/x/proc@0.21.6/mod.ts?s=Cmd">Cmd</a> as the type of the array.
+<a href="https://deno.land/x/proc@0.21.7/mod.ts?s=Cmd">Cmd</a> as the type of the array.
 This can be spread into <code>run</code>.</p>
 <pre><code class="language-typescript">// Assume options.all is a defined boolean.
 
@@ -334,11 +334,11 @@ ahead.</p>
 <ul>
 <li>all process <code>stderr</code> will be written to <code>Deno.stderr</code></li>
 <li>any exit code other than 0 will throw an
-<a href="https://deno.land/x/proc@0.21.6/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
+<a href="https://deno.land/x/proc@0.21.7/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
 <li>if the process ends due to a signal, it will throw a
-<a href="https://deno.land/x/proc@0.21.6/mod.ts?s=SignalError"><code>SignalError</code></a></li>
+<a href="https://deno.land/x/proc@0.21.7/mod.ts?s=SignalError"><code>SignalError</code></a></li>
 <li>an error coming from upstream (<code>stdin</code>) will be wrapped in an
-<a href="https://deno.land/x/proc@0.21.6/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
+<a href="https://deno.land/x/proc@0.21.7/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
 </ul>
 <p>While the default behaviors are usually adequate, these can be overridden. There
 is no standard for standard error, so it may take some effort to get the results
@@ -375,44 +375,37 @@ once all lines have been processed.</p>
 <p>Scrape stderr to throw an error. Full version.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="performance"><a class="header" href="#performance">Performance</a></h1>
 <p>A few notes on performance.</p>
-<h2 id="avoid-string-conversions"><a class="header" href="#avoid-string-conversions">Avoid String Conversions</a></h2>
-<p>Avoid unnecessary string conversions.</p>
-<p>Conversions from bytes to JavaScript strings and back are expensive. String data
-is typically represented at UTF-8, which is one to six bytes per unicode code
-point. JavaScript strings are represented in memory as UTF-16, or 16 bits or 32
-bits (2 bytes or 4 bytes) to represent one unicode code point. Conversion logic
-is non-trivial.</p>
-<p>Whenever possible, <code>proc</code> allows passing raw byte arrays between processes so
-conversion is optional.</p>
-<p>Do this:</p>
-<pre><code class="language-typescript">const lineCount = parseInt(
-  await read(&quot;warandpeace.txt&quot;).run(&quot;wc&quot;, &quot;-l&quot;).lines.first,
-  10,
-);
-</code></pre>
-<p>Not this. This will work, as the lines will automatically be converted back to
-UTF-8 before being passed to <code>wc -l</code> (which counts lines). However, this makes
-the V8 engine do a lot of extra work and slows down execution.</p>
-<pre><code class="language-typescript">const lineCount = parseInt(
-  await read(&quot;warandpeace.txt&quot;).lines.run(&quot;wc&quot;, &quot;-l&quot;).lines.first,
-  10,
-);
-</code></pre>
-<h2 id="asynchronous-code"><a class="header" href="#asynchronous-code">Asynchronous Code</a></h2>
-<p>Asynchronous code is fast, but it's not as fast as code using for-loops, arrays,
-and simple types.</p>
-<p>Given what it is doing, V8 does a stellar job of optimizing asynchronous code.
-Most of the time, you shouldn't have to worry about performance of code written
-this way. However, <code>async</code>/<code>await</code> isn't (quite) a zero-cost abstraction.</p>
-<p>When performance is a concern and data size allows, it may be more performant to
-move operations to in-memory arrays. Code that does lots of small operations or
-works on very small data can usually be reworked into non-asynchronous code for
-better performance.</p>
-<p>Keep in mind that code written using promises, <code>AsyncIterable</code>, and
-<code>async</code>/<code>await</code> is going to be very well optimized and run quickly. A <em>lot</em> of
-work went into making promise code run as quickly as possible in V8. Write clean
-code first and measure your performance before you start trying to hand-optimize
-things.</p>
+<h2 id="does-performance-matter"><a class="header" href="#does-performance-matter">Does Performance Matter?</a></h2>
+<p>For 90% of the code you write, the bottom line is that performance does not
+matter. For example, if you have some code that reads configuration on startup
+and dumps it into an object, that code might be complicated, but it won't matter
+if it runs in 10 milliseconds or 100 nanoseconds. Write clear code first and
+optimize once things are working. Follow this process, and you will quickly
+figure out which things do and don't matter.</p>
+<h2 id="the-cost-of-iteration"><a class="header" href="#the-cost-of-iteration">The Cost of Iteration</a></h2>
+<p>We use iteration everywhere. Doing it wrong can kill your performance. Doing it
+right can get you close to (single threaded) C performance. This is a quick
+summary of what you can expect. To keep it short, I am just going to cover the
+high points and not show my work.</p>
+<p>The fastest code you can write in pure JavaScript looks like
+<a href="https://en.wikipedia.org/wiki/Asm.js">asm.js</a>. If you stick to <code>for</code> loops that
+count and index simple types or data object lookups in arrays or numbers in
+typed-arrays (like <code>Uint8Array</code>), you can expect that code to run at or near
+single-threaded C speed.</p>
+<p>Expect <code>for...of</code> with iterables and generators to be about 10x slower. This
+includes array methods like <code>map</code>, <code>filter</code>, and <code>reduce</code>. Anything that has to
+call a function in a loop is going to have extra overhead.</p>
+<p>Promise-driven asynchronous code is another 10x slower, or 100x slower than the
+<code>asm.js</code>-style code. This affects code written using <code>proc</code>, particularly
+<code>Enumerable</code>.</p>
+<p>So does this mean you have to always use <code>asm.js</code> syntax? Not at all. <code>for...of</code>
+syntax and array methods make for cleaner code, and asynchronous operations are
+the whole reason we're here. Iteration performance is mostly about the inner
+loops. If your inner loops are tight, a little less efficiency in the outer
+loops won't matter much. Write clean code first. When things are working, look
+for opportunities to make it faster. Often this will mean a little profiling and
+rewriting a few routines in <code>asm.js</code> style. If you do it right, you should be
+able to get very good performance along with readable code.</p>
 <p><a href="https://medium.com/netscape/async-iterators-these-promises-are-killing-my-performance-4767df03d85b">Async Iterators: These Promises Are Killing My Performance!</a>
 on Medium and supporting benchmarks in
 <a href="https://github.com/danvk/async-iteration">async-iteration</a> on Github.</p>
@@ -434,22 +427,22 @@ characters</li>
 <p>This is the &quot;normal&quot; way to work with line-delimited text. It should be a good
 solution most of the time.</p>
 <p>The
-<a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
+<a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
 method converts a line at a time.</p>
 <pre><code class="language-typescript">await run(&quot;ls&quot;, &quot;-la&quot;)
   .lines
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>Alternately you can use
-<a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-with the <a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=toLines">toLines</a>
+<a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+with the <a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=toLines">toLines</a>
 transformer function.</p>
 <pre><code class="language-typescript">await read(resolve(&quot;./warandpeace.txt.gz&quot;))
   .transform(toLines)
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>The
-<a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
+<a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
 method will automatically treat <code>string</code> values as lines, adding <code>\n</code> to them
 and converting back into <code>utf-8</code> encoded bytes.</p>
 <p>Note that this <em>always</em> assumes string data passed to it is line-delimited. If
@@ -504,13 +497,13 @@ wiki page.</p>
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
 <p><code>proc</code> ships with some useful
-<a href="https://deno.land/x/proc@0.21.6/src/transformers.ts">transformers</a>.</p>
+<a href="https://deno.land/x/proc@0.21.7/src/transformers.ts">transformers</a>.</p>
 <p>A transformer is a <em>plain-old JavaScript function</em> with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
 <p>Transformers are functions (and may be defined using asynchronous generator
 functions). You can compose them into new functions relatively easily. The
-<a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+<a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=Enumerable#method_transform_0">transform</a>
 operation is like <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but
 with with complete control over the whole stream of data - including control
@@ -721,9 +714,9 @@ how much storage space you are using/paying for, and where you are using the
 most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
 matching the number of CPU cores available (or whatever concurrency you
 specify). The specific methods that support concurrent operations are
-<a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+<a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
 and
-<a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
 <p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
 <pre><code class="language-sh">aws s3 ls
 </code></pre>
@@ -763,7 +756,7 @@ report the results as soon as they are available.</p>
 )
 </code></pre>
 <p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
-<a href="https://deno.land/x/proc@0.21.6/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+<a href="https://deno.land/x/proc@0.21.7/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
 will, by default, run one process for each CPU available concurrently until all
 work is done.</p>
 <p>The result will look something like this:</p>
