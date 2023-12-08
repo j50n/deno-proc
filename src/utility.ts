@@ -159,7 +159,8 @@ export async function sleep(delayms: number): Promise<void> {
  * @returns `true` if the thing is a string.
  */
 export function isString(s: unknown): s is string {
-  return Object.prototype.toString.call(s) === "[object String]";
+  return typeof s === "string" || s instanceof String ||
+    Object.prototype.toString.call(s) === "[object String]";
 }
 
 /**
