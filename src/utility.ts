@@ -144,24 +144,24 @@ export function range(
 }
 
 /**
- * The `sleep` function is used to pause the execution of the program for a specified amount of 
- * time. It returns a Promise that resolves after a set number of milliseconds, effectively causing a 
+ * The `sleep` function is used to pause the execution of the program for a specified amount of
+ * time. It returns a Promise that resolves after a set number of milliseconds, effectively causing a
  * delay in the execution of the subsequent code.
  *
- * @param delayms The time in milliseconds for which the execution of the program will be halted. 
+ * @param delayms The time in milliseconds for which the execution of the program will be halted.
  * This parameter is required and must be a number.
  *
- * @returns A Promise that resolves after the specified number of milliseconds. It does not return 
+ * @returns A Promise that resolves after the specified number of milliseconds. It does not return
  * any value upon resolution.
  *
  * ## Example
- * 
+ *
  * ```typescript
  * console.log("Program starts");
  * await sleep(2000);  // Pauses the execution for 2000 milliseconds
  * console.log("Program resumes after 2 seconds");
  * ```
- * In the above example, the program will print "Program starts", then it will pause for 2 seconds, 
+ * In the above example, the program will print "Program starts", then it will pause for 2 seconds,
  * and then it will print "Program resumes after 2 seconds".
  */
 export async function sleep(delayms: number): Promise<void> {
@@ -171,17 +171,25 @@ export async function sleep(delayms: number): Promise<void> {
 }
 
 /**
- * Correct check to see if something is a string.
- * @param s The thing to be checked.
- * @returns `true` if the thing is a string.
+ * Checks if the provided input is a string.
+ *
+ * This function performs a type check to determine if the provided input is a string. 
+ * It handles both string literals and instances of the `String` object.
+ *
+ * @param s The input to be checked.
+ * @returns `true` if the input is a string, `false` otherwise.
  */
 export function isString(s: unknown): s is string {
-  return typeof s === "string" || s instanceof String ||
-    Object.prototype.toString.call(s) === "[object String]";
+  return typeof s === "string";
 }
 
 /**
- * Perfect in-place array shuffle in linear time.
+ * Performs an in-place shuffle of an array in linear time.
+ *
+ * This function uses the Fisher-Yates (also known as Knuth) shuffle algorithm to rearrange 
+ * the elements in the array in a random order. The shuffle is performed in-place, meaning 
+ * that it modifies the original array instead of creating a new one. The time complexity of 
+ * the algorithm is `O(n)`, where `n` is the number of elements in the array.
  */
 export function shuffle<T>(items: T[]) {
   for (let i = 0; i < items.length; i++) {
