@@ -144,8 +144,25 @@ export function range(
 }
 
 /**
- * Sleep for a while.
- * @param delayms Delay in milliseconds.
+ * The `sleep` function is used to pause the execution of the program for a specified amount of 
+ * time. It returns a Promise that resolves after a set number of milliseconds, effectively causing a 
+ * delay in the execution of the subsequent code.
+ *
+ * @param delayms The time in milliseconds for which the execution of the program will be halted. 
+ * This parameter is required and must be a number.
+ *
+ * @returns A Promise that resolves after the specified number of milliseconds. It does not return 
+ * any value upon resolution.
+ *
+ * ## Example
+ * 
+ * ```typescript
+ * console.log("Program starts");
+ * await sleep(2000);  // Pauses the execution for 2000 milliseconds
+ * console.log("Program resumes after 2 seconds");
+ * ```
+ * In the above example, the program will print "Program starts", then it will pause for 2 seconds, 
+ * and then it will print "Program resumes after 2 seconds".
  */
 export async function sleep(delayms: number): Promise<void> {
   await new Promise<void>((resolve, _reject) =>

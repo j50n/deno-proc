@@ -26,7 +26,7 @@
 
 # Miscellaneous
 
-- [Sleep]()
+- [Sleep](./misc/sleep.md)
 - [Range]()
 - [Shuffle]()
 
