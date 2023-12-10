@@ -173,7 +173,7 @@ export async function sleep(delayms: number): Promise<void> {
 /**
  * Checks if the provided input is a string.
  *
- * This function performs a type check to determine if the provided input is a string. 
+ * This function performs a type check to determine if the provided input is a string.
  * It handles both string literals and instances of the `String` object.
  *
  * @param s The input to be checked.
@@ -186,9 +186,9 @@ export function isString(s: unknown): s is string {
 /**
  * Performs an in-place shuffle of an array in linear time.
  *
- * This function uses the Fisher-Yates (also known as Knuth) shuffle algorithm to rearrange 
- * the elements in the array in a random order. The shuffle is performed in-place, meaning 
- * that it modifies the original array instead of creating a new one. The time complexity of 
+ * This function uses the Fisher-Yates (also known as Knuth) shuffle algorithm to rearrange
+ * the elements in the array in a random order. The shuffle is performed in-place, meaning
+ * that it modifies the original array instead of creating a new one. The time complexity of
  * the algorithm is `O(n)`, where `n` is the number of elements in the array.
  */
 export function shuffle<T>(items: T[]) {

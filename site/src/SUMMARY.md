@@ -13,7 +13,7 @@
 
 # Input/Output
 
-- [Reading Stuff]()
+- [Reading Stuff](./io/read.md)
 - [Writing Stuff]()
 
 # Higher Order Functions for AsyncIterable

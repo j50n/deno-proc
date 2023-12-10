@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Reading Stuff</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><div><strong aria-hidden="true">10.</strong> Sleep</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
+                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><a href="io/read.html"><strong aria-hidden="true">5.</strong> Reading Stuff</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><a href="misc/sleep.html"><strong aria-hidden="true">10.</strong> Sleep</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -373,6 +373,22 @@ where ever you put it, make sure nothing gets dropped. So error goes at the end,
 once all lines have been processed.</p>
 <h2 id="throwing-errors-based-on-stderr-advanced"><a class="header" href="#throwing-errors-based-on-stderr-advanced">Throwing Errors based on Stderr (Advanced)</a></h2>
 <p>Scrape stderr to throw an error. Full version.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="reading-data"><a class="header" href="#reading-data">Reading Data</a></h1>
+<p><a href="io/"><code>enumerate</code></a> works with any iterable, including a <code>ReadableStream</code> (which is an <code>AsyncIterable</code>).</p>
+<h2 id="reading-from-stdin"><a class="header" href="#reading-from-stdin">Reading from <code>stdin</code></a></h2>
+<p>Deno provides <code>Deno.stdin.readable</code> which gives you a <code>stdin</code> as a <code>ReadableStream&lt;Uint8Array&gt;</code>. We can
+wrap this with <code>enumerate(...)</code> to convert to lines of text (strings).</p>
+<p>Text of <code>example.ts</code>:</p>
+<pre><code class="language-typescript">import { enumerate } from &quot;https://deno.land/x/proc@0.21.8/mod.ts&quot;;
+
+for await (const line of enumerate(Deno.stdin.readable).lines) {
+  console.log(line);
+}
+</code></pre>
+<p>To print War and Peace, line by line, to console:</p>
+<pre><code class="language-shell">zcat warandpeace.txt.gz | deno run example.ts
+</code></pre>
+<p>This operation will consume <code>stdin</code> and close it.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="performance"><a class="header" href="#performance">Performance</a></h1>
 <p>A few notes on performance.</p>
 <h2 id="does-performance-matter"><a class="header" href="#does-performance-matter">Does Performance Matter?</a></h2>
@@ -412,6 +428,13 @@ on Medium and supporting benchmarks in
 <p><a href="https://madelinemiller.dev/blog/javascript-promise-overhead/">The Performance Overhead of JavaScript Promises and Async Await</a>
 shows a couple of examples that isolate the performance difference to overhead
 due to promises.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="sleep"><a class="header" href="#sleep"><a href="https://deno.land/x/proc@0.21.8/mod.ts?s=sleep">sleep</a></a></h1>
+<p><code>sleep</code> returns a <code>Promise</code> that resolves after a specified number of
+milliseconds.</p>
+<pre><code class="language-typescript">console.log(&quot;Program starts&quot;);
+await sleep(2000); // Pauses the execution for 2000 milliseconds
+console.log(&quot;Program resumes after 2 seconds&quot;);
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="working-with-text-data"><a class="header" href="#working-with-text-data">Working with Text Data</a></h1>
 <p>Streaming data doesn't have to be line-delimited text, but it probably will be
 most of the time. Many *nix tools work with this type of data or some variation
