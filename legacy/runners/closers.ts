@@ -1,4 +1,3 @@
-import { Deferred, deferred } from "../deps.ts";
 import { GroupImpl } from "./proc-group-impl.ts";
 import { RunOptions } from "./proc-group.ts";
 
@@ -8,7 +7,7 @@ import { RunOptions } from "./proc-group.ts";
 export class MultiCloseReader implements Deno.Reader, Deno.Closer {
   private closed = false;
 
-  private _done: Deferred<void> = deferred();
+  private _done = Promise.withResolvers();
 
   constructor(private readonly reader: Deno.Reader & Deno.Closer) {
   }
@@ -16,7 +15,7 @@ export class MultiCloseReader implements Deno.Reader, Deno.Closer {
   async read(p: Uint8Array): Promise<number | null> {
     const data = await this.reader.read(p);
     if (data === null) {
-      this._done.resolve();
+      this._done.resolve(undefined);
     }
     return data;
   }
@@ -27,13 +26,13 @@ export class MultiCloseReader implements Deno.Reader, Deno.Closer {
         this.closed = true;
         this.reader.close();
       } finally {
-        this._done.resolve();
+        this._done.resolve(undefined);
       }
     }
   }
 
-  get done(): Promise<void> {
-    return this._done;
+  get done(): Promise<unknown> {
+    return this._done.promise;
   }
 }
 

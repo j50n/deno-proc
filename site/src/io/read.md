@@ -1,11 +1,13 @@
 # Reading Data
 
-[`enumerate`]() works with any iterable, including a `ReadableStream` (which is an `AsyncIterable`).
+[`enumerate`]() works with any iterable, including a `ReadableStream` (which is
+an `AsyncIterable`).
 
 ## Reading from `stdin`
 
-Deno provides `Deno.stdin.readable` which gives you a `stdin` as a `ReadableStream<Uint8Array>`. We can
-wrap this with `enumerate(...)` to convert to lines of text (strings).
+Deno provides `Deno.stdin.readable` which gives you a `stdin` as a
+`ReadableStream<Uint8Array>`. We can wrap this with `enumerate(...)` to convert
+to lines of text (strings).
 
 Text of `example.ts`:
 
@@ -24,3 +26,5 @@ zcat warandpeace.txt.gz | deno run example.ts
 ```
 
 This operation will consume `stdin` and close it.
+
+## Reading from File
