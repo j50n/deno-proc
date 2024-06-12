@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html" class="active"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><a href="io/read.html"><strong aria-hidden="true">5.</strong> Reading Stuff</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><a href="misc/sleep.html"><strong aria-hidden="true">10.</strong> Sleep</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html" class="active"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><a href="io/read.html"><strong aria-hidden="true">5.</strong> Reading Stuff</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><a href="misc/sleep.html"><strong aria-hidden="true">10.</strong> Sleep</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -185,11 +185,11 @@ ahead.</p>
 <ul>
 <li>all process <code>stderr</code> will be written to <code>Deno.stderr</code></li>
 <li>any exit code other than 0 will throw an
-<a href="https://deno.land/x/proc@0.21.9/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
+<a href="https://deno.land/x/proc@0.21.10/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
 <li>if the process ends due to a signal, it will throw a
-<a href="https://deno.land/x/proc@0.21.9/mod.ts?s=SignalError"><code>SignalError</code></a></li>
+<a href="https://deno.land/x/proc@0.21.10/mod.ts?s=SignalError"><code>SignalError</code></a></li>
 <li>an error coming from upstream (<code>stdin</code>) will be wrapped in an
-<a href="https://deno.land/x/proc@0.21.9/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
+<a href="https://deno.land/x/proc@0.21.10/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
 </ul>
 <p>While the default behaviors are usually adequate, these can be overridden. There
 is no standard for standard error, so it may take some effort to get the results
@@ -207,18 +207,18 @@ example adds a timestamp and colors the stderr text red.</p>
 
 await run(
   { ...decoratedStderr },
-  &quot;bash&quot;,
-  &quot;-c&quot;,
+  "bash",
+  "-c",
   `
-    echo &quot;This goes to stderr.&quot; &gt;&amp;2 
-    echo &quot;This goes to stdout.&quot;
+    echo "This goes to stderr." &gt;&amp;2 
+    echo "This goes to stdout."
   `,
 ).toStdout();
 </code></pre>
 <h2 id="reinterpreting-process-errors"><a class="header" href="#reinterpreting-process-errors">Reinterpreting Process Errors</a></h2>
 <p>Catch and reinterpret exit code error, no stderr scraping.</p>
 <h2 id="throwing-errors-based-on-stderr"><a class="header" href="#throwing-errors-based-on-stderr">Throwing Errors based on Stderr</a></h2>
-<p>Scrape stderr to throw an error. Simple version. Mention the &quot;contract&quot; with
+<p>Scrape stderr to throw an error. Simple version. Mention the "contract" with
 process that all lines of stdout should be printed, or logged, or something -
 where ever you put it, make sure nothing gets dropped. So error goes at the end,
 once all lines have been processed.</p>

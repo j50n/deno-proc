@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><a href="io/read.html"><strong aria-hidden="true">5.</strong> Reading Stuff</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><a href="misc/sleep.html"><strong aria-hidden="true">10.</strong> Sleep</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html" class="active"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><a href="io/read.html"><strong aria-hidden="true">5.</strong> Reading Stuff</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><a href="misc/sleep.html"><strong aria-hidden="true">10.</strong> Sleep</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html" class="active"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -192,13 +192,13 @@ set -e
 # total word count
 zcat ./warandpeace.txt.gz \
   | tr '[:upper:]' '[:lower:]' \
-  | grep -oE &quot;(\\w|'|’|-)+&quot; \
+  | grep -oE "(\\w|'|’|-)+" \
   | wc -l 
 
 #count unique words
 zcat ./warandpeace.txt.gz \
   | tr '[:upper:]' '[:lower:]' \
-  | grep -oE &quot;(\\w|'|’|-)+&quot; \
+  | grep -oE "(\\w|'|’|-)+" \
   | sort \
   | uniq \
   | wc -l
@@ -220,22 +220,22 @@ Otherwise it is doing exactly the same thing.</p>
 <p>Otherwise, this is a direct translation where <code>proc</code> just controls the streaming
 from process to process. All the same child processes are being launched.</p>
 <pre><code class="language-typescript">const [total, unique] = await Promise.all([
-  read(fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)))
-    .run(&quot;gunzip&quot;)
-    .run(&quot;tr&quot;, &quot;[:upper:]&quot;, &quot;[:lower:]&quot;)
-    .run(&quot;grep&quot;, &quot;-oE&quot;, &quot;(\\w|'|’|-)+&quot;)
-    .run(&quot;wc&quot;, &quot;-l&quot;)
+  read(fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")))
+    .run("gunzip")
+    .run("tr", "[:upper:]", "[:lower:]")
+    .run("grep", "-oE", "(\\w|'|’|-)+")
+    .run("wc", "-l")
     .lines
     .map((n) =&gt; parseInt(n, 10))
     .first,
 
-  read(fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)))
-    .run(&quot;gunzip&quot;)
-    .run(&quot;tr&quot;, &quot;[:upper:]&quot;, &quot;[:lower:]&quot;)
-    .run(&quot;grep&quot;, &quot;-oE&quot;, &quot;(\\w|'|’|-)+&quot;)
-    .run(&quot;sort&quot;)
-    .run(&quot;uniq&quot;)
-    .run(&quot;wc&quot;, &quot;-l&quot;)
+  read(fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")))
+    .run("gunzip")
+    .run("tr", "[:upper:]", "[:lower:]")
+    .run("grep", "-oE", "(\\w|'|’|-)+")
+    .run("sort")
+    .run("uniq")
+    .run("wc", "-l")
     .lines
     .map((n) =&gt; parseInt(n, 10))
     .first,
@@ -251,18 +251,18 @@ management into other processes. Consider this solution if your application is
 doing lots of other things concurrently.</p>
 <p>Note that you give up some control over error handling with this approach, so be
 sure to test for the types of errors you think you may encounter. Shell scripts
-are notorious for edge-case bugs - which is why we reach for a &quot;real&quot;
+are notorious for edge-case bugs - which is why we reach for a "real"
 programming language when things start to get complex.</p>
 <p>This is also a simple example of a generated script. We are injecting the full
 path of our text file as determined by the Deno script.</p>
 <p>This example shows the total count.</p>
 <pre><code class="language-typescript">await run(
-  &quot;/bin/bash&quot;,
-  &quot;-c&quot;,
+  "/bin/bash",
+  "-c",
   ` set -e
-    zcat &quot;${fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;))}&quot; \
+    zcat "${fromFileUrl(import.meta.resolve("./warandpeace.txt.gz"))}" \
       | tr '[:upper:]' '[:lower:]' \
-      | grep -oE &quot;(\\w|'|’|-)+&quot; \
+      | grep -oE "(\\w|'|’|-)+" \
       | wc -l
   `,
 )
@@ -294,7 +294,7 @@ memory required is quite small.</p>
 <h3 id="transformer-to-split-into-words"><a class="header" href="#transformer-to-split-into-words">Transformer to Split into Words</a></h3>
 <p>Convert each line to lower case. Use <code>Regex</code> to split the line into words.
 Remove anything without a character (all symbols), anything with a number, and
-&quot;CHAPTER&quot; titles. The symbol characters in the regular expression are specific
+"CHAPTER" titles. The symbol characters in the regular expression are specific
 to the test document and probably won't work generally.</p>
 <p>The document we are targeting, <code>./warandpeace.txt.gz</code>, uses extended unicode
 letters and a few unicode symbols as well. We know that the Typescript solution
@@ -325,7 +325,7 @@ not exactly the same, so we know something is a little bit off with <code>tr</co
 <p>Read the file. Uncompress it and convert to lines (<code>string</code>). Use the
 transformer function we created earlier, <code>split</code>, to split into words.</p>
 <pre><code class="language-typescript">const words = read(
-  fromFileUrl(import.meta.resolve(&quot;./warandpeace.txt.gz&quot;)),
+  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
 )
   .transform(gunzip)
   .transform(toLines)

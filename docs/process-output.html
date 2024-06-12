@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html" class="active"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><a href="io/read.html"><strong aria-hidden="true">5.</strong> Reading Stuff</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><a href="misc/sleep.html"><strong aria-hidden="true">10.</strong> Sleep</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Processes</li><li class="chapter-item expanded "><a href="process-run.html"><strong aria-hidden="true">1.</strong> Running a Process</a></li><li class="chapter-item expanded "><a href="process-output.html" class="active"><strong aria-hidden="true">2.</strong> Output</a></li><li class="chapter-item expanded "><a href="process-input.html"><strong aria-hidden="true">3.</strong> Input</a></li><li class="chapter-item expanded "><a href="process-stderr.html"><strong aria-hidden="true">4.</strong> Stderr and Error Handling</a></li><li class="chapter-item expanded affix "><li class="part-title">Input/Output</li><li class="chapter-item expanded "><a href="io/read.html"><strong aria-hidden="true">5.</strong> Reading Stuff</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> Writing Stuff</div></li><li class="chapter-item expanded affix "><li class="part-title">Higher Order Functions for AsyncIterable</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Enumeration</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.</strong> Compatibility with Streams</div></li><li class="chapter-item expanded "><a href="performance.html"><strong aria-hidden="true">9.</strong> Performance</a></li><li class="chapter-item expanded affix "><li class="part-title">Concurrency and Parallel Processing</li><li class="chapter-item expanded affix "><li class="part-title">Miscellaneous</li><li class="chapter-item expanded "><a href="misc/sleep.html"><strong aria-hidden="true">10.</strong> Sleep</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Range</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Shuffle</div></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="text-data.html"><strong aria-hidden="true">13.</strong> Working with Text Data</a></li><li class="chapter-item expanded "><a href="transform.html"><strong aria-hidden="true">14.</strong> Transformers</a></li><li class="chapter-item expanded affix "><li class="part-title">Examples</li><li class="chapter-item expanded "><div><strong aria-hidden="true">15.</strong> Embed a Bash Script</div></li><li class="chapter-item expanded "><a href="example-counting-words.html"><strong aria-hidden="true">16.</strong> Counting Words</a></li><li class="chapter-item expanded "><a href="example-concurrent-processing.html"><strong aria-hidden="true">17.</strong> Concurrent Processing</a></li><li class="chapter-item expanded "><a href="example-io.html"><strong aria-hidden="true">18.</strong> Input and Output</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -177,11 +177,11 @@
 <p>Process standard output, or <em>stdout</em>, is an <code>AsyncIterable&lt;Uint8Array&gt;</code>.</p>
 <p>This can be efficiently piped to another process with <code>run</code>:</p>
 <pre><code class="language-typescript">// Count the words and print the result.
-await run(&quot;echo&quot;, &quot;Hello, world.&quot;).run(&quot;wc&quot;, &quot;-w&quot;).toStdout();
+await run("echo", "Hello, world.").run("wc", "-w").toStdout();
 </code></pre>
 <p>You can't assume much about the data you are receiving from a process. It may be
 written out line by line, or it may be in large or small chunks.</p>
-<pre><code class="language-typescript">await run(&quot;echo&quot;, &quot;Hello, world.&quot;).forEach((it) =&gt; console.dir(it));
+<pre><code class="language-typescript">await run("echo", "Hello, world.").forEach((it) =&gt; console.dir(it));
 
 // Uint8Array(14) [
 //    72, 101, 108, 108, 111,
@@ -190,20 +190,20 @@ written out line by line, or it may be in large or small chunks.</p>
 // ]
 </code></pre>
 <p>That's not very useful. Let's try again, converting to text.</p>
-<pre><code class="language-typescript">await run(&quot;echo&quot;, &quot;Hello,\nworld.&quot;).lines.forEach((it) =&gt; console.dir(it));
+<pre><code class="language-typescript">await run("echo", "Hello,\nworld.").lines.forEach((it) =&gt; console.dir(it));
 
 // Hello,
 // world.
 </code></pre>
 <p>To convert the lines to an array, <code>collect</code> them.</p>
-<pre><code class="language-typescript">const data: string[] = await run(&quot;echo&quot;, &quot;Hello,\nworld.&quot;).lines.collect();
+<pre><code class="language-typescript">const data: string[] = await run("echo", "Hello,\nworld.").lines.collect();
 console.dir(data);
 
-// [ &quot;Hello,&quot;, &quot;world.&quot; ]
+// [ "Hello,", "world." ]
 </code></pre>
 <p>If you just want to dump the output from the child process to stdout, there is
 an easy way to do that.</p>
-<pre><code class="language-typescript">await run(&quot;echo&quot;, &quot;Hello, world.&quot;).toStdout();
+<pre><code class="language-typescript">await run("echo", "Hello, world.").toStdout();
 
 // Hello, world.
 </code></pre>
