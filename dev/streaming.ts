@@ -10,7 +10,7 @@
  * was playing. Another addition to my bag of tricks.
  */
 
-import { enumerate, toChunkedLines } from "../mod3.ts";
+import { enumerate, toChunkedLines } from "../mod.ts";
 import { path } from "./deps.ts";
 
 const file = await Deno.open(

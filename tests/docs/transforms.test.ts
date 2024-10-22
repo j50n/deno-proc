@@ -1,4 +1,4 @@
-import { enumerate } from "../../mod3.ts";
+import { enumerate } from "../../mod.ts";
 import { assertEquals } from "../deps/asserts.ts";
 
 async function* toLower(texts: AsyncIterable<string>) {

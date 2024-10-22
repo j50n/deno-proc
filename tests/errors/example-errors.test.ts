@@ -1,4 +1,4 @@
-import { Cmd, ExitCodeError, run } from "../../mod3.ts";
+import { Cmd, ExitCodeError, run } from "../../mod.ts";
 import { fail } from "../deps/asserts.ts";
 import { yellow } from "../deps/colors.ts";
 
@@ -49,7 +49,9 @@ Deno.test(
       fail("expected BadNewsError but no error thrown");
     } catch (e) {
       if (!(e instanceof BadNewsError)) {
-        fail(`expected BadNewsError error was ${e.name}`);
+        fail(
+          `expected BadNewsError error was ${(e as { name?: string }).name}`,
+        );
       }
     }
   },
@@ -90,7 +92,9 @@ Deno.test(
       fail("expected BadNewsError but no error thrown");
     } catch (e) {
       if (!(e instanceof BadNewsError)) {
-        fail(`expected BadNewsError error was ${e.name}`);
+        fail(
+          `expected BadNewsError error was ${(e as { name?: string }).name}`,
+        );
       }
     }
   },

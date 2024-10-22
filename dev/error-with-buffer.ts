@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
-import { Process, toChunkedLines } from "../mod3.ts";
+import { Process, toChunkedLines } from "../mod.ts";
 
 const process = new Process(
   { stdout: "piped", stdin: "piped" },

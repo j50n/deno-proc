@@ -371,7 +371,7 @@ export function transformerFromTransformStream<R, T>(
         yield item;
       }
     } catch (e) {
-      error = e;
+      error = e as Error | undefined;
     }
   }
 
@@ -387,7 +387,7 @@ export function transformerFromTransformStream<R, T>(
       }
     } catch (e) {
       if (error == null) {
-        error = e;
+        error = e as Error | undefined;
       }
     }
 

@@ -1,4 +1,4 @@
-import { ExitCodeError, run, UpstreamError } from "../../mod3.ts";
+import { ExitCodeError, run, UpstreamError } from "../../mod.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 
 Deno.test({

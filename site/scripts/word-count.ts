@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 import { fromFileUrl } from "./deps/path.ts";
-import { enumerate, gunzip, read, run } from "../../mod3.ts";
+import { enumerate, gunzip, read, run } from "../../mod.ts";
 
 console.time("count");
 

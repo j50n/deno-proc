@@ -1,1 +1,1 @@
-export * from "../../mod3.ts";
+export * from "../../mod.ts";

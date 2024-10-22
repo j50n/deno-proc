@@ -1,4 +1,4 @@
-import { ExitCodeError, run } from "../../mod3.ts";
+import { ExitCodeError, run } from "../../mod.ts";
 import { assertEquals } from "../deps/asserts.ts";
 
 async function* suppressExitCodeError<T>(

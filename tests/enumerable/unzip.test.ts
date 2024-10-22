@@ -1,4 +1,4 @@
-import { enumerate, range } from "../../mod3.ts";
+import { enumerate, range } from "../../mod.ts";
 import { assertEquals } from "../deps/asserts.ts";
 // import { assertEquals } from "..///asserts.ts";
 

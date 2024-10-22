@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
-import { enumerate, gunzip, range, run, toBytes } from "../../mod3.ts";
+import { enumerate, gunzip, range, run, toBytes } from "../../mod.ts";
 import { buffer } from "../../src/transformers.ts";
 
 await range({ to: 3 })

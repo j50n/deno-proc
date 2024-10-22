@@ -1,3 +1,4 @@
+import { Writer } from "./deps/types.ts";
 import { Enumerable, enumerate } from "./enumerable.ts";
 
 /**
@@ -208,7 +209,7 @@ export function shuffle<T>(items: T[]) {
  * @param data The data to write.
  * @param writer The writer.
  */
-export async function writeAll(data: Uint8Array, writer: Deno.Writer) {
+export async function writeAll(data: Uint8Array, writer: Writer) {
   const len = data.length;
 
   let n = await writer.write(data);

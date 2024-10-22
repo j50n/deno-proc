@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run 
 
-import { range } from "../mod3.ts";
+import { range } from "../mod.ts";
 
 /**
  * If you could count 1,000,000 times per second, it would take 285 years to

@@ -270,7 +270,7 @@ ${script}
 
 <pre><code style="white-space: pre-wrap !important;">
 ${
-          e.toString().replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+          `${e}`.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
             .replaceAll(">", "&gt;")
         }
 </code></pre>

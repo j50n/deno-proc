@@ -1,4 +1,4 @@
-import { enumerate, read } from "../../mod3.ts";
+import { enumerate, read } from "../../mod.ts";
 import { fromFileUrl } from "../deps/path.ts";
 
 Deno.test({

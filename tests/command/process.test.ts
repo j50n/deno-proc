@@ -1,4 +1,4 @@
-import { ExitCodeError, Process, toChunkedLines } from "../../mod3.ts";
+import { ExitCodeError, Process, toChunkedLines } from "../../mod.ts";
 import { assertEquals, assertRejects } from "../deps/asserts.ts";
 
 Deno.test({

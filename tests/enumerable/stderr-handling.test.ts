@@ -1,4 +1,4 @@
-import { enumerate, ExitCodeError, run, toLines } from "../../mod3.ts";
+import { enumerate, ExitCodeError, run, toLines } from "../../mod.ts";
 import { assert, assertEquals, fail } from "../deps/asserts.ts";
 import { gray } from "../deps/colors.ts";
 
@@ -82,9 +82,9 @@ Deno.test({
 
 export class TestError extends Error {
   constructor(
-    public readonly message: string,
+    message: string,
     public readonly data: string[],
-    public readonly options?: { cause?: Error },
+    options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;

@@ -1,3 +1,4 @@
+import { Closer } from "./deps/types.ts";
 import { Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
 import { Writable, WritableIterable } from "./writable-iterable.ts";
@@ -75,7 +76,7 @@ export interface ProcessStreamOptions<S> extends ProcessOptions<S> {
 /** A generic process error. */
 export abstract class ProcessError extends Error {
   constructor(
-    public readonly message: string,
+    message: string,
     public readonly options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
@@ -86,9 +87,9 @@ export abstract class ProcessError extends Error {
 /** Thrown to indicate an error occurred upstream and is being passed forward. */
 export class UpstreamError extends ProcessError {
   constructor(
-    public readonly message: string,
+    message: string,
     public readonly command: string[],
-    public readonly options?: { cause?: Error },
+    options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
@@ -101,10 +102,10 @@ export class UpstreamError extends ProcessError {
  */
 export class ExitCodeError extends ProcessError {
   constructor(
-    public readonly message: string,
+    message: string,
     public readonly command: string[],
     public readonly code: number,
-    public readonly options?: { cause?: Error },
+    options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
@@ -117,10 +118,10 @@ export class ExitCodeError extends ProcessError {
  */
 export class SignalError extends ProcessError {
   constructor(
-    public readonly message: string,
+    message: string,
     public readonly command: string[],
     public readonly signal: Deno.Signal,
-    public readonly options?: { cause?: Error },
+    options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
@@ -136,7 +137,7 @@ export class SignalError extends ProcessError {
  *
  * @typedef S The type shared by the `stderr` processor and the `error` handler.
  */
-export class Process<S> implements Deno.Closer {
+export class Process<S> implements Closer {
   readonly id = crypto.randomUUID();
 
   private stderrResult: Promise<S> | undefined;
@@ -314,9 +315,9 @@ export class Process<S> implements Deno.Closer {
                 );
               }
             } catch (e) {
-              error = e;
+              error = e as Error | undefined;
             }
-            await catchHandler(error);
+            await catchHandler(error as Error | undefined);
           } finally {
             await close();
           }
@@ -376,7 +377,7 @@ export class Process<S> implements Deno.Closer {
         } catch (e) {
           if (!(e instanceof TypeError)) {
             if (this._passError == null) {
-              this._passError = e;
+              this._passError = e as Error | undefined;
             }
           }
         }
@@ -402,7 +403,7 @@ export class Process<S> implements Deno.Closer {
           this._passError == null &&
           !(e instanceof Deno.errors.BrokenPipe)
         ) {
-          this._passError = e;
+          this._passError = e as Error | undefined;
         }
       } finally {
         await closeWriter();

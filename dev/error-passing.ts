@@ -6,7 +6,7 @@
  * This gathers the stdout and then throws the error - if working properly.
  */
 
-import { Process, toChunkedLines } from "../mod3.ts";
+import { Process, toChunkedLines } from "../mod.ts";
 
 const results: string[] = [];
 

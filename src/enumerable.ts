@@ -11,6 +11,7 @@ import {
 } from "./transformers.ts";
 import { writeAll } from "./utility.ts";
 import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
+import { Closer, Writer } from "./deps/types.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -204,7 +205,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
         }
       } catch (e) {
         if (!options?.noclose) {
-          await writer.close(e);
+          await writer.close(e as Error | undefined);
         }
       }
     }
@@ -802,7 +803,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    *
    * @param writer The target writer.
    */
-  writeBytesTo(writer: Deno.Writer & Deno.Closer): ByteSink<T> {
+  writeBytesTo(writer: Writer & Closer): ByteSink<T> {
     const iter = this.iter as AsyncIterable<Uint8Array>;
     async function inner() {
       try {

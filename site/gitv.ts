@@ -6,7 +6,7 @@
  * My very first `mdbook` plugin.
  */
 
-import { run, toLines } from "../mod3.ts";
+import { run, toLines } from "../mod.ts";
 import { enumerate } from "../src/enumerable.ts";
 
 type Section = {

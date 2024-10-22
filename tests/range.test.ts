@@ -1,4 +1,4 @@
-import { range } from "../mod3.ts";
+import { range } from "../mod.ts";
 import { assertEquals } from "./deps/asserts.ts";
 
 Deno.test({

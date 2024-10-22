@@ -10,7 +10,7 @@
  * motion.
  */
 
-import { enumerate, range, sleep, toLines } from "../mod3.ts";
+import { enumerate, range, sleep, toLines } from "../mod.ts";
 import { colors, path } from "./deps.ts";
 
 const file = await Deno.open(

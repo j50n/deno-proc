@@ -1,4 +1,4 @@
-import { gunzip, read } from "../../mod3.ts";
+import { gunzip, read } from "../../mod.ts";
 import { assertEquals } from "../deps/asserts.ts";
 import { fromFileUrl } from "../deps/path.ts";
 
