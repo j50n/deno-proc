@@ -1,1 +1,1 @@
-export * from "https://deno.land/std@0.224.0/async/retry.ts";
+export * from "jsr:@std/async@1.0.6/retry";
