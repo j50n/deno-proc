@@ -1,24 +1,42 @@
 # `proc {{gitv}}`
 
-When I started this project, Deno was still young. My goal was to create a better way to run 
-child processes. I realized the Deno had the potential to be a better version of Bash scripting.
-In its simplest form, a Deno script can run standalone, without external configuration or compilation.
-A big selling point is the security-by-default, which is a problem for system admins who run Bash 
-scripts with `root` privileges. 
-However, the young Deno lacked a lightweight, fluent way to run child processes - something that Bash is exceedingly good at.
+When I started this project, Deno was still young. My goal was to create a
+better way to run child processes. I realized the Deno had the potential to be a
+better version of Bash scripting. In its simplest form, a Deno script can run
+standalone, without external configuration or compilation. A big selling point
+is safety: decent type support and security-by-default. The complete lack of any
+guardrails in Bash scripts, or really for any scripting languages commonly
+available to system admins, is a lurking problem. These scripts often run with
+`root` privileges, and you can't always test them before you run them for the
+first time on a production server. Ouch.
 
-Fast forward a few years and a few rewrites. The library has become a way to work with streaming data (files, IO, etc.) using 
+However, the young Deno lacked a lightweight, fluent way to run child
+processes - the one thing that Bash is exceedingly good at.
+
+Fast forward a few years and a few rewrites. The library has become a way to
+work with streaming data (files, IO, etc.) using JavaScript's standard
 [`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
-instead of JavaScript streams for everything. You can use `map`, `filter`, `find`, and a whole bunch of other 
-methods just like you would on an `Array`, but they are streamed and lazy. Errors work the
-way you expect them to. You can process through terrabytes of information while using very little memory.
+in place of streams. You can use `map`, `filter`, `find`, and a whole bunch of
+other methods - just like you would on an `Array` - but they are streamed and
+lazy. Errors work the way you expect them to. You can quickly process through
+terrabytes of information using very little memory.
 
-It also lets you `run` child processes. Yeah, that part turned out really good. It's easy. It's almost trivial. 
-You can run processes concurrently. There is a little more boilerplate than Bash, you know, because it
-uses Typescript syntax - but it is really minimal and easy to read. Deno has improved their process runner since the old days, but 
-this is still better.
+It also lets you `run` child processes. Yeah, that part turned out really good.
+It's easy. It's almost trivial. You can run processes concurrently. There is a
+little more boilerplate than Bash, you know, because it uses Typescript syntax -
+but it is really minimal and easy to read. Deno has improved their process
+runner since the old days, but this is still better.
 
+This project has been a labor of love. I use this every single day, so I know it
+works. I am now actively working toward the 1.0 release. Deno 2.0 has arrived,
+and the legacy version of the code has been removed. The last version that
+supports Deno 1.46.3 is 0.21.x. Version 0.22.0 forward is tested on Deno 2.0,
+though it will probably work for late versions of Deno 1.
 
+If you happen to come across this project and wonder if it might be useful for
+you, know that I have been working on this for a couple of years now, and
+development and active support are ongoing. No warranties or promises, of
+course.
 
 <!--  `proc` let's you use child processes with
 [`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
@@ -67,8 +85,9 @@ Given the text for _War and Peace_:
   - Use `sort` with `uniq` to count the unique words.
 
 ```typescript
-const [words1, words2] = 
-  read(fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")))
+const [words1, words2] = read(
+  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
+)
   .transform(gunzip)
   .lines
   .map((line) => line.toLocaleLowerCase())
