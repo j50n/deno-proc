@@ -9,7 +9,7 @@ title = "proc"
 create-missing = false
 
 [preprocessor.mdbook-deno-script-preprocessor]
-command = """deno --unstable run \
+command = """deno run \
   --allow-net=deno.land \
   --allow-run=git \
   ../tools/mdbook-deno-script-preprocessor.ts \

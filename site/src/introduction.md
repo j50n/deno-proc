@@ -1,17 +1,37 @@
 # `proc {{gitv}}`
 
-`proc` let's you use child processes with
+When I started this project, Deno was still young. My goal was to create a better way to run 
+child processes. I realized the Deno had the potential to be a better version of Bash scripting.
+In its simplest form, a Deno script can run standalone, without external configuration or compilation.
+A big selling point is the security-by-default, which is a problem for system admins who run Bash 
+scripts with `root` privileges. 
+However, the young Deno lacked a lightweight, fluent way to run child processes - something that Bash is exceedingly good at.
+
+Fast forward a few years and a few rewrites. The library has become a way to work with streaming data (files, IO, etc.) using 
+[`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
+instead of JavaScript streams for everything. You can use `map`, `filter`, `find`, and a whole bunch of other 
+methods just like you would on an `Array`, but they are streamed and lazy. Errors work the
+way you expect them to. You can process through terrabytes of information while using very little memory.
+
+It also lets you `run` child processes. Yeah, that part turned out really good. It's easy. It's almost trivial. 
+You can run processes concurrently. There is a little more boilerplate than Bash, you know, because it
+uses Typescript syntax - but it is really minimal and easy to read. Deno has improved their process runner since the old days, but 
+this is still better.
+
+
+
+<!--  `proc` let's you use child processes with
 [`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
 instead of the streams API, and it includes a library of higher-order functions
 for `AsyncIterator` via
 [`Enumerable`](https://deno.land/x/proc@{{gitv}}/mod.ts?s=Enumerable) that
 roughly matches what you can do with an array (`map`, `filter`, `find`), but for
-asynchronous code.
+asynchronous code. -->
 
-`proc` simplifies the process of converting a `bash` script into a Deno
+<!-- `proc` simplifies the process of converting a `bash` script into a Deno
 application. The intention is to make writing code that uses lots of IO and
 child processes _almost_ as easy as shell scripting, but you also get proper
-error handling, type checking, and Deno's security-by-default.
+error handling, type checking, and Deno's security-by-default. -->
 
 [Developer Documentation](https://deno.land/x/proc@{{gitv}}/mod.ts)
 
@@ -47,13 +67,12 @@ Given the text for _War and Peace_:
   - Use `sort` with `uniq` to count the unique words.
 
 ```typescript
-const [words1, words2] = read(
-  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
-)
+const [words1, words2] = 
+  read(fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")))
   .transform(gunzip)
   .lines
   .map((line) => line.toLocaleLowerCase())
-  .run({ buffer: true }, "grep", "-oE", "(\\w|')+")
+  .run("grep", "-oE", "(\\w|')+") // grep out the words to individual lines
   .tee();
 
 const [uniqueWords, totalWords] = await Promise.all([
