@@ -163,9 +163,9 @@ how much storage space you are using/paying for, and where you are using the
 most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
 matching the number of CPU cores available (or whatever concurrency you
 specify). The specific methods that support concurrent operations are
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
 and
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
 <p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
 <pre><code class="language-sh">aws s3 ls
 </code></pre>
@@ -205,7 +205,7 @@ report the results as soon as they are available.</p>
 )
 </code></pre>
 <p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
 will, by default, run one process for each CPU available concurrently until all
 work is done.</p>
 <p>The result will look something like this:</p>

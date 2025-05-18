@@ -156,53 +156,37 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-0221"><a class="header" href="#proc-0221"><code>proc 0.22.1</code></a></h1>
-<p>When I started this project, Deno was still young. My goal was to create a
-better way to run child processes. I realized the Deno had the potential to be a
-better version of Bash scripting. In its simplest form, a Deno script can run
-standalone, without external configuration or compilation. A big selling point
-is safety: decent type support and security-by-default. The complete lack of any
-guardrails in Bash scripts, or really for any scripting languages commonly
-available to system admins, is a lurking problem. These scripts often run with
-<code>root</code> privileges, and you can't always test them before you run them for the
-first time on a production server. Ouch.</p>
-<p>However, the young Deno lacked a lightweight, fluent way to run child
-processes - the one thing that Bash is exceedingly good at.</p>
-<p>Fast forward a few years and a few rewrites. The library has become a way to
-work with streaming data (files, IO, etc.) using JavaScript's standard
+                        <h1 id="proc-0222"><a class="header" href="#proc-0222"><code>proc 0.22.2</code></a></h1>
+<p><code>proc</code> makes running child processes really, really easy.</p>
+<p>The real power of <code>proc</code>, however, is that it lets you use (most of) the higher
+order functions from JavaScript arrays - <code>map</code>, <code>filter</code>, <code>find</code>, etc. - on
 <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator"><code>AsyncIterable</code></a>
-in place of streams. You can use <code>map</code>, <code>filter</code>, <code>find</code>, and a whole bunch of
-other methods - just like you would on an <code>Array</code> - but they are streamed and
-lazy. Errors work the way you expect them to. You can quickly process through
-terrabytes of information using very little memory.</p>
-<p>It also lets you <code>run</code> child processes. Yeah, that part turned out really good.
-It's easy. It's almost trivial. You can run processes concurrently. There is a
-little more boilerplate than Bash, you know, because it uses Typescript syntax -
-but it is really minimal and easy to read. Deno has improved their process
-runner since the old days, but this is still better.</p>
-<p>This project has been a labor of love. I use this every single day, so I know it
-works. I am now actively working toward the 1.0 release. Deno 2.0 has arrived,
-and the legacy version of the code has been removed. The last version that
-supports Deno 1.46.3 is 0.21.x. Version 0.22.0 forward is tested on Deno 2.0,
-though it will probably work for late versions of Deno 1.</p>
-<p>If you happen to come across this project and wonder if it might be useful for
-you, know that I have been working on this for a couple of years now, and
-development and active support are ongoing. No warranties or promises, of
-course.</p>
-<!--  `proc` let's you use child processes with
-[`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
-instead of the streams API, and it includes a library of higher-order functions
-for `AsyncIterator` via
-[`Enumerable`](https://deno.land/x/proc@0.22.1/mod.ts?s=Enumerable) that
-roughly matches what you can do with an array (`map`, `filter`, `find`), but for
-asynchronous code. -->
-<!-- `proc` simplifies the process of converting a `bash` script into a Deno
-application. The intention is to make writing code that uses lots of IO and
-child processes _almost_ as easy as shell scripting, but you also get proper
-error handling, type checking, and Deno's security-by-default. -->
-<p><a href="https://deno.land/x/proc@0.22.1/mod.ts">Developer Documentation</a></p>
+data. The code you run this way is lazy and streamed, so you can work with data
+that is <strong>much larger</strong> than you can fit in memory. This lets you do all sorts
+of complex IO, and simply. If you have struggled to get JavaScript streams to
+run without edge case bugs, and if you find streams awkward to work with, you
+are going to love this.</p>
+<p><code>proc</code> also includes functions that make concurrent processing <em>with
+controlled/limited concurrency</em> easy, and easy to understand. If you thought
+that JavaScript was not great for parallel programming, this might change your
+mind.</p>
+<p>I personally use <code>proc</code> for sysadmin work as a replacement for Bash scripting. I
+can just drop <code>deno</code> into <code>/usr/local/bin/</code> and now I can write standalone Deno
+scripts that can do (almost) anything I would want to do with a Bash script, but
+with proper type-checking, error handling, and with <strong>safety</strong> (tightly
+sandboxed). The ability to run and manage child processes in a sane manner is
+critical for this kind of work, and this is where <code>proc</code> shines.</p>
+<p><a href="https://deno.land/x/proc@0.22.2/mod.ts">Developer Documentation</a></p>
+<h2 id="status"><a class="header" href="#status">Status</a></h2>
+<p>This project is actively maintained. I have used it almost every day since the
+first version. If you find bugs, errors, or omissions in the documentation,
+please file an issue.</p>
+<p>The API is stable. There still could be breaking changes, but things are pretty
+much done.</p>
+<p>The documentation is a work in progress. The code works. The documentation - not
+quite there yet.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-typescript">import { run } from "https://deno.land/x/proc@0.22.1/mod.ts";
+<pre><code class="language-typescript">import { run } from "https://deno.land/x/proc@0.22.2/mod.ts";
 </code></pre>
 <h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
 <p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
@@ -250,7 +234,7 @@ normalize to lower-case. This is all happening concurrently, mostly in parallel,
 one buffer, one line, or one word at a time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h1>
 <p><code>proc</code> lets you run a process from Deno with as little boilerplate as possible.</p>
-<pre><code class="language-typescript">import { run } from "https://deno.land/x/proc@0.22.1/mod.ts";
+<pre><code class="language-typescript">import { run } from "https://deno.land/x/proc@0.22.2/mod.ts";
 </code></pre>
 <p>To <code>ls -la</code>:</p>
 <pre><code class="language-typescript">await run("ls", "-la").toStdout();
@@ -259,12 +243,12 @@ one buffer, one line, or one word at a time.</p>
 <pre><code class="language-typescript">const lines: string[] = await run("ls", "-la").lines.collect();
 </code></pre>
 <h2 id="create-a-command-programmatically"><a class="header" href="#create-a-command-programmatically">Create a Command Programmatically</a></h2>
-<pre><code class="language-typescript">import { Cmd, run } from "https://deno.land/x/proc@0.22.1/mod.ts";
+<pre><code class="language-typescript">import { Cmd, run } from "https://deno.land/x/proc@0.22.2/mod.ts";
 </code></pre>
 <p>A command requires that the first parameter be defined, and that it be either a
 string or a URL. Additional parameters are string values. This doesn't quite fit
 the signature of an array. Use
-<a href="https://deno.land/x/proc@0.22.1/mod.ts?s=Cmd">Cmd</a> as the type of the array.
+<a href="https://deno.land/x/proc@0.22.2/mod.ts?s=Cmd">Cmd</a> as the type of the array.
 This can be spread into <code>run</code>.</p>
 <pre><code class="language-typescript">// Assume options.all is a defined boolean.
 
@@ -348,11 +332,11 @@ ahead.</p>
 <ul>
 <li>all process <code>stderr</code> will be written to <code>Deno.stderr</code></li>
 <li>any exit code other than 0 will throw an
-<a href="https://deno.land/x/proc@0.22.1/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
+<a href="https://deno.land/x/proc@0.22.2/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
 <li>if the process ends due to a signal, it will throw a
-<a href="https://deno.land/x/proc@0.22.1/mod.ts?s=SignalError"><code>SignalError</code></a></li>
+<a href="https://deno.land/x/proc@0.22.2/mod.ts?s=SignalError"><code>SignalError</code></a></li>
 <li>an error coming from upstream (<code>stdin</code>) will be wrapped in an
-<a href="https://deno.land/x/proc@0.22.1/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
+<a href="https://deno.land/x/proc@0.22.2/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
 </ul>
 <p>While the default behaviors are usually adequate, these can be overridden. There
 is no standard for standard error, so it may take some effort to get the results
@@ -395,7 +379,7 @@ an <code>AsyncIterable</code>).</p>
 <code>ReadableStream&lt;Uint8Array&gt;</code>. We can wrap this with <code>enumerate(...)</code> to convert
 to lines of text (strings).</p>
 <p>Text of <code>example.ts</code>:</p>
-<pre><code class="language-typescript">import { enumerate } from "https://deno.land/x/proc@0.22.1/mod.ts";
+<pre><code class="language-typescript">import { enumerate } from "https://deno.land/x/proc@0.22.2/mod.ts";
 
 for await (const line of enumerate(Deno.stdin.readable).lines) {
   console.log(line);
@@ -445,7 +429,7 @@ on Medium and supporting benchmarks in
 <p><a href="https://madelinemiller.dev/blog/javascript-promise-overhead/">The Performance Overhead of JavaScript Promises and Async Await</a>
 shows a couple of examples that isolate the performance difference to overhead
 due to promises.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="sleep"><a class="header" href="#sleep"><a href="https://deno.land/x/proc@0.22.1/mod.ts?s=sleep">sleep</a></a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="sleep"><a class="header" href="#sleep"><a href="https://deno.land/x/proc@0.22.2/mod.ts?s=sleep">sleep</a></a></h1>
 <p><code>sleep</code> returns a <code>Promise</code> that resolves after a specified number of
 milliseconds.</p>
 <pre><code class="language-typescript">console.log("Program starts");
@@ -467,22 +451,22 @@ characters</li>
 <p>This is the "normal" way to work with line-delimited text. It should be a good
 solution most of the time.</p>
 <p>The
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=ProcessEnumerable#accessor_lines">lines</a>
 method converts a line at a time.</p>
 <pre><code class="language-typescript">await run("ls", "-la")
   .lines
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>Alternately you can use
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable#method_transform_0">transform</a>
-with the <a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=toLines">toLines</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+with the <a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=toLines">toLines</a>
 transformer function.</p>
 <pre><code class="language-typescript">await read(resolve("./warandpeace.txt.gz"))
   .transform(toLines)
   .forEach((it) =&gt; console.log(it));
 </code></pre>
 <p>The
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable#method_run_0">Enumerable.run</a>
 method will automatically treat <code>string</code> values as lines, adding <code>\n</code> to them
 and converting back into <code>utf-8</code> encoded bytes.</p>
 <p>Note that this <em>always</em> assumes string data passed to it is line-delimited. If
@@ -537,13 +521,13 @@ wiki page.</p>
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="transformers"><a class="header" href="#transformers">Transformers</a></h2>
 <p><code>proc</code> ships with some useful
-<a href="https://deno.land/x/proc@0.22.1/src/transformers.ts">transformers</a>.</p>
+<a href="https://deno.land/x/proc@0.22.2/src/transformers.ts">transformers</a>.</p>
 <p>A transformer is a <em>plain-old JavaScript function</em> with this signature:</p>
 <pre><code class="language-typescript">type Transformer&lt;T, U&gt; = (it: AsyncIterable&lt;T&gt;) =&gt; AsyncIterable&lt;U&gt;;
 </code></pre>
 <p>Transformers are functions (and may be defined using asynchronous generator
 functions). You can compose them into new functions relatively easily. The
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable#method_transform_0">transform</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable#method_transform_0">transform</a>
 operation is like <code>pipeThrough</code> in streaming.</p>
 <p>A transformer transforms objects from one type to another. It is like <code>map</code> but
 with with complete control over the whole stream of data - including control
@@ -754,9 +738,9 @@ how much storage space you are using/paying for, and where you are using the
 most storage. <code>proc</code> makes it possible to run <code>ls --summarize</code> with parallelism
 matching the number of CPU cores available (or whatever concurrency you
 specify). The specific methods that support concurrent operations are
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable&amp;p=prototype.concurrentMap">.concurrentMap()</a>
 and
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>.</p>
 <p>To list the <code>s3</code> buckets in your AWS account from terminal:</p>
 <pre><code class="language-sh">aws s3 ls
 </code></pre>
@@ -796,7 +780,7 @@ report the results as soon as they are available.</p>
 )
 </code></pre>
 <p>Use <code>nice</code> because <em>this will eat your server otherwise.</em> The method
-<a href="https://deno.land/x/proc@0.22.1/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
+<a href="https://deno.land/x/proc@0.22.2/mod3.ts?s=Enumerable&amp;p=prototype.concurrentUnorderedMap">.concurrentUnorderedMap()</a>
 will, by default, run one process for each CPU available concurrently until all
 work is done.</p>
 <p>The result will look something like this:</p>

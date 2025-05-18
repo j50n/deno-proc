@@ -1,57 +1,41 @@
 # `proc {{gitv}}`
 
-When I started this project, Deno was still young. My goal was to create a
-better way to run child processes. I realized the Deno had the potential to be a
-better version of Bash scripting. In its simplest form, a Deno script can run
-standalone, without external configuration or compilation. A big selling point
-is safety: decent type support and security-by-default. The complete lack of any
-guardrails in Bash scripts, or really for any scripting languages commonly
-available to system admins, is a lurking problem. These scripts often run with
-`root` privileges, and you can't always test them before you run them for the
-first time on a production server. Ouch.
+`proc` makes running child processes really, really easy.
 
-However, the young Deno lacked a lightweight, fluent way to run child
-processes - the one thing that Bash is exceedingly good at.
-
-Fast forward a few years and a few rewrites. The library has become a way to
-work with streaming data (files, IO, etc.) using JavaScript's standard
+The real power of `proc`, however, is that it lets you use (most of) the higher
+order functions from JavaScript arrays - `map`, `filter`, `find`, etc. - on
 [`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
-in place of streams. You can use `map`, `filter`, `find`, and a whole bunch of
-other methods - just like you would on an `Array` - but they are streamed and
-lazy. Errors work the way you expect them to. You can quickly process through
-terrabytes of information using very little memory.
+data. The code you run this way is lazy and streamed, so you can work with data
+that is **much larger** than you can fit in memory. This lets you do all sorts
+of complex IO, and simply. If you have struggled to get JavaScript streams to
+run without edge case bugs, and if you find streams awkward to work with, you
+are going to love this.
 
-It also lets you `run` child processes. Yeah, that part turned out really good.
-It's easy. It's almost trivial. You can run processes concurrently. There is a
-little more boilerplate than Bash, you know, because it uses Typescript syntax -
-but it is really minimal and easy to read. Deno has improved their process
-runner since the old days, but this is still better.
+`proc` also includes functions that make concurrent processing _with
+controlled/limited concurrency_ easy, and easy to understand. If you thought
+that JavaScript was not great for parallel programming, this might change your
+mind.
 
-This project has been a labor of love. I use this every single day, so I know it
-works. I am now actively working toward the 1.0 release. Deno 2.0 has arrived,
-and the legacy version of the code has been removed. The last version that
-supports Deno 1.46.3 is 0.21.x. Version 0.22.0 forward is tested on Deno 2.0,
-though it will probably work for late versions of Deno 1.
-
-If you happen to come across this project and wonder if it might be useful for
-you, know that I have been working on this for a couple of years now, and
-development and active support are ongoing. No warranties or promises, of
-course.
-
-<!--  `proc` let's you use child processes with
-[`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
-instead of the streams API, and it includes a library of higher-order functions
-for `AsyncIterator` via
-[`Enumerable`](https://deno.land/x/proc@{{gitv}}/mod.ts?s=Enumerable) that
-roughly matches what you can do with an array (`map`, `filter`, `find`), but for
-asynchronous code. -->
-
-<!-- `proc` simplifies the process of converting a `bash` script into a Deno
-application. The intention is to make writing code that uses lots of IO and
-child processes _almost_ as easy as shell scripting, but you also get proper
-error handling, type checking, and Deno's security-by-default. -->
+I personally use `proc` for sysadmin work as a replacement for Bash scripting. I
+can just drop `deno` into `/usr/local/bin/` and now I can write standalone Deno
+scripts that can do (almost) anything I would want to do with a Bash script, but
+with proper type-checking, error handling, and with **safety** (tightly
+sandboxed). The ability to run and manage child processes in a sane manner is
+critical for this kind of work, and this is where `proc` shines.
 
 [Developer Documentation](https://deno.land/x/proc@{{gitv}}/mod.ts)
+
+## Status
+
+This project is actively maintained. I have used it almost every day since the
+first version. If you find bugs, errors, or omissions in the documentation,
+please file an issue.
+
+The API is stable. There still could be breaking changes, but things are pretty
+much done.
+
+The documentation is a work in progress. The code works. The documentation - not
+quite there yet.
 
 ## Usage
 

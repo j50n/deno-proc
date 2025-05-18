@@ -167,11 +167,11 @@ ahead.</p>
 <ul>
 <li>all process <code>stderr</code> will be written to <code>Deno.stderr</code></li>
 <li>any exit code other than 0 will throw an
-<a href="https://deno.land/x/proc@0.22.1/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
+<a href="https://deno.land/x/proc@0.22.2/mod.ts?s=ExitCodeError"><code>ExitCodeError</code></a></li>
 <li>if the process ends due to a signal, it will throw a
-<a href="https://deno.land/x/proc@0.22.1/mod.ts?s=SignalError"><code>SignalError</code></a></li>
+<a href="https://deno.land/x/proc@0.22.2/mod.ts?s=SignalError"><code>SignalError</code></a></li>
 <li>an error coming from upstream (<code>stdin</code>) will be wrapped in an
-<a href="https://deno.land/x/proc@0.22.1/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
+<a href="https://deno.land/x/proc@0.22.2/mod.ts?s=UpstreamError"><code>UpstreamError</code></a></li>
 </ul>
 <p>While the default behaviors are usually adequate, these can be overridden. There
 is no standard for standard error, so it may take some effort to get the results
