@@ -10,7 +10,8 @@ cd "$HERE/site/" && (
     cargo install mdbook mdbook-graphviz 
 
     mdbook build
-    rm -rf ../docs/*
+    rm -rf ../docs/
+    mkdir ../docs/
     rsync -av ./book/ ../docs/
 )
 

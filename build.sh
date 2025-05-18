@@ -5,12 +5,12 @@ set -x
 
 HERE="$(realpath "$(dirname "$0")")"
 
-deno install --global -rf --allow-read="$HERE/" --allow-write="$HERE/" --allow-net https://deno.land/x/udd/main.ts
+#deno install --global -rf --allow-read="$HERE/" --allow-write="$HERE/" --allow-net https://deno.land/x/udd/main.ts
 
 #echo "{\"version\":\"`git describe --tags`\"}" > "$HERE/version.json"
 
 cd "$HERE" && (
-    udd `find . -type f -name "*.ts"`
+    molt `find . -type f -name "*.ts"`
 
     deno fmt `find . -type f -name "*.md"`
     deno fmt `find . -type f -name "*.ts"`
