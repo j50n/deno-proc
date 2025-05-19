@@ -5,6 +5,8 @@
   "publish": { "exclude": [
     "**/warandpeace.txt.gz",
     "dev/",
-    "tools/"
+    "tools/",
+    "site/",
+    "docs/"
   ]}
 }

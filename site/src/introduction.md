@@ -25,17 +25,16 @@ critical for this kind of work, and this is where `proc` shines.
 
 [Developer Documentation](https://deno.land/x/proc@{{gitv}}/)
 
-## Project Status as of 2025-05-18
+## Project Status as of 2025-05-19
 
 This project is actively maintained. I use it almost every day, and I have since
 the first version. If you find bugs, errors, or omissions in the documentation,
 please file an issue.
 
-The API is stable. There still could be breaking changes, but things are pretty
-much done.
+The API is stable. There still could be breaking changes. I don't expect any
+major redesigns. 
 
-The documentation is a work in progress. The code works. The documentation - not
-quite there yet.
+The documentation is somewhat broken from the move to JSR. I am working on it.
 
 ## Usage
 
