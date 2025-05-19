@@ -10,18 +10,6 @@ Format, lint, and run tests.
 ./build.sh
 ```
 
-To build the legacy stuff.
-
-```sh
-cd ./legacy/ && ./build.ts
-```
-
-To build the new stuff and the legacy stuff together. Do this before a release.
-
-```sh
-./build-all.sh
-```
-
 ## Build Site Docs
 
 Source for the site is under `./site` and compiled to and distributed from

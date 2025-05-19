@@ -30,7 +30,12 @@ function cacheKey(key: string | string[]): string[] {
  */
 export async function fetchRecord<T>(
   key: string | string[],
-) {
+): Promise<
+  Deno.KvEntryMaybe<{
+    timestamp: Date;
+    value: T;
+  }>
+> {
   const kv = await retry(async () => await Deno.openKv(), { maxAttempts: 3 });
   try {
     return await kv.get<{ timestamp: Date; value: T }>(cacheKey(key));
@@ -93,7 +98,7 @@ export async function cache<T>(
   key: string | string[],
   value: () => T | Promise<T>,
   options?: { timeout?: number },
-) {
+): Promise<T> {
   let v: T | null = await fetch(
     key,
     options,

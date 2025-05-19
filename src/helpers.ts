@@ -1,4 +1,4 @@
-import { ProcessOptions } from "./process.ts";
+import type { ProcessOptions } from "./process.ts";
 
 export function parseArgs<S>(
   cmd: unknown[],

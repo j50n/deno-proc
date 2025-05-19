@@ -1,7 +1,7 @@
-import { Closer } from "./deps/types.ts";
-import { Enumerable, enumerate } from "./enumerable.ts";
+import type { Closer } from "./deps/types.ts";
+import { type Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
-import { Writable, WritableIterable } from "./writable-iterable.ts";
+import { type Writable, WritableIterable } from "./writable-iterable.ts";
 
 const runningChildProcesses: Map<string, Process<unknown>> = new Map();
 
@@ -138,7 +138,8 @@ export class SignalError extends ProcessError {
  * @typedef S The type shared by the `stderr` processor and the `error` handler.
  */
 export class Process<S> implements Closer {
-  readonly id = crypto.randomUUID();
+  readonly id: `${string}-${string}-${string}-${string}-${string}` = crypto
+    .randomUUID();
 
   private stderrResult: Promise<S> | undefined;
 
@@ -198,12 +199,12 @@ export class Process<S> implements Closer {
   }
 
   /** Process PID. */
-  get pid() {
+  get pid(): number {
     return this.process.pid;
   }
 
   /** Process status. */
-  get status() {
+  get status(): Promise<Deno.CommandStatus> {
     return this.process.status;
   }
 

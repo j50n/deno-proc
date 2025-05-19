@@ -1,4 +1,4 @@
-import { ProcessOptions, run } from "../../../mod.ts";
+import { type ProcessOptions, run } from "../../../mod.ts";
 import { gray, red } from "../../../src/deps/colors.ts";
 
 const decoratedStderr: ProcessOptions<void> = {

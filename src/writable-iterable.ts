@@ -55,7 +55,7 @@ export interface Writable<T> {
 export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
   private _closed = false;
 
-  get isClosed() {
+  get isClosed(): boolean {
     return this._closed;
   }
 
@@ -105,7 +105,7 @@ export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
   /**
    * It is an `AsyncIterable<T>`.
    */
-  async *[Symbol.asyncIterator]() {
+  async *[Symbol.asyncIterator](): AsyncIterator<T> {
     while (true) {
       try {
         const item = await this.queue[0].promise;

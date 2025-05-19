@@ -1,17 +1,17 @@
-import { Process, ProcessOptions } from "./process.ts";
+import { Process, type ProcessOptions } from "./process.ts";
 import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
-import { Cmd } from "./run.ts";
-import { Writable } from "./writable-iterable.ts";
+import type { Cmd } from "./run.ts";
+import type { Writable } from "./writable-iterable.ts";
 import {
   toChunkedLines,
   toLines,
   transformerFromTransformStream,
-  TransformerFunction,
+  type TransformerFunction,
 } from "./transformers.ts";
 import { writeAll } from "./utility.ts";
 import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
-import { Closer, Writer } from "./deps/types.ts";
+import type { Closer, Writer } from "./deps/types.ts";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -832,12 +832,12 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
   }
 
   /** Process PID. */
-  get pid() {
+  get pid(): number {
     return this.process.pid;
   }
 
   /** Process status. */
-  get status() {
+  get status(): Promise<Deno.CommandStatus> {
     return this.process.status;
   }
 }

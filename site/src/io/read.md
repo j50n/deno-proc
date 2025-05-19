@@ -27,4 +27,6 @@ zcat warandpeace.txt.gz | deno run example.ts
 
 This operation will consume `stdin` and close it.
 
+See [Enumerable]()
+
 ## Reading from File

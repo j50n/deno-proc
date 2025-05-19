@@ -1,5 +1,5 @@
-import { Writer } from "./deps/types.ts";
-import { Enumerable, enumerate } from "./enumerable.ts";
+import type { Writer } from "./deps/types.ts";
+import { type Enumerable, enumerate } from "./enumerable.ts";
 
 /**
  * Open a file for reading.

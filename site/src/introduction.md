@@ -23,12 +23,12 @@ with proper type-checking, error handling, and with **safety** (tightly
 sandboxed). The ability to run and manage child processes in a sane manner is
 critical for this kind of work, and this is where `proc` shines.
 
-[Developer Documentation](https://deno.land/x/proc@{{gitv}}/mod.ts)
+[Developer Documentation](https://deno.land/x/proc@{{gitv}}/)
 
-## Status
+## Project Status as of 2025-05-18
 
-This project is actively maintained. I have used it almost every day since the
-first version. If you find bugs, errors, or omissions in the documentation,
+This project is actively maintained. I use it almost every day, and I have since
+the first version. If you find bugs, errors, or omissions in the documentation,
 please file an issue.
 
 The API is stable. There still could be breaking changes, but things are pretty

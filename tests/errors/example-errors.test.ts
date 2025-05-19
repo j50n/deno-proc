@@ -1,4 +1,4 @@
-import { Cmd, ExitCodeError, run } from "../../mod.ts";
+import { type Cmd, ExitCodeError, run } from "../../mod.ts";
 import { fail } from "../deps/asserts.ts";
 import { yellow } from "../deps/colors.ts";
 

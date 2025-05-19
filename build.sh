@@ -5,9 +5,7 @@ set -x
 
 HERE="$(realpath "$(dirname "$0")")"
 
-#deno install --global -rf --allow-read="$HERE/" --allow-write="$HERE/" --allow-net https://deno.land/x/udd/main.ts
-
-#echo "{\"version\":\"`git describe --tags`\"}" > "$HERE/version.json"
+deno install --global --force --allow-env --allow-read --allow-write --allow-net --allow-run=git,deno --name molt jsr:@molt/cli
 
 cd "$HERE" && (
     molt `find . -type f -name "*.ts"`

@@ -1,4 +1,4 @@
-import { Process, ProcessOptions } from "./process.ts";
+import { Process, type ProcessOptions } from "./process.ts";
 import { parseArgs } from "./helpers.ts";
 import { ProcessEnumerable } from "./enumerable.ts";
 

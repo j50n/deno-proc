@@ -1,0 +1,10 @@
+{
+  "name": "@j50n/proc",
+  "version": "0.22.2",
+  "exports": "./mod.ts",
+  "publish": { "exclude": [
+    "**/warandpeace.txt.gz",
+    "dev/",
+    "tools/"
+  ]}
+}
