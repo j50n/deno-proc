@@ -3,7 +3,7 @@
 `proc` lets you run a process from Deno with as little boilerplate as possible.
 
 ```typescript
-import { run } from "https://deno.land/x/proc@{{gitv}}/mod.ts";
+import { run } from "jsr:@j50n/proc@{{gitv}}";
 ```
 
 To `ls -la`:
@@ -21,7 +21,7 @@ const lines: string[] = await run("ls", "-la").lines.collect();
 ## Create a Command Programmatically
 
 ```typescript
-import { Cmd, run } from "https://deno.land/x/proc@{{gitv}}/mod.ts";
+import { Cmd, run } from "jsr:@j50n/proc@{{gitv}}";
 ```
 
 A command requires that the first parameter be defined, and that it be either a

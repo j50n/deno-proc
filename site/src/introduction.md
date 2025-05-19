@@ -39,7 +39,7 @@ The documentation is somewhat broken from the move to JSR. I am working on it.
 ## Usage
 
 ```typescript
-import { run } from "https://deno.land/x/proc@{{gitv}}/mod.ts";
+import { run } from "jsr:@j50n/proc@{{gitv}}";
 ```
 
 ## A Simple Example

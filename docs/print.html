@@ -185,7 +185,7 @@ please file an issue.</p>
 major redesigns.</p>
 <p>The documentation is somewhat broken from the move to JSR. I am working on it.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-typescript">import { run } from "https://deno.land/x/proc@0.22.2/mod.ts";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.2";
 </code></pre>
 <h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
 <p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
@@ -233,7 +233,7 @@ normalize to lower-case. This is all happening concurrently, mostly in parallel,
 one buffer, one line, or one word at a time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="running-a-process"><a class="header" href="#running-a-process">Running a Process</a></h1>
 <p><code>proc</code> lets you run a process from Deno with as little boilerplate as possible.</p>
-<pre><code class="language-typescript">import { run } from "https://deno.land/x/proc@0.22.2/mod.ts";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.2";
 </code></pre>
 <p>To <code>ls -la</code>:</p>
 <pre><code class="language-typescript">await run("ls", "-la").toStdout();
@@ -242,7 +242,7 @@ one buffer, one line, or one word at a time.</p>
 <pre><code class="language-typescript">const lines: string[] = await run("ls", "-la").lines.collect();
 </code></pre>
 <h2 id="create-a-command-programmatically"><a class="header" href="#create-a-command-programmatically">Create a Command Programmatically</a></h2>
-<pre><code class="language-typescript">import { Cmd, run } from "https://deno.land/x/proc@0.22.2/mod.ts";
+<pre><code class="language-typescript">import { Cmd, run } from "jsr:@j50n/proc@0.22.2";
 </code></pre>
 <p>A command requires that the first parameter be defined, and that it be either a
 string or a URL. Additional parameters are string values. This doesn't quite fit
@@ -378,7 +378,7 @@ an <code>AsyncIterable</code>).</p>
 <code>ReadableStream&lt;Uint8Array&gt;</code>. We can wrap this with <code>enumerate(...)</code> to convert
 to lines of text (strings).</p>
 <p>Text of <code>example.ts</code>:</p>
-<pre><code class="language-typescript">import { enumerate } from "https://deno.land/x/proc@0.22.2/mod.ts";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.2";
 
 for await (const line of enumerate(Deno.stdin.readable).lines) {
   console.log(line);

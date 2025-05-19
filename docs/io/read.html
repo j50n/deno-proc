@@ -163,7 +163,7 @@ an <code>AsyncIterable</code>).</p>
 <code>ReadableStream&lt;Uint8Array&gt;</code>. We can wrap this with <code>enumerate(...)</code> to convert
 to lines of text (strings).</p>
 <p>Text of <code>example.ts</code>:</p>
-<pre><code class="language-typescript">import { enumerate } from "https://deno.land/x/proc@0.22.2/mod.ts";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.2";
 
 for await (const line of enumerate(Deno.stdin.readable).lines) {
   console.log(line);

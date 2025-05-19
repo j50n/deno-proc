@@ -12,7 +12,7 @@ to lines of text (strings).
 Text of `example.ts`:
 
 ```typescript
-import { enumerate } from "https://deno.land/x/proc@{{gitv}}/mod.ts";
+import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
 for await (const line of enumerate(Deno.stdin.readable).lines) {
   console.log(line);
