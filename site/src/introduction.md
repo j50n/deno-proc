@@ -32,7 +32,7 @@ the first version. If you find bugs, errors, or omissions in the documentation,
 please file an issue.
 
 The API is stable. There still could be breaking changes. I don't expect any
-major redesigns. 
+major redesigns.
 
 The documentation is somewhat broken from the move to JSR. I am working on it.
 
