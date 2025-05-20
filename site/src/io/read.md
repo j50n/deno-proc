@@ -53,16 +53,18 @@ for await (const line of enumerate(file.readable).transform(gunzip).lines) {
 }
 ```
 
+_No need to explicitly close the file. `ReadableStream` with iteration is
+magical._
+
 ---
 
-I could have also used
+I could have also used this:
 
 ```typescript
 enumerate(file.readable).run("gunzip").lines;
 ```
 
-to pipe the data through the command `gunzip` in a child process. This isn't
-strictly nexessary since the transformer version does not block the main
-JavaScript/Typescript thread. Both versions do the same thing, but the first
-runs in the same process, while the second runs the decompression in a separate
-process.
+to pipe the data through the command `gunzip` in a child process.
+
+Neither the transformer version nor the child-process version blocks the main
+JavaScript/Typescript thread. Both versions are non-blocking.
