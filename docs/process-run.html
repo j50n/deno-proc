@@ -166,7 +166,7 @@
 <pre><code class="language-typescript">const lines: string[] = await run("ls", "-la").lines.collect();
 </code></pre>
 <h2 id="create-a-command-programmatically"><a class="header" href="#create-a-command-programmatically">Create a Command Programmatically</a></h2>
-<pre><code class="language-typescript">import { Cmd, run } from "jsr:@j50n/proc@0.22.2";
+<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.22.2";
 </code></pre>
 <p>A command requires that the first parameter be defined, and that it be either a
 string or a URL. Additional parameters are string values. This doesn't quite fit

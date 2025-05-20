@@ -22,7 +22,7 @@ await run("echo", "Hello, world.").forEach((it) => console.dir(it));
 // ]
 ```
 
-That's not very useful. Let's try again, converting to text.
+That's not very useful. Let's try again, converting to lines of text.
 
 ```typescript
 await run("echo", "Hello,\nworld.").lines.forEach((it) => console.dir(it));

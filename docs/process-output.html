@@ -171,7 +171,7 @@ written out line by line, or it may be in large or small chunks.</p>
 //   108, 100,  46,  10
 // ]
 </code></pre>
-<p>That's not very useful. Let's try again, converting to text.</p>
+<p>That's not very useful. Let's try again, converting to lines of text.</p>
 <pre><code class="language-typescript">await run("echo", "Hello,\nworld.").lines.forEach((it) =&gt; console.dir(it));
 
 // Hello,

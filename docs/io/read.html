@@ -157,24 +157,50 @@
                     <main>
                         <h1 id="reading-data"><a class="header" href="#reading-data">Reading Data</a></h1>
 <p><a href=""><code>enumerate</code></a> works with any iterable, including a <code>ReadableStream</code> (which is
-an <code>AsyncIterable</code>).</p>
+an <code>AsyncIterable</code>). <code>proc</code> favors using <code>ReadableStream</code> because it works
+automatically with <code>AsyncIterable</code> back-propagation, so it will close
+automatically if the iteration terminates early.</p>
 <h2 id="reading-from-stdin"><a class="header" href="#reading-from-stdin">Reading from <code>stdin</code></a></h2>
-<p>Deno provides <code>Deno.stdin.readable</code> which gives you a <code>stdin</code> as a
-<code>ReadableStream&lt;Uint8Array&gt;</code>. We can wrap this with <code>enumerate(...)</code> to convert
-to lines of text (strings).</p>
-<p>Text of <code>example.ts</code>:</p>
+<p>You can get a <code>ReadableStream&lt;Uint8Array&gt;</code> from <code>stdin</code> like this:
+<code>Deno.stdin.readable</code>. We use <code>enumerate(...)</code> to add an <code>Enumerable</code> wrapper.</p>
+<p>File <code>example.ts</code>:</p>
 <pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.2";
 
 for await (const line of enumerate(Deno.stdin.readable).lines) {
   console.log(line);
 }
 </code></pre>
+<p><em>Notice the use of <code>.lines</code>. This converts the data to lines of text from
+<code>Uint8Array</code>, or byte buffers.</em></p>
 <p>To print War and Peace, line by line, to console:</p>
-<pre><code class="language-shell">zcat warandpeace.txt.gz | deno run example.ts
+<pre><code class="language-shell">cat warandpeace.txt.gz | gunzip | deno run example.ts
 </code></pre>
 <p>This operation will consume <code>stdin</code> and close it.</p>
 <p>See <a href="">Enumerable</a></p>
 <h2 id="reading-from-file"><a class="header" href="#reading-from-file">Reading from File</a></h2>
+<p>Just as for <code>stdin</code>, files have a <code>ReadableStream&lt;Uint8Array&gt;</code> view. We can read
+the file directly.</p>
+<p>In this case, the file is compressed, so we need to decompress it before we can
+extract the lines of text. I am using the <code>gunzip</code> transform function to do
+this. This is using Deno's <code>new DecompressionStream("gzip")</code> transformer stream
+behind the scenes. <code>gunzip</code> is a convenience function provided by <code>proc</code>.</p>
+<pre><code class="language-typescript">import { enumerate, gunzip } from "jsr:@j50n/proc@0.22.2";
+
+const file = Deno.open("warandpeace.txt.gz");
+
+for await (const line of enumerate(file.readable).transform(gunzip).lines) {
+  console.log(line);
+}
+</code></pre>
+<hr />
+<p>I could have also used</p>
+<pre><code class="language-typescript">enumerate(file.readable).run("gunzip").lines;
+</code></pre>
+<p>to pipe the data through the command <code>gunzip</code> in a child process. This isn't
+strictly nexessary since the transformer version does not block the main
+JavaScript/Typescript thread. Both versions do the same thing, but the first
+runs in the same process, while the second runs the decompression in a separate
+process.</p>
 
                     </main>
 
