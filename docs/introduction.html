@@ -36,11 +36,23 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
@@ -81,10 +93,13 @@
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -118,7 +133,7 @@
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -135,7 +150,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -155,7 +175,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-0222"><a class="header" href="#proc-0222"><code>proc 0.22.2</code></a></h1>
+                        <h1 id="proc-0224"><a class="header" href="#proc-0224"><code>proc 0.22.4</code></a></h1>
 <p><code>proc</code> makes running child processes really, really easy.</p>
 <p>The real power of <code>proc</code>, however, is that it lets you use (most of) the higher
 order functions from JavaScript arrays - <code>map</code>, <code>filter</code>, <code>find</code>, etc. - on
@@ -175,7 +195,7 @@ scripts that can do (almost) anything I would want to do with a Bash script, but
 with proper type-checking, error handling, and with <strong>safety</strong> (tightly
 sandboxed). The ability to run and manage child processes in a sane manner is
 critical for this kind of work, and this is where <code>proc</code> shines.</p>
-<p><a href="https://deno.land/x/proc@0.22.2/">Developer Documentation</a></p>
+<p><a href="https://deno.land/x/proc@0.22.4/">Developer Documentation</a></p>
 <h2 id="project-status-as-of-2025-05-19"><a class="header" href="#project-status-as-of-2025-05-19">Project Status as of 2025-05-19</a></h2>
 <p>This project is actively maintained. I use it almost every day, and I have since
 the first version. If you find bugs, errors, or omissions in the documentation,
@@ -184,7 +204,7 @@ please file an issue.</p>
 major redesigns.</p>
 <p>The documentation is somewhat broken from the move to JSR. I am working on it.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.4";
 </code></pre>
 <h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
 <p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
@@ -271,6 +291,7 @@ one buffer, one line, or one word at a time.</p>
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
