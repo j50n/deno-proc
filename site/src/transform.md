@@ -38,3 +38,56 @@ const lowered = await enumerable(["A", "B", "C"])
 
 assertEquals(lowered, ["a", "b", "c"], "Transformed to lower-case.");
 ```
+
+`proc` provides canned transform functions for:
+
+- compression and decompression
+- JSON serialization (for line-oriented JSON)
+- conversion between byte data and string data
+
+## Using `TransformStream` with `proc`
+
+The
+[JavaScript Steams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API)
+is efficient, but it is unnecessarily awkward to use. Coding against it is
+unintuitive, and error handling is an afterthought.
+
+There are some powerful `TransformStream`s available, and we can steal them.
+When you wrap `TransformStream` this way, errors are handled/propagated
+correctly in the streamed data. You end up with much cleaner code.
+
+To wrap a `TransformStream`, use the `transformerFromTransformStream` function.
+This just returns a `(AsyncIterable<T>)=>AsyncIterable<T>`.
+
+Here is the code for the `gunzip` function from `proc`. It takes byte data as
+input and decompresses it to byte data.
+
+```typescript
+/**
+ * Decompress a `gzip` compressed stream.
+ */
+export const gunzip: TransformerFunction<
+  BufferSource,
+  Uint8Array<ArrayBufferLike>
+> = transformerFromTransformStream(
+  new DecompressionStream("gzip"),
+);
+```
+
+An example:
+
+```typescript
+enumerate("myfile.txt.gz")
+  .transform(gunzip)
+  .lines
+  .foreach((line) => console.info(line));
+```
+
+As an alternative, I can pass the `TransformStream` in directly:
+
+```typescript
+enumerate("myfile.txt.gz")
+  .transform(new DecompressionStream("gzip"))
+  .lines
+  .foreach((line) => console.info(line));
+```

@@ -573,6 +573,34 @@ transform strings to lower-case:</p>
 
 assertEquals(lowered, ["a", "b", "c"], "Transformed to lower-case.");
 </code></pre>
+<h2 id="using-transformstreams-with-proc"><a class="header" href="#using-transformstreams-with-proc">Using TransformStreams with <code>proc</code></a></h2>
+<p>The
+<a href="https://developer.mozilla.org/en-US/docs/Web/API/Streams_API">JavaScript Steams API</a>
+is efficient, but it is unnecessarily awkward to use. Coding against it is a bit
+unintuitive, and error handling is an afterthought.</p>
+<p>However, there are some nice <code>TransformStream</code>s available, and we can steal
+them. When you wrap <code>TransformStream</code> this way, errors are handled/propagated
+correctly in the streamed data. You end up with much cleaner code.</p>
+<p>To wrap a <code>TransformStream</code>, use the <code>transformerFromTransformStream</code> function.
+This just returns a <code>(AsyncIterable&lt;T&gt;)=&gt;AsyncIterable&lt;T&gt;</code>.</p>
+<p>Here is the code for the <code>gunzip</code> function from <code>proc</code>. It takes byte data as
+input and decompresses it to byte data.</p>
+<pre><code class="language-typescript">/**
+ * Decompress a `gzip` compressed stream.
+ */
+export const gunzip: TransformerFunction&lt;
+  BufferSource,
+  Uint8Array&lt;ArrayBufferLike&gt;
+&gt; = transformerFromTransformStream(
+  new DecompressionStream("gzip"),
+);
+</code></pre>
+<p>Now I can use the standard JavaScript <code>DecompressionStream</code> with iterables.</p>
+<pre><code class="language-typescript">enumerate("myfile.txt.gz")
+  .transform(gunzip)
+  .lines
+  .foreach((line) =&gt; console.info(line));
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="counting-words"><a class="header" href="#counting-words">Counting Words <!-- omit from toc --></a></h1>
 <ul>
 <li><a href="example-counting-words.html#direct-translation-from-bash">Direct Translation from Bash</a></li>
