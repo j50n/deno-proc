@@ -45,10 +45,13 @@ export async function* toChunkedLines(
   let leftover: string = "";
 
   const decoder = new TextDecoder("utf-8", { fatal: true });
+
   for await (const buff of buffs) {
     const lines = decoder.decode(buff, { stream: true }).split("\n");
     lines[0] = leftover + lines[0];
+
     leftover = lines.pop()!;
+
     if (lines.length !== 0) {
       yield lines;
     }
@@ -56,13 +59,13 @@ export async function* toChunkedLines(
 
   const lines = decoder.decode().split("\n");
   lines[0] = leftover + lines[0];
-  leftover = lines.pop()!;
-  if (lines.length !== 0) {
-    yield lines;
+
+  if (lines.at(-1)!.length === 0) {
+    lines.pop();
   }
 
-  if (leftover.length !== 0) {
-    yield [leftover];
+  if (lines.length !== 0) {
+    yield lines;
   }
 }
 
