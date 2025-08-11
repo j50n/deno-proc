@@ -1,6 +1,13 @@
 import { blue } from "./deps/colors.ts";
+import { enumerate } from "./enumerable.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat, isString } from "./utility.ts";
+
+/**
+ * Standard data, either string, arrays of strings (lines),
+ * byte data, or arrays of byte data.
+ */
+export type StandardData = string | Uint8Array | string[] | Uint8Array[];
 
 /**
  * Type signature of a transformer.
@@ -17,12 +24,8 @@ export type TransformerFunction<T, U> = (
 export async function* toLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string> {
-  const decoder = new TextDecoder();
-
-  for await (const lines of toByteLines(buffs)) {
-    for (const line of lines) {
-      yield decoder.decode(line);
-    }
+  for await (const lines of toChunkedLines(buffs)) {
+    yield* lines;
   }
 }
 
@@ -39,104 +42,29 @@ export async function* toLines(
 export async function* toChunkedLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string[]> {
-  const decoder = new TextDecoder();
+  let leftover: string = "";
 
-  for await (const lines of toByteLines(buffs)) {
-    yield lines.map((line) => decoder.decode(line));
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  for await (const buff of buffs) {
+    const lines = decoder.decode(buff, { stream: true }).split("\n");
+    lines[0] = leftover + lines[0];
+    leftover = lines.pop()!;
+    if (lines.length !== 0) {
+      yield lines;
+    }
+  }
+
+  const lines = decoder.decode().split("\n");
+  lines[0] = leftover + lines[0];
+  leftover = lines.pop()!;
+  if (lines.length !== 0) {
+    yield lines;
+  }
+
+  if (leftover.length !== 0) {
+    yield [leftover];
   }
 }
-
-// /**
-//  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
-//  * (an array of lines chunked together based on buffer size)
-//  * split on `lf` and also suppressing trailing `cr`. `lf` and trailing `cr`
-//  * is removed from the returned lines. As this is line-oriented data, if the
-//  * last line is empty (the last byte was a line feed, splitting into one extra line),
-//  * it is suppressed.
-//  *
-//  * @param buffs The iterable bytes.
-//  */
-// export async function* toByteLines2(
-//   buffs: AsyncIterable<Uint8Array>,
-// ): AsyncIterable<Uint8Array[]> {
-//   /*
-//    * Using subarray since that is just a view. No copy operation. Faster.
-//    *
-//    * Iterating and testing byte-wise rather than using `find()`, which requires a
-//    * call to a function for each byte. Should be pretty close to byte-at-a-time
-//    * C-style scanning. Not as fast as a SIMD operation, but that isn't an option
-//    * here.
-//    */
-//   let currentLine: Uint8Array[] = [];
-//   let lastline: undefined | Uint8Array;
-
-//   function bufferLine(): Uint8Array | undefined {
-//     function createLine(): Uint8Array {
-//       const line = concat(currentLine);
-
-//       if (line.length > 0 && line[line.length - 1] === 13) {
-//         /*  Strip the carriage return. */
-//         return line.subarray(0, line.length - 1);
-//       } else {
-//         return line;
-//       }
-//     }
-
-//     const temp = lastline;
-//     lastline = createLine();
-//     return temp;
-//   }
-
-//   try {
-//     for await (const buff of buffs) {
-//       const length = buff.length;
-
-//       const chunk: Uint8Array[] = [];
-
-//       let start = 0;
-//       for (let pos = 0; pos < length; pos++) {
-//         if (buff[pos] === 10) {
-//           if (pos) {
-//             currentLine.push(buff.subarray(start, pos));
-//           }
-
-//           const b = bufferLine();
-//           if (b) {
-//             chunk.push(b);
-//           }
-
-//           currentLine = [];
-//           start = pos + 1;
-//         }
-//       }
-
-//       if (chunk.length > 0) {
-//         yield chunk;
-//       }
-
-//       if (start < length) {
-//         currentLine.push(buff.subarray(start));
-//       }
-//     }
-//   } finally {
-//     const chunk: Uint8Array[] = [];
-
-//     if (currentLine.length > 0) {
-//       const b = bufferLine();
-//       if (b) {
-//         chunk.push(b);
-//       }
-//     }
-
-//     if (lastline?.length) {
-//       chunk.push(lastline);
-//     }
-
-//     if (chunk.length > 0) {
-//       yield chunk;
-//     }
-//   }
-// }
 
 /**
  * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
@@ -234,7 +162,7 @@ export async function* toByteLines(
  * @param iter
  */
 export async function* toBytes(
-  iter: AsyncIterable<string | Uint8Array | string[] | Uint8Array[]>,
+  iter: AsyncIterable<StandardData>,
 ): AsyncIterable<Uint8Array> {
   const encoder = new TextEncoder();
   const lf = encoder.encode("\n");
@@ -345,12 +273,24 @@ export async function* jsonParse<T>(
 /**
  * Decompress a `gzip` compressed stream.
  */
-export function gunzip(
-  chunks: AsyncIterable<Uint8Array>,
+export const gunzip: TransformerFunction<
+  BufferSource,
+  Uint8Array<ArrayBufferLike>
+> = transformerFromTransformStream(
+  new DecompressionStream("gzip"),
+);
+
+/**
+ * Compress string or byte data using `gzip`.
+ */
+export function gzip(
+  chunks: AsyncIterable<StandardData>,
 ): AsyncIterable<Uint8Array> {
-  return transformerFromTransformStream(
-    new DecompressionStream("gzip"),
-  )(chunks);
+  return enumerate(chunks)
+    .transform(toBytes)
+    .transform(transformerFromTransformStream(
+      new CompressionStream("gzip"),
+    ));
 }
 
 /**
