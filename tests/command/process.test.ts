@@ -1,5 +1,5 @@
 import { ExitCodeError, Process, toChunkedLines } from "../../mod.ts";
-import { assertEquals, assertRejects } from "../deps/asserts.ts";
+import { assertEquals, assertRejects } from "jsr:@std/assert@1.0.13";
 
 Deno.test({
   name: "All data output before the exit is captured.",

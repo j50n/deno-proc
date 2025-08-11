@@ -1,4 +1,4 @@
-import type { Writer } from "./deps/types.ts";
+import type { Writer } from "jsr:@std/io@0.225.0/types";
 import { type Enumerable, enumerate } from "./enumerable.ts";
 
 /**

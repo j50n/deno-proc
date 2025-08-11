@@ -1,6 +1,6 @@
+import { yellow } from "jsr:@std/fmt@1.0.2/colors";
 import { type Cmd, ExitCodeError, run } from "../../mod.ts";
-import { fail } from "../deps/asserts.ts";
-import { yellow } from "../deps/colors.ts";
+import { fail } from "jsr:@std/assert@1.0.13";
 
 class BadNewsError extends Error {
   constructor(message: string) {

@@ -5,10 +5,8 @@ set -x
 
 HERE="$(realpath "$(dirname "$0")")"
 
-deno install --global --force --allow-env --allow-read --allow-write --allow-net --allow-run=git,deno --name molt jsr:@molt/cli
-
 cd "$HERE" && (
-    molt `find . -type f -name "*.ts"`
+    deno update `find . -type f -name "*.ts"`
 
     deno fmt `find . -type f -name "*.md"`
     deno fmt `find . -type f -name "*.ts"`

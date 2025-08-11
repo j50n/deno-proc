@@ -10,11 +10,12 @@
  * motion.
  */
 
+import { fromFileUrl } from "jsr:@std/path@1.0.6";
 import { enumerate, range, sleep, toLines } from "../mod.ts";
-import { colors, path } from "./deps.ts";
+import { blue, cyan, gray, red } from "jsr:@std/fmt@1.0.2/colors";
 
 const file = await Deno.open(
-  path.fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
+  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
 );
 
 /*
@@ -32,7 +33,7 @@ function test(
       await sleep(500);
       count += 1;
       console.error(
-        colors.gray(
+        gray(
           `${new Date().toISOString()} ${
             count.toString().padStart(3, "0")
           } ${label} `,
@@ -66,14 +67,14 @@ for await (
     .run("cat").transform(test("H cat"))
 ) {
   count += 1;
-  console.log(`${colors.blue(`${count}`)}: ${colors.cyan(line)}`);
+  console.log(`${blue(`${count}`)}: ${cyan(line)}`);
 
   if (count >= 10) {
     break OUTER;
   }
 }
 
-console.error(colors.red("Waiting 60 seconds..."));
+console.error(red("Waiting 60 seconds..."));
 /*
  * The wait period is necessary to show the cleanup behavior. The underlying processes
  * continue to process data until they figure out they are no longer needed and automagically
@@ -83,7 +84,7 @@ console.error(colors.red("Waiting 60 seconds..."));
 
 await range({ from: 60, until: 1, step: -1 }).forEach(async (i) => {
   await sleep(1000);
-  console.error(`🐑 ${colors.gray(`... ${i.toLocaleString()}`)}`);
+  console.error(`🐑 ${gray(`... ${i.toLocaleString()}`)}`);
 });
 
-console.error(colors.red("Done."));
+console.error(red("Done."));

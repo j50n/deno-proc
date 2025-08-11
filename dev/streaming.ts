@@ -10,11 +10,11 @@
  * was playing. Another addition to my bag of tricks.
  */
 
+import { fromFileUrl } from "jsr:@std/path@1.0.6";
 import { enumerate, toChunkedLines } from "../mod.ts";
-import { path } from "./deps.ts";
 
 const file = await Deno.open(
-  path.fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
+  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
 );
 
 await enumerate(file.readable)

@@ -1,5 +1,5 @@
+import { fromFileUrl } from "jsr:@std/path@1.0.6";
 import { enumerate, read } from "../../mod.ts";
-import { fromFileUrl } from "../deps/path.ts";
 
 Deno.test({
   name: "Use the `enumerate` function on a file.",

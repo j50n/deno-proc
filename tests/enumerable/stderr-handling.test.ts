@@ -1,6 +1,6 @@
+import { gray } from "jsr:@std/fmt@1.0.2/colors";
 import { enumerate, ExitCodeError, run, toLines } from "../../mod.ts";
-import { assert, assertEquals, fail } from "../deps/asserts.ts";
-import { gray } from "../deps/colors.ts";
+import { assert, assertEquals, fail } from "jsr:@std/assert@1.0.13";
 
 Deno.test({
   name: "I can process stderr as lines.",

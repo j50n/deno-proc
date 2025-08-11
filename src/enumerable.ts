@@ -1,5 +1,4 @@
 import { Process, type ProcessOptions } from "./process.ts";
-import { tee } from "./deps/tee.ts";
 import { parseArgs } from "./helpers.ts";
 import type { Cmd } from "./run.ts";
 import type { Writable } from "./writable-iterable.ts";
@@ -11,7 +10,8 @@ import {
 } from "./transformers.ts";
 import { writeAll } from "./utility.ts";
 import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
-import type { Closer, Writer } from "./deps/types.ts";
+import type { Closer, Writer } from "jsr:@std/io@0.225.0/types";
+import { tee } from "jsr:@std/async@1.0.6/tee";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;

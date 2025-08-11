@@ -1,5 +1,5 @@
 import { range } from "../mod.ts";
-import { assertEquals } from "./deps/asserts.ts";
+import { assertEquals } from "jsr:@std/assert@1.0.13";
 
 Deno.test({
   name: "Range to forward.",

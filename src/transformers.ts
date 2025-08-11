@@ -1,4 +1,4 @@
-import { blue } from "./deps/colors.ts";
+import { blue } from "jsr:@std/fmt@1.0.2/colors";
 import { enumerate } from "./enumerable.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat, isString } from "./utility.ts";
