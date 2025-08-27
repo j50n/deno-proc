@@ -19,6 +19,6 @@ cd "$HERE" && (
     deno lint `find . -type f -name "*.ts"`
     deno check `find . -type f -name "*.ts"`
 
-    deno test --reload --allow-read --allow-run=grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head ./tests
+    deno test --reload --allow-read --allow-write=/tmp/ --allow-run=gzip,grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head ./tests
 )
 
