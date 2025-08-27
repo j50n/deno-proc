@@ -3,6 +3,9 @@ import { enumerate } from "./enumerable.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat, isString } from "./utility.ts";
 
+const encoder = new TextEncoder();
+const LF = encoder.encode("\n");
+
 /**
  * Standard data, either string, arrays of strings (lines),
  * byte data, or arrays of byte data.
@@ -150,6 +153,31 @@ export async function* toByteLines(
   }
 }
 
+function stringPerLineHandler(item: StandardData) {
+  return concat([encoder.encode(item as string), LF]);
+}
+
+function uint8arrayPerLineHandler(item: StandardData) {
+  return item as Uint8Array;
+}
+
+function stringArrayOfLinesHandler(item: StandardData) {
+  const itemsArr = item as string[];
+  const lines = Array(itemsArr.length * 2);
+
+  for (let i = 0; i < itemsArr.length; i++) {
+    const base = i << 1;
+    lines[base] = encoder.encode(itemsArr[i]);
+    lines[base + 1] = LF;
+  }
+
+  return concat(lines);
+}
+
+function uint8arrayArrayOfLinesHandler(item: StandardData) {
+  return concat(item as Uint8Array[]);
+}
+
 /**
  * Converts specific types to `Uint8Array` chunks.
  *
@@ -167,30 +195,30 @@ export async function* toByteLines(
 export async function* toBytes(
   iter: AsyncIterable<StandardData>,
 ): AsyncIterable<Uint8Array> {
-  const encoder = new TextEncoder();
-  const lf = encoder.encode("\n");
-
-  for await (const item of iter) {
+  const determineHandler: (item: StandardData) => Uint8Array = (
+    item: StandardData,
+  ) => {
     if (isString(item)) {
-      yield concat([encoder.encode(item), lf]);
+      op = stringPerLineHandler;
+      return op(item);
     } else if (item instanceof Uint8Array) {
-      yield item;
+      op = uint8arrayPerLineHandler;
+      return op(item);
     } else if (Array.isArray(item)) {
-      for (const piece of item) {
-        const lines: Uint8Array[] = [];
-        if (piece instanceof Uint8Array) {
-          lines.push(piece);
-        } else if (isString(piece)) {
-          lines.push(encoder.encode(piece));
-          lines.push(lf);
-        } else {
-          throw new TypeError(
-            `runtime type error; expected array data of string|Uint8Array but got ${
-              bestTypeNameOf(piece)
-            }`,
-          );
-        }
-        yield concat(lines);
+      if (item.length === 0) {
+        return new Uint8Array(0);
+      } else if (isString(item[0])) {
+        op = stringArrayOfLinesHandler;
+        return op(item);
+      } else if (item[0] instanceof Uint8Array) {
+        op = uint8arrayArrayOfLinesHandler;
+        return op(item);
+      } else {
+        throw new TypeError(
+          `runtime type error; expected array data of string|Uint8Array but got ${
+            bestTypeNameOf(item[0])
+          }`,
+        );
       }
     } else {
       throw new TypeError(
@@ -199,6 +227,12 @@ export async function* toBytes(
         }`,
       );
     }
+  };
+
+  let op = determineHandler;
+
+  for await (const item of iter) {
+    yield op(item);
   }
 }
 
