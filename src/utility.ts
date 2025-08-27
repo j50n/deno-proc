@@ -1,6 +1,9 @@
 import type { Writer } from "jsr:@std/io@0.225.0/types";
 import { type Enumerable, enumerate } from "./enumerable.ts";
 
+const encoder = new TextEncoder();
+const LF = encoder.encode("\n");
+
 /**
  * Open a file for reading.
  * @param path The path of the file.
@@ -45,6 +48,34 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
   for (const array of arrays) {
     result.set(array, pos);
     pos += array.length;
+  }
+
+  return result;
+}
+
+/**
+ * Fast-concatenate `Uint8Arrays` arrays together, adding a trailing line feed,
+ * returning a single array containing the result.
+ *
+ * @param arrays The arrays to concatenate together.
+ * @returns The result of the concatenation.
+ */
+export function concatLines(arrays: Uint8Array[]): Uint8Array {
+  if (!arrays.length) return new Uint8Array(0);
+
+  let totalLength = arrays.length;
+  for (const array of arrays) {
+    totalLength += array.length;
+  }
+
+  const result = new Uint8Array(totalLength);
+
+  let pos = 0;
+  for (const array of arrays) {
+    result.set(array, pos);
+    pos += array.length;
+    result.set(LF, pos);
+    pos += 1;
   }
 
   return result;

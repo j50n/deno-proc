@@ -1,10 +1,9 @@
 import { blue } from "jsr:@std/fmt@1.0.2/colors";
 import { enumerate } from "./enumerable.ts";
 import { bestTypeNameOf } from "./helpers.ts";
-import { concat, isString } from "./utility.ts";
+import { concat, concatLines, isString } from "./utility.ts";
 
 const encoder = new TextEncoder();
-const LF = encoder.encode("\n");
 
 /**
  * Standard data, either string, arrays of strings (lines),
@@ -154,7 +153,7 @@ export async function* toByteLines(
 }
 
 function stringPerLineHandler(item: StandardData) {
-  return concat([encoder.encode(item as string), LF]);
+  return concatLines([encoder.encode(item as string)]);
 }
 
 function uint8arrayPerLineHandler(item: StandardData) {
@@ -163,15 +162,13 @@ function uint8arrayPerLineHandler(item: StandardData) {
 
 function stringArrayOfLinesHandler(item: StandardData) {
   const itemsArr = item as string[];
-  const lines = Array(itemsArr.length * 2);
+  const lines = Array(itemsArr.length);
 
   for (let i = 0; i < itemsArr.length; i++) {
-    const base = i << 1;
-    lines[base] = encoder.encode(itemsArr[i]);
-    lines[base + 1] = LF;
+    lines[i] = encoder.encode(itemsArr[i]);
   }
 
-  return concat(lines);
+  return concatLines(lines);
 }
 
 function uint8arrayArrayOfLinesHandler(item: StandardData) {
