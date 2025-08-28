@@ -481,32 +481,37 @@ export class Enumerable<T> implements AsyncIterable<T> {
     reduceFn: (acc: U, item: T, index: number) => U | Promise<U>,
     zero?: U,
   ): Promise<U> {
-    let first = true;
-    let p: undefined | U | Promise<U>;
+    const UNSET = Symbol("unset-reduce");
 
-    let count = 0;
-    let acc: U | undefined;
-    for await (const item of this.iter) {
-      if (first) {
-        first = false;
-        if (zero === undefined) {
-          p = item as U;
-          continue;
-        } else {
-          acc = zero;
-        }
+    let acc: U | typeof UNSET = UNSET;
+    let index = 0;
+
+    const firstOp: (Item: T) => U | Promise<U> = async (item: T) => {
+      op = restOp;
+      if (zero === undefined) {
+        index++;
+        return item as unknown as U;
       } else {
-        acc = (await p) as U;
+        acc = zero;
+        return await op(item);
       }
+    };
 
-      p = reduceFn(acc, item, count++);
+    const restOp = async (item: T) => {
+      return await reduceFn(acc as U, item, index++);
+    };
+
+    let op = firstOp;
+
+    for await (const item of this.iter) {
+      acc = await op(item);
     }
-    if (!first) {
-      acc = (await p) as U;
-    } else if (zero === undefined) {
-      throw new TypeError("empty array and uninitialized zero");
+
+    if (acc === UNSET) {
+      throw new TypeError("empty iterator and zero is not set");
+    } else {
+      return acc;
     }
-    return acc as U;
   }
 
   /**
