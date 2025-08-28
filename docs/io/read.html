@@ -184,7 +184,7 @@ automatically if the iteration terminates early.</p>
 <p>You can get a <code>ReadableStream&lt;Uint8Array&gt;</code> from <code>stdin</code> like this:
 <code>Deno.stdin.readable</code>. We use <code>enumerate(...)</code> to add an <code>Enumerable</code> wrapper.</p>
 <p>File <code>example.ts</code>:</p>
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.4";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.9";
 
 for await (const line of enumerate(Deno.stdin.readable).lines) {
   console.log(line);
@@ -204,7 +204,7 @@ the file directly.</p>
 extract the lines of text. I am using the <code>gunzip</code> transform function to do
 this. This is using Deno's <code>new DecompressionStream("gzip")</code> transformer stream
 behind the scenes. <code>gunzip</code> is a convenience function provided by <code>proc</code>.</p>
-<pre><code class="language-typescript">import { enumerate, gunzip } from "jsr:@j50n/proc@0.22.4";
+<pre><code class="language-typescript">import { enumerate, gunzip } from "jsr:@j50n/proc@0.22.9";
 
 const file = Deno.open("warandpeace.txt.gz");
 
