@@ -152,27 +152,26 @@ export async function* toByteLines(
   }
 }
 
-function stringPerLineHandler(item: StandardData) {
-  return concatLines([encoder.encode(item as string)]);
+function stringPerLineOp(item: string) {
+  return concatLines([encoder.encode(item)]);
 }
 
-function uint8arrayPerLineHandler(item: StandardData) {
-  return item as Uint8Array;
+function uint8arrayPerLineOp(item: Uint8Array) {
+  return item;
 }
 
-function stringArrayOfLinesHandler(item: StandardData) {
-  const itemsArr = item as string[];
-  const lines = Array(itemsArr.length);
+function stringArrayOfLinesOp(item: string[]) {
+  const lines = Array(item.length);
 
-  for (let i = 0; i < itemsArr.length; i++) {
-    lines[i] = encoder.encode(itemsArr[i]);
+  for (let i = 0; i < item.length; i++) {
+    lines[i] = encoder.encode(item[i]);
   }
 
   return concatLines(lines);
 }
 
-function uint8arrayArrayOfLinesHandler(item: StandardData) {
-  return concat(item as Uint8Array[]);
+function uint8arrayArrayOfLinesOp(item: Uint8Array[]) {
+  return concat(item);
 }
 
 /**
@@ -192,23 +191,23 @@ function uint8arrayArrayOfLinesHandler(item: StandardData) {
 export async function* toBytes(
   iter: AsyncIterable<StandardData>,
 ): AsyncIterable<Uint8Array> {
-  const determineHandler: (item: StandardData) => Uint8Array = (
+  const setupOp: (item: StandardData) => Uint8Array = (
     item: StandardData,
   ) => {
     if (isString(item)) {
-      op = stringPerLineHandler;
+      op = stringPerLineOp as typeof setupOp;
       return op(item);
     } else if (item instanceof Uint8Array) {
-      op = uint8arrayPerLineHandler;
+      op = uint8arrayPerLineOp as typeof setupOp;
       return op(item);
     } else if (Array.isArray(item)) {
       if (item.length === 0) {
         return new Uint8Array(0);
       } else if (isString(item[0])) {
-        op = stringArrayOfLinesHandler;
+        op = stringArrayOfLinesOp as typeof setupOp;
         return op(item);
       } else if (item[0] instanceof Uint8Array) {
-        op = uint8arrayArrayOfLinesHandler;
+        op = uint8arrayArrayOfLinesOp as typeof setupOp;
         return op(item);
       } else {
         throw new TypeError(
@@ -226,7 +225,7 @@ export async function* toBytes(
     }
   };
 
-  let op = determineHandler;
+  let op = setupOp;
 
   for await (const item of iter) {
     yield op(item);

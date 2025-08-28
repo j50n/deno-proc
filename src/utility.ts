@@ -1,8 +1,7 @@
 import type { Writer } from "jsr:@std/io@0.225.0/types";
 import { type Enumerable, enumerate } from "./enumerable.ts";
 
-const encoder = new TextEncoder();
-const LF = encoder.encode("\n");
+const LF = "\n".charCodeAt(0);
 
 /**
  * Open a file for reading.
@@ -26,26 +25,29 @@ export function read(path: string | URL): Enumerable<Uint8Array> {
  * @returns The result of the concatenation.
  */
 export function concat(arrays: Uint8Array[]): Uint8Array {
-  if (!arrays.length) return new Uint8Array(0);
+  const al = arrays.length;
+
+  if (al === 0) return new Uint8Array(0);
 
   /*
    * In many cases, we are dealing with data that actually only contains a single array of bytes
    * and does not actually need to be concatenated. In this case, we just return the first buffer
    * from the array (it is the only buffer) and skip the processing, saving a redundant memcpy.
    */
-  if (arrays.length === 1) {
+  if (al === 1) {
     return arrays[0];
   }
 
   let totalLength = 0;
-  for (const array of arrays) {
-    totalLength += array.length;
+  for (let i = 0; i < al; i++) {
+    totalLength += arrays[i].length;
   }
 
   const result = new Uint8Array(totalLength);
 
   let pos = 0;
-  for (const array of arrays) {
+  for (let i = 0; i < al; i++) {
+    const array = arrays[i];
     result.set(array, pos);
     pos += array.length;
   }
@@ -61,21 +63,25 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
  * @returns The result of the concatenation.
  */
 export function concatLines(arrays: Uint8Array[]): Uint8Array {
-  if (!arrays.length) return new Uint8Array(0);
+  if (!arrays.length) {
+    return new Uint8Array(0);
+  }
 
-  let totalLength = arrays.length;
-  for (const array of arrays) {
-    totalLength += array.length;
+  const al = arrays.length;
+
+  let totalLength = al;
+  for (let i = 0; i < al; i++) {
+    totalLength += arrays[i].length;
   }
 
   const result = new Uint8Array(totalLength);
 
   let pos = 0;
-  for (const array of arrays) {
+  for (let i = 0; i < al; i++) {
+    const array = arrays[i];
     result.set(array, pos);
     pos += array.length;
-    result.set(LF, pos);
-    pos += 1;
+    result[pos++] = LF;
   }
 
   return result;
