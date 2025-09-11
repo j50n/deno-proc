@@ -25,6 +25,10 @@ type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
 
 type TransformStream<R, S> = ReadableWritablePair<S, R>;
 
+function isReadableWritablePair(item: unknown): item is ReadableWritablePair {
+  return (item != null && typeof item === "object" && "writable" in item &&
+    "readable" in item);
+}
 /** Conditional type for {@link Enumerable.unzip}. */
 export type Unzip<T> = T extends [infer A, infer B]
   ? [Enumerable<A>, Enumerable<B>]
@@ -219,9 +223,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
       | TransformerFunction<T, U>
       | TransformStream<T, U>,
   ): Enumerable<U> {
-    if ("writable" in fn && "readable" in fn) {
+    if (isReadableWritablePair(fn)) {
       return enumerate(
-        transformerFromTransformStream(fn)(enumerate(this.iter)),
+        transformerFromTransformStream(fn)(
+          enumerate(this.iter),
+        ),
       );
     } else {
       return enumerate(fn(enumerate(this.iter)));

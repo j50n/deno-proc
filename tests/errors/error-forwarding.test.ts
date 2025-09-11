@@ -1,5 +1,10 @@
 import { fail } from "@std/assert";
-import { enumerate, toBytes, UpstreamError } from "../../mod.ts";
+import {
+  enumerate,
+  toBufferSource,
+  toBytes,
+  UpstreamError,
+} from "../../mod.ts";
 import { resolve } from "../../tools/deps/path.ts";
 
 async function* testTransform(
@@ -29,8 +34,8 @@ Deno.test(
         .run("gunzip")
         .lines
         .transform(testTransform)
-        .transform(toBytes)
-        .transform(new CompressionStream("gzip") as ReadableWritablePair)
+        .transform(toBufferSource)
+        .transform(new CompressionStream("gzip"))
         .transform(toBytes)
         .run("gzip")
         .forEach(() => {});

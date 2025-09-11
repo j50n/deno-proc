@@ -233,6 +233,21 @@ export async function* toBytes(
 }
 
 /**
+ * For transformers that need `BufferSource` as input, this will convert
+ * the type of the output; otherwise identical to {@link toBytes}.
+ *
+ * This is needed for working directly with `CompressionStream` and
+ * `DecompressionStream`.
+ *
+ * @param iter The iterable.
+ */
+export async function* toBufferSource(
+  iter: AsyncIterable<StandardData>,
+): AsyncIterable<BufferSource> {
+  yield* toBytes(iter) as AsyncIterable<BufferSource>;
+}
+
+/**
  * Transformer that conditionally adds buffering to a `Uint8Array` stream.
  *
  * This enforces that the size of the passed data is _at least_ `size`. Note that
@@ -309,11 +324,11 @@ export async function* jsonParse<T>(
 export async function* gunzip(
   items: AsyncIterable<StandardData>,
 ): AsyncIterable<Uint8Array> {
+  const s = new DecompressionStream("gzip");
+
   yield* enumerate(items)
-    .transform(toBytes)
-    .transform(
-      new DecompressionStream("gzip") as TransformStream,
-    );
+    .transform(toBufferSource)
+    .transform({ readable: s.readable, writable: s.writable });
 }
 
 /**
@@ -321,22 +336,11 @@ export async function* gunzip(
  */
 export function gzip(
   chunks: AsyncIterable<StandardData>,
-): AsyncIterable<BufferSource> {
+): AsyncIterable<Uint8Array> {
   return enumerate(chunks)
-    .transform(toBytes)
-    .transform(new CompressionStream("gzip") as TransformStream);
+    .transform(toBufferSource)
+    .transform(new CompressionStream("gzip"));
 }
-
-// async function* tf(items: AsyncIterable<Uint8Array>): AsyncIterable<Uint8Array> {
-// const x = new CompressionStream("gzip")
-// const x1 = x.readable
-// const x2 = x.writable
-// const blah = transformerFromTransformStream(x)
-
-// yield* enumerate(blah(items as AsyncIterable<BufferSource>)).map(it => it)
-// }
-
-//async function cnv(items: AsyncIterable)
 
 /**
  * Convert a `TransformStream` into a {@link TransformerFunction}. Errors occurring upstream
