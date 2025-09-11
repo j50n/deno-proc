@@ -1,4 +1,4 @@
-import { fromFileUrl } from "jsr:@std/path@1.0.6";
+import { fromFileUrl } from "@std/path";
 import { enumerate, read } from "../../mod.ts";
 
 Deno.test({

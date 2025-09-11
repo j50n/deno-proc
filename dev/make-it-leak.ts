@@ -10,9 +10,9 @@
  * motion.
  */
 
-import { fromFileUrl } from "jsr:@std/path@1.0.6";
+import { fromFileUrl } from "@std/path";
 import { enumerate, range, sleep, toLines } from "../mod.ts";
-import { blue, cyan, gray, red } from "jsr:@std/fmt@1.0.2/colors";
+import { blue, cyan, gray, red } from "@std/fmt/colors";
 
 const file = await Deno.open(
   fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),

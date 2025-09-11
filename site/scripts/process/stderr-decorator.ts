@@ -1,5 +1,5 @@
 import { type ProcessOptions, run } from "../../../mod.ts";
-import { gray, red } from "jsr:@std/fmt@1.0.2/colors";
+import { gray, red } from "@std/fmt/colors";
 
 const decoratedStderr: ProcessOptions<void> = {
   fnStderr: async (stderr) => {

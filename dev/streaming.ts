@@ -10,7 +10,7 @@
  * was playing. Another addition to my bag of tricks.
  */
 
-import { fromFileUrl } from "jsr:@std/path@1.0.6";
+import { fromFileUrl } from "@std/path";
 import { enumerate, toChunkedLines } from "../mod.ts";
 
 const file = await Deno.open(

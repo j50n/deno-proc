@@ -1,4 +1,4 @@
-import type { Writer } from "jsr:@std/io@0.225.0/types";
+import type { Writer } from "@std/io/types";
 import { type Enumerable, enumerate } from "./enumerable.ts";
 
 const LF = "\n".charCodeAt(0);

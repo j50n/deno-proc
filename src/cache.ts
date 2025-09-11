@@ -1,4 +1,4 @@
-import { retry } from "jsr:@std/async@1.0.6/retry";
+import { retry } from "@std/async/retry";
 
 /** The number of milliseconds in a second. */
 export const SECONDS = 1000;

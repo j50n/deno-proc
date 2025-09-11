@@ -6,6 +6,7 @@
     "jsr:@cliffy/internal@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/table@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@std/assert@1.0.13": "1.0.13",
+    "jsr:@std/assert@1.0.14": "1.0.14",
     "jsr:@std/assert@1.0.6": "1.0.6",
     "jsr:@std/async@1.0.6": "1.0.6",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
@@ -13,6 +14,7 @@
     "jsr:@std/encoding@1.0.5": "1.0.5",
     "jsr:@std/fmt@1.0.2": "1.0.2",
     "jsr:@std/fmt@~1.0.2": "1.0.2",
+    "jsr:@std/internal@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.4": "1.0.7",
     "jsr:@std/internal@^1.0.6": "1.0.7",
     "jsr:@std/io@0.225.0": "0.225.0",
@@ -58,6 +60,12 @@
         "jsr:@std/internal@^1.0.6"
       ]
     },
+    "@std/assert@1.0.14": {
+      "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.10"
+      ]
+    },
     "@std/async@1.0.6": {
       "integrity": "6d262156dd35c4a72ee1a2f8679be40264f370cfb92e2e13d4eca2ae05e16f34"
     },
@@ -75,6 +83,9 @@
     },
     "@std/internal@1.0.7": {
       "integrity": "39eeb5265190a7bc5d5591c9ff019490bd1f2c3907c044a11b0d545796158a0f"
+    },
+    "@std/internal@1.0.10": {
+      "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
     },
     "@std/io@0.225.0": {
       "integrity": "c1db7c5e5a231629b32d64b9a53139445b2ca640d828c26bf23e1c55f8c079b3"
@@ -144,5 +155,14 @@
     "https://deno.land/x/proc@0.22.1/src/transformers.ts": "5b3695cd9910dcc111b0165775eb2115ab9856f3f48795560250a25817002111",
     "https://deno.land/x/proc@0.22.1/src/utility.ts": "75bd9a98af2940e953cbd85ea929058891feaca0305d8aaf11b1300740f8fea0",
     "https://deno.land/x/proc@0.22.1/src/writable-iterable.ts": "373b096c1ff2301c14cd8806b98dbab4951f670caf556a3318c61f35a87072ab"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/assert@1.0.14",
+      "jsr:@std/async@1.0.6",
+      "jsr:@std/fmt@1.0.2",
+      "jsr:@std/io@0.225.0",
+      "jsr:@std/path@1.0.6"
+    ]
   }
 }

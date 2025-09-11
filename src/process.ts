@@ -1,4 +1,4 @@
-import type { Closer } from "jsr:@std/io@0.225.0/types";
+import type { Closer } from "@std/io/types";
 import { type Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
 import { type Writable, WritableIterable } from "./writable-iterable.ts";

@@ -1,6 +1,6 @@
-import { fromFileUrl } from "jsr:@std/path@1.0.6";
+import { fromFileUrl } from "@std/path";
 import { gunzip, read } from "../../mod.ts";
-import { assertEquals } from "jsr:@std/assert@1.0.13";
+import { assertEquals } from "@std/assert";
 
 Deno.test({
   name:

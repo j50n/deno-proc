@@ -1,4 +1,4 @@
-import { run } from "https://deno.land/x/proc@0.22.1/mod.ts";
+import { run } from "../../../mod.ts";
 
 await run("echo", "Hello, world.").forEach((it) => console.dir(it));
 

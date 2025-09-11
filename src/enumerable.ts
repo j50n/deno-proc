@@ -10,8 +10,8 @@ import {
 } from "./transformers.ts";
 import { writeAll } from "./utility.ts";
 import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
-import type { Closer, Writer } from "jsr:@std/io@0.225.0/types";
-import { tee } from "jsr:@std/async@1.0.6/tee";
+import type { Closer, Writer } from "@std/io/types";
+import { tee } from "@std/async/tee";
 
 type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
@@ -23,10 +23,7 @@ type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
   ? R
   : TupleOf<T, N, [T, ...R]>;
 
-type TransformStream<R, S> = {
-  writable: WritableStream<R>;
-  readable: ReadableStream<S>;
-};
+type TransformStream<R, S> = ReadableWritablePair<S, R>;
 
 /** Conditional type for {@link Enumerable.unzip}. */
 export type Unzip<T> = T extends [infer A, infer B]
@@ -218,14 +215,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns The transformed iterable.
    */
   transform<U>(
-    fn: TransformerFunction<T, U> | TransformStream<T, U>,
+    fn:
+      | TransformerFunction<T, U>
+      | TransformStream<T, U>,
   ): Enumerable<U> {
     if ("writable" in fn && "readable" in fn) {
-      return new Enumerable(
+      return enumerate(
         transformerFromTransformStream(fn)(enumerate(this.iter)),
       );
     } else {
-      return new Enumerable(fn(enumerate(this.iter)));
+      return enumerate(fn(enumerate(this.iter)));
     }
   }
 

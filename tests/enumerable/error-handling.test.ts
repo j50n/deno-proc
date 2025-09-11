@@ -1,5 +1,5 @@
 import { ExitCodeError, run } from "../../mod.ts";
-import { assertEquals } from "jsr:@std/assert@1.0.13";
+import { assertEquals } from "@std/assert";
 
 async function* suppressExitCodeError<T>(
   input: AsyncIterable<T>,

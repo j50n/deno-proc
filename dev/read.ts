@@ -1,4 +1,4 @@
-import { enumerate } from "https://deno.land/x/proc@0.22.1/mod.ts";
+import { enumerate } from "../mod.ts";
 
 for await (const line of enumerate(Deno.stdin.readable).lines) {
   console.log(line);

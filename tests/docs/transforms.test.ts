@@ -1,5 +1,5 @@
 import { enumerate } from "../../mod.ts";
-import { assertEquals } from "jsr:@std/assert@1.0.13";
+import { assertEquals } from "@std/assert";
 
 async function* toLower(texts: AsyncIterable<string>) {
   for await (const text of texts) {

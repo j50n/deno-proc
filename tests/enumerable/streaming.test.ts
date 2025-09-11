@@ -1,5 +1,5 @@
 import { ExitCodeError, run, UpstreamError } from "../../mod.ts";
-import { assert, assertEquals, fail } from "jsr:@std/assert@1.0.13";
+import { assert, assertEquals, fail } from "@std/assert";
 
 Deno.test({
   name: "I can gather lines of output.",

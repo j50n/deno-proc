@@ -1,4 +1,4 @@
-import { blue } from "jsr:@std/fmt@1.0.2/colors";
+import { blue } from "@std/fmt/colors";
 import { enumerate } from "./enumerable.ts";
 import { bestTypeNameOf } from "./helpers.ts";
 import { concat, concatLines, isString } from "./utility.ts";
@@ -306,25 +306,37 @@ export async function* jsonParse<T>(
 /**
  * Decompress a `gzip` compressed stream.
  */
-export const gunzip: TransformerFunction<
-  BufferSource,
-  Uint8Array<ArrayBufferLike>
-> = transformerFromTransformStream(
-  new DecompressionStream("gzip"),
-);
+export async function* gunzip(
+  items: AsyncIterable<StandardData>,
+): AsyncIterable<Uint8Array> {
+  yield* enumerate(items)
+    .transform(toBytes)
+    .transform(
+      new DecompressionStream("gzip") as TransformStream,
+    );
+}
 
 /**
  * Compress string or byte data using `gzip`.
  */
 export function gzip(
   chunks: AsyncIterable<StandardData>,
-): AsyncIterable<Uint8Array> {
+): AsyncIterable<BufferSource> {
   return enumerate(chunks)
     .transform(toBytes)
-    .transform(transformerFromTransformStream(
-      new CompressionStream("gzip"),
-    ));
+    .transform(new CompressionStream("gzip") as TransformStream);
 }
+
+// async function* tf(items: AsyncIterable<Uint8Array>): AsyncIterable<Uint8Array> {
+// const x = new CompressionStream("gzip")
+// const x1 = x.readable
+// const x2 = x.writable
+// const blah = transformerFromTransformStream(x)
+
+// yield* enumerate(blah(items as AsyncIterable<BufferSource>)).map(it => it)
+// }
+
+//async function cnv(items: AsyncIterable)
 
 /**
  * Convert a `TransformStream` into a {@link TransformerFunction}. Errors occurring upstream
@@ -333,12 +345,12 @@ export function gzip(
  * @param transform A [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream).
  * @returns A transformer.
  */
-export function transformerFromTransformStream<R, T>(
-  transform: { writable: WritableStream<R>; readable: ReadableStream<T> },
-): TransformerFunction<R, T> {
+export function transformerFromTransformStream<IN, OUT>(
+  transform: { writable: WritableStream<IN>; readable: ReadableStream<OUT> },
+): TransformerFunction<IN, OUT> {
   let error: Error | undefined;
 
-  async function* errorTrap(items: AsyncIterable<R>) {
+  async function* errorTrap(items: AsyncIterable<IN>): AsyncIterable<IN> {
     try {
       for await (const item of items) {
         yield item;
@@ -349,12 +361,12 @@ export function transformerFromTransformStream<R, T>(
   }
 
   async function* converter(
-    items: AsyncIterable<R>,
-  ): AsyncIterable<T> {
+    items: AsyncIterable<IN>,
+  ): AsyncIterable<OUT> {
     try {
       for await (
         const item of ReadableStream.from(errorTrap(items))
-          .pipeThrough(transform)
+          .pipeThrough<OUT>(transform)
       ) {
         yield item;
       }

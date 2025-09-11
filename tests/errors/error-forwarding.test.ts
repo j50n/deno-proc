@@ -1,4 +1,4 @@
-import { fail } from "jsr:@std/assert@1.0.13";
+import { fail } from "@std/assert";
 import { enumerate, toBytes, UpstreamError } from "../../mod.ts";
 import { resolve } from "../../tools/deps/path.ts";
 
@@ -30,7 +30,8 @@ Deno.test(
         .lines
         .transform(testTransform)
         .transform(toBytes)
-        .transform(new CompressionStream("gzip"))
+        .transform(new CompressionStream("gzip") as ReadableWritablePair)
+        .transform(toBytes)
         .run("gzip")
         .forEach(() => {});
 

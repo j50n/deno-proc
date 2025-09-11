@@ -1,4 +1,4 @@
-import { blue } from "https://deno.land/std@0.224.0/fmt/colors.ts";
+import { blue } from "@std/fmt/colors";
 import { run } from "../../mod.ts";
 
 const produce = import.meta.resolve("./produce.ts");
