@@ -356,9 +356,7 @@ export function transformerFromTransformStream<IN, OUT>(
 
   async function* errorTrap(items: AsyncIterable<IN>): AsyncIterable<IN> {
     try {
-      for await (const item of items) {
-        yield item;
-      }
+      yield* items;
     } catch (e) {
       error = e as Error | undefined;
     }
@@ -368,12 +366,9 @@ export function transformerFromTransformStream<IN, OUT>(
     items: AsyncIterable<IN>,
   ): AsyncIterable<OUT> {
     try {
-      for await (
-        const item of ReadableStream.from(errorTrap(items))
-          .pipeThrough<OUT>(transform)
-      ) {
-        yield item;
-      }
+      yield* ReadableStream
+        .from(errorTrap(items))
+        .pipeThrough<OUT>(transform);
     } catch (e) {
       if (error == null) {
         error = e as Error | undefined;

@@ -224,13 +224,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
       | TransformStream<T, U>,
   ): Enumerable<U> {
     if (isReadableWritablePair(fn)) {
-      return enumerate(
-        transformerFromTransformStream(fn)(
-          enumerate(this.iter),
-        ),
-      );
+      return enumerate(transformerFromTransformStream(fn)(this));
     } else {
-      return enumerate(fn(enumerate(this.iter)));
+      return enumerate(fn(this));
     }
   }
 

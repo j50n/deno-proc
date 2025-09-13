@@ -1,20 +1,24 @@
 {
   "name": "@j50n/proc",
-  "version": "0.22.13",
-  "exports": "./mod.ts",
-  "publish": { "exclude": [
-    "**/warandpeace.txt.gz",
-    "dev/",
-    "tools/",
-    "site/",
-    "docs/"
-  ]},
+  "version": "0.22.14",
+  "publish": { 
+    "exclude": [
+      "**/warandpeace.txt.gz",
+      "dev/",
+      "tools/",
+      "site/",
+      "docs/"
+    ]
+  },
+  "exports": {
+    ".": "./mod.ts"
+  },
   "imports": {
-    "@std/async/retry": "jsr:@std/async@1.0.6/retry",
-    "@std/fmt/colors": "jsr:@std/fmt@1.0.2/colors",
-    "@std/io/types": "jsr:@std/io@0.225.0/types",
-    "@std/async/tee": "jsr:@std/async@1.0.6/tee",
+    "@std/async/retry": "jsr:@std/async@1.0.14/retry",
+    "@std/fmt/colors": "jsr:@std/fmt@1.0.8/colors",
+    "@std/io/types": "jsr:@std/io@0.225.2/types",
+    "@std/async/tee": "jsr:@std/async@1.0.14/tee",
     "@std/assert": "jsr:@std/assert@1.0.14",
-    "@std/path": "jsr:@std/path@1.0.6"
+    "@std/path": "jsr:@std/path@1.1.2"
   } 
 }

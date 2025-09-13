@@ -6,7 +6,7 @@ set -x
 HERE="$(realpath "$(dirname "$0")")"
 
 cd "$HERE" && (
-    deno update `find . -type f -name "*.ts"`
+    deno update --latest
 
     deno fmt `find . -type f -name "*.md"`
     deno fmt `find . -type f -name "*.ts"`
