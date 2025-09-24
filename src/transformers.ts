@@ -49,7 +49,7 @@ export async function* toChunkedLines(
   const decoder = new TextDecoder("utf-8", { fatal: true });
 
   for await (const buff of buffs) {
-    const lines = decoder.decode(buff, { stream: true }).split("\n");
+    const lines = decoder.decode(buff, { stream: true }).split(/\r?\n/g);
     lines[0] = leftover + lines[0];
 
     leftover = lines.pop()!;
