@@ -45,12 +45,61 @@ export interface Writable<T> {
 }
 
 /**
- * Invert the normal data flow of an `AsyncIterable`, allowing you to push writes on one side and
- * iterate on the other.
+ * Invert data flow: push writes on one side, iterate on the other.
  *
- * The `write()` side **must** call `close()` when all write operations are done.
+ * WritableIterable bridges the gap between push-based (write) and pull-based (iterate)
+ * programming models. It's useful when you need to feed data into an AsyncIterable
+ * from imperative code.
  *
- * @typedef T The type of data that is written and read.
+ * **Important:** You must call `close()` when done writing, or iteration will hang.
+ *
+ * **Why use this?**
+ * - Convert callback-based APIs to AsyncIterable
+ * - Feed data to process stdin programmatically
+ * - Bridge between different async patterns
+ * - Proper error propagation
+ *
+ * @example Basic usage
+ * ```typescript
+ * import { WritableIterable } from "jsr:@j50n/proc";
+ *
+ * const writable = new WritableIterable<number>();
+ *
+ * // Write in background
+ * (async () => {
+ *   await writable.write(1);
+ *   await writable.write(2);
+ *   await writable.write(3);
+ *   await writable.close();
+ * })();
+ *
+ * // Read
+ * for await (const item of writable) {
+ *   console.log(item);
+ * }
+ * ```
+ *
+ * @example Error propagation
+ * ```typescript
+ * import { WritableIterable } from "jsr:@j50n/proc";
+ *
+ * const writable = new WritableIterable<number>();
+ *
+ * (async () => {
+ *   await writable.write(1);
+ *   await writable.close(new Error("something failed"));
+ * })();
+ *
+ * try {
+ *   for await (const item of writable) {
+ *     // Process items
+ *   }
+ * } catch (error) {
+ *   console.error("Error:", error);
+ * }
+ * ```
+ *
+ * @typedef T The type of data written and read.
  */
 export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
   private _closed = false;

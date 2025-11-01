@@ -4,8 +4,21 @@ import { type Enumerable, enumerate } from "./enumerable.ts";
 const LF = "\n".charCodeAt(0);
 
 /**
- * Open a file for reading.
+ * Open a file for reading as an AsyncIterable of byte chunks.
+ *
+ * Returns an Enumerable that can be transformed, piped to processes,
+ * or converted to lines. The file is automatically closed when iteration completes.
+ *
+ * @example Read a file and process it
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ *
+ * const bytes = await read("data.txt").collect();
+ * const text = new TextDecoder().decode(concat(bytes));
+ * ```
+ *
  * @param path The path of the file.
+ * @returns An Enumerable of byte chunks.
  */
 export function read(path: string | URL): Enumerable<Uint8Array> {
   async function* openForRead(): AsyncIterable<Uint8Array> {
@@ -17,12 +30,35 @@ export function read(path: string | URL): Enumerable<Uint8Array> {
 }
 
 /**
- * Fast-concatenate `Uint8Arrays` arrays together, returning a single array containing the result.
+ * Fast-concatenate Uint8Array arrays into a single array.
  *
- * Note that this may return the original source data or a copy.
+ * Optimized to avoid unnecessary copying:
+ * - Returns empty array for empty input
+ * - Returns the original array if only one element (no copy)
+ * - Otherwise performs efficient concatenation
  *
- * @param arrays The arrays to concatenate together.
- * @returns The result of the concatenation.
+ * @example Concatenate byte arrays
+ * ```typescript
+ * import { concat } from "jsr:@j50n/proc";
+ *
+ * const result = concat([
+ *   new Uint8Array([1, 2]),
+ *   new Uint8Array([3, 4])
+ * ]);
+ * // Uint8Array([1, 2, 3, 4])
+ * ```
+ *
+ * @example Single array optimization
+ * ```typescript
+ * import { concat } from "jsr:@j50n/proc";
+ *
+ * const arr = new Uint8Array([1, 2, 3]);
+ * const result = concat([arr]);
+ * // Returns arr directly (no copy)
+ * ```
+ *
+ * @param arrays The arrays to concatenate.
+ * @returns The concatenated result.
  */
 export function concat(arrays: Uint8Array[]): Uint8Array {
   const al = arrays.length;
@@ -112,36 +148,40 @@ export interface RangeUntilOptions {
 }
 
 /**
- * Lazily create a range of numbers.
+ * Lazily generate a range of numbers as an AsyncIterable.
  *
- * There are two forms:
- * - _from/to/step_: `to` is exclusive, and
- * - _from/until/step_:  `until` is inclusive.
+ * Two forms available:
+ * - **to**: Exclusive upper bound
+ * - **until**: Inclusive upper bound
  *
- * **Examples**
+ * Supports negative steps for counting down.
  *
- * `to` is exclusive:
- *
+ * @example Exclusive range (to)
  * ```typescript
- * const result = await range({to: 3}).collect();
+ * import { range } from "jsr:@j50n/proc";
+ *
+ * const result = await range({ to: 3 }).collect();
  * // [0, 1, 2]
  * ```
  *
- * `until` is inclusive. `from` starts at 0 by default.
- *
+ * @example Inclusive range (until)
  * ```typescript
- * const result = await range({from: 1, until: 3}).collect();
+ * import { range } from "jsr:@j50n/proc";
+ *
+ * const result = await range({ from: 1, until: 3 }).collect();
  * // [1, 2, 3]
  * ```
  *
- * `step` can be negative. Default is 1.
- *
+ * @example Negative step
  * ```typescript
- * const result = await range({from: -1, until: -3, step: -1}).collect();
+ * import { range } from "jsr:@j50n/proc";
+ *
+ * const result = await range({ from: -1, until: -3, step: -1 }).collect();
  * // [-1, -2, -3]
  * ```
  *
- * @param options Range options.
+ * @param options Range configuration.
+ * @returns An Enumerable of numbers.
  * @see {@link RangeToOptions}
  * @see {@link RangeUntilOptions}
  */
@@ -209,13 +249,23 @@ export async function sleep(delayms: number): Promise<void> {
 }
 
 /**
- * Checks if the provided input is a string.
+ * Type guard to check if a value is a string.
  *
- * This function performs a type check to determine if the provided input is a string.
- * It handles both string literals and instances of the `String` object.
+ * Handles both string primitives and String objects.
  *
- * @param s The input to be checked.
- * @returns `true` if the input is a string, `false` otherwise.
+ * @example Type narrowing
+ * ```typescript
+ * import { isString } from "jsr:@j50n/proc";
+ *
+ * const value: unknown = "hello";
+ * if (isString(value)) {
+ *   // TypeScript knows value is string here
+ *   console.log(value.toUpperCase());
+ * }
+ * ```
+ *
+ * @param s The value to check.
+ * @returns True if the value is a string.
  */
 export function isString(s: unknown): s is string {
   return typeof s === "string";

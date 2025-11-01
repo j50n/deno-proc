@@ -129,13 +129,59 @@ export class SignalError extends ProcessError {
 }
 
 /**
- * A wrapper for `Deno.ChildProcess` that converts streams to `AsyncIterable<...>`,
- * corrects error handling, and adds other custom stuff.
+ * Wrapper for Deno.ChildProcess with enhanced error handling and stream management.
  *
- * This is used as the basis for the `run` methods in this library. This can be used
- * standalone but is more difficult to work with.
+ * This class provides a lower-level interface than {@link run}. It converts streams to
+ * AsyncIterables, handles errors properly, and manages resource cleanup automatically.
  *
- * @typedef S The type shared by the `stderr` processor and the `error` handler.
+ * **Most users should use {@link run} instead**, which provides a simpler, more composable API.
+ * Use Process directly only when you need fine-grained control over process lifecycle.
+ *
+ * **Why this is better than Deno.Command:**
+ * - Automatic resource cleanup (no leaked processes)
+ * - Proper error propagation from stderr
+ * - AsyncIterable streams (easier to work with)
+ * - Custom error handlers
+ * - Buffered input option for performance
+ *
+ * @example Basic process execution
+ * ```typescript
+ * import { Process, enumerate } from "jsr:@j50n/proc";
+ *
+ * const proc = new Process(
+ *   { stdout: "piped", stdin: "null", stderr: "inherit" },
+ *   "echo",
+ *   ["hello"]
+ * );
+ *
+ * for await (const chunk of proc.stdout) {
+ *   console.log(new TextDecoder().decode(chunk));
+ * }
+ * ```
+ *
+ * @example Custom error handling
+ * ```typescript
+ * import { Process, ExitCodeError } from "jsr:@j50n/proc";
+ *
+ * const proc = new Process(
+ *   {
+ *     stdout: "piped",
+ *     stdin: "null",
+ *     stderr: "inherit",
+ *     fnError: (error) => {
+ *       if (error instanceof ExitCodeError && error.code === 1) {
+ *         // Suppress expected error
+ *         return;
+ *       }
+ *       throw error;
+ *     }
+ *   },
+ *   "sh",
+ *   ["-c", "exit 1"]
+ * );
+ * ```
+ *
+ * @typedef S The type shared between stderr handler and error handler.
  */
 export class Process<S> implements Closer {
   readonly id: `${string}-${string}-${string}-${string}-${string}` = crypto

@@ -175,18 +175,38 @@ function uint8arrayArrayOfLinesOp(item: Uint8Array[]) {
 }
 
 /**
- * Converts specific types to `Uint8Array` chunks.
+ * Convert strings, string arrays, or byte arrays to Uint8Array chunks.
  *
- * - `string` is converted to `utf-8`, concatenating a trailing `lf`
- * - `string[]` each item in the array is converted to `utf-8`, adding a trailing `lf`,
- *    all concatenated to a single `Uint8Array`
- * - `Uint8Array` is passed on unchanged
- * - `Uint8Array[]` is concatenated to a single `Uint8Array`
+ * Conversion rules:
+ * - `string`: Converted to UTF-8 bytes with trailing newline
+ * - `string[]`: Each string converted to UTF-8 with newline, concatenated
+ * - `Uint8Array`: Passed through unchanged
+ * - `Uint8Array[]`: Concatenated into single array
  *
- * Strings are always treated as lines, and we add a trailing `lf` character. Data in
- * byte form is always treated strictly as binary data.
+ * Strings are always treated as lines (newline added). Bytes are treated as binary data.
  *
- * @param iter
+ * @example Convert string to bytes
+ * ```typescript
+ * import { enumerate, toBytes } from "jsr:@j50n/proc";
+ *
+ * const bytes = await enumerate(["hello"])
+ *   .transform(toBytes)
+ *   .collect();
+ * // Uint8Array with "hello\n"
+ * ```
+ *
+ * @example Convert string array to bytes
+ * ```typescript
+ * import { enumerate, toBytes } from "jsr:@j50n/proc";
+ *
+ * const bytes = await enumerate([["line1", "line2"]])
+ *   .transform(toBytes)
+ *   .collect();
+ * // Uint8Array with "line1\nline2\n"
+ * ```
+ *
+ * @param iter The iterable to convert.
+ * @returns An AsyncIterable of Uint8Array chunks.
  */
 export async function* toBytes(
   iter: AsyncIterable<StandardData>,
@@ -295,8 +315,24 @@ export function buffer(
 }
 
 /**
- * Convert objects into JSON-encoded lines.
+ * Convert objects to JSON-encoded strings (one per line).
+ *
+ * Useful for serializing structured data to pass between processes
+ * or save to files in JSONL (JSON Lines) format.
+ *
+ * @example Serialize objects to JSON
+ * ```typescript
+ * import { enumerate, jsonStringify } from "jsr:@j50n/proc";
+ *
+ * const objects = [{ id: 1 }, { id: 2 }];
+ * const json = await enumerate(objects)
+ *   .transform(jsonStringify)
+ *   .collect();
+ * // ['{"id":1}', '{"id":2}']
+ * ```
+ *
  * @param items The objects to convert.
+ * @returns An AsyncIterable of JSON strings.
  */
 export async function* jsonStringify<T>(
   items: AsyncIterable<T>,
@@ -307,8 +343,24 @@ export async function* jsonStringify<T>(
 }
 
 /**
- * Convert JSON-encoded lines into objects.
- * @param items The JSON-encoded lines.
+ * Parse JSON-encoded strings into objects.
+ *
+ * Useful for deserializing JSONL (JSON Lines) format data.
+ * Each line should be a complete JSON object.
+ *
+ * @example Parse JSON lines to objects
+ * ```typescript
+ * import { enumerate, jsonParse } from "jsr:@j50n/proc";
+ *
+ * const lines = ['{"id":1}', '{"id":2}'];
+ * const objects = await enumerate(lines)
+ *   .transform(jsonParse)
+ *   .collect();
+ * // [{ id: 1 }, { id: 2 }]
+ * ```
+ *
+ * @param items The JSON-encoded strings.
+ * @returns An AsyncIterable of parsed objects.
  */
 export async function* jsonParse<T>(
   items: AsyncIterable<string>,
@@ -319,7 +371,23 @@ export async function* jsonParse<T>(
 }
 
 /**
- * Decompress a `gzip` compressed stream.
+ * Decompress gzip-compressed data.
+ *
+ * Works with any StandardData input (strings, bytes, arrays).
+ * Useful for reading compressed files or decompressing process output.
+ *
+ * @example Decompress gzip data
+ * ```typescript
+ * import { read, gunzip } from "jsr:@j50n/proc";
+ *
+ * const text = await read("data.txt.gz")
+ *   .transform(gunzip)
+ *   .lines
+ *   .collect();
+ * ```
+ *
+ * @param items The compressed data.
+ * @returns An AsyncIterable of decompressed bytes.
  */
 export async function* gunzip(
   items: AsyncIterable<StandardData>,
@@ -332,7 +400,22 @@ export async function* gunzip(
 }
 
 /**
- * Compress string or byte data using `gzip`.
+ * Compress data using gzip.
+ *
+ * Works with any StandardData input (strings, bytes, arrays).
+ * Useful for compressing data before writing to files or sending to processes.
+ *
+ * @example Compress data
+ * ```typescript
+ * import { enumerate, gzip } from "jsr:@j50n/proc";
+ *
+ * const compressed = await enumerate(["data to compress"])
+ *   .transform(gzip)
+ *   .collect();
+ * ```
+ *
+ * @param chunks The data to compress.
+ * @returns An AsyncIterable of compressed bytes.
  */
 export function gzip(
   chunks: AsyncIterable<StandardData>,

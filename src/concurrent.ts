@@ -11,13 +11,36 @@ function resolvedConcurrency(concurrency?: number | undefined) {
 }
 
 /**
- * Map the sequence from one type to another, concurrently.
+ * Map an async sequence concurrently while preserving order.
  *
- * Items are iterated in order.
+ * Processes multiple items simultaneously up to the concurrency limit,
+ * but yields results in the original input order. This is useful when
+ * you need to maintain order but want parallel processing.
  *
- * @param iterable An iterable collection.
- * @param mapFn The mapping function.
- * @returns An iterator of mapped values.
+ * **Why use this?**
+ * - Process items in parallel for better performance
+ * - Maintain original order in results
+ * - Control resource usage with concurrency limit
+ * - Simpler than managing Promise.all() manually
+ *
+ * @example Process items concurrently
+ * ```typescript
+ * import { range } from "jsr:@j50n/proc";
+ *
+ * const results = await range({ to: 10 })
+ *   .concurrentMap(async (n) => {
+ *     // Simulate async work
+ *     await new Promise(resolve => setTimeout(resolve, 100));
+ *     return n * 2;
+ *   }, { concurrency: 3 })
+ *   .collect();
+ * // [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] - in order
+ * ```
+ *
+ * @param items The input sequence.
+ * @param mapFn The async mapping function.
+ * @param concurrency Max concurrent operations (defaults to CPU count).
+ * @returns An ordered iterator of mapped values.
  */
 export async function* concurrentMap<T, U>(
   items: AsyncIterable<T>,
@@ -42,15 +65,39 @@ export async function* concurrentMap<T, U>(
 }
 
 /**
- * Map the sequence from one type to another, concurrently.
+ * Map an async sequence concurrently without preserving order.
  *
- * Items are iterated out of order. This allows maximum concurrency
- * at all times, but the output order cannot be assumed to be the
- * same as the input order.
+ * Processes multiple items simultaneously and yields results as soon as they complete,
+ * regardless of input order. This maximizes throughput when order doesn't matter.
  *
- * @param iterable An iterable collection.
- * @param mapFn The mapping function.
- * @returns An iterator of mapped values.
+ * **Why use this instead of concurrentMap?**
+ * - Maximum throughput - no waiting for slower items
+ * - Better performance with unbalanced workloads
+ * - Use when output order doesn't matter
+ *
+ * **Why use this instead of Promise.all()?**
+ * - Streams results as they complete (lower memory)
+ * - Controls concurrency (won't spawn unlimited promises)
+ * - Works with AsyncIterables naturally
+ *
+ * @example Process items for maximum throughput
+ * ```typescript
+ * import { range } from "jsr:@j50n/proc";
+ *
+ * const results = await range({ to: 10 })
+ *   .concurrentUnorderedMap(async (n) => {
+ *     // Simulate variable work time
+ *     await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+ *     return n * 2;
+ *   }, { concurrency: 3 })
+ *   .collect();
+ * // Results in completion order, not input order
+ * ```
+ *
+ * @param items The input sequence.
+ * @param mapFn The async mapping function.
+ * @param concurrency Max concurrent operations (defaults to CPU count).
+ * @returns An unordered iterator of mapped values.
  */
 export async function* concurrentUnorderedMap<T, U>(
   items: AsyncIterable<T>,

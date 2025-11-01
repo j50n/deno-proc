@@ -77,22 +77,48 @@ async function put<T>(key: string | string[], value: T): Promise<void> {
 }
 
 /**
- * {@link fetch} and {@link put} in one step.
+ * Fetch and cache expensive computations using Deno KV.
  *
- * **Example**
+ * Caches the result of an async function call. If the cached value exists and hasn't
+ * expired, returns it immediately. Otherwise, calls the function, caches the result,
+ * and returns it.
  *
+ * **Use cases:**
+ * - Cache expensive API calls
+ * - Store computed results between runs
+ * - Reduce redundant processing
+ * - Implement time-based invalidation
+ *
+ * @example Cache API results
  * ```typescript
- * const peerings = await cache.cache(
- *   "vpc-peerings",
- *   async () => await proc.enumerate(allPeerings()).collect(),
- *   { timeout: 4 * HOURS },
+ * import { cache, HOURS } from "jsr:@j50n/proc";
+ *
+ * const data = await cache(
+ *   "api-data",
+ *   async () => {
+ *     // Expensive operation
+ *     const response = await fetch("https://api.example.com/data");
+ *     return await response.json();
+ *   },
+ *   { timeout: 4 * HOURS }
  * );
  * ```
  *
- * @param key The cache key.
- * @param value The `value` function. This is called to fill the cache if needed.
- * @param options Options. Timeout in milliseconds.
- * @returns The (optionally cached) value.
+ * @example Cache with array key
+ * ```typescript
+ * import { cache } from "jsr:@j50n/proc";
+ *
+ * const result = await cache(
+ *   ["user", userId, "profile"],
+ *   async () => await fetchUserProfile(userId),
+ *   { timeout: 30 * 60 * 1000 } // 30 minutes
+ * );
+ * ```
+ *
+ * @param key Cache key (string or array of strings).
+ * @param value Function to compute the value if not cached.
+ * @param options Timeout in milliseconds (default: 24 hours).
+ * @returns The cached or computed value.
  */
 export async function cache<T>(
   key: string | string[],

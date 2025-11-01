@@ -49,33 +49,38 @@ export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
   : never;
 
 /**
- * {@link Enumerable} factory.
+ * Create an Enumerable from any iterable or async iterable.
  *
- * Use this instead of creating an {@link Enumerable} directly as it more flexible
- * and prevents stacking (a potential performance issue).
+ * This is the factory function for creating Enumerable instances. It provides
+ * a fluent API for working with async data streams, making it easy to chain
+ * operations like map, filter, and transform.
  *
- * **Examples**
+ * **Why use Enumerable?**
+ * - Composable operations via method chaining
+ * - Works seamlessly with async data
+ * - Integrates with process I/O
+ * - Lazy evaluation for memory efficiency
+ * - Type-safe transformations
  *
- * Convert an array into `AsyncIterable`.
- *
+ * @example Convert array to AsyncIterable
  * ```typescript
+ * import { enumerate } from "jsr:@j50n/proc";
+ *
+ * const result = await enumerate([1, 2, 3]).collect();
+ * // [1, 2, 3]
+ * ```
+ *
+ * @example Use with for await
+ * ```typescript
+ * import { enumerate } from "jsr:@j50n/proc";
+ *
  * for await (const n of enumerate([1, 2, 3])) {
  *   console.log(n);
  * }
  * ```
  *
- * Use `enumerate` to read a file line by line.
- *
- * ```typescript
- * const file = await Deno.open(resolve("./warandpeace.txt.gz"));
- *
- * for await (const line of enumerate(file.readable).run("gunzip").lines) {
- *   console.log(line);
- * }
- * ```
- *
- * @param iter An `Iterable` or `AsynIterable`; `null` or `undefined` assume empty.
- * @returns An {@link Enumerable}.
+ * @param iter An Iterable, AsyncIterable, or null/undefined (treated as empty).
+ * @returns An Enumerable wrapping the input.
  */
 export function enumerate<T>(
   iter?: AsyncIterable<T> | Iterable<T> | null,
@@ -112,11 +117,18 @@ async function* identity<T>(iter: AsyncIterable<T>): AsyncIterableIterator<T> {
 }
 
 /**
- * Enumerable wrapper for `AsyncIterable`.
+ * Fluent wrapper for AsyncIterable with composable operations.
  *
- * Use the factory function {@link enumerate} to create new instances.
+ * Enumerable provides a rich set of operations for working with async data streams:
+ * - Transformations: map, filter, flatMap
+ * - Aggregations: reduce, count, collect
+ * - Utilities: take, drop, concat, zip
+ * - Process integration: run, lines, toStdout
+ * - Concurrency: concurrentMap, concurrentUnorderedMap
  *
- * @typedef T The type of contained data.
+ * **Create instances using {@link enumerate}, not the constructor directly.**
+ *
+ * @typedef T The type of elements in the sequence.
  */
 export class Enumerable<T> implements AsyncIterable<T> {
   /**
@@ -275,9 +287,22 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Equivalent to calling {@link map} followed by {@link flatten}.
+   * Map each item to an iterable and flatten the results.
+   *
+   * Equivalent to calling map() followed by flatten().
+   *
+   * @example Duplicate and scale each number
+   * ```typescript
+   * import { enumerate } from "jsr:@j50n/proc";
+   *
+   * const result = await enumerate([1, 2, 3])
+   *   .flatMap(n => [n, n * 10])
+   *   .collect();
+   * // [1, 10, 2, 20, 3, 30]
+   * ```
+   *
    * @param mapFn The mapping function.
-   * @returns An iterable of mapped values where one level of indirection has been "flattened" out.
+   * @returns An Enumerable of flattened mapped values.
    */
   flatMap<U>(mapFn: (item: T) => U | Promise<U>): Enumerable<ElementType<U>> {
     return this.map(mapFn).flatten();
@@ -329,10 +354,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Filter the sequence to contain just the items that pass a test.
+   * Keep only items that pass a test.
    *
-   * @param filterFn The filter function.
-   * @returns An iterator returning the values that passed the filter function.
+   * @example Filter even numbers
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const evens = await range({ to: 5 })
+   *   .filter(n => n % 2 === 0)
+   *   .collect();
+   * // [0, 2, 4]
+   * ```
+   *
+   * @param filterFn The test function.
+   * @returns An Enumerable of items that passed the test.
    */
   filter(
     filterFn: (item: T) => boolean | Promise<boolean>,
@@ -350,10 +385,19 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Return the first element that satisfies the provided testing function, or `undefined`
-   * if no value satisfies the testing function.
-   * @param findFn The testing function.
-   * @returns The first item that satisfies the testing function, or `undefined`.
+   * Find the first item that matches a condition.
+   *
+   * @example Find first item greater than 5
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const result = await range({ to: 10 })
+   *   .find(n => n > 5);
+   * // 6
+   * ```
+   *
+   * @param findFn The test function.
+   * @returns The first matching item, or undefined if none found.
    */
   async find(
     findFn: (element: T) => unknown | Promise<unknown>,
@@ -367,9 +411,19 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Return `true` if every element satisfies the provided testing function.
-   * @param everyFn The testing function.
-   * @returns `true` if every element satisfies the provided testing function.
+   * Test if every item satisfies a condition.
+   *
+   * @example Check if all numbers are positive
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const allPositive = await range({ from: 1, to: 5 })
+   *   .every(n => n > 0);
+   * // true
+   * ```
+   *
+   * @param everyFn The test function.
+   * @returns True if all items pass the test.
    */
   async every(
     everyFn: (element: T) => boolean | Promise<boolean>,
@@ -383,9 +437,19 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Return `true` if some element satisfies the provided testing function.
-   * @param someFn The testing function.
-   * @returns `true` if some element satisfies the provided testing function.
+   * Test if any item satisfies a condition.
+   *
+   * @example Check if any number is even
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const hasEven = await range({ to: 5 })
+   *   .some(n => n % 2 === 0);
+   * // true
+   * ```
+   *
+   * @param someFn The test function.
+   * @returns True if at least one item passes the test.
    */
   async some(
     someFn: (element: T) => boolean | Promise<boolean>,
@@ -448,30 +512,34 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Executes a user-supplied "reducer" callback function on each element of the array,
-   * in order, passing in the return value from the calculation on the preceding element.
-   * The final result of running the reducer across all elements of the array is a single value.
+   * Reduce the sequence to a single value.
    *
-   * @param reduceFn A function to execute for each element in the array.
-   *     Its return value becomes the value of the accumulator parameter on the next invocation of `reduceFn`.
-   *     For the last invocation, the return value becomes the return value of `reduce()`.
-   * @returns The value that results from running the "reducer" callback function to completion over the entire array.
-   * @throws TypeError The iteration was empty.
+   * Executes a reducer function on each element, passing the accumulated result
+   * from one element to the next.
+   *
+   * @example Sum numbers
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const sum = await range({ from: 1, until: 5 })
+   *   .reduce((acc, n) => acc + n, 0);
+   * // 15
+   * ```
+   *
+   * @param reduceFn The reducer function.
+   * @returns The final accumulated value.
+   * @throws TypeError if the iteration is empty and no initial value provided.
    */
   async reduce(
     reduceFn: (acc: T, item: T, index: number) => T | Promise<T>,
   ): Promise<T>;
 
   /**
-   * Executes a user-supplied "reducer" callback function on each element of the array,
-   * in order, passing in the return value from the calculation on the preceding element.
-   * The final result of running the reducer across all elements of the array is a single value.
+   * Reduce the sequence to a single value with an initial value.
    *
-   * @param reduceFn A function to execute for each element in the array.
-   *     Its return value becomes the value of the accumulator parameter on the next invocation of `reduceFn`.
-   *     For the last invocation, the return value becomes the return value of `reduce()`.
-   * @param zero A value to which accumulator is initialized the first time the callback is called.
-   * @returns The value that results from running the "reducer" callback function to completion over the entire array.
+   * @param reduceFn The reducer function.
+   * @param zero The initial accumulator value.
+   * @returns The final accumulated value.
    */
   async reduce<U>(
     reduceFn: (acc: U, item: T, index: number) => U | Promise<U>,
@@ -585,9 +653,23 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Split into 2 or more identical iterators.
-   * @param n The number of clones to create.
-   * @returns 2 or more identical clones.
+   * Split the sequence into multiple identical streams.
+   *
+   * Useful when you need to process the same data in different ways.
+   * Uses buffering internally, so be mindful of memory with large datasets.
+   *
+   * @example Split into two streams
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const [a, b] = range({ to: 3 }).tee();
+   *
+   * const resultA = await a.collect();  // [0, 1, 2]
+   * const resultB = await b.collect();  // [0, 1, 2]
+   * ```
+   *
+   * @param n The number of identical streams to create (default: 2).
+   * @returns A tuple of n identical Enumerables.
    */
   tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
     return tee(this.iter, n).map((it: AsyncIterable<T>) =>
@@ -599,9 +681,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Take the first `n` items.
-   * @param n The number of items to take.
-   * @returns The first `n` items.
+   * Take the first n items from the sequence.
+   *
+   * @example Get first 3 items
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const first3 = await range({ to: 10 })
+   *   .take(3)
+   *   .collect();
+   * // [0, 1, 2]
+   * ```
+   *
+   * @param n The number of items to take (default: 1).
+   * @returns An Enumerable of the first n items.
    */
   take<N extends number = 1>(n?: N): Enumerable<T> {
     const iter = this.iter;
@@ -625,9 +718,19 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Take the head of the enumeration.
+   * Get the first item in the sequence.
    *
-   * This operation is equivalent to `take(1)` and consumes the enumeration.
+   * Consumes the enumeration and returns the first element.
+   *
+   * @example Get first item
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const first = await range({ from: 5, to: 10 }).first;
+   * // 5
+   * ```
+   *
+   * @throws RangeError if the sequence is empty.
    */
   get first(): Promise<T> {
     return (async () => {
@@ -639,9 +742,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Drop the first `n` items, return the rest.
-   * @param n The number of items to drop.
-   * @returns The items that were not dropped.
+   * Skip the first n items and return the rest.
+   *
+   * @example Skip first 2 items
+   * ```typescript
+   * import { range } from "jsr:@j50n/proc";
+   *
+   * const rest = await range({ to: 5 })
+   *   .drop(2)
+   *   .collect();
+   * // [2, 3, 4]
+   * ```
+   *
+   * @param n The number of items to skip (default: 1).
+   * @returns An Enumerable of remaining items.
    */
   drop<N extends number = 1>(n?: N): Enumerable<T> {
     const iter = this.iter;
@@ -663,9 +777,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Concatenate the iterables together.
-   * @param other The other iterable.
-   * @returns The iterables concatenated.
+   * Concatenate this sequence with another.
+   *
+   * @example Join two sequences
+   * ```typescript
+   * import { enumerate } from "jsr:@j50n/proc";
+   *
+   * const result = await enumerate([1, 2])
+   *   .concat(enumerate([3, 4]))
+   *   .collect();
+   * // [1, 2, 3, 4]
+   * ```
+   *
+   * @param other The sequence to append.
+   * @returns An Enumerable of concatenated items.
    */
   concat(other: AsyncIterable<T>): Enumerable<T> {
     const iter = this.iter;

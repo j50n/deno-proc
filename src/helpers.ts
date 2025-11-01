@@ -1,5 +1,14 @@
 import type { ProcessOptions } from "./process.ts";
 
+/**
+ * Internal helper to parse command arguments.
+ *
+ * Handles both forms:
+ * - `run("cmd", "arg1", "arg2")`
+ * - `run(options, "cmd", "arg1", "arg2")`
+ *
+ * @internal
+ */
 export function parseArgs<S>(
   cmd: unknown[],
 ): { options: ProcessOptions<S>; command: string | URL; args: string[] } {
@@ -27,6 +36,11 @@ export function parseArgs<S>(
   return { options, command, args };
 }
 
+/**
+ * Get a human-readable type name for error messages.
+ *
+ * @internal
+ */
 export function bestTypeNameOf(item: unknown): string {
   if (item == null) {
     return `${item}`;
