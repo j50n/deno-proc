@@ -6,7 +6,14 @@ set -x
 HERE="$(realpath "$(dirname "$0")")"
 
 cd "$HERE" && (
+    # Update Deno
     deno update --latest
+
+    # Update Rust and Cargo
+    rustup update
+
+    # Update mdbook (only if newer version available)
+    cargo install mdbook
 
     deno fmt **/*.md
     deno fmt **/*.ts
