@@ -188,8 +188,12 @@ export interface RangeUntilOptions {
 export function range(
   options: RangeToOptions | RangeUntilOptions,
 ): Enumerable<number> {
+  const s = options.step ?? 1;
+  if (s === 0) {
+    throw new RangeError("step cannot be 0");
+  }
+
   async function* doRange(): AsyncIterable<number> {
-    const s = options.step ?? 1;
     if ("to" in options) {
       const f = options.from ?? 0;
       const t = options.to;
@@ -281,7 +285,7 @@ export function isString(s: unknown): s is string {
  */
 export function shuffle<T>(items: T[]) {
   for (let i = 0; i < items.length; i++) {
-    const j = Math.floor(Math.random() * items.length);
+    const j = Math.floor(Math.random() * (items.length - i)) + i;
     const tmp = items[i];
     items[i] = items[j];
     items[j] = tmp;

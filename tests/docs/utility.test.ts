@@ -1,5 +1,5 @@
-import { assertEquals } from "@std/assert";
-import { concat, isString, range, read } from "../../src/utility.ts";
+import { assertEquals, assertThrows } from "@std/assert";
+import { concat, isString, range, read, shuffle } from "../../src/utility.ts";
 
 Deno.test("range - to (exclusive)", async () => {
   const result = await range({ to: 3 }).collect();
@@ -14,6 +14,16 @@ Deno.test("range - until (inclusive)", async () => {
 Deno.test("range - negative step", async () => {
   const result = await range({ from: -1, until: -3, step: -1 }).collect();
   assertEquals(result, [-1, -2, -3]);
+});
+
+Deno.test("range - step=0 throws error", () => {
+  assertThrows(
+    () => {
+      range({ to: 10, step: 0 });
+    },
+    RangeError,
+    "step cannot be 0",
+  );
 });
 
 Deno.test("concat - single array", () => {
@@ -45,4 +55,22 @@ Deno.test("isString - type guard", () => {
   assertEquals(isString("hello"), true);
   assertEquals(isString(123), false);
   assertEquals(isString(new Uint8Array()), false);
+});
+
+Deno.test("shuffle - preserves all elements", () => {
+  const original = [1, 2, 3, 4, 5];
+  const arr = [...original];
+  shuffle(arr);
+
+  // All elements should still be present
+  assertEquals(arr.sort(), original);
+});
+
+Deno.test("shuffle - modifies array in place", () => {
+  const arr = [1, 2, 3, 4, 5];
+  const ref = arr;
+  shuffle(arr);
+
+  // Should be same reference
+  assertEquals(arr, ref);
 });
