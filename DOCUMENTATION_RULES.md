@@ -112,12 +112,16 @@ Documentation should enable an AI to:
 
 **Always run `./build.sh` before committing.** This script:
 
+- Updates Rust/Cargo to latest version
+- Updates mdbook (if newer version available)
 - Updates Deno to latest version
 - Formats all TypeScript and Markdown files
 - Fixes shebang patterns
 - Lints all TypeScript files
 - Type-checks all TypeScript files
 - Runs all tests with proper permissions
+
+**For documentation site:** Run `./build-site.sh` to build the mdbook documentation.
 
 ### Adding New APIs
 

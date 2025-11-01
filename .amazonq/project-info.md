@@ -119,6 +119,16 @@ deno test --allow-run --allow-read --allow-write --allow-env
 ./build.sh
 ```
 
+This updates all tooling (Rust/Cargo, mdbook, Deno), formats code, lints, type-checks, and runs tests.
+
+**Build documentation site:**
+
+```bash
+./build-site.sh
+```
+
+This builds the mdbook documentation site in `docs/`.
+
 **Total:** 127 tests (all passing)
 
 **Test Quality Standards:**
