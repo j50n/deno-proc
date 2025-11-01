@@ -224,7 +224,7 @@ await run("ls").lines.forEach(console.log);  // ✅ Output consumed
 <h2 id="enumeration-pattern"><a class="header" href="#enumeration-pattern">Enumeration Pattern</a></h2>
 <p><code>enumerate()</code> wraps an iterable to give it Array-like methods. To add indices, call <code>.enum()</code> on the result:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
 
 // enumerate() wraps the iterable, .enum() adds indices
 const numbered = await enumerate(["a", "b", "c"])

@@ -180,7 +180,7 @@
 <h2 id="map"><a class="header" href="#map">map()</a></h2>
 <p>Transform each item:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
 
 const doubled = await enumerate([1, 2, 3])
   .map(n =&gt; n * 2)
@@ -267,7 +267,7 @@ const doubled = await enumerate([1, 2, 3])
 <h2 id="transform"><a class="header" href="#transform">transform()</a></h2>
 <p>Apply a TransformStream:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.0";
 
 const decompressed = await read("file.gz")
   .transform(new DecompressionStream("gzip"))

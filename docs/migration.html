@@ -184,7 +184,7 @@ const output = await command.output();
 const text = new TextDecoder().decode(output.stdout);
 </code></pre>
 <p><strong>After:</strong></p>
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
 const lines = await run("ls", "-la").lines.collect();
 </code></pre>
 <h2 id="from-shell-scripts"><a class="header" href="#from-shell-scripts">From Shell Scripts</a></h2>

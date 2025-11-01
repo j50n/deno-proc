@@ -180,7 +180,7 @@
 <h2 id="simple-word-count"><a class="header" href="#simple-word-count">Simple Word Count</a></h2>
 <p>Count total words in a file:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
 
 const wordCount = await run("wc", "-w", "book.txt").lines.first;
 console.log(`Total words: ${wordCount}`);
@@ -217,7 +217,7 @@ topWords.forEach(line =&gt; console.log(line));
 <h2 id="pure-javascript-version"><a class="header" href="#pure-javascript-version">Pure JavaScript Version</a></h2>
 <p>Do it all in JavaScript:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.0";
 
 const wordCounts = await read("book.txt")
   .lines
@@ -250,7 +250,7 @@ console.log(`Total words: ${wordCount}`);
 <h2 id="multiple-files"><a class="header" href="#multiple-files">Multiple Files</a></h2>
 <p>Count words across multiple files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
 
 const files = ["book1.txt", "book2.txt", "book3.txt"];
 

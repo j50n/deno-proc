@@ -193,7 +193,7 @@ await Promise.all(urls.map(url =&gt; fetch(url)));
 <h2 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h2>
 <p>proc gives you controlled concurrency:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
 
 // Process 5 at a time
 const results = await enumerate(urls)
@@ -275,7 +275,7 @@ const data = await enumerate(urls)
 </code></pre>
 <h3 id="process-files-in-parallel"><a class="header" href="#process-files-in-parallel">Process Files in Parallel</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.22.15";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.0";
 
 const files = ["log1.txt", "log2.txt", "log3.txt"];
 
