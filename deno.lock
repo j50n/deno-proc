@@ -6,16 +6,17 @@
     "jsr:@cliffy/internal@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/table@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@std/assert@1.0.13": "1.0.13",
-    "jsr:@std/assert@1.0.14": "1.0.14",
+    "jsr:@std/assert@1.0.15": "1.0.15",
     "jsr:@std/assert@1.0.6": "1.0.6",
-    "jsr:@std/async@1.0.14": "1.0.14",
+    "jsr:@std/async@1.0.15": "1.0.15",
     "jsr:@std/async@1.0.6": "1.0.6",
     "jsr:@std/crypto@1.0.3": "1.0.3",
     "jsr:@std/encoding@1.0.5": "1.0.5",
     "jsr:@std/fmt@1.0.2": "1.0.2",
     "jsr:@std/fmt@1.0.8": "1.0.8",
     "jsr:@std/fmt@~1.0.2": "1.0.8",
-    "jsr:@std/internal@^1.0.10": "1.0.10",
+    "jsr:@std/internal@^1.0.10": "1.0.12",
+    "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/internal@^1.0.4": "1.0.7",
     "jsr:@std/internal@^1.0.6": "1.0.7",
     "jsr:@std/io@0.225.2": "0.225.2",
@@ -61,17 +62,17 @@
         "jsr:@std/internal@^1.0.6"
       ]
     },
-    "@std/assert@1.0.14": {
-      "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
+    "@std/assert@1.0.15": {
+      "integrity": "d64018e951dbdfab9777335ecdb000c0b4e3df036984083be219ce5941e4703b",
       "dependencies": [
-        "jsr:@std/internal@^1.0.10"
+        "jsr:@std/internal@^1.0.12"
       ]
     },
     "@std/async@1.0.6": {
       "integrity": "6d262156dd35c4a72ee1a2f8679be40264f370cfb92e2e13d4eca2ae05e16f34"
     },
-    "@std/async@1.0.14": {
-      "integrity": "62e954a418652c704d37563a3e54a37d4cf0268a9dcaeac1660cc652880b5326"
+    "@std/async@1.0.15": {
+      "integrity": "55d1d9d04f99403fe5730ab16bdcc3c47f658a6bf054cafb38a50f046238116e"
     },
     "@std/crypto@1.0.3": {
       "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
@@ -88,8 +89,8 @@
     "@std/internal@1.0.7": {
       "integrity": "39eeb5265190a7bc5d5591c9ff019490bd1f2c3907c044a11b0d545796158a0f"
     },
-    "@std/internal@1.0.10": {
-      "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
     },
     "@std/io@0.225.2": {
       "integrity": "3c740cd4ee4c082e6cfc86458f47e2ab7cb353dc6234d5e9b1f91a2de5f4d6c7"
@@ -162,8 +163,8 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@std/assert@1.0.14",
-      "jsr:@std/async@1.0.14",
+      "jsr:@std/assert@1.0.15",
+      "jsr:@std/async@1.0.15",
       "jsr:@std/fmt@1.0.8",
       "jsr:@std/io@0.225.2",
       "jsr:@std/path@1.1.2"

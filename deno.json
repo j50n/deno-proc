@@ -14,11 +14,11 @@
     ".": "./mod.ts"
   },
   "imports": {
-    "@std/async/retry": "jsr:@std/async@1.0.14/retry",
+    "@std/async/retry": "jsr:@std/async@1.0.15/retry",
     "@std/fmt/colors": "jsr:@std/fmt@1.0.8/colors",
     "@std/io/types": "jsr:@std/io@0.225.2/types",
-    "@std/async/tee": "jsr:@std/async@1.0.14/tee",
-    "@std/assert": "jsr:@std/assert@1.0.14",
+    "@std/async/tee": "jsr:@std/async@1.0.15/tee",
+    "@std/assert": "jsr:@std/assert@1.0.15",
     "@std/path": "jsr:@std/path@1.1.2"
   } 
 }
