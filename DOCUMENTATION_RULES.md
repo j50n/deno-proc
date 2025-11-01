@@ -3,11 +3,14 @@
 ## Core Principles
 
 1. **Every public API must have JSDoc with a working example**
-2. **Every example must have a corresponding test in `tests/docs/`**
+2. **Every example must have a corresponding test**
 3. **Examples must be minimal and focused on one concept**
 4. **Documentation must explain WHY, not just WHAT**
+5. **Error handling is the PRIMARY selling point**
 
-## JSDoc Structure
+---
+
+## Part 1: Writing JSDoc
 
 ### Required Elements
 
@@ -40,14 +43,47 @@
 - **Comparisons**: Highlight advantages over `Deno.Command` where relevant
 - **Tone**: Direct and actionable, skip flattery
 
-## Testing Requirements
+### Critical API Clarifications
+
+**Always clarify in JSDoc:**
+
+1. **Properties vs Methods**
+   - Properties: "This is a property, not a method. Use `.lines` not `.lines()`"
+   - Include examples showing correct usage without parentheses
+
+2. **Error Handling**
+   - Explain that errors propagate naturally through pipelines
+   - Show try-catch at the end, not at each step
+   - Emphasize: "No separate error channels or callbacks needed"
+
+3. **Resource Management**
+   - State explicitly: "Always consume output via `.collect()`, `.forEach()`, etc."
+   - Warn about resource leaks from unconsumed output
+
+4. **Enumeration Pattern**
+   - Clarify: "`enumerate()` wraps iterables but does NOT add indices"
+   - Explain: "Call `.enum()` to get `[item, index]` tuples"
+
+5. **Process Chaining**
+   - Use `.run()` method to chain processes (not `.pipe()`)
+   - Explain stdin/stdout piping behavior
+
+---
+
+## Part 2: Writing Tests
 
 ### Test File Organization
 
+**For JSDoc examples:**
 - Location: `tests/docs/[module-name].test.ts`
 - One test file per source file
 - Test names match example descriptions
 - Additional edge case tests in `tests/docs/additional-coverage.test.ts`
+
+**For README examples:**
+- Location: `tests/readme_examples.test.ts`
+- Every README example must have a test
+- Tests verify examples work exactly as shown
 
 ### Test Coverage Standards
 
@@ -81,32 +117,50 @@ Deno.test("function - brief description", async () => {
 
 ### Test Verification
 
-Before committing documentation:
+Before committing:
 
 ```bash
-deno test --allow-run --allow-read --allow-write tests/docs/
+deno test --allow-run --allow-read --allow-write
 ```
 
 All tests must pass.
 
-## AI-Friendly Documentation
+---
 
-Documentation should enable an AI to:
+## Part 3: README Requirements
 
-1. Understand when to use this library vs alternatives
-2. Generate correct usage code without trial and error
-3. Understand error handling patterns
-4. Know about resource management (closing, cleanup)
+The README must prominently feature:
 
-### Key Points to Emphasize
+### 1. Error Handling as PRIMARY Selling Point
 
-- **Composability**: Method chaining and fluent APIs
-- **Error handling**: How errors propagate and can be customized
-- **Resource management**: Automatic cleanup, when to call close()
-- **Performance**: When to use buffering, concurrency options
-- **Type safety**: How types flow through transformations
+- Lead with: "Errors that just work"
+- Include: "JavaScript streaming is fast, but error handling shouldn't break your brain"
+- Show error propagation in opening example
+- Demonstrate multi-step pipeline with single try-catch
 
-## Maintenance Workflow
+### 2. Streaming Capabilities
+
+- Show real-world example (e.g., decompressing large files)
+- Demonstrate integration with Web Streams API
+- Highlight performance and memory efficiency
+
+### 3. Key Concepts Section
+
+Must explain:
+- Properties vs methods distinction
+- Resource management requirements
+- Error handling behavior
+- Enumeration pattern (enumerate() vs .enum())
+
+### 4. All Examples Must Be Tested
+
+- Every README example needs a test in `tests/readme_examples.test.ts`
+- Tests verify examples work exactly as shown
+- Use `--no-check` flag if needed for Web Streams compatibility
+
+---
+
+## Part 4: Maintenance Workflow
 
 ### Before Committing Changes
 
@@ -152,64 +206,121 @@ Check that:
 - [ ] Edge cases are tested (empty, null, single element)
 - [ ] Error conditions are tested
 - [ ] Functions matching JS APIs behave identically
+- [ ] Properties vs methods are clearly documented
+- [ ] Error propagation is explained
+- [ ] Resource management is documented
 
-## Common Bugs to Watch For
+---
 
-Based on code reviews, watch for these patterns:
+## Part 5: Common Pitfalls
 
 ### Algorithm Implementations
-- **Fisher-Yates shuffle**: Must select from unshuffled portion only
-  ```typescript
-  // ❌ WRONG
-  const j = Math.floor(Math.random() * items.length);
-  
-  // ✅ CORRECT
-  const j = Math.floor(Math.random() * (items.length - i)) + i;
-  ```
+
+**Fisher-Yates shuffle**: Must select from unshuffled portion only
+```typescript
+// ❌ WRONG
+const j = Math.floor(Math.random() * items.length);
+
+// ✅ CORRECT
+const j = Math.floor(Math.random() * (items.length - i)) + i;
+```
 
 ### Infinite Loop Prevention
-- **Range/iteration functions**: Always validate step !== 0
-  ```typescript
-  if (step === 0) {
-    throw new RangeError("step cannot be 0");
-  }
-  ```
+
+**Range/iteration functions**: Always validate step !== 0
+```typescript
+if (step === 0) {
+  throw new RangeError("step cannot be 0");
+}
+```
 
 ### Empty Collection Handling
-- **Reduce with initial value**: Must return initial value for empty collections
-  ```typescript
-  // Initialize acc with zero if provided
-  let acc = zero !== undefined ? zero : UNSET;
-  ```
+
+**Reduce with initial value**: Must return initial value for empty collections
+```typescript
+// Initialize acc with zero if provided
+let acc = zero !== undefined ? zero : UNSET;
+```
 
 ### Async Generator Errors
-- **Validation timing**: Validate parameters before creating async generator
-  ```typescript
-  // ✅ Validate here (synchronous)
-  if (invalid) throw new Error();
-  
-  async function* generator() {
-    // ❌ Not here (async, harder to test)
-  }
-  ```
 
-## Example Quality Checklist
+**Validation timing**: Validate parameters before creating async generator
+```typescript
+// ✅ Validate here (synchronous)
+if (invalid) throw new Error();
+
+async function* generator() {
+  // ❌ Not here (async, harder to test)
+}
+```
+
+---
+
+## Part 6: Quality Checklists
+
+### Example Quality
 
 - [ ] Example is minimal (no unnecessary code)
 - [ ] Example is complete (can be copy-pasted)
 - [ ] Example shows real-world usage
 - [ ] Example includes expected output as comment
 - [ ] Example uses `jsr:@j50n/proc` imports
-- [ ] Example has a test in `tests/docs/`
+- [ ] Example has a test in `tests/docs/` or `tests/readme_examples.test.ts`
 - [ ] Test passes
 
-## Anti-Patterns to Avoid
+### Documentation Quality
 
-❌ **Don't**: Write examples that can't be tested ❌ **Don't**: Use placeholder
-values like `...` in examples ❌ **Don't**: Explain only WHAT the function does
-❌ **Don't**: Write verbose, academic documentation ❌ **Don't**: Skip error
-handling in examples when relevant
+- [ ] Explains WHY, not just WHAT
+- [ ] Clarifies properties vs methods
+- [ ] Explains error propagation
+- [ ] Documents resource management
+- [ ] Includes working examples
+- [ ] Examples are tested
+- [ ] Tone is direct and actionable
 
-✅ **Do**: Write minimal, working, tested examples ✅ **Do**: Explain WHY
-someone would use this ✅ **Do**: Show real-world use cases ✅ **Do**: Keep
-descriptions succinct ✅ **Do**: Include error handling when it's important
+---
+
+## Part 7: Anti-Patterns
+
+### Don't
+
+❌ Write examples that can't be tested  
+❌ Use placeholder values like `...` in examples  
+❌ Explain only WHAT the function does  
+❌ Write verbose, academic documentation  
+❌ Skip error handling in examples when relevant  
+❌ Document methods as if they were properties (or vice versa)  
+❌ Forget to mention resource management requirements  
+
+### Do
+
+✅ Write minimal, working, tested examples  
+✅ Explain WHY someone would use this  
+✅ Show real-world use cases  
+✅ Keep descriptions succinct  
+✅ Include error handling when it's important  
+✅ Clarify properties vs methods  
+✅ Explain error propagation patterns  
+✅ Document resource management  
+
+---
+
+## Part 8: AI-Friendly Documentation
+
+Documentation should enable an AI to:
+
+1. Understand when to use this library vs alternatives
+2. Generate correct usage code without trial and error
+3. Understand error handling patterns
+4. Know about resource management requirements
+5. Distinguish between properties and methods
+6. Understand the enumeration pattern
+
+### Key Points to Emphasize
+
+- **Error propagation**: Errors flow through pipelines like data - handle once at the end
+- **Properties vs methods**: `.lines`, `.status`, `.first` are properties; `.collect()`, `.map()` are methods
+- **Resource management**: Always consume process output to avoid leaks
+- **Composability**: Method chaining and fluent APIs
+- **Type safety**: How types flow through transformations
+- **Performance**: When to use buffering, concurrency options

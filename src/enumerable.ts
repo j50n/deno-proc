@@ -23,7 +23,8 @@ type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
   ? R
   : TupleOf<T, N, [T, ...R]>;
 
-type TransformStream<R, S> = ReadableWritablePair<S, R>;
+/** Type alias for TransformStream used in {@link Enumerable.transform}. */
+export type TransformStream<R, S> = ReadableWritablePair<S, R>;
 
 function isReadableWritablePair(item: unknown): item is ReadableWritablePair {
   return (item != null && typeof item === "object" && "writable" in item &&
@@ -41,6 +42,7 @@ export type Lines<T> = T extends Uint8Array ? Enumerable<string> : never;
 export type ChunkedLines<T> = T extends Uint8Array ? Enumerable<string[]>
   : never;
 
+/** Conditional type for {@link Enumerable.toStdout}. */
 export type ByteSink<T> = T extends Uint8Array ? Promise<void> : never;
 
 /** Conditional type for {@link Enumerable.run}. */
@@ -55,6 +57,9 @@ export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
  * a fluent API for working with async data streams, making it easy to chain
  * operations like map, filter, and transform.
  *
+ * **Important**: This function wraps an iterable but does NOT add index counters.
+ * To add index counters, call `.enum()` on the returned Enumerable.
+ *
  * **Why use Enumerable?**
  * - Composable operations via method chaining
  * - Works seamlessly with async data
@@ -68,6 +73,18 @@ export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
  *
  * const result = await enumerate([1, 2, 3]).collect();
  * // [1, 2, 3]
+ * ```
+ *
+ * @example Add index counters with .enum()
+ * ```typescript
+ * import { enumerate } from "jsr:@j50n/proc";
+ *
+ * // .enum() adds [item, index] tuples
+ * const result = await enumerate(["a", "b", "c"])
+ *   .enum()
+ *   .map(([item, i]) => `${i}: ${item}`)
+ *   .collect();
+ * // ["0: a", "1: b", "2: c"]
  * ```
  *
  * @example Use with for await
@@ -151,6 +168,31 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Adds a counter from 0 to `n`-1 of the items being enumerated.
+   *
+   * Returns tuples of [item, index] where index starts at 0.
+   *
+   * @example Add indices to items
+   * ```typescript
+   * import { enumerate } from "jsr:@j50n/proc";
+   *
+   * const result = await enumerate(["a", "b", "c"])
+   *   .enum()
+   *   .collect();
+   * // [["a", 0], ["b", 1], ["c", 2]]
+   * ```
+   *
+   * @example Format with indices
+   * ```typescript
+   * import { enumerate } from "jsr:@j50n/proc";
+   *
+   * const result = await enumerate(["apple", "banana"])
+   *   .enum()
+   *   .map(([item, i]) => `${i + 1}. ${item}`)
+   *   .collect();
+   * // ["1. apple", "2. banana"]
+   * ```
+   *
+   * @returns An Enumerable of [item, index] tuples.
    */
   enum(): Enumerable<[T, number]> {
     let count = 0;
@@ -598,8 +640,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Collect the items in this iterator to an array.
-   * @returns The items of this iterator collected to an array.
+   * Collect all items from this async iterable into an array.
+   *
+   * This consumes the entire iterable and returns a Promise that resolves
+   * to an array containing all items.
+   *
+   * @example Collect process output
+   * ```typescript
+   * import { run } from "jsr:@j50n/proc";
+   *
+   * const lines = await run("echo", "-e", "a\\nb\\nc").lines.collect();
+   * // ["a", "b", "c"]
+   * ```
+   *
+   * @returns A Promise resolving to an array of all items.
    */
   async collect(): Promise<T[]> {
     const result = [];
@@ -610,7 +664,34 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Run a process.
+   * Run a process, piping this iterable's output to its stdin.
+   *
+   * This allows chaining processes together like shell pipes.
+   * The current iterable's data is written to the new process's stdin,
+   * and the new process's stdout becomes the new iterable.
+   *
+   * @example Chain processes together
+   * ```typescript
+   * import { run } from "jsr:@j50n/proc";
+   *
+   * // Equivalent to: echo "HELLO" | tr "A-Z" "a-z"
+   * const result = await run("echo", "HELLO")
+   *   .run("tr", "A-Z", "a-z")
+   *   .lines
+   *   .first;
+   * // "hello"
+   * ```
+   *
+   * @example Multi-stage pipeline
+   * ```typescript
+   * import { run } from "jsr:@j50n/proc";
+   *
+   * const result = await run("cat", "data.txt")
+   *   .run("grep", "error")
+   *   .run("wc", "-l")
+   *   .lines
+   *   .first;
+   * ```
    *
    * @param cmd The command.
    * @param options Options.
@@ -888,10 +969,34 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Convert to text lines.
+   * Convert byte stream to text lines.
+   *
+   * **Important**: This is a property, not a method. Use `.lines` not `.lines()`.
+   *
+   * Returns an Enumerable<string> where each item is a line of text.
+   * Lines are split on `\n` or `\r\n`. Line endings are not included in the output.
    *
    * Note that this should probably only be used with small data. Consider {@link chunkedLines}
    * to improve performance with larger data.
+   *
+   * @example Get lines from process output
+   * ```typescript
+   * import { run } from "jsr:@j50n/proc";
+   *
+   * const lines = await run("ls", "-la").lines.collect();
+   * // Array of strings, one per line
+   * ```
+   *
+   * @example Process lines with transformations
+   * ```typescript
+   * import { run } from "jsr:@j50n/proc";
+   *
+   * const numbers = await run("echo", "-e", "1\\n2\\n3")
+   *   .lines
+   *   .map(line => parseInt(line))
+   *   .collect();
+   * // [1, 2, 3]
+   * ```
    */
   get lines(): Lines<T> {
     return enumerate(toLines(this.iter as Enumerable<Uint8Array>)) as Lines<T>;
@@ -956,6 +1061,48 @@ export class Enumerable<T> implements AsyncIterable<T> {
 /**
  * Enumerable which may be substituted when we know we are returning `Uint8Array` data.
  */
+/**
+ * Enumerable for process output with additional process-specific properties.
+ *
+ * Extends Enumerable<Uint8Array> with process management capabilities.
+ * Use `.lines` property to get line-based output, or iterate over raw bytes.
+ *
+ * **Important**: Always consume the process output (via `.lines.collect()`,
+ * `.lines.forEach()`, etc.) or the process will leak resources.
+ *
+ * **Error Handling**: Processes that exit with non-zero codes throw
+ * `ExitCodeError` when you consume their output. Wrap in try-catch to handle.
+ *
+ * @example Basic usage
+ * ```typescript
+ * import { run } from "jsr:@j50n/proc";
+ *
+ * const lines = await run("ls", "-la").lines.collect();
+ * ```
+ *
+ * @example Check exit status
+ * ```typescript
+ * import { run } from "jsr:@j50n/proc";
+ *
+ * const p = run("some-command");
+ * await p.lines.collect(); // Consume output
+ * const status = await p.status; // .status is a property, not a method
+ * console.log(`Exit code: ${status.code}`);
+ * ```
+ *
+ * @example Handle errors
+ * ```typescript
+ * import { run } from "jsr:@j50n/proc";
+ *
+ * try {
+ *   await run("false").lines.collect();
+ * } catch (error) {
+ *   if (error.code) {
+ *     console.error(`Failed with code ${error.code}`);
+ *   }
+ * }
+ * ```
+ */
 export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
   constructor(protected process: Process<S>) {
     super(process.stdout);
@@ -966,7 +1113,26 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
     return this.process.pid;
   }
 
-  /** Process status. */
+  /**
+   * Process exit status.
+   *
+   * **Important**: This is a property that returns a Promise, not a method.
+   * Use `await p.status` not `await p.status()`.
+   *
+   * The Promise resolves when the process exits. You should consume the
+   * process output before or concurrently with checking status to avoid
+   * resource leaks.
+   *
+   * @example Check exit code
+   * ```typescript
+   * const p = run("some-command");
+   * await p.lines.collect(); // Consume output first
+   * const status = await p.status; // Property, not method
+   * if (status.code !== 0) {
+   *   console.error(`Failed with code ${status.code}`);
+   * }
+   * ```
+   */
   get status(): Promise<Deno.CommandStatus> {
     return this.process.status;
   }
