@@ -1,0 +1,494 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Array-Like Methods - proc</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">proc</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="array-like-methods"><a class="header" href="#array-like-methods">Array-Like Methods</a></h1>
+<p>Enumerable gives you the Array methods you know and love, but for async data.</p>
+<h2 id="transformations"><a class="header" href="#transformations">Transformations</a></h2>
+<h3 id="map"><a class="header" href="#map">map()</a></h3>
+<p>Transform each item:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const doubled = await enumerate([1, 2, 3])
+  .map(n =&gt; n * 2)
+  .collect();
+// [2, 4, 6]
+</code></pre>
+<p>Works with async functions:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const results = await enumerate(urls)
+  .map(async (url) =&gt; {
+    const response = await fetch(url);
+    return response.json();
+  })
+  .collect();
+</code></pre>
+<h3 id="filter"><a class="header" href="#filter">filter()</a></h3>
+<p>Keep only items that match:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const evens = await enumerate([1, 2, 3, 4])
+  .filter(n =&gt; n % 2 === 0)
+  .collect();
+// [2, 4]
+</code></pre>
+<h3 id="flatmap"><a class="header" href="#flatmap">flatMap()</a></h3>
+<p>Map and flatten in one step:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: flatMap" -->
+<pre><code class="language-typescript">const words = await enumerate(["hello world", "foo bar"])
+  .flatMap(line =&gt; line.split(" "))
+  .collect();
+// ["hello", "world", "foo", "bar"]
+</code></pre>
+<h2 id="aggregations"><a class="header" href="#aggregations">Aggregations</a></h2>
+<h3 id="reduce"><a class="header" href="#reduce">reduce()</a></h3>
+<p>Combine items into a single value:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const sum = await enumerate([1, 2, 3, 4])
+  .reduce((acc, n) =&gt; acc + n, 0);
+// 10
+</code></pre>
+<p>Build complex objects:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const grouped = await enumerate(items)
+  .reduce((acc, item) =&gt; {
+    acc[item.category] = acc[item.category] || [];
+    acc[item.category].push(item);
+    return acc;
+  }, {});
+</code></pre>
+<h3 id="count"><a class="header" href="#count">count()</a></h3>
+<p>Count items:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: count" -->
+<pre><code class="language-typescript">const total = await enumerate([1, 2, 3]).count();
+// 3
+</code></pre>
+<h3 id="some"><a class="header" href="#some">some()</a></h3>
+<p>Check if any item matches:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: some" -->
+<pre><code class="language-typescript">const hasError = await enumerate(lines)
+  .some(line =&gt; line.includes("ERROR"));
+</code></pre>
+<h3 id="every"><a class="header" href="#every">every()</a></h3>
+<p>Check if all items match:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: every" -->
+<pre><code class="language-typescript">const allPositive = await enumerate([1, 2, 3])
+  .every(n =&gt; n &gt; 0);
+</code></pre>
+<h2 id="finding-items"><a class="header" href="#finding-items">Finding Items</a></h2>
+<h3 id="find"><a class="header" href="#find">find()</a></h3>
+<p>Find first match:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: find" -->
+<pre><code class="language-typescript">const match = await enumerate([1, 2, 3, 4])
+  .find(n =&gt; n &gt; 2);
+// 3
+</code></pre>
+<h3 id="first"><a class="header" href="#first">first</a></h3>
+<p>Get first item:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const first = await enumerate([1, 2, 3]).first;
+// 1
+</code></pre>
+<h3 id="last"><a class="header" href="#last">last</a></h3>
+<p>Get last item:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const last = await enumerate([1, 2, 3]).last;
+// 3
+</code></pre>
+<h3 id="nth"><a class="header" href="#nth">nth()</a></h3>
+<p>Get item at index:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const third = await enumerate([1, 2, 3, 4]).nth(2);
+// 3 (zero-indexed)
+</code></pre>
+<h2 id="slicing"><a class="header" href="#slicing">Slicing</a></h2>
+<h3 id="take"><a class="header" href="#take">take()</a></h3>
+<p>Take first N items:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const first3 = await enumerate([1, 2, 3, 4, 5])
+  .take(3)
+  .collect();
+// [1, 2, 3]
+</code></pre>
+<h3 id="drop"><a class="header" href="#drop">drop()</a></h3>
+<p>Skip first N items:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const rest = await enumerate([1, 2, 3, 4, 5])
+  .drop(2)
+  .collect();
+// [3, 4, 5]
+</code></pre>
+<h3 id="slice"><a class="header" href="#slice">slice()</a></h3>
+<p>Get a range:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const middle = await enumerate([1, 2, 3, 4, 5])
+  .slice(1, 4)
+  .collect();
+// [2, 3, 4]
+</code></pre>
+<h2 id="iteration"><a class="header" href="#iteration">Iteration</a></h2>
+<h3 id="foreach"><a class="header" href="#foreach">forEach()</a></h3>
+<p>Process each item:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">await enumerate([1, 2, 3]).forEach(n =&gt; {
+  console.log(n);
+});
+</code></pre>
+<h3 id="for-await"><a class="header" href="#for-await">for-await</a></h3>
+<p>Use standard JavaScript iteration:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">for await (const item of enumerate([1, 2, 3])) {
+  console.log(item);
+}
+</code></pre>
+<h2 id="collecting"><a class="header" href="#collecting">Collecting</a></h2>
+<h3 id="collect"><a class="header" href="#collect">collect()</a></h3>
+<p>Gather all items into an array:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const array = await enumerate([1, 2, 3]).collect();
+// [1, 2, 3]
+</code></pre>
+<h3 id="toarray"><a class="header" href="#toarray">toArray()</a></h3>
+<p>Alias for collect():</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const array = await enumerate([1, 2, 3]).toArray();
+</code></pre>
+<h2 id="utilities"><a class="header" href="#utilities">Utilities</a></h2>
+<h3 id="enum"><a class="header" href="#enum">enum()</a></h3>
+<p>Add indices to items:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const indexed = await enumerate(["a", "b", "c"])
+  .enum()
+  .collect();
+// [["a", 0], ["b", 1], ["c", 2]]
+</code></pre>
+<p>Use with map:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const numbered = await enumerate(["a", "b", "c"])
+  .enum()
+  .map(([item, i]) =&gt; `${i + 1}. ${item}`)
+  .collect();
+// ["1. a", "2. b", "3. c"]
+</code></pre>
+<h3 id="tee"><a class="header" href="#tee">tee()</a></h3>
+<p>Split into multiple streams:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const [stream1, stream2] = enumerate([1, 2, 3]).tee();
+
+const [sum, product] = await Promise.all([
+  stream1.reduce((a, b) =&gt; a + b, 0),
+  stream2.reduce((a, b) =&gt; a * b, 1),
+]);
+</code></pre>
+<h3 id="flatten"><a class="header" href="#flatten">flatten()</a></h3>
+<p>Flatten nested iterables:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const flat = await enumerate([[1, 2], [3, 4]])
+  .flatten()
+  .collect();
+// [1, 2, 3, 4]
+</code></pre>
+<h2 id="concurrent-operations"><a class="header" href="#concurrent-operations">Concurrent Operations</a></h2>
+<h3 id="concurrentmap"><a class="header" href="#concurrentmap">concurrentMap()</a></h3>
+<p>Map with controlled concurrency:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const results = await enumerate(urls)
+  .concurrentMap(async (url) =&gt; {
+    return await fetch(url);
+  }, { concurrency: 5 })
+  .collect();
+</code></pre>
+<p>Results are returned in order.</p>
+<h3 id="concurrentunorderedmap"><a class="header" href="#concurrentunorderedmap">concurrentUnorderedMap()</a></h3>
+<p>Map with maximum concurrency:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const results = await enumerate(urls)
+  .concurrentUnorderedMap(async (url) =&gt; {
+    return await fetch(url);
+  }, { concurrency: 5 })
+  .collect();
+</code></pre>
+<p>Results are returned as they complete (faster).</p>
+<h2 id="chaining-examples"><a class="header" href="#chaining-examples">Chaining Examples</a></h2>
+<h3 id="complex-pipeline"><a class="header" href="#complex-pipeline">Complex Pipeline</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const result = await enumerate(data)
+  .filter(item =&gt; item.active)
+  .map(item =&gt; item.value)
+  .filter(value =&gt; value &gt; 0)
+  .map(value =&gt; value * 2)
+  .take(10)
+  .collect();
+</code></pre>
+<h3 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const topErrors = await read("app.log")
+  .lines
+  .filter(line =&gt; line.includes("ERROR"))
+  .map(line =&gt; {
+    const match = line.match(/ERROR: (.+)/);
+    return match ? match[1] : line;
+  })
+  .reduce((acc, error) =&gt; {
+    acc[error] = (acc[error] || 0) + 1;
+    return acc;
+  }, {});
+</code></pre>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="use-streaming"><a class="header" href="#use-streaming">Use Streaming</a></h3>
+<p>Don't collect if you don't need to:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// ❌ Loads everything
+const items = await enumerate(huge).collect();
+for (const item of items) process(item);
+
+// ✅ Streams
+for await (const item of enumerate(huge)) {
+  process(item);
+}
+</code></pre>
+<h3 id="use-take-for-limits"><a class="header" href="#use-take-for-limits">Use take() for Limits</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Get first 10 matches
+const matches = await enumerate(data)
+  .filter(predicate)
+  .take(10)
+  .collect();
+</code></pre>
+<h3 id="use-concurrentmap-for-io"><a class="header" href="#use-concurrentmap-for-io">Use concurrentMap() for I/O</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Process 5 URLs at a time
+const results = await enumerate(urls)
+  .concurrentMap(fetch, { concurrency: 5 })
+  .collect();
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./transformations.html">Transformations</a> - Deep dive into map, flatMap, transform</li>
+<li><a href="./aggregations.html">Aggregations</a> - Deep dive into reduce, count, sum</li>
+<li><a href="./slicing.html">Slicing and Sampling</a> - Deep dive into take, drop, slice</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../iterables/enumerable.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../iterables/transformations.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../iterables/enumerable.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../iterables/transformations.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

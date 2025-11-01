@@ -1,61 +1,52 @@
 # Summary
 
----
-
 [Introduction](./introduction.md)
 
-# Processes
+---
 
-- [Running a Process](./process-run.md)
-- [Output](./process-output.md)
-- [Input](./process-input.md)
-- [Stderr and Error Handling](./process-stderr.md)
+# Getting Started
 
-# Input/Output
+- [Installation](./getting-started/installation.md)
+- [Quick Start](./getting-started/quick-start.md)
+- [Key Concepts](./getting-started/key-concepts.md)
 
-- [Reading Stuff](./io/read.md)
-- [Writing Stuff]()
+# Core Features
 
-# Higher Order Functions for AsyncIterable
+- [Error Handling](./core/error-handling.md)
+- [Running Processes](./core/running-processes.md)
+- [Process Pipelines](./core/pipelines.md)
+- [Working with Output](./core/output.md)
+- [Working with Input](./core/input.md)
+- [Resource Management](./core/resources.md)
 
-- [Enumeration]()
-- [Compatibility with Streams]()
-- [Performance](./performance.md)
+# Async Iterables
 
-# Concurrency and Parallel Processing
+- [Understanding Enumerable](./iterables/enumerable.md)
+- [Array-Like Methods](./iterables/array-methods.md)
+- [Transformations](./iterables/transformations.md)
+- [Aggregations](./iterables/aggregations.md)
+- [Slicing and Sampling](./iterables/slicing.md)
 
-# Miscellaneous
+# Advanced Topics
 
-- [Sleep](./misc/sleep.md)
-- [Range]()
-- [Shuffle]()
+- [Concurrent Processing](./advanced/concurrent.md)
+- [Streaming Large Files](./advanced/streaming.md)
 
-# Concepts
+# Utilities
 
-- [Transformers](./transform.md)
-- [Working with Text Data](./text-data.md)
-- [Working with Objects]()
+- [File I/O](./utilities/file-io.md)
+- [Range and Iteration](./utilities/range.md)
+- [Zip and Enumerate](./utilities/zip-enumerate.md)
 
-<!-- - [Stream Conversions](./conversions.md) -->
+# Recipes
 
-<!-- - [The Zen of Errors](./errors.md) -->
+- [Counting Words](./recipes/counting-words.md)
+- [Processing Log Files](./recipes/log-processing.md)
+- [Decompressing Files](./recipes/decompression.md)
+- [Parallel Downloads](./recipes/parallel-downloads.md)
+- [Shell Script Replacement](./recipes/shell-replacement.md)
 
-# Examples
+---
 
-- [Embed a Bash Script]()
-- [Counting Words](./example-counting-words.md)
-- [Concurrent Processing](./example-concurrent-processing.md)
-- [Input and Output](./example-io.md)
-
-<!-- # Minutia
-
-- [Run and the Spread Operator](./spread.md)
-
-- [Level 1](./level1.md)
-  - [Level 2](./level2.md)
-    - [Level 3](./level3.md) -->
-
-<!-- ---
-
-[Preprocessor Test](./preprocessor-test.md)
--->
+[API Reference](./api-reference.md) [Migration Guide](./migration.md)
+[FAQ](./faq.md)

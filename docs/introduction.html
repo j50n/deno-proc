@@ -175,88 +175,92 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="proc-0229"><a class="header" href="#proc-0229"><code>proc 0.22.9</code></a></h1>
-<p><code>proc</code> makes running child processes really, really easy.</p>
-<p>The real power of <code>proc</code>, however, is that it lets you use (most of) the higher
-order functions from JavaScript arrays - <code>map</code>, <code>filter</code>, <code>find</code>, etc. - on
-<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator"><code>AsyncIterable</code></a>
-data. The code you run this way is lazy and streamed, so you can work with data
-that is <strong>much larger</strong> than you can fit in memory. This lets you do all sorts
-of complex IO, and simply. If you have struggled to get JavaScript streams to
-run without edge case bugs, and if you find streams awkward to work with, you
-are going to love this.</p>
-<p><code>proc</code> also includes functions that make concurrent processing <em>with
-controlled/limited concurrency</em> easy, and easy to understand. If you thought
-that JavaScript was not great for parallel programming, this might change your
-mind.</p>
-<p>I personally use <code>proc</code> for sysadmin work as a replacement for Bash scripting. I
-can just drop <code>deno</code> into <code>/usr/local/bin/</code> and now I can write standalone Deno
-scripts that can do (almost) anything I would want to do with a Bash script, but
-with proper type-checking, error handling, and with <strong>safety</strong> (tightly
-sandboxed). The ability to run and manage child processes in a sane manner is
-critical for this kind of work, and this is where <code>proc</code> shines.</p>
-<p><a href="https://deno.land/x/proc@0.22.9/">Developer Documentation</a></p>
-<h2 id="project-status-as-of-2025-05-19"><a class="header" href="#project-status-as-of-2025-05-19">Project Status as of 2025-05-19</a></h2>
-<p>This project is actively maintained. I use it almost every day, and I have since
-the first version. If you find bugs, errors, or omissions in the documentation,
-please file an issue.</p>
-<p>The API is stable. There still could be breaking changes. I don't expect any
-major redesigns.</p>
-<p>The documentation is somewhat broken from the move to JSR. I am working on it.</p>
-<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.9";
-</code></pre>
-<h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
-<p>Run <code>ls -la</code> as a child process. Decode <code>stdout</code> as lines of text. Print to
-console.</p>
-<pre><code class="language-typescript">await run("ls", "-la").toStdout();
-</code></pre>
-<h2 id="a-better-example"><a class="header" href="#a-better-example">A Better Example</a></h2>
-<p>Don't worry about understanding everything in this example yet. This shows a
-little of what is possible using <code>proc</code>.</p>
-<p>Given the text for <em>War and Peace</em>:</p>
-<ul>
-<li>Read the file into an <code>AsyncIterable</code> of <code>Uint8Array</code>.</li>
-<li>Uncompress it (the file is GZ'd).</li>
-<li>Convert to lowercase using JavaScript, because the JavaScript conversion is
-more correct than the one in <code>tr</code>.</li>
-<li><code>grep</code> out all the words on word boundaries.</li>
-<li><code>tee</code> this into two streams (<code>AsyncIterable</code> of <code>Uint8Array</code>) of words.
-<ul>
-<li>Count the total number of words.</li>
-<li>Use <code>sort</code> with <code>uniq</code> to count the unique words.</li>
-</ul>
-</li>
-</ul>
-<pre><code class="language-typescript">const [words1, words2] = read(
-  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
-)
-  .transform(gunzip)
+                        <h1 id="welcome-to-proc"><a class="header" href="#welcome-to-proc">Welcome to proc</a></h1>
+<p>Running child processes and working with streams should be simple. <strong>proc</strong>
+makes it simple.</p>
+<h2 id="what-is-proc"><a class="header" href="#what-is-proc">What is proc?</a></h2>
+<p>proc is a Deno library that gives you two superpowers:</p>
+<ol>
+<li><strong>Run child processes</strong> with a clean, composable API</li>
+<li><strong>Work with async iterables</strong> using the Array methods you already know</li>
+</ol>
+<p>But here's the real magic: <strong>errors just work</strong>. They flow through your
+pipelines naturally, like data. No edge cases, no separate error channels, no
+callbacks. One try-catch at the end handles everything.</p>
+<p>If you've ever struggled with JavaScript streams, you're going to love this.</p>
+<h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
+<p>Count lines in a compressed file—streaming, no temp files:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.22.15";
+
+const lines = await read("war-and-peace.txt.gz")
+  .transform(new DecompressionStream("gzip"))
   .lines
-  .map((line) =&gt; line.toLocaleLowerCase())
-  .run("grep", "-oE", "(\\w|')+") // grep out the words to individual lines
-  .tee();
+  .count();
 
-const [uniqueWords, totalWords] = await Promise.all([
-  words1.run("sort").run("uniq").lines.count(),
-  words2.lines.count(),
-]);
-
-console.log(`Total:  ${totalWords.toLocaleString()}`);
-console.log(`Unique: ${uniqueWords.toLocaleString()}`);
+console.log(`${lines} lines`); // 23,166 lines
 </code></pre>
-<p>Up to the point where we run <code>Promise.all</code>, this is asynchronous, streaming,
-lazily evaluated code. It is trivially running three child processes (<code>grep</code>,
-<code>sort</code>, and <code>uniq</code>), a <code>DecompressionStream</code> transform, and in-process logic to
-normalize to lower-case. This is all happening concurrently, mostly in parallel,
-one buffer, one line, or one word at a time.</p>
+<p>Chain processes like shell pipes:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.15";
+
+const result = await run("cat", "data.txt")
+  .run("grep", "error")
+  .run("wc", "-l")
+  .lines.first;
+</code></pre>
+<p>Handle errors gracefully:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.22.15";
+
+try {
+  await run("npm", "test")
+    .lines
+    .map((line) =&gt; line.toUpperCase())
+    .filter((line) =&gt; line.includes("FAIL"))
+    .forEach((line) =&gt; console.log(line));
+} catch (error) {
+  // All errors caught here—from the process, from map, from filter
+  console.error(`Tests failed: ${error.code}`);
+}
+</code></pre>
+<h2 id="why-proc"><a class="header" href="#why-proc">Why proc?</a></h2>
+<p><strong>JavaScript streaming is fast, but error handling shouldn't break your brain.</strong>
+proc gives you:</p>
+<ul>
+<li><strong>Errors that propagate naturally</strong> through pipelines</li>
+<li><strong>Array methods on async iterables</strong> (map, filter, reduce, and more)</li>
+<li><strong>Process management</strong> that feels like shell scripting</li>
+<li><strong>Streaming everything</strong> for memory efficiency</li>
+<li><strong>Type safety</strong> with full TypeScript support</li>
+</ul>
+<h2 id="who-is-this-for"><a class="header" href="#who-is-this-for">Who is this for?</a></h2>
+<ul>
+<li><strong>DevOps engineers</strong> automating deployments, processing logs, and managing
+infrastructure</li>
+<li><strong>Data engineers</strong> processing large CSV files, log files, or streaming data</li>
+<li><strong>Backend developers</strong> building CLI tools, batch processors, or data pipelines</li>
+<li><strong>System administrators</strong> replacing Bash scripts with type-safe, testable Deno
+code</li>
+<li><strong>Anyone</strong> who needs to run child processes or work with large datasets
+efficiently</li>
+</ul>
+<h2 id="ready-to-dive-in"><a class="header" href="#ready-to-dive-in">Ready to dive in?</a></h2>
+<p>Start with <a href="./getting-started/installation.html">Installation</a> or jump straight to
+the <a href="./getting-started/quick-start.html">Quick Start</a>.</p>
+<hr />
+<p><strong>Current Version:</strong> 0.22.15<br />
+<strong>Status:</strong> Stable, actively maintained, ready for production</p>
+<p>Found a bug? Have a question?
+<a href="https://github.com/j50n/deno-proc/issues">File an issue</a> or check the
+<a href="./faq.html">FAQ</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
 
-                            <a rel="next prefetch" href="process-run.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="getting-started/installation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -267,7 +271,7 @@ one buffer, one line, or one word at a time.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
 
-                    <a rel="next prefetch" href="process-run.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="getting-started/installation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

@@ -1,93 +1,102 @@
-# `proc {{gitv}}`
+# Welcome to proc
 
-`proc` makes running child processes really, really easy.
+Running child processes and working with streams should be simple. **proc**
+makes it simple.
 
-The real power of `proc`, however, is that it lets you use (most of) the higher
-order functions from JavaScript arrays - `map`, `filter`, `find`, etc. - on
-[`AsyncIterable`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator)
-data. The code you run this way is lazy and streamed, so you can work with data
-that is **much larger** than you can fit in memory. This lets you do all sorts
-of complex IO, and simply. If you have struggled to get JavaScript streams to
-run without edge case bugs, and if you find streams awkward to work with, you
-are going to love this.
+## What is proc?
 
-`proc` also includes functions that make concurrent processing _with
-controlled/limited concurrency_ easy, and easy to understand. If you thought
-that JavaScript was not great for parallel programming, this might change your
-mind.
+proc is a Deno library that gives you two superpowers:
 
-I personally use `proc` for sysadmin work as a replacement for Bash scripting. I
-can just drop `deno` into `/usr/local/bin/` and now I can write standalone Deno
-scripts that can do (almost) anything I would want to do with a Bash script, but
-with proper type-checking, error handling, and with **safety** (tightly
-sandboxed). The ability to run and manage child processes in a sane manner is
-critical for this kind of work, and this is where `proc` shines.
+1. **Run child processes** with a clean, composable API
+2. **Work with async iterables** using the Array methods you already know
 
-[Developer Documentation](https://deno.land/x/proc@{{gitv}}/)
+But here's the real magic: **errors just work**. They flow through your
+pipelines naturally, like data. No edge cases, no separate error channels, no
+callbacks. One try-catch at the end handles everything.
 
-## Project Status as of 2025-05-19
+If you've ever struggled with JavaScript streams, you're going to love this.
 
-This project is actively maintained. I use it almost every day, and I have since
-the first version. If you find bugs, errors, or omissions in the documentation,
-please file an issue.
+## A Taste of proc
 
-The API is stable. There still could be breaking changes. I don't expect any
-major redesigns.
+Count lines in a compressed file—streaming, no temp files:
 
-The documentation is somewhat broken from the move to JSR. I am working on it.
+<!-- NOT TESTED: Illustrative example -->
 
-## Usage
+```typescript
+import { read } from "jsr:@j50n/proc@{{gitv}}";
+
+const lines = await read("war-and-peace.txt.gz")
+  .transform(new DecompressionStream("gzip"))
+  .lines
+  .count();
+
+console.log(`${lines} lines`); // 23,166 lines
+```
+
+Chain processes like shell pipes:
+
+<!-- NOT TESTED: Illustrative example -->
 
 ```typescript
 import { run } from "jsr:@j50n/proc@{{gitv}}";
+
+const result = await run("cat", "data.txt")
+  .run("grep", "error")
+  .run("wc", "-l")
+  .lines.first;
 ```
 
-## A Simple Example
+Handle errors gracefully:
 
-Run `ls -la` as a child process. Decode `stdout` as lines of text. Print to
-console.
+<!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-await run("ls", "-la").toStdout();
+import { run } from "jsr:@j50n/proc@{{gitv}}";
+
+try {
+  await run("npm", "test")
+    .lines
+    .map((line) => line.toUpperCase())
+    .filter((line) => line.includes("FAIL"))
+    .forEach((line) => console.log(line));
+} catch (error) {
+  // All errors caught here—from the process, from map, from filter
+  console.error(`Tests failed: ${error.code}`);
+}
 ```
 
-## A Better Example
+## Why proc?
 
-Don't worry about understanding everything in this example yet. This shows a
-little of what is possible using `proc`.
+**JavaScript streaming is fast, but error handling shouldn't break your brain.**
+proc gives you:
 
-Given the text for _War and Peace_:
+- **Errors that propagate naturally** through pipelines
+- **Array methods on async iterables** (map, filter, reduce, and more)
+- **Process management** that feels like shell scripting
+- **Streaming everything** for memory efficiency
+- **Type safety** with full TypeScript support
 
-- Read the file into an `AsyncIterable` of `Uint8Array`.
-- Uncompress it (the file is GZ'd).
-- Convert to lowercase using JavaScript, because the JavaScript conversion is
-  more correct than the one in `tr`.
-- `grep` out all the words on word boundaries.
-- `tee` this into two streams (`AsyncIterable` of `Uint8Array`) of words.
-  - Count the total number of words.
-  - Use `sort` with `uniq` to count the unique words.
+## Who is this for?
 
-```typescript
-const [words1, words2] = read(
-  fromFileUrl(import.meta.resolve("./warandpeace.txt.gz")),
-)
-  .transform(gunzip)
-  .lines
-  .map((line) => line.toLocaleLowerCase())
-  .run("grep", "-oE", "(\\w|')+") // grep out the words to individual lines
-  .tee();
+- **DevOps engineers** automating deployments, processing logs, and managing
+  infrastructure
+- **Data engineers** processing large CSV files, log files, or streaming data
+- **Backend developers** building CLI tools, batch processors, or data pipelines
+- **System administrators** replacing Bash scripts with type-safe, testable Deno
+  code
+- **Anyone** who needs to run child processes or work with large datasets
+  efficiently
 
-const [uniqueWords, totalWords] = await Promise.all([
-  words1.run("sort").run("uniq").lines.count(),
-  words2.lines.count(),
-]);
+## Ready to dive in?
 
-console.log(`Total:  ${totalWords.toLocaleString()}`);
-console.log(`Unique: ${uniqueWords.toLocaleString()}`);
-```
+Start with [Installation](./getting-started/installation.md) or jump straight to
+the [Quick Start](./getting-started/quick-start.md).
 
-Up to the point where we run `Promise.all`, this is asynchronous, streaming,
-lazily evaluated code. It is trivially running three child processes (`grep`,
-`sort`, and `uniq`), a `DecompressionStream` transform, and in-process logic to
-normalize to lower-case. This is all happening concurrently, mostly in parallel,
-one buffer, one line, or one word at a time.
+---
+
+**Current Version:** {{gitv}}\
+**Status:** Stable, actively maintained, ready for production
+
+Found a bug? Have a question?
+[File an issue](https://github.com/j50n/deno-proc/issues) or check the
+[FAQ](./faq.md).

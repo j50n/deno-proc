@@ -9,6 +9,12 @@ cargo install mdbook mdbook-graphviz
 
 HERE="$(realpath "$(dirname "$0")")"
 
+cd "$HERE" && (
+    # Generate API documentation from Deno
+    echo "Generating API documentation..."
+    deno doc --html --name="proc" --output=./site/src/api-docs ./mod.ts
+)
+
 cd "$HERE/site/" && (
     deno fmt **/*.md
     deno fmt **/*.ts
@@ -19,5 +25,3 @@ cd "$HERE/site/" && (
     mkdir ../docs/
     rsync -av ./book/ ../docs/
 )
-
-

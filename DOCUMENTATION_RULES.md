@@ -324,3 +324,71 @@ Documentation should enable an AI to:
 - **Composability**: Method chaining and fluent APIs
 - **Type safety**: How types flow through transformations
 - **Performance**: When to use buffering, concurrency options
+
+---
+
+## Part 9: mdbook Documentation
+
+The mdbook provides comprehensive user documentation at https://j50n.github.io/deno-proc/
+
+### Structure
+
+8 sections organized by user journey:
+1. Getting Started - Installation, quick start, key concepts
+2. Core Features - Error handling, processes, pipelines, I/O
+3. Async Iterables - Enumerable, Array methods, transformations
+4. Advanced Topics - Concurrency, streaming, custom errors
+5. Utilities - File I/O, range, enumerate, cache
+6. Recipes - Real-world examples and solutions
+7. API Reference - Complete API documentation
+8. Other - Migration guide, FAQ
+
+### Writing Style
+
+**Warm and Human**
+- Conversational, not academic
+- Use "you" and "we"
+- Explain why, not just what
+- Show empathy for struggles
+
+**Compelling**
+- Start with the problem
+- Show the solution
+- Demonstrate the benefit
+- Real-world examples
+
+**Practical**
+- Copy-paste ready code
+- Complete, working examples
+- Common patterns
+- Real use cases
+
+**Progressive**
+- Simple → Complex
+- Build gradually
+- Link related topics
+- Provide next steps
+
+### Key Principles
+
+1. **Error handling first** - It's the primary selling point
+2. **Show, don't tell** - Working examples over explanations
+3. **Clarify properties vs methods** - Always distinguish
+4. **Complete examples** - Copy-paste ready
+5. **Real-world focus** - Realistic use cases
+
+### Building
+
+```bash
+cd site
+mdbook build
+# Or
+./build-site.sh
+```
+
+### Testing
+
+All mdbook examples should be tested in `tests/docs/` before publishing.
+
+See `MDBOOK_GUIDE.md` for complete guidelines.
+

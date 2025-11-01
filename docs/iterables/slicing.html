@@ -1,0 +1,378 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Slicing and Sampling - proc</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">proc</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="slicing-and-sampling"><a class="header" href="#slicing-and-sampling">Slicing and Sampling</a></h1>
+<p>Take portions of your data stream.</p>
+<h2 id="take"><a class="header" href="#take">take()</a></h2>
+<p>Take first N items:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "slicing: take" -->
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.15";
+
+const first3 = await enumerate([1, 2, 3, 4, 5])
+  .take(3)
+  .collect();
+// [1, 2, 3]
+</code></pre>
+<h3 id="early-exit"><a class="header" href="#early-exit">Early Exit</a></h3>
+<p>Stops reading after N items:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Only reads first 10 lines
+const preview = await read("huge-file.txt")
+  .lines
+  .take(10)
+  .collect();
+</code></pre>
+<h3 id="with-filter"><a class="header" href="#with-filter">With Filter</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// First 5 errors
+const errors = await read("app.log")
+  .lines
+  .filter(line =&gt; line.includes("ERROR"))
+  .take(5)
+  .collect();
+</code></pre>
+<h2 id="drop"><a class="header" href="#drop">drop()</a></h2>
+<p>Skip first N items:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "slicing: drop" -->
+<pre><code class="language-typescript">const rest = await enumerate([1, 2, 3, 4, 5])
+  .drop(2)
+  .collect();
+// [3, 4, 5]
+</code></pre>
+<h3 id="skip-header"><a class="header" href="#skip-header">Skip Header</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const data = await read("data.csv")
+  .lines
+  .drop(1)  // Skip header row
+  .collect();
+</code></pre>
+<h2 id="combining-drop-and-take"><a class="header" href="#combining-drop-and-take">Combining drop() and take()</a></h2>
+<p>Get a range of items by combining drop and take:</p>
+<!-- TESTED: tests/mdbook_examples.test.ts - "slicing: slice with drop and take" -->
+<pre><code class="language-typescript">const middle = await enumerate([1, 2, 3, 4, 5])
+  .drop(1)
+  .take(3)
+  .collect();
+// [2, 3, 4]
+</code></pre>
+<h3 id="pagination"><a class="header" href="#pagination">Pagination</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const page = 2;
+const pageSize = 10;
+
+const items = await enumerate(allItems)
+  .drop(page * pageSize)
+  .take(pageSize)
+  .collect();
+</code></pre>
+<h2 id="first"><a class="header" href="#first">first</a></h2>
+<p>Get first item:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const first = await enumerate([1, 2, 3]).first;
+// 1
+</code></pre>
+<h3 id="with-pipeline"><a class="header" href="#with-pipeline">With Pipeline</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const result = await run("ls", "-la")
+  .lines
+  .first;
+</code></pre>
+<h2 id="last"><a class="header" href="#last">last</a></h2>
+<p>Get last item:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const last = await enumerate([1, 2, 3]).last;
+// 3
+</code></pre>
+<p><strong>Note:</strong> Reads entire stream to find last item.</p>
+<h2 id="nth"><a class="header" href="#nth">nth()</a></h2>
+<p>Get item at index:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const third = await enumerate([1, 2, 3, 4, 5]).nth(2);
+// 3 (zero-indexed)
+</code></pre>
+<h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
+<h3 id="preview-file"><a class="header" href="#preview-file">Preview File</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">console.log("First 10 lines:");
+await read("file.txt")
+  .lines
+  .take(10)
+  .forEach(line =&gt; console.log(line));
+</code></pre>
+<h3 id="skip-and-take"><a class="header" href="#skip-and-take">Skip and Take</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Lines 11-20
+const batch = await read("file.txt")
+  .lines
+  .drop(10)
+  .take(10)
+  .collect();
+</code></pre>
+<h3 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Every 10th item
+const sample = await enumerate(data)
+  .filter((_, i) =&gt; i % 10 === 0)
+  .collect();
+</code></pre>
+<h3 id="find-nth-match"><a class="header" href="#find-nth-match">Find Nth Match</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// 5th error
+const fifthError = await read("app.log")
+  .lines
+  .filter(line =&gt; line.includes("ERROR"))
+  .nth(4);  // Zero-indexed
+</code></pre>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="use-take-for-limits"><a class="header" href="#use-take-for-limits">Use take() for Limits</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// ✅ Stops early
+const first100 = await enumerate(huge)
+  .take(100)
+  .collect();
+
+// ❌ Reads everything
+const all = await enumerate(huge).collect();
+const first100 = all.slice(0, 100);  // Array slice, not Enumerable
+</code></pre>
+<h3 id="combine-with-filter"><a class="header" href="#combine-with-filter">Combine with Filter</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Efficient: stops after 10 matches
+const matches = await enumerate(data)
+  .filter(predicate)
+  .take(10)
+  .collect();
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./array-methods.html">Array-Like Methods</a> - All available methods</li>
+<li><a href="./transformations.html">Transformations</a> - Transform items</li>
+<li><a href="../advanced/streaming.html">Streaming Large Files</a> - Work with huge files</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../iterables/aggregations.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../advanced/concurrent.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../iterables/aggregations.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../advanced/concurrent.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

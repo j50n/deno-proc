@@ -11,6 +11,7 @@
 - ❌ `.status()` → ✅ `.status`
 - ❌ `.toArray()` → ✅ `.collect()`
 - ❌ `readLines(path)` → ✅ `read(path).lines`
+- ❌ `.slice(1, 4)` → ✅ `.drop(1).take(3)` (slice doesn't exist on Enumerable)
 
 ## Error Handling
 

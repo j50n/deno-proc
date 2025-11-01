@@ -7,7 +7,7 @@ import { resolve, toFileUrl } from "./deps/path.ts";
 import { blue, cyan, red } from "./deps/colors.ts";
 import { Command } from "./deps/cliffy.ts";
 import { retry } from "./deps/retry.ts";
-import config from "../version.json" with { type: "json" };
+import config from "../deno.json" with { type: "json" };
 import { encodeHex } from "./deps/encode.ts";
 
 interface Chapter {

@@ -1,0 +1,438 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>File I/O - proc</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">proc</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="file-io"><a class="header" href="#file-io">File I/O</a></h1>
+<p>Read and write files with streaming efficiency.</p>
+<h2 id="reading-files"><a class="header" href="#reading-files">Reading Files</a></h2>
+<h3 id="read-as-bytes"><a class="header" href="#read-as-bytes">Read as Bytes</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.22.15";
+
+const bytes = await read("file.bin").collect();
+// Uint8Array[]
+</code></pre>
+<h3 id="read-as-lines"><a class="header" href="#read-as-lines">Read as Lines</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const lines = await read("file.txt").lines.collect();
+// string[]
+</code></pre>
+<h3 id="stream-large-files"><a class="header" href="#stream-large-files">Stream Large Files</a></h3>
+<p>Process files larger than memory:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">for await (const line of read("huge-file.txt").lines) {
+  process(line);  // One line at a time
+}
+</code></pre>
+<h2 id="file-paths"><a class="header" href="#file-paths">File Paths</a></h2>
+<h3 id="relative-paths"><a class="header" href="#relative-paths">Relative Paths</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">read("data.txt")  // Relative to current directory
+</code></pre>
+<h3 id="absolute-paths"><a class="header" href="#absolute-paths">Absolute Paths</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">read("/var/log/app.log")
+</code></pre>
+<h3 id="urls"><a class="header" href="#urls">URLs</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const path = new URL("./data.txt", import.meta.url);
+read(path)
+</code></pre>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="count-lines"><a class="header" href="#count-lines">Count Lines</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const lineCount = await read("file.txt").lines.count();
+</code></pre>
+<h3 id="find-pattern"><a class="header" href="#find-pattern">Find Pattern</a></h3>
+<!-- TESTED: tests/mdbook_examples.test.ts - "file-io: read and filter" -->
+<pre><code class="language-typescript">const matches = await read("file.txt")
+  .lines
+  .filter(line =&gt; line.includes("ERROR"))
+  .collect();
+</code></pre>
+<h3 id="transform-lines"><a class="header" href="#transform-lines">Transform Lines</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const processed = await read("input.txt")
+  .lines
+  .map(line =&gt; line.toUpperCase())
+  .collect();
+</code></pre>
+<h3 id="parse-csv"><a class="header" href="#parse-csv">Parse CSV</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const data = await read("data.csv")
+  .lines
+  .drop(1)  // Skip header
+  .map(line =&gt; {
+    const [name, age, city] = line.split(",");
+    return { name, age: parseInt(age), city };
+  })
+  .collect();
+</code></pre>
+<h2 id="writing-files"><a class="header" href="#writing-files">Writing Files</a></h2>
+<h3 id="write-array-to-file"><a class="header" href="#write-array-to-file">Write Array to File</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const lines = ["line 1", "line 2", "line 3"];
+const content = lines.join("\n");
+await Deno.writeTextFile("output.txt", content);
+</code></pre>
+<h3 id="stream-to-file"><a class="header" href="#stream-to-file">Stream to File</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.22.15";
+
+const bytes = await read("input.txt")
+  .lines
+  .map(line =&gt; new TextEncoder().encode(line + "\n"))
+  .collect();
+
+await Deno.writeFile("output.txt", concat(bytes));
+</code></pre>
+<h2 id="working-with-binary-files"><a class="header" href="#working-with-binary-files">Working with Binary Files</a></h2>
+<h3 id="read-binary"><a class="header" href="#read-binary">Read Binary</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const bytes = await read("image.png").collect();
+const data = concat(bytes);
+</code></pre>
+<h3 id="process-binary"><a class="header" href="#process-binary">Process Binary</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const processed = await read("data.bin")
+  .map(chunk =&gt; {
+    // Process each chunk
+    return transform(chunk);
+  })
+  .collect();
+</code></pre>
+<h2 id="compressed-files"><a class="header" href="#compressed-files">Compressed Files</a></h2>
+<h3 id="read-compressed"><a class="header" href="#read-compressed">Read Compressed</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const lines = await read("file.gz")
+  .transform(new DecompressionStream("gzip"))
+  .lines
+  .collect();
+</code></pre>
+<p>See <a href="../recipes/decompression.html">Decompressing Files</a> for more.</p>
+<h2 id="multiple-files"><a class="header" href="#multiple-files">Multiple Files</a></h2>
+<h3 id="process-multiple-files"><a class="header" href="#process-multiple-files">Process Multiple Files</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const files = ["log1.txt", "log2.txt", "log3.txt"];
+
+for (const file of files) {
+  const errors = await read(file)
+    .lines
+    .filter(line =&gt; line.includes("ERROR"))
+    .count();
+  console.log(`${file}: ${errors} errors`);
+}
+</code></pre>
+<h3 id="concurrent-processing"><a class="header" href="#concurrent-processing">Concurrent Processing</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.22.15";
+
+const results = await enumerate(files)
+  .concurrentMap(async (file) =&gt; {
+    const lines = await read(file).lines.count();
+    return { file, lines };
+  }, { concurrency: 3 })
+  .collect();
+</code></pre>
+<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
+<h3 id="file-not-found"><a class="header" href="#file-not-found">File Not Found</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">try {
+  const lines = await read("missing.txt").lines.collect();
+} catch (error) {
+  console.error(`Failed to read file: ${error.message}`);
+}
+</code></pre>
+<h3 id="permission-denied"><a class="header" href="#permission-denied">Permission Denied</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">try {
+  const lines = await read("/root/secret.txt").lines.collect();
+} catch (error) {
+  if (error instanceof Deno.errors.PermissionDenied) {
+    console.error("Permission denied");
+  }
+}
+</code></pre>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="stream-dont-collect"><a class="header" href="#stream-dont-collect">Stream Don't Collect</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// ❌ Loads entire file into memory
+const lines = await read("huge.txt").lines.collect();
+
+// ✅ Processes one line at a time
+for await (const line of read("huge.txt").lines) {
+  process(line);
+}
+</code></pre>
+<h3 id="use-chunked-lines-for-performance"><a class="header" href="#use-chunked-lines-for-performance">Use Chunked Lines for Performance</a></h3>
+<p>For files with many small lines:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const chunks = await read("file.txt").chunkedLines.collect();
+// Array of string arrays
+</code></pre>
+<h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
+<h3 id="log-analysis"><a class="header" href="#log-analysis">Log Analysis</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const errorsByType = await read("app.log")
+  .lines
+  .filter(line =&gt; line.includes("ERROR"))
+  .reduce((acc, line) =&gt; {
+    const type = line.match(/ERROR: (\w+)/)?.[1] || "unknown";
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
+</code></pre>
+<h3 id="data-extraction"><a class="header" href="#data-extraction">Data Extraction</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const emails = await read("contacts.txt")
+  .lines
+  .map(line =&gt; line.match(/[\w.-]+@[\w.-]+\.\w+/))
+  .filter(match =&gt; match !== null)
+  .map(match =&gt; match[0])
+  .collect();
+</code></pre>
+<h3 id="file-conversion"><a class="header" href="#file-conversion">File Conversion</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const jsonLines = await read("data.csv")
+  .lines
+  .drop(1)  // Skip header
+  .map(line =&gt; {
+    const [name, age] = line.split(",");
+    return JSON.stringify({ name, age: parseInt(age) });
+  })
+  .collect();
+
+await Deno.writeTextFile("data.jsonl", jsonLines.join("\n"));
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="../recipes/decompression.html">Decompressing Files</a> - Work with compressed files</li>
+<li><a href="../advanced/streaming.html">Streaming Large Files</a> - Handle huge files</li>
+<li><a href="../recipes/log-processing.html">Log Processing</a> - Analyze logs</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/streaming.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../utilities/range.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/streaming.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../utilities/range.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
