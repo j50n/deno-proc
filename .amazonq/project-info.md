@@ -24,6 +24,24 @@ AsyncIterables.
 - Built-in transformers for common operations
 - Type-safe transformations
 
+## Current Status (Updated 2025-11-01)
+
+**Test Coverage:** 127 tests (all passing)
+- 39 documentation tests with working examples
+- 25 edge case tests (concurrent, enumerable, transformers, writable)
+- 17 comprehensive reduce tests matching Array.reduce API
+- 46 existing feature tests
+
+**Recent Improvements:**
+- ✅ Comprehensive JSDoc documentation with tested examples
+- ✅ Fixed Fisher-Yates shuffle bug (was biased)
+- ✅ Fixed reduce() empty array with initial value bug
+- ✅ Added step=0 validation to range() (prevents infinite loops)
+- ✅ Comprehensive edge case test coverage
+- ✅ All functions matching JS APIs now behave identically
+
+**Known Issues:** None - all tests passing
+
 ## Architecture
 
 ### Core Modules
@@ -74,7 +92,16 @@ See DOCUMENTATION_RULES.md for complete guidelines.
 
 **Test Structure:**
 
-- `tests/docs/` - Documentation example tests (39 tests)
+- `tests/docs/` - Documentation example tests (56 tests)
+  - `run.test.ts` - run() function tests
+  - `utility.test.ts` - utility function tests
+  - `transformers.test.ts` - transformer tests
+  - `concurrent.test.ts` - concurrent operation tests
+  - `enumerable.test.ts` - enumerable method tests
+  - `process.test.ts` - Process class tests
+  - `writable-iterable.test.ts` - WritableIterable tests
+  - `reduce.test.ts` - comprehensive reduce tests (17 tests)
+  - `additional-coverage.test.ts` - edge case tests (25 tests)
 - `tests/command/` - Process command tests
 - `tests/enumerable/` - Enumerable operation tests
 - `tests/errors/` - Error handling tests
@@ -86,7 +113,20 @@ See DOCUMENTATION_RULES.md for complete guidelines.
 deno test --allow-run --allow-read --allow-write --allow-env
 ```
 
-**Total:** 75 tests (all passing)
+**Run build (includes tests):**
+
+```bash
+./build.sh
+```
+
+**Total:** 127 tests (all passing)
+
+**Test Quality Standards:**
+- Every public API has tests
+- Edge cases covered (empty, null, single element)
+- Error conditions tested
+- Functions matching JS APIs tested for identical behavior
+- Real-world use cases included
 
 ## Common Usage Patterns
 

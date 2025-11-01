@@ -47,6 +47,22 @@
 - Location: `tests/docs/[module-name].test.ts`
 - One test file per source file
 - Test names match example descriptions
+- Additional edge case tests in `tests/docs/additional-coverage.test.ts`
+
+### Test Coverage Standards
+
+**Every public function must have tests for:**
+- ✅ Happy path (basic functionality)
+- ✅ Edge cases (empty, null, undefined, single element)
+- ✅ Error conditions (invalid input, boundary violations)
+- ✅ Type variations (when applicable)
+
+**Critical: Functions matching JavaScript APIs (like reduce) must:**
+- Match JavaScript behavior exactly
+- Test all parameter combinations
+- Test falsy values (0, "", false, null, undefined)
+- Test index/accumulator behavior
+- Include real-world use case examples
 
 ### Test Structure
 
@@ -129,6 +145,49 @@ Check that:
 - [ ] Examples have corresponding tests
 - [ ] Tests pass
 - [ ] Documentation explains WHY not just WHAT
+- [ ] Edge cases are tested (empty, null, single element)
+- [ ] Error conditions are tested
+- [ ] Functions matching JS APIs behave identically
+
+## Common Bugs to Watch For
+
+Based on code reviews, watch for these patterns:
+
+### Algorithm Implementations
+- **Fisher-Yates shuffle**: Must select from unshuffled portion only
+  ```typescript
+  // ❌ WRONG
+  const j = Math.floor(Math.random() * items.length);
+  
+  // ✅ CORRECT
+  const j = Math.floor(Math.random() * (items.length - i)) + i;
+  ```
+
+### Infinite Loop Prevention
+- **Range/iteration functions**: Always validate step !== 0
+  ```typescript
+  if (step === 0) {
+    throw new RangeError("step cannot be 0");
+  }
+  ```
+
+### Empty Collection Handling
+- **Reduce with initial value**: Must return initial value for empty collections
+  ```typescript
+  // Initialize acc with zero if provided
+  let acc = zero !== undefined ? zero : UNSET;
+  ```
+
+### Async Generator Errors
+- **Validation timing**: Validate parameters before creating async generator
+  ```typescript
+  // ✅ Validate here (synchronous)
+  if (invalid) throw new Error();
+  
+  async function* generator() {
+    // ❌ Not here (async, harder to test)
+  }
+  ```
 
 ## Example Quality Checklist
 
