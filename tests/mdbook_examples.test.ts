@@ -2,7 +2,7 @@
 // These are examples users are likely to copy-paste
 
 import { assertEquals } from "@std/assert";
-import { run, read, enumerate, range } from "../mod.ts";
+import { enumerate, range, read, run } from "../mod.ts";
 
 // ===== Getting Started Examples =====
 
@@ -20,12 +20,15 @@ Deno.test("quick-start: chain processes", async () => {
 
 Deno.test("quick-start: process file", async () => {
   const tempFile = await Deno.makeTempFile();
-  await Deno.writeTextFile(tempFile, "line1\nERROR: test\nline3\nERROR: another\n");
-  
+  await Deno.writeTextFile(
+    tempFile,
+    "line1\nERROR: test\nline3\nERROR: another\n",
+  );
+
   try {
     const errorCount = await read(tempFile)
       .lines
-      .filter(line => line.includes("ERROR"))
+      .filter((line) => line.includes("ERROR"))
       .count();
     assertEquals(errorCount, 2);
   } finally {
@@ -36,8 +39,9 @@ Deno.test("quick-start: process file", async () => {
 Deno.test("quick-start: handle errors", async () => {
   try {
     await run("false").lines.collect();
+    throw new Error("Expected error to be thrown");
   } catch (error) {
-    assertEquals((error as any).code, 1);
+    assertEquals((error as { code: number }).code, 1);
   }
 });
 
@@ -51,9 +55,12 @@ Deno.test("quick-start: enumerate with indices", async () => {
 });
 
 Deno.test("quick-start: git log example", async () => {
-  const commits = await run("echo", "abc123 fix: bug\ndef456 feat: new\nghi789 fix: another")
+  const commits = await run(
+    "echo",
+    "abc123 fix: bug\ndef456 feat: new\nghi789 fix: another",
+  )
     .lines
-    .filter(line => line.includes("fix"))
+    .filter((line) => line.includes("fix"))
     .take(5)
     .collect();
   assertEquals(commits.length, 2);
@@ -63,7 +70,7 @@ Deno.test("quick-start: git log example", async () => {
 
 Deno.test("key-concepts: enumerate without indices", async () => {
   const doubled = await enumerate([1, 2, 3])
-    .map(n => n * 2)
+    .map((n) => n * 2)
     .collect();
   assertEquals(doubled, [2, 4, 6]);
 });
@@ -71,7 +78,7 @@ Deno.test("key-concepts: enumerate without indices", async () => {
 Deno.test("key-concepts: streaming", async () => {
   const tempFile = await Deno.makeTempFile();
   await Deno.writeTextFile(tempFile, "line1\nline2\nline3\n");
-  
+
   try {
     const lines: string[] = [];
     for await (const line of read(tempFile).lines) {
@@ -98,7 +105,7 @@ Deno.test("running-processes: first line", async () => {
 Deno.test("pipelines: chain commands", async () => {
   const tempFile = await Deno.makeTempFile();
   await Deno.writeTextFile(tempFile, "line1\nerror here\nline3\n");
-  
+
   try {
     const result = await run("cat", tempFile)
       .run("grep", "error")
@@ -112,7 +119,7 @@ Deno.test("pipelines: chain commands", async () => {
 Deno.test("output: map lines", async () => {
   const uppercase = await run("echo", "hello")
     .lines
-    .map(line => line.toUpperCase())
+    .map((line) => line.toUpperCase())
     .collect();
   assertEquals(uppercase, ["HELLO"]);
 });
@@ -120,11 +127,11 @@ Deno.test("output: map lines", async () => {
 Deno.test("output: filter lines", async () => {
   const tempFile = await Deno.makeTempFile();
   await Deno.writeTextFile(tempFile, "INFO: start\nERROR: fail\nINFO: end\n");
-  
+
   try {
     const errors = await read(tempFile)
       .lines
-      .filter(line => line.includes("ERROR"))
+      .filter((line) => line.includes("ERROR"))
       .collect();
     assertEquals(errors.length, 1);
   } finally {
@@ -149,14 +156,14 @@ Deno.test("resources: consume output", async () => {
 
 Deno.test("enumerable: map", async () => {
   const doubled = await enumerate([1, 2, 3])
-    .map(n => n * 2)
+    .map((n) => n * 2)
     .collect();
   assertEquals(doubled, [2, 4, 6]);
 });
 
 Deno.test("enumerable: filter", async () => {
   const evens = await enumerate([1, 2, 3, 4])
-    .filter(n => n % 2 === 0)
+    .filter((n) => n % 2 === 0)
     .collect();
   assertEquals(evens, [2, 4]);
 });
@@ -169,7 +176,7 @@ Deno.test("enumerable: reduce", async () => {
 
 Deno.test("array-methods: flatMap", async () => {
   const words = await enumerate(["hello world", "foo bar"])
-    .flatMap(line => line.split(" "))
+    .flatMap((line) => line.split(" "))
     .collect();
   assertEquals(words, ["hello", "world", "foo", "bar"]);
 });
@@ -181,26 +188,26 @@ Deno.test("array-methods: count", async () => {
 
 Deno.test("array-methods: some", async () => {
   const hasError = await enumerate(["INFO", "ERROR", "WARN"])
-    .some(line => line.includes("ERROR"));
+    .some((line) => line.includes("ERROR"));
   assertEquals(hasError, true);
 });
 
 Deno.test("array-methods: every", async () => {
   const allPositive = await enumerate([1, 2, 3])
-    .every(n => n > 0);
+    .every((n) => n > 0);
   assertEquals(allPositive, true);
 });
 
 Deno.test("array-methods: find", async () => {
   const match = await enumerate([1, 2, 3, 4])
-    .find(n => n > 2);
+    .find((n) => n > 2);
   assertEquals(match, 3);
 });
 
 Deno.test("transformations: map with async", async () => {
   const results = await enumerate([1, 2, 3])
     .map(async (n) => {
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       return n * 2;
     })
     .collect();
@@ -208,7 +215,10 @@ Deno.test("transformations: map with async", async () => {
 });
 
 Deno.test("aggregations: build object", async () => {
-  const items = [{ cat: "A", val: 1 }, { cat: "B", val: 2 }, { cat: "A", val: 3 }];
+  const items = [{ cat: "A", val: 1 }, { cat: "B", val: 2 }, {
+    cat: "A",
+    val: 3,
+  }];
   const grouped = await enumerate(items)
     .reduce((acc, item) => {
       acc[item.cat] = acc[item.cat] || [];
@@ -246,7 +256,7 @@ Deno.test("slicing: slice with drop and take", async () => {
 Deno.test("concurrent: concurrentMap", async () => {
   const results = await enumerate([1, 2, 3])
     .concurrentMap(async (n) => {
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       return n * 2;
     }, { concurrency: 2 })
     .collect();
@@ -256,7 +266,7 @@ Deno.test("concurrent: concurrentMap", async () => {
 Deno.test("streaming: count lines", async () => {
   const tempFile = await Deno.makeTempFile();
   await Deno.writeTextFile(tempFile, "line1\nline2\nline3\n");
-  
+
   try {
     const count = await read(tempFile).lines.count();
     assertEquals(count, 3);
@@ -270,11 +280,11 @@ Deno.test("streaming: count lines", async () => {
 Deno.test("file-io: read and filter", async () => {
   const tempFile = await Deno.makeTempFile();
   await Deno.writeTextFile(tempFile, "line1\nERROR: test\nline3\n");
-  
+
   try {
     const errors = await read(tempFile)
       .lines
-      .filter(line => line.includes("ERROR"))
+      .filter((line) => line.includes("ERROR"))
       .collect();
     assertEquals(errors.length, 1);
   } finally {
@@ -303,7 +313,12 @@ Deno.test("zip-enumerate: enum", async () => {
 
 Deno.test("decompression: decompress and count", async () => {
   const lineCount = await read("resources/warandpeace.txt.gz")
-    .transform(new DecompressionStream("gzip") as TransformStream<Uint8Array, Uint8Array>)
+    .transform(
+      new DecompressionStream("gzip") as TransformStream<
+        Uint8Array,
+        Uint8Array
+      >,
+    )
     .lines
     .count();
   assertEquals(lineCount, 23166);
@@ -311,12 +326,15 @@ Deno.test("decompression: decompress and count", async () => {
 
 Deno.test("log-processing: count errors", async () => {
   const tempFile = await Deno.makeTempFile();
-  await Deno.writeTextFile(tempFile, "INFO: start\nERROR: fail\nINFO: ok\nERROR: bad\n");
-  
+  await Deno.writeTextFile(
+    tempFile,
+    "INFO: start\nERROR: fail\nINFO: ok\nERROR: bad\n",
+  );
+
   try {
     const errorCount = await read(tempFile)
       .lines
-      .filter(line => line.includes("ERROR"))
+      .filter((line) => line.includes("ERROR"))
       .count();
     assertEquals(errorCount, 2);
   } finally {
