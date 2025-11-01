@@ -2,6 +2,8 @@
 
 Run child processes and work with async iterables in Deno—with the fluent Array API you already know.
 
+📚 **[Full Documentation](https://j50n.github.io/deno-proc/)**
+
 ```typescript
 import * as proc from "jsr:@j50n/proc";
 
@@ -148,10 +150,6 @@ await enumerate(urls)
 - **Utilities** — `enumerate`, `zip`, `range`, `read` (for files)
 - **Caching** — `cache()` to replay iterables
 - **Writable iterables** — Push values into async iterables programmatically
-
-## Documentation
-
-Full documentation and API reference: [https://j50n.github.io/deno-proc/](https://j50n.github.io/deno-proc/)
 
 ## Installation
 

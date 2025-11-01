@@ -9,6 +9,7 @@
 - [Installation](./getting-started/installation.md)
 - [Quick Start](./getting-started/quick-start.md)
 - [Key Concepts](./getting-started/key-concepts.md)
+- [Common Patterns](./patterns.md)
 
 # Core Features
 

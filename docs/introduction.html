@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="light sidebar-visible" dir="ltr">
+<html lang="en" class="navy sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="">
+        <meta name="description" content="Run child processes and work with async iterables in Deno—with the fluent Array API you already know.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -29,12 +29,13 @@
         <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom.css">
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
             const path_to_root = "";
-            const default_light_theme = "light";
+            const default_light_theme = "navy";
             const default_dark_theme = "navy";
             window.path_to_searchindex_js = "searchindex.js";
         </script>
@@ -77,7 +78,7 @@
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('light')
+            html.classList.remove('navy')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
@@ -144,6 +145,9 @@
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
+                        <a href="https://github.com/j50n/deno-proc" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
 
                     </div>
                 </div>
@@ -178,6 +182,11 @@
                         <h1 id="welcome-to-proc"><a class="header" href="#welcome-to-proc">Welcome to proc</a></h1>
 <p>Running child processes and working with streams should be simple. <strong>proc</strong>
 makes it simple.</p>
+<blockquote>
+<p><strong>✨ The Big Idea</strong>: Treat processes and streams like arrays. Use <code>map</code>,
+<code>filter</code>, <code>reduce</code> on anything. Errors flow naturally through pipelines. No
+callbacks, no edge cases, no headaches.</p>
+</blockquote>
 <h2 id="what-is-proc"><a class="header" href="#what-is-proc">What is proc?</a></h2>
 <p>proc is a Deno library that gives you two superpowers:</p>
 <ol>
@@ -187,7 +196,10 @@ makes it simple.</p>
 <p>But here's the real magic: <strong>errors just work</strong>. They flow through your
 pipelines naturally, like data. No edge cases, no separate error channels, no
 callbacks. One try-catch at the end handles everything.</p>
-<p>If you've ever struggled with JavaScript streams, you're going to love this.</p>
+<blockquote>
+<p><strong>💡 Tip</strong>: If you've ever struggled with JavaScript streams, you're going to
+love this.</p>
+</blockquote>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
 <p>Count lines in a compressed file—streaming, no temp files:</p>
 <!-- NOT TESTED: Illustrative example -->
@@ -295,6 +307,7 @@ the <a href="./getting-started/quick-start.html">Quick Start</a>.</p>
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="theme/custom.js"></script>
 
 
 

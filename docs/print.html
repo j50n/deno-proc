@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="light sidebar-visible" dir="ltr">
+<html lang="en" class="navy sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -9,7 +9,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="">
+        <meta name="description" content="Run child processes and work with async iterables in Deno—with the fluent Array API you already know.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -30,12 +30,13 @@
         <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom.css">
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
             const path_to_root = "";
-            const default_light_theme = "light";
+            const default_light_theme = "navy";
             const default_dark_theme = "navy";
             window.path_to_searchindex_js = "searchindex.js";
         </script>
@@ -78,7 +79,7 @@
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('light')
+            html.classList.remove('navy')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
@@ -145,6 +146,9 @@
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
+                        <a href="https://github.com/j50n/deno-proc" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
 
                     </div>
                 </div>
@@ -179,6 +183,11 @@
                         <h1 id="welcome-to-proc"><a class="header" href="#welcome-to-proc">Welcome to proc</a></h1>
 <p>Running child processes and working with streams should be simple. <strong>proc</strong>
 makes it simple.</p>
+<blockquote>
+<p><strong>✨ The Big Idea</strong>: Treat processes and streams like arrays. Use <code>map</code>,
+<code>filter</code>, <code>reduce</code> on anything. Errors flow naturally through pipelines. No
+callbacks, no edge cases, no headaches.</p>
+</blockquote>
 <h2 id="what-is-proc"><a class="header" href="#what-is-proc">What is proc?</a></h2>
 <p>proc is a Deno library that gives you two superpowers:</p>
 <ol>
@@ -188,7 +197,10 @@ makes it simple.</p>
 <p>But here's the real magic: <strong>errors just work</strong>. They flow through your
 pipelines naturally, like data. No edge cases, no separate error channels, no
 callbacks. One try-catch at the end handles everything.</p>
-<p>If you've ever struggled with JavaScript streams, you're going to love this.</p>
+<blockquote>
+<p><strong>💡 Tip</strong>: If you've ever struggled with JavaScript streams, you're going to
+love this.</p>
+</blockquote>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
 <p>Count lines in a compressed file—streaming, no temp files:</p>
 <!-- NOT TESTED: Illustrative example -->
@@ -488,6 +500,249 @@ const count: number = await run("ls").lines.count();
 <li><a href="getting-started/../core/running-processes.html">Running Processes</a> - All the ways to run commands</li>
 <li><a href="getting-started/../iterables/array-methods.html">Array-Like Methods</a> - map, filter, reduce, and more</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h1>
+<p>This guide shows typical usage patterns to help you understand how proc works in
+practice.</p>
+<h2 id="pattern-run-and-collect"><a class="header" href="#pattern-run-and-collect">Pattern: Run and Collect</a></h2>
+<p>The most basic pattern—run a command and get all output:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+
+const lines = await run("ls", "-la").lines.collect();
+// lines is string[]
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>.lines</code> is a property (no parentheses) that returns an Enumerable</li>
+<li><code>.collect()</code> is a method that consumes the stream and returns an array</li>
+<li>Always consume output to avoid resource leaks</li>
+</ul>
+<h2 id="pattern-process-pipeline"><a class="header" href="#pattern-process-pipeline">Pattern: Process Pipeline</a></h2>
+<p>Chain commands like shell pipes:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+
+const count = await run("cat", "data.txt")
+  .run("grep", "error")
+  .run("wc", "-l")
+  .lines.first;
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li>Each <code>.run()</code> pipes the previous command's stdout to the next command's stdin</li>
+<li><code>.first</code> is a property that returns a Promise&lt;string | undefined&gt;</li>
+<li>Errors from any command in the chain propagate to the catch block</li>
+</ul>
+<h2 id="pattern-transform-and-filter"><a class="header" href="#pattern-transform-and-filter">Pattern: Transform and Filter</a></h2>
+<p>Process output with Array methods:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+
+const errors = await run("cat", "app.log")
+  .lines
+  .filter((line) =&gt; line.includes("ERROR"))
+  .map((line) =&gt; line.trim())
+  .take(10)
+  .collect();
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>.lines</code> converts byte stream to line stream</li>
+<li>Methods like <code>.filter()</code>, <code>.map()</code>, <code>.take()</code> work on the stream</li>
+<li>Nothing executes until you call a terminal operation like <code>.collect()</code></li>
+</ul>
+<h2 id="pattern-error-handling"><a class="header" href="#pattern-error-handling">Pattern: Error Handling</a></h2>
+<p>Catch errors at the end of the pipeline:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+
+try {
+  await run("npm", "test")
+    .lines
+    .forEach((line) =&gt; console.log(line));
+} catch (error) {
+  if (error.code) {
+    console.error(`Process exited with code ${error.code}`);
+  } else {
+    console.error(`Error: ${error.message}`);
+  }
+}
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li>Processes that exit with non-zero codes throw <code>ExitCodeError</code></li>
+<li>The error has a <code>.code</code> property with the exit code</li>
+<li>All errors (process, transform, your code) propagate to the same catch block</li>
+</ul>
+<h2 id="pattern-check-status-without-throwing"><a class="header" href="#pattern-check-status-without-throwing">Pattern: Check Status Without Throwing</a></h2>
+<p>Get exit status without throwing an error:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+
+const p = run("some-command");
+await p.lines.collect(); // Consume output first
+const status = await p.status; // .status is a property
+
+if (status.code !== 0) {
+  console.error(`Command failed with code ${status.code}`);
+}
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>.status</code> is a property that returns <code>Promise&lt;CommandStatus&gt;</code></li>
+<li>You must consume output before checking status</li>
+<li>This doesn't throw on non-zero exit codes</li>
+</ul>
+<h2 id="pattern-enumerate-with-indices"><a class="header" href="#pattern-enumerate-with-indices">Pattern: Enumerate with Indices</a></h2>
+<p>Add indices to any iterable:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+
+const numbered = await enumerate(["a", "b", "c"])
+  .enum() // Adds [item, index] tuples
+  .map(([item, i]) =&gt; `${i + 1}. ${item}`)
+  .collect();
+// ["1. a", "2. b", "3. c"]
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>enumerate()</code> wraps an iterable to add Array-like methods</li>
+<li><code>.enum()</code> is a method that transforms items to <code>[item, index]</code> tuples</li>
+<li>This is a two-step process: wrap, then enumerate</li>
+</ul>
+<h2 id="pattern-enumerate-without-indices"><a class="header" href="#pattern-enumerate-without-indices">Pattern: Enumerate Without Indices</a></h2>
+<p>Use Array methods without adding indices:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+
+const filtered = await enumerate(["a", "b", "c"])
+  .filter((item) =&gt; item !== "b")
+  .map((item) =&gt; item.toUpperCase())
+  .collect();
+// ["A", "C"]
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li>You don't need to call <code>.enum()</code> if you don't need indices</li>
+<li><code>enumerate()</code> just adds Array-like methods to any iterable</li>
+</ul>
+<h2 id="pattern-stream-large-files"><a class="header" href="#pattern-stream-large-files">Pattern: Stream Large Files</a></h2>
+<p>Process files without loading into memory:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.0";
+
+const errorCount = await read("huge-log.txt")
+  .lines
+  .filter((line) =&gt; line.includes("ERROR"))
+  .count();
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>read()</code> returns an Enumerable of bytes</li>
+<li><code>.lines</code> converts to line stream</li>
+<li>Everything streams—no memory spike for large files</li>
+</ul>
+<h2 id="pattern-decompress-and-process"><a class="header" href="#pattern-decompress-and-process">Pattern: Decompress and Process</a></h2>
+<p>Handle compressed files:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.0";
+
+const lines = await read("data.txt.gz")
+  .transform(new DecompressionStream("gzip"))
+  .lines
+  .collect();
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>.transform()</code> applies a TransformStream</li>
+<li><code>DecompressionStream</code> is built into Deno</li>
+<li>Everything streams—no temp files needed</li>
+</ul>
+<h2 id="pattern-concurrent-processing"><a class="header" href="#pattern-concurrent-processing">Pattern: Concurrent Processing</a></h2>
+<p>Process items in parallel with concurrency control:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+
+const urls = ["url1", "url2", "url3"];
+
+await enumerate(urls)
+  .concurrentMap(async (url) =&gt; {
+    const response = await fetch(url);
+    return { url, status: response.status };
+  }, { concurrency: 5 })
+  .forEach((result) =&gt; console.log(result));
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>.concurrentMap()</code> processes items in parallel</li>
+<li><code>concurrency</code> option limits how many run at once</li>
+<li>Results maintain input order (use <code>.concurrentUnorderedMap()</code> for faster
+unordered results)</li>
+</ul>
+<h2 id="pattern-build-objects-with-reduce"><a class="header" href="#pattern-build-objects-with-reduce">Pattern: Build Objects with Reduce</a></h2>
+<p>Aggregate data into a single value:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+
+const wordCount = await run("cat", "data.txt")
+  .lines
+  .reduce((acc, line) =&gt; {
+    const words = line.split(/\s+/);
+    for (const word of words) {
+      acc[word] = (acc[word] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record&lt;string, number&gt;);
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>.reduce()</code> works like Array.reduce()</li>
+<li>Provide an initial value (second argument)</li>
+<li>The accumulator can be any type</li>
+</ul>
+<h2 id="pattern-split-stream-with-tee"><a class="header" href="#pattern-split-stream-with-tee">Pattern: Split Stream with Tee</a></h2>
+<p>Process the same stream multiple ways:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+
+const [errors, warnings] = run("cat", "app.log")
+  .lines
+  .tee(2);
+
+const errorCount = errors.filter((line) =&gt; line.includes("ERROR")).count();
+const warningCount = warnings.filter((line) =&gt; line.includes("WARN")).count();
+
+console.log(`Errors: ${await errorCount}, Warnings: ${await warningCount}`);
+</code></pre>
+<p><strong>Key points:</strong></p>
+<ul>
+<li><code>.tee(n)</code> splits a stream into n identical streams</li>
+<li>Each stream can be processed independently</li>
+<li>All streams must be consumed</li>
+</ul>
+<h2 id="anti-pattern-not-consuming-output"><a class="header" href="#anti-pattern-not-consuming-output">Anti-Pattern: Not Consuming Output</a></h2>
+<p><strong>Don't do this:</strong></p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const p = run("ls"); // ❌ Output never consumed
+</code></pre>
+<p><strong>Why it's bad:</strong> Unconsumed output keeps the process handle open, causing
+resource leaks.</p>
+<p><strong>Do this instead:</strong></p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">await run("ls").lines.collect(); // ✅ Output consumed
+</code></pre>
+<h2 id="anti-pattern-mixing-sync-and-async"><a class="header" href="#anti-pattern-mixing-sync-and-async">Anti-Pattern: Mixing Sync and Async</a></h2>
+<p><strong>Don't do this:</strong></p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const lines = run("ls").lines; // ❌ Not awaited
+lines.forEach((line) =&gt; console.log(line)); // ❌ Won't work
+</code></pre>
+<p><strong>Why it's bad:</strong> <code>.lines</code> returns an Enumerable, but you need to await the
+terminal operation.</p>
+<p><strong>Do this instead:</strong></p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">await run("ls").lines.forEach((line) =&gt; console.log(line)); // ✅ Awaited
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h1>
 <p>Error handling is proc's primary design goal. <strong>Errors flow through pipelines naturally, just like data.</strong></p>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
@@ -919,7 +1174,7 @@ await p.lines.collect();
 <pre><code class="language-typescript">const scriptUrl = new URL("./script.sh", import.meta.url);
 await run(scriptUrl).toStdout();
 </code></pre>
-<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h2 id="common-patterns-1"><a class="header" href="#common-patterns-1">Common Patterns</a></h2>
 <h3 id="silent-execution"><a class="header" href="#silent-execution">Silent Execution</a></h3>
 <p>Run a command and ignore output:</p>
 <!-- NOT TESTED: Illustrative example -->
@@ -1155,7 +1410,7 @@ for await (const line of step3) {
   console.log(line);
 }
 </code></pre>
-<h2 id="common-patterns-1"><a class="header" href="#common-patterns-1">Common Patterns</a></h2>
+<h2 id="common-patterns-2"><a class="header" href="#common-patterns-2">Common Patterns</a></h2>
 <h3 id="extract-and-count"><a class="header" href="#extract-and-count">Extract and Count</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const count = await run("cat", "file.txt")
@@ -1618,7 +1873,7 @@ const result: string[] = await strings.collect();
 //    ^-- TypeScript knows this is string[]
 </code></pre>
 <p>Your IDE will guide you with autocomplete and type errors.</p>
-<h2 id="common-patterns-2"><a class="header" href="#common-patterns-2">Common Patterns</a></h2>
+<h2 id="common-patterns-3"><a class="header" href="#common-patterns-3">Common Patterns</a></h2>
 <h3 id="transform-and-collect"><a class="header" href="#transform-and-collect">Transform and Collect</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const result = await enumerate(data)
@@ -2207,7 +2462,7 @@ const first10 = await enumerate(huge)
   .take(10)
   .collect();
 </code></pre>
-<h2 id="common-patterns-3"><a class="header" href="#common-patterns-3">Common Patterns</a></h2>
+<h2 id="common-patterns-4"><a class="header" href="#common-patterns-4">Common Patterns</a></h2>
 <h3 id="normalize-data"><a class="header" href="#normalize-data">Normalize Data</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const normalized = await enumerate(data)
@@ -3200,7 +3455,7 @@ Object.entries(errorsByDay)
 <li>You need to process data multiple times</li>
 <li>Memory is not a concern</li>
 </ul>
-<h2 id="common-patterns-4"><a class="header" href="#common-patterns-4">Common Patterns</a></h2>
+<h2 id="common-patterns-5"><a class="header" href="#common-patterns-5">Common Patterns</a></h2>
 <h3 id="filter-and-count-1"><a class="header" href="#filter-and-count-1">Filter and Count</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const count = await read("file.txt")
@@ -3269,7 +3524,7 @@ const bytes = await read("file.bin").collect();
 <pre><code class="language-typescript">const path = new URL("./data.txt", import.meta.url);
 read(path)
 </code></pre>
-<h2 id="common-patterns-5"><a class="header" href="#common-patterns-5">Common Patterns</a></h2>
+<h2 id="common-patterns-6"><a class="header" href="#common-patterns-6">Common Patterns</a></h2>
 <h3 id="count-lines-1"><a class="header" href="#count-lines-1">Count Lines</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const lineCount = await read("file.txt").lines.count();
@@ -4335,7 +4590,7 @@ console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
 <li>Proper error handling</li>
 <li>Cross-platform</li>
 </ul>
-<h2 id="common-patterns-6"><a class="header" href="#common-patterns-6">Common Patterns</a></h2>
+<h2 id="common-patterns-7"><a class="header" href="#common-patterns-7">Common Patterns</a></h2>
 <h3 id="file-operations"><a class="header" href="#file-operations">File Operations</a></h3>
 <p><strong>Bash:</strong></p>
 <pre><code class="language-bash">#!/bin/bash
@@ -4809,6 +5064,7 @@ run("ls").lines;
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="theme/custom.js"></script>
 
         <script>
         window.addEventListener('load', function() {

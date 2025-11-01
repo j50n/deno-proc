@@ -4,9 +4,27 @@ language = "en"
 multilingual = false
 src = "src"
 title = "proc"
+description = "Run child processes and work with async iterables in Deno—with the fluent Array API you already know."
 
 [build]
 create-missing = false
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/j50n/deno-proc"
+git-repository-icon = "fa-github"
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/custom.js"]
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
 
 [preprocessor.mdbook-deno-script-preprocessor]
 command = """deno run \

@@ -3,6 +3,10 @@
 Running child processes and working with streams should be simple. **proc**
 makes it simple.
 
+> **✨ The Big Idea**: Treat processes and streams like arrays. Use `map`,
+> `filter`, `reduce` on anything. Errors flow naturally through pipelines. No
+> callbacks, no edge cases, no headaches.
+
 ## What is proc?
 
 proc is a Deno library that gives you two superpowers:
@@ -14,7 +18,8 @@ But here's the real magic: **errors just work**. They flow through your
 pipelines naturally, like data. No edge cases, no separate error channels, no
 callbacks. One try-catch at the end handles everything.
 
-If you've ever struggled with JavaScript streams, you're going to love this.
+> **💡 Tip**: If you've ever struggled with JavaScript streams, you're going to
+> love this.
 
 ## A Taste of proc
 

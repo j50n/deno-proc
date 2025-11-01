@@ -1,0 +1,189 @@
+/* Custom styling for proc documentation */
+
+/* Make code blocks stand out more */
+.hljs {
+    border-radius: 6px;
+    border: 1px solid var(--sidebar-bg);
+}
+
+/* Add subtle shadow to code blocks */
+pre {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Style inline code */
+:not(pre) > .hljs {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* Enhance blockquotes (for callouts) */
+blockquote {
+    border-left: 4px solid var(--links);
+    padding: 0.5em 1em;
+    margin: 1.5em 0;
+    background: var(--quote-bg);
+    border-radius: 4px;
+}
+
+/* Add icons for different types of callouts */
+blockquote p:first-child::before {
+    font-weight: bold;
+    margin-right: 0.5em;
+}
+
+/* Style tables better */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.5em 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+table thead {
+    background: var(--table-header-bg);
+}
+
+table th,
+table td {
+    padding: 0.75em 1em;
+    border: 1px solid var(--table-border-color);
+}
+
+table tr:nth-child(even) {
+    background: var(--table-alternate-bg);
+}
+
+/* Enhance headers with better spacing */
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+}
+
+h1 {
+    border-bottom: 2px solid var(--links);
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    border-bottom: 1px solid var(--sidebar-bg);
+    padding-bottom: 0.2em;
+}
+
+/* Add visual distinction to property vs method */
+code.property::after {
+    content: " 📌";
+    font-size: 0.8em;
+}
+
+code.method::after {
+    content: " ⚙️";
+    font-size: 0.8em;
+}
+
+/* Enhance links */
+a {
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom-color 0.2s;
+}
+
+a:hover {
+    border-bottom-color: var(--links);
+}
+
+/* Add subtle animation to code examples */
+pre:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.2s;
+}
+
+/* Style the sidebar better */
+.sidebar {
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhance the search bar */
+#searchbar {
+    border-radius: 20px;
+    padding: 8px 16px;
+}
+
+/* Add visual feedback for active section */
+.sidebar .active {
+    font-weight: bold;
+    border-left: 3px solid var(--links);
+    padding-left: 12px;
+}
+
+/* Style admonitions (info boxes) */
+.admonition {
+    padding: 1em;
+    margin: 1.5em 0;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.admonition.note {
+    background: rgba(68, 138, 255, 0.1);
+    border-color: #448aff;
+}
+
+.admonition.warning {
+    background: rgba(255, 152, 0, 0.1);
+    border-color: #ff9800;
+}
+
+.admonition.tip {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: #4caf50;
+}
+
+.admonition.danger {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: #f44336;
+}
+
+/* Improve readability */
+.content {
+    line-height: 1.7;
+}
+
+/* Add smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Enhance navigation buttons */
+.nav-chapters {
+    padding: 1em;
+    border-radius: 6px;
+    background: var(--sidebar-bg);
+    transition: background 0.2s;
+}
+
+.nav-chapters:hover {
+    background: var(--sidebar-active);
+}
+
+/* Add visual hierarchy to lists */
+ul, ol {
+    line-height: 1.8;
+}
+
+li {
+    margin: 0.5em 0;
+}
+
+/* Style definition lists */
+dt {
+    font-weight: bold;
+    margin-top: 1em;
+    color: var(--links);
+}
+
+dd {
+    margin-left: 2em;
+    margin-bottom: 1em;
+}
