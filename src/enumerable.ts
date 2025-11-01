@@ -552,7 +552,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
   ): Promise<U> {
     const UNSET = Symbol("unset-reduce");
 
-    let acc: U | typeof UNSET = UNSET;
+    let acc: U | typeof UNSET = zero !== undefined ? zero : UNSET;
     let index = 0;
 
     const firstOp: (Item: T) => U | Promise<U> = async (item: T) => {
@@ -561,7 +561,6 @@ export class Enumerable<T> implements AsyncIterable<T> {
         index++;
         return item as unknown as U;
       } else {
-        acc = zero;
         return await op(item);
       }
     };

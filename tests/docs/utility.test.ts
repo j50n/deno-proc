@@ -26,6 +26,41 @@ Deno.test("range - step=0 throws error", () => {
   );
 });
 
+Deno.test("range - empty range (from > to, positive step)", async () => {
+  const result = await range({ from: 5, to: 2 }).collect();
+  assertEquals(result, []);
+});
+
+Deno.test("range - empty range (from < to, negative step)", async () => {
+  const result = await range({ from: 2, to: 5, step: -1 }).collect();
+  assertEquals(result, []);
+});
+
+Deno.test("range - single element (to)", async () => {
+  const result = await range({ from: 5, to: 6 }).collect();
+  assertEquals(result, [5]);
+});
+
+Deno.test("range - single element (until)", async () => {
+  const result = await range({ from: 5, until: 5 }).collect();
+  assertEquals(result, [5]);
+});
+
+Deno.test("range - step > 1", async () => {
+  const result = await range({ to: 10, step: 2 }).collect();
+  assertEquals(result, [0, 2, 4, 6, 8]);
+});
+
+Deno.test("range - fractional step", async () => {
+  const result = await range({ to: 2, step: 0.5 }).collect();
+  assertEquals(result, [0, 0.5, 1, 1.5]);
+});
+
+Deno.test("range - custom from with step", async () => {
+  const result = await range({ from: 10, to: 15, step: 2 }).collect();
+  assertEquals(result, [10, 12, 14]);
+});
+
 Deno.test("concat - single array", () => {
   const arr = new Uint8Array([1, 2, 3]);
   const result = concat([arr]);
