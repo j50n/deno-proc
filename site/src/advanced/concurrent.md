@@ -42,17 +42,18 @@ Fast, but won't overwhelm your system.
 
 ## When to Use Concurrent Processing
 
-**Use `concurrentMap()` when:**
-- You need results in the same order as input
-- Processing multiple I/O-bound tasks (network requests, file operations)
-- You want predictable output ordering
-- Example: Fetching user profiles where order matters for display
-
-**Use `concurrentUnorderedMap()` when:**
-- Order doesn't matter and you want maximum speed
+**Use `concurrentUnorderedMap()` (recommended default) when:**
+- Order doesn't matter - you want maximum speed
 - Processing independent tasks where results can arrive in any order
 - You'll sort or aggregate results anyway
-- Example: Downloading files where you just need all of them eventually
+- **This is usually what you want** - it keeps all workers busy and delivers results as they complete
+- Example: Downloading files, processing logs, fetching data you'll aggregate
+
+**Use `concurrentMap()` when:**
+- You **must** have results in the same order as input
+- Be aware: can bottleneck on the slowest item in each batch
+- If work isn't balanced, faster items wait for slower ones
+- Example: Fetching user profiles where display order must match input order
 
 **Use sequential processing when:**
 - Tasks depend on each other
@@ -66,9 +67,28 @@ Fast, but won't overwhelm your system.
 - **Rate-limited APIs**: Match the rate limit (e.g., 10 requests/second = concurrency 1 with 100ms delays)
 - **Memory constraints**: Lower concurrency if processing large data per task
 
-## concurrentMap()
+## concurrentUnorderedMap() - Recommended
 
-Process items concurrently, return results in order:
+Process items concurrently, return results as they complete (fastest):
+
+<!-- NOT TESTED: Illustrative example -->
+```typescript
+const results = await enumerate([1, 2, 3, 4, 5])
+  .concurrentUnorderedMap(async (n) => {
+    await sleep(Math.random() * 1000);
+    return n * 2;
+  }, { concurrency: 3 })
+  .collect();
+// [6, 2, 10, 4, 8] - order varies, but all workers stay busy
+```
+
+**Why it's faster:** Results are delivered as soon as they're ready. If item 3 finishes before item 1, you get item 3 immediately. No waiting for slower items.
+
+**Use when:** You don't care about order (most cases). Better performance under real-world conditions where work isn't perfectly balanced.
+
+## concurrentMap() - Order Preserved
+
+Process items concurrently, return results in input order:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "concurrent: concurrentMap" -->
 ```typescript
@@ -81,24 +101,9 @@ const results = await enumerate([1, 2, 3, 4, 5])
 // [2, 4, 6, 8, 10] - always in order
 ```
 
-**Use when:** You need results in the same order as input.
+**Performance caveat:** If item 1 takes 5 seconds and item 2 takes 1 second, item 2 waits for item 1 before being returned. This can create bottlenecks where fast items wait for slow ones.
 
-## concurrentUnorderedMap()
-
-Process items concurrently, return results as they complete:
-
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-const results = await enumerate([1, 2, 3, 4, 5])
-  .concurrentUnorderedMap(async (n) => {
-    await sleep(Math.random() * 1000);
-    return n * 2;
-  }, { concurrency: 3 })
-  .collect();
-// [6, 2, 10, 4, 8] - order varies
-```
-
-**Use when:** You don't care about order and want maximum speed.
+**Use when:** You specifically need results in the same order as input. Only use if order truly matters for your use case.
 
 ## Real-World Examples
 
@@ -241,21 +246,25 @@ const results = await enumerate(urls)
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
-// Sequential: 10 seconds
+// Sequential: 10 seconds (one at a time)
 for (const url of urls) {
   await fetch(url);
 }
 
-// Concurrent (5): 2 seconds
+// concurrentMap (5): 2-4 seconds
+// Can bottleneck if one item is slow - others wait
 await enumerate(urls)
   .concurrentMap(fetch, { concurrency: 5 })
   .collect();
 
-// Unordered (5): 1.8 seconds (slightly faster)
+// concurrentUnorderedMap (5): 2 seconds
+// Faster - no waiting, results delivered as ready
 await enumerate(urls)
   .concurrentUnorderedMap(fetch, { concurrency: 5 })
   .collect();
 ```
+
+**Why unordered is faster:** Imagine 5 tasks with times [1s, 1s, 1s, 1s, 5s]. With `concurrentMap`, the 5-second task blocks its batch. With `concurrentUnorderedMap`, the four 1-second tasks complete and return immediately while the 5-second task finishes in the background.
 
 ## Advanced Patterns
 
@@ -320,11 +329,12 @@ for (const batch of batches) {
 
 ## Best Practices
 
-1. **Start conservative** - Begin with low concurrency, increase if needed
-2. **Monitor resources** - Watch memory and network usage
-3. **Respect rate limits** - Don't overwhelm external services
-4. **Handle errors** - One error stops everything, handle gracefully
-5. **Use unordered when possible** - It's faster if order doesn't matter
+1. **Prefer unordered** - Use `concurrentUnorderedMap` unless you specifically need order
+2. **Start conservative** - Begin with low concurrency, increase if needed
+3. **Monitor resources** - Watch memory and network usage
+4. **Respect rate limits** - Don't overwhelm external services
+5. **Handle errors** - One error stops everything, handle gracefully
+6. **Understand the bottleneck** - `concurrentMap` can wait on slow items; unordered doesn't
 
 ## Common Mistakes
 

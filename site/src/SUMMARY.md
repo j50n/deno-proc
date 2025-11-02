@@ -39,6 +39,7 @@
 - [Range and Iteration](./utilities/range.md)
 - [Zip and Enumerate](./utilities/zip-enumerate.md)
 - [WritableIterable](./utilities/writable-iterable.md)
+- [Sleep](./utilities/sleep.md)
 
 # Recipes
 

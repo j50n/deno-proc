@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Counting Words - proc</title>
+        <title>Sleep - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -179,202 +179,152 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="counting-words"><a class="header" href="#counting-words">Counting Words</a></h1>
-<p>A classic example that shows the power of process pipelines.</p>
-<h2 id="simple-word-count"><a class="header" href="#simple-word-count">Simple Word Count</a></h2>
-<p>Count total words in a file:</p>
+                        <h1 id="sleep"><a class="header" href="#sleep">Sleep</a></h1>
+<p>The <code>sleep</code> function pauses execution for a specified duration. While it might seem like an outlier in a process management library, it's surprisingly useful when working with async pipelines, rate limiting, and testing.</p>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
+<pre><code class="language-typescript">import { sleep } from "jsr:@j50n/proc@0.23.3";
 
-const wordCount = await run("wc", "-w", "book.txt").lines.first;
-console.log(`Total words: ${wordCount}`);
+console.log("Starting...");
+await sleep(2000);  // Pause for 2 seconds
+console.log("Done!");
 </code></pre>
-<h2 id="unique-words"><a class="header" href="#unique-words">Unique Words</a></h2>
-<p>Count unique words:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const uniqueWords = await run("cat", "book.txt")
-  .run("tr", "-cs", "A-Za-z", "\n")  // Extract words
-  .run("tr", "A-Z", "a-z")            // Lowercase
-  .run("sort")                         // Sort
-  .run("uniq")                         // Unique
-  .lines
-  .count();
-
-console.log(`Unique words: ${uniqueWords}`);
-</code></pre>
-<h2 id="word-frequency"><a class="header" href="#word-frequency">Word Frequency</a></h2>
-<p>Find most common words:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const topWords = await run("cat", "book.txt")
-  .run("tr", "-cs", "A-Za-z", "\n")
-  .run("tr", "A-Z", "a-z")
-  .run("sort")
-  .run("uniq", "-c")
-  .run("sort", "-rn")
-  .run("head", "-10")
-  .lines
-  .collect();
-
-console.log("Top 10 words:");
-topWords.forEach(line =&gt; console.log(line));
-</code></pre>
-<h2 id="pure-javascript-version"><a class="header" href="#pure-javascript-version">Pure JavaScript Version</a></h2>
-<p>Do it all in JavaScript:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
-
-const wordCounts = await read("book.txt")
-  .lines
-  .flatMap(line =&gt; line.toLowerCase().match(/\w+/g) || [])
-  .reduce((acc, word) =&gt; {
-    acc[word] = (acc[word] || 0) + 1;
-    return acc;
-  }, {});
-
-const topWords = Object.entries(wordCounts)
-  .sort((a, b) =&gt; b[1] - a[1])
-  .slice(0, 10);
-
-console.log("Top 10 words:");
-topWords.forEach(([word, count]) =&gt; {
-  console.log(`${count} ${word}`);
-});
-</code></pre>
-<h2 id="compressed-files"><a class="header" href="#compressed-files">Compressed Files</a></h2>
-<p>Count words in a compressed file:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const wordCount = await read("book.txt.gz")
-  .transform(new DecompressionStream("gzip"))
-  .lines
-  .flatMap(line =&gt; line.match(/\w+/g) || [])
-  .count();
-
-console.log(`Total words: ${wordCount}`);
-</code></pre>
-<h2 id="multiple-files"><a class="header" href="#multiple-files">Multiple Files</a></h2>
-<p>Count words across multiple files:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
-
-const files = ["book1.txt", "book2.txt", "book3.txt"];
-
-const results = await enumerate(files)
-  .concurrentMap(async (file) =&gt; {
-    const words = await read(file)
-      .lines
-      .flatMap(line =&gt; line.match(/\w+/g) || [])
-      .count();
-    return { file, words };
-  }, { concurrency: 3 })
-  .collect();
-
-results.forEach(({ file, words }) =&gt; {
-  console.log(`${file}: ${words} words`);
-});
-</code></pre>
-<h2 id="filter-stop-words"><a class="header" href="#filter-stop-words">Filter Stop Words</a></h2>
-<p>Exclude common words:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const stopWords = new Set([
-  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"
-]);
-
-const meaningfulWords = await read("book.txt")
-  .lines
-  .flatMap(line =&gt; line.toLowerCase().match(/\w+/g) || [])
-  .filter(word =&gt; !stopWords.has(word))
-  .reduce((acc, word) =&gt; {
-    acc[word] = (acc[word] || 0) + 1;
-    return acc;
-  }, {});
-</code></pre>
-<h2 id="word-length-distribution"><a class="header" href="#word-length-distribution">Word Length Distribution</a></h2>
-<p>Analyze word lengths:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const lengthDist = await read("book.txt")
-  .lines
-  .flatMap(line =&gt; line.match(/\w+/g) || [])
-  .reduce((acc, word) =&gt; {
-    const len = word.length;
-    acc[len] = (acc[len] || 0) + 1;
-    return acc;
-  }, {});
-
-console.log("Word length distribution:");
-Object.entries(lengthDist)
-  .sort((a, b) =&gt; parseInt(a[0]) - parseInt(b[0]))
-  .forEach(([len, count]) =&gt; {
-    console.log(`${len} letters: ${count} words`);
-  });
-</code></pre>
-<h2 id="real-world-example-war-and-peace"><a class="header" href="#real-world-example-war-and-peace">Real-World Example: War and Peace</a></h2>
-<p>Analyze Tolstoy's War and Peace:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const [totalWords, uniqueWords] = await Promise.all([
-  // Total words
-  read("warandpeace.txt.gz")
-    .transform(new DecompressionStream("gzip"))
-    .lines
-    .flatMap(line =&gt; line.match(/\w+/g) || [])
-    .count(),
-  
-  // Unique words
-  read("warandpeace.txt.gz")
-    .transform(new DecompressionStream("gzip"))
-    .lines
-    .flatMap(line =&gt; line.toLowerCase().match(/\w+/g) || [])
-    .reduce((acc, word) =&gt; {
-      acc.add(word);
-      return acc;
-    }, new Set())
-    .then(set =&gt; set.size)
-]);
-
-console.log(`Total words: ${totalWords.toLocaleString()}`);
-console.log(`Unique words: ${uniqueWords.toLocaleString()}`);
-console.log(`Vocabulary richness: ${(uniqueWords / totalWords * 100).toFixed(1)}%`);
-</code></pre>
-<h2 id="performance-comparison"><a class="header" href="#performance-comparison">Performance Comparison</a></h2>
-<h3 id="shell-pipeline-fast"><a class="header" href="#shell-pipeline-fast">Shell Pipeline (fast)</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// Uses native Unix tools
-const count = await run("cat", "book.txt")
-  .run("wc", "-w")
-  .lines.first;
-</code></pre>
-<h3 id="javascript-flexible"><a class="header" href="#javascript-flexible">JavaScript (flexible)</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// More control, type-safe
-const count = await read("book.txt")
-  .lines
-  .flatMap(line =&gt; line.match(/\w+/g) || [])
-  .count();
-</code></pre>
-<h3 id="hybrid-best-of-both"><a class="header" href="#hybrid-best-of-both">Hybrid (best of both)</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// Use Unix tools for heavy lifting, JavaScript for logic
-const words = await run("cat", "book.txt")
-  .run("tr", "-cs", "A-Za-z", "\n")
-  .lines
-  .filter(word =&gt; word.length &gt; 5)  // JavaScript filter
-  .count();
-</code></pre>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<h2 id="why-its-included"><a class="header" href="#why-its-included">Why It's Included</a></h2>
+<p>When working with processes and async iterables, you often need to:</p>
 <ul>
-<li><a href="../core/pipelines.html">Process Pipelines</a> - Chain commands together</li>
-<li><a href="../advanced/concurrent.html">Concurrent Processing</a> - Process multiple files</li>
-<li><a href="../advanced/streaming.html">Streaming Large Files</a> - Handle huge files</li>
+<li>Rate limit operations</li>
+<li>Add delays between retries</li>
+<li>Simulate slow data sources for testing</li>
+<li>Throttle concurrent operations</li>
+<li>Add breathing room for external services</li>
+</ul>
+<p>Having <code>sleep</code> built-in means you don't need to import it from another library or write the <code>setTimeout</code> wrapper yourself.</p>
+<h2 id="common-use-cases"><a class="header" href="#common-use-cases">Common Use Cases</a></h2>
+<h3 id="rate-limiting-api-calls"><a class="header" href="#rate-limiting-api-calls">Rate Limiting API Calls</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate, sleep } from "jsr:@j50n/proc@0.23.3";
+
+const urls = ["url1", "url2", "url3"];
+
+await enumerate(urls)
+  .concurrentMap(async (url) =&gt; {
+    const response = await fetch(url);
+    await sleep(1000);  // Wait 1 second between requests
+    return response.json();
+  }, { concurrency: 1 })
+  .forEach(data =&gt; console.log(data));
+</code></pre>
+<h3 id="retry-with-backoff"><a class="header" href="#retry-with-backoff">Retry with Backoff</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run, sleep } from "jsr:@j50n/proc@0.23.3";
+
+async function runWithRetry(maxRetries = 3) {
+  for (let i = 0; i &lt; maxRetries; i++) {
+    try {
+      return await run("flaky-command").lines.collect();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      
+      const delay = Math.pow(2, i) * 1000;  // Exponential backoff
+      console.log(`Retry ${i + 1} after ${delay}ms...`);
+      await sleep(delay);
+    }
+  }
+}
+</code></pre>
+<h3 id="simulating-slow-data-sources"><a class="header" href="#simulating-slow-data-sources">Simulating Slow Data Sources</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable, sleep } from "jsr:@j50n/proc@0.23.3";
+
+const slowData = new WritableIterable&lt;number&gt;();
+
+// Simulate data arriving slowly
+(async () =&gt; {
+  for (let i = 0; i &lt; 10; i++) {
+    await slowData.write(i);
+    await sleep(500);  // 500ms between items
+  }
+  await slowData.close();
+})();
+
+for await (const item of slowData) {
+  console.log("Received:", item);
+}
+</code></pre>
+<h3 id="throttling-process-output"><a class="header" href="#throttling-process-output">Throttling Process Output</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { run, sleep } from "jsr:@j50n/proc@0.23.3";
+
+// Process lines slowly to avoid overwhelming downstream
+await run("cat", "large-file.txt")
+  .lines
+  .map(async (line) =&gt; {
+    await sleep(10);  // 10ms delay per line
+    return line;
+  })
+  .toStdout();
+</code></pre>
+<h3 id="testing-concurrent-operations"><a class="header" href="#testing-concurrent-operations">Testing Concurrent Operations</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate, sleep } from "jsr:@j50n/proc@0.23.3";
+
+// Verify concurrency limit works correctly
+const startTimes: number[] = [];
+
+await enumerate([1, 2, 3, 4, 5])
+  .concurrentMap(async (n) =&gt; {
+    startTimes.push(Date.now());
+    await sleep(100);  // Simulate work
+    return n;
+  }, { concurrency: 2 })
+  .collect();
+
+// Analyze timing to verify only 2 ran concurrently
+</code></pre>
+<h2 id="time-constants"><a class="header" href="#time-constants">Time Constants</a></h2>
+<p>The library also provides time constants for readability:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { sleep, SECONDS, MINUTES } from "jsr:@j50n/proc@0.23.3";
+
+await sleep(5 * SECONDS);   // 5 seconds
+await sleep(2 * MINUTES);   // 2 minutes
+</code></pre>
+<p>Available constants:</p>
+<ul>
+<li><code>SECONDS</code> = 1000 milliseconds</li>
+<li><code>MINUTES</code> = 60 seconds</li>
+<li><code>HOURS</code> = 60 minutes</li>
+<li><code>DAYS</code> = 24 hours</li>
+<li><code>WEEKS</code> = 7 days</li>
+</ul>
+<h2 id="api"><a class="header" href="#api">API</a></h2>
+<pre><code class="language-typescript">function sleep(delayms: number): Promise&lt;void&gt;
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>delayms</code>: Delay in milliseconds</li>
+</ul>
+<p><strong>Returns:</strong></p>
+<ul>
+<li>Promise that resolves after the specified delay</li>
+</ul>
+<h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
+<ul>
+<li>Uses <code>setTimeout</code> internally</li>
+<li>Non-blocking (other async operations can run)</li>
+<li>Minimum delay depends on JavaScript runtime (typically ~4ms)</li>
+<li>For precise timing, consider using <code>performance.now()</code> to measure actual elapsed time</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../utilities/sleep.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../utilities/writable-iterable.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../recipes/log-processing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../recipes/counting-words.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -384,11 +334,11 @@ const words = await run("cat", "book.txt")
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../utilities/sleep.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../utilities/writable-iterable.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../recipes/log-processing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../recipes/counting-words.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
