@@ -30,7 +30,14 @@ proc gives you controlled concurrency:
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
-// Process 5 at a time
+// Defaults to CPU count (usually 4-8)
+const results = await enumerate(urls)
+  .concurrentMap(async (url) => {
+    return await fetch(url);
+  })
+  .collect();
+
+// Or specify a limit
 const results = await enumerate(urls)
   .concurrentMap(async (url) => {
     return await fetch(url);
@@ -73,11 +80,12 @@ Process items concurrently, return results as they complete (fastest):
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
+// Defaults to CPU count
 const results = await enumerate([1, 2, 3, 4, 5])
   .concurrentUnorderedMap(async (n) => {
     await sleep(Math.random() * 1000);
     return n * 2;
-  }, { concurrency: 3 })
+  })
   .collect();
 // [6, 2, 10, 4, 8] - order varies, but all workers stay busy
 ```
@@ -85,6 +93,8 @@ const results = await enumerate([1, 2, 3, 4, 5])
 **Why it's faster:** Results are delivered as soon as they're ready. If item 3 finishes before item 1, you get item 3 immediately. No waiting for slower items.
 
 **Use when:** You don't care about order (most cases). Better performance under real-world conditions where work isn't perfectly balanced.
+
+**Concurrency:** Defaults to `navigator.hardwareConcurrency` (CPU count). Override with `{ concurrency: n }` if needed.
 
 ## concurrentMap() - Order Preserved
 
@@ -105,6 +115,8 @@ const results = await enumerate([1, 2, 3, 4, 5])
 
 **Use when:** You specifically need results in the same order as input. Only use if order truly matters for your use case.
 
+**Concurrency:** Defaults to CPU count. Override with `{ concurrency: n }` if needed.
+
 ## Real-World Examples
 
 ### Fetch Multiple URLs
@@ -118,8 +130,17 @@ const urls = [
   // ... 100 more
 ];
 
+// Uses CPU count by default
 const data = await enumerate(urls)
-  .concurrentMap(async (url) => {
+  .concurrentUnorderedMap(async (url) => {
+    const response = await fetch(url);
+    return response.json();
+  })
+  .collect();
+
+// Or limit for rate-limited APIs
+const data = await enumerate(urls)
+  .concurrentUnorderedMap(async (url) => {
     const response = await fetch(url);
     return response.json();
   }, { concurrency: 10 })
@@ -141,7 +162,7 @@ const results = await enumerate(files)
       .filter(line => line.includes("ERROR"))
       .count();
     return { file, errors };
-  }, { concurrency: 3 })
+  })
   .collect();
 ```
 
@@ -150,36 +171,38 @@ const results = await enumerate(files)
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 const downloads = await enumerate(imageUrls)
-  .concurrentMap(async (url) => {
+  .concurrentUnorderedMap(async (url) => {
     const response = await fetch(url);
     const blob = await response.blob();
     return processImage(blob);
-  }, { concurrency: 5 })
+  })
   .collect();
 ```
 
 ## Choosing Concurrency
 
-How many concurrent operations should you run?
+**Default behavior:** Both methods default to `navigator.hardwareConcurrency` (CPU count, typically 4-8). This is usually a good starting point.
+
+**When to override:**
 
 **For I/O-bound tasks** (network, disk):
-- Start with 5-10
-- Increase if you have bandwidth
-- Watch for rate limits
+- Default is often fine
+- Increase to 10-20 if you have bandwidth and no rate limits
+- Decrease to 1-5 for rate-limited APIs
 
 **For CPU-bound tasks**:
-- Use `navigator.hardwareConcurrency` (number of CPU cores)
-- Or just use 4-8
+- Default (CPU count) is optimal
+- Don't increase - you'll just add overhead
 
 **For rate-limited APIs**:
-- Match the rate limit
+- Set to match the rate limit
 - Add delays if needed
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
-// Respect rate limits
+// Respect rate limits with low concurrency
 const results = await enumerate(apiCalls)
-  .concurrentMap(async (call) => {
+  .concurrentUnorderedMap(async (call) => {
     const result = await makeApiCall(call);
     await sleep(100); // 10 requests per second
     return result;

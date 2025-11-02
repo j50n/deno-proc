@@ -2944,7 +2944,14 @@ await Promise.all(urls.map(url =&gt; fetch(url)));
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
-// Process 5 at a time
+// Defaults to CPU count (usually 4-8)
+const results = await enumerate(urls)
+  .concurrentMap(async (url) =&gt; {
+    return await fetch(url);
+  })
+  .collect();
+
+// Or specify a limit
 const results = await enumerate(urls)
   .concurrentMap(async (url) =&gt; {
     return await fetch(url);
@@ -2985,16 +2992,18 @@ const results = await enumerate(urls)
 <h2 id="concurrentunorderedmap---recommended"><a class="header" href="#concurrentunorderedmap---recommended">concurrentUnorderedMap() - Recommended</a></h2>
 <p>Process items concurrently, return results as they complete (fastest):</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const results = await enumerate([1, 2, 3, 4, 5])
+<pre><code class="language-typescript">// Defaults to CPU count
+const results = await enumerate([1, 2, 3, 4, 5])
   .concurrentUnorderedMap(async (n) =&gt; {
     await sleep(Math.random() * 1000);
     return n * 2;
-  }, { concurrency: 3 })
+  })
   .collect();
 // [6, 2, 10, 4, 8] - order varies, but all workers stay busy
 </code></pre>
 <p><strong>Why it's faster:</strong> Results are delivered as soon as they're ready. If item 3 finishes before item 1, you get item 3 immediately. No waiting for slower items.</p>
 <p><strong>Use when:</strong> You don't care about order (most cases). Better performance under real-world conditions where work isn't perfectly balanced.</p>
+<p><strong>Concurrency:</strong> Defaults to <code>navigator.hardwareConcurrency</code> (CPU count). Override with <code>{ concurrency: n }</code> if needed.</p>
 <h2 id="concurrentmap---order-preserved"><a class="header" href="#concurrentmap---order-preserved">concurrentMap() - Order Preserved</a></h2>
 <p>Process items concurrently, return results in input order:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "concurrent: concurrentMap" -->
@@ -3008,6 +3017,7 @@ const results = await enumerate(urls)
 </code></pre>
 <p><strong>Performance caveat:</strong> If item 1 takes 5 seconds and item 2 takes 1 second, item 2 waits for item 1 before being returned. This can create bottlenecks where fast items wait for slow ones.</p>
 <p><strong>Use when:</strong> You specifically need results in the same order as input. Only use if order truly matters for your use case.</p>
+<p><strong>Concurrency:</strong> Defaults to CPU count. Override with <code>{ concurrency: n }</code> if needed.</p>
 <h2 id="real-world-examples-5"><a class="header" href="#real-world-examples-5">Real-World Examples</a></h2>
 <h3 id="fetch-multiple-urls"><a class="header" href="#fetch-multiple-urls">Fetch Multiple URLs</a></h3>
 <!-- NOT TESTED: Illustrative example -->
@@ -3018,8 +3028,17 @@ const results = await enumerate(urls)
   // ... 100 more
 ];
 
+// Uses CPU count by default
 const data = await enumerate(urls)
-  .concurrentMap(async (url) =&gt; {
+  .concurrentUnorderedMap(async (url) =&gt; {
+    const response = await fetch(url);
+    return response.json();
+  })
+  .collect();
+
+// Or limit for rate-limited APIs
+const data = await enumerate(urls)
+  .concurrentUnorderedMap(async (url) =&gt; {
     const response = await fetch(url);
     return response.json();
   }, { concurrency: 10 })
@@ -3038,41 +3057,42 @@ const results = await enumerate(files)
       .filter(line =&gt; line.includes("ERROR"))
       .count();
     return { file, errors };
-  }, { concurrency: 3 })
+  })
   .collect();
 </code></pre>
 <h3 id="download-and-process"><a class="header" href="#download-and-process">Download and Process</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const downloads = await enumerate(imageUrls)
-  .concurrentMap(async (url) =&gt; {
+  .concurrentUnorderedMap(async (url) =&gt; {
     const response = await fetch(url);
     const blob = await response.blob();
     return processImage(blob);
-  }, { concurrency: 5 })
+  })
   .collect();
 </code></pre>
 <h2 id="choosing-concurrency"><a class="header" href="#choosing-concurrency">Choosing Concurrency</a></h2>
-<p>How many concurrent operations should you run?</p>
+<p><strong>Default behavior:</strong> Both methods default to <code>navigator.hardwareConcurrency</code> (CPU count, typically 4-8). This is usually a good starting point.</p>
+<p><strong>When to override:</strong></p>
 <p><strong>For I/O-bound tasks</strong> (network, disk):</p>
 <ul>
-<li>Start with 5-10</li>
-<li>Increase if you have bandwidth</li>
-<li>Watch for rate limits</li>
+<li>Default is often fine</li>
+<li>Increase to 10-20 if you have bandwidth and no rate limits</li>
+<li>Decrease to 1-5 for rate-limited APIs</li>
 </ul>
 <p><strong>For CPU-bound tasks</strong>:</p>
 <ul>
-<li>Use <code>navigator.hardwareConcurrency</code> (number of CPU cores)</li>
-<li>Or just use 4-8</li>
+<li>Default (CPU count) is optimal</li>
+<li>Don't increase - you'll just add overhead</li>
 </ul>
 <p><strong>For rate-limited APIs</strong>:</p>
 <ul>
-<li>Match the rate limit</li>
+<li>Set to match the rate limit</li>
 <li>Add delays if needed</li>
 </ul>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// Respect rate limits
+<pre><code class="language-typescript">// Respect rate limits with low concurrency
 const results = await enumerate(apiCalls)
-  .concurrentMap(async (call) =&gt; {
+  .concurrentUnorderedMap(async (call) =&gt; {
     const result = await makeApiCall(call);
     await sleep(100); // 10 requests per second
     return result;
