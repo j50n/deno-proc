@@ -183,7 +183,7 @@
 <p>Download multiple files concurrently with controlled concurrency.</p>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 const urls = [
   "https://example.com/file1.json",
@@ -211,7 +211,7 @@ console.log(`Downloaded ${results.length} files`);
 <h2 id="download-and-save-files"><a class="header" href="#download-and-save-files">Download and Save Files</a></h2>
 <p>Download files and save them to disk:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 const downloads = [
   { url: "https://example.com/image1.jpg", path: "./downloads/image1.jpg" },
@@ -235,7 +235,7 @@ console.log("All downloads complete");
 <h2 id="with-progress-tracking"><a class="header" href="#with-progress-tracking">With Progress Tracking</a></h2>
 <p>Track download progress:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 let completed = 0;
 const total = urls.length;
@@ -255,7 +255,7 @@ const results = await enumerate(urls)
 <h2 id="with-retry-logic"><a class="header" href="#with-retry-logic">With Retry Logic</a></h2>
 <p>Retry failed downloads:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 async function fetchWithRetry(url: string, maxRetries = 3): Promise&lt;Response&gt; {
   for (let attempt = 1; attempt &lt;= maxRetries; attempt++) {
@@ -288,7 +288,7 @@ const results = await enumerate(urls)
 <h2 id="download-large-files"><a class="header" href="#download-large-files">Download Large Files</a></h2>
 <p>Stream large files to disk without loading into memory:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 const largeFiles = [
   { url: "https://example.com/large1.zip", path: "./large1.zip" },
@@ -311,7 +311,7 @@ await enumerate(largeFiles)
 <h2 id="api-rate-limiting"><a class="header" href="#api-rate-limiting">API Rate Limiting</a></h2>
 <p>Respect API rate limits:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 const apiEndpoints = [
   "/api/users/1",
@@ -335,7 +335,7 @@ await enumerate(apiEndpoints)
 <h2 id="filter-failed-downloads"><a class="header" href="#filter-failed-downloads">Filter Failed Downloads</a></h2>
 <p>Continue even if some downloads fail:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 const results = await enumerate(urls)
   .concurrentMap(async (url) =&gt; {

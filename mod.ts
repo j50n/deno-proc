@@ -81,7 +81,7 @@
  *     .lines
  *     .map(line => line.toUpperCase())
  *     .filter(line => line.includes("FAIL"))
- *     .forEach(line => console.log(line));
+ *     .toStdout();
  * } catch (error) {
  *   // Handle all errors in one place
  *   if (error.code) {

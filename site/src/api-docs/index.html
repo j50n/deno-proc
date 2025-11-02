@@ -332,7 +332,7 @@ try {
     .lines
     .map(line =&gt; line.toUpperCase())
     .filter(line =&gt; line.includes(&quot;FAIL&quot;))
-    .forEach(line =&gt; console.log(line));
+    .toStdout();
 } catch (error) {
   // Handle all errors in one place
   if (error.code) {
@@ -347,7 +347,7 @@ try {
     .lines
     .map(line =&gt; line.toUpperCase())
     .filter(line =&gt; line.includes(&quot;FAIL&quot;))
-    .forEach(line =&gt; console.log(line));
+    .toStdout();
 } catch (error) {
   // Handle all errors in one place
   if (error.code) {

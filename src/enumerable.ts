@@ -3,6 +3,7 @@ import { parseArgs } from "./helpers.ts";
 import type { Cmd } from "./run.ts";
 import type { Writable } from "./writable-iterable.ts";
 import {
+  toBytes,
   toChunkedLines,
   toLines,
   transformerFromTransformStream,
@@ -1016,9 +1017,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Dump output to `stdout`. Non-locking.
+   *
+   * Handles strings, string arrays, Uint8Arrays, and arrays of those.
+   * Strings automatically have newlines appended.
    */
-  toStdout(): ByteSink<T> {
-    const iter = this.iter as AsyncIterable<Uint8Array>;
+  toStdout(): Promise<void> {
+    const iter = toBytes(
+      this.iter as AsyncIterable<string | string[] | Uint8Array | Uint8Array[]>,
+    );
     async function inner() {
       let p: undefined | Promise<void>;
 
@@ -1028,7 +1034,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       }
       await p;
     }
-    return inner() as ByteSink<T>;
+    return inner();
   }
 
   /**

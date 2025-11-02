@@ -135,6 +135,20 @@
 
 ## Common Patterns to Follow
 
+### Output to stdout
+```typescript
+// Good: Use .toStdout() for writing to stdout (idiomatic)
+// toStdout() handles strings, string arrays, Uint8Arrays, and arrays of those
+// Strings automatically have newlines appended
+await run("ls")
+  .lines
+  .map(line => line.toUpperCase())
+  .toStdout();
+
+// Acceptable but not idiomatic: forEach with console.log
+await run("ls").lines.forEach(line => console.log(line));
+```
+
 ### Process Execution
 ```typescript
 // Good: Output consumed

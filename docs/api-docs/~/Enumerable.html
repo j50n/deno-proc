@@ -1797,7 +1797,7 @@ Uses buffering internally, so be mindful of memory with large datasets.</p>
   </defs>
 </svg>
 </a>
-<a class="font-bold font-lg link" href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.prototype.toStdout.html">toStdout</a><span class="font-medium text-stone-500 dark:text-stone-200">()<span>: <a href="../././~/ByteSink.html" class="link">ByteSink</a>&lt;<a href="#type_param_T" class="link">T</a>&gt;</span></span>
+<a class="font-bold font-lg link" href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.prototype.toStdout.html">toStdout</a><span class="font-medium text-stone-500 dark:text-stone-200">()<span>: <span>Promise</span>&lt;<span>void</span>&gt;</span></span>
       </code>
     </div><a
   class="sourceButton"
@@ -1825,6 +1825,8 @@ Uses buffering internally, so be mindful of memory with large datasets.</p>
 </svg>
 </a>
 </div><div class="max-w-[75ch]"><div class="markdown"><p>Dump output to <code>stdout</code>. Non-locking.</p>
+<p>Handles strings, string arrays, Uint8Arrays, and arrays of those.
+Strings automatically have newlines appended.</p>
 </div></div></div>
 <div class="anchorable docEntry" id="method_transform_0">
 

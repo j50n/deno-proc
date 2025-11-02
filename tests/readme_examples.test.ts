@@ -73,7 +73,7 @@ Deno.test("README example: handle errors gracefully", async () => {
       .lines
       .map((line) => line.toUpperCase())
       .filter((line) => line.includes("FAIL"))
-      .forEach((line) => console.log(line));
+      .toStdout();
   } catch (error) {
     // Handle all errors in one place
     if (error && typeof error === "object" && "code" in error) {

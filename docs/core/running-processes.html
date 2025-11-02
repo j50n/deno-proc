@@ -183,7 +183,7 @@
 <p>Running a child process with proc is as simple as it gets.</p>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: capture output" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
 
 // Run a command
 await run("ls", "-la").lines.collect();
@@ -233,7 +233,7 @@ const last = await run("ls").lines.last;
 <h2 id="building-commands-dynamically"><a class="header" href="#building-commands-dynamically">Building Commands Dynamically</a></h2>
 <p>Sometimes you need to build a command from variables:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.23.2";
 
 const cmd: Cmd = ["ls"];
 

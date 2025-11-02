@@ -146,8 +146,10 @@
   </defs>
 </svg>
 </a>
-<span class="font-bold">Enumerable.prototype.toStdout</span><span class="font-medium">()<span>: <a href="../././~/ByteSink.html" class="link">ByteSink</a>&lt;<span>T</span>&gt;</span> </span>
+<span class="font-bold">Enumerable.prototype.toStdout</span><span class="font-medium">()<span>: <span>Promise</span>&lt;<span>void</span>&gt;</span> </span>
       </code><div class="space-y-7" id=""><div class="markdown"><p>Dump output to <code>stdout</code>. Non-locking.</p>
+<p>Handles strings, string arrays, Uint8Arrays, and arrays of those.
+Strings automatically have newlines appended.</p>
 </div><section class="section"  id="return-type"><div>
       <h2 class="anchorable mb-1"><a href="#return-type" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
@@ -174,7 +176,7 @@
 Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function_Enumerable_prototype_toStdout_0_return">
 
   <div class="docEntryHeader">
-    <div><code><span class="font-medium text-stone-500 dark:text-stone-200"><a href="../././~/ByteSink.html" class="link">ByteSink</a>&lt;<span>T</span>&gt;</span>
+    <div><code><span class="font-medium text-stone-500 dark:text-stone-200"><span>Promise</span>&lt;<span>void</span>&gt;</span>
       </code>
     </div><a
   class="sourceButton"

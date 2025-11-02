@@ -184,7 +184,7 @@
 <h2 id="reading-files"><a class="header" href="#reading-files">Reading Files</a></h2>
 <h3 id="read-as-bytes"><a class="header" href="#read-as-bytes">Read as Bytes</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
 
 const bytes = await read("file.bin").collect();
 // Uint8Array[]
@@ -254,7 +254,7 @@ await Deno.writeTextFile("output.txt", content);
 </code></pre>
 <h3 id="stream-to-file"><a class="header" href="#stream-to-file">Stream to File</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.23.2";
 
 const bytes = await read("input.txt")
   .lines
@@ -302,7 +302,7 @@ for (const file of files) {
 </code></pre>
 <h3 id="concurrent-processing"><a class="header" href="#concurrent-processing">Concurrent Processing</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 const results = await enumerate(files)
   .concurrentMap(async (file) =&gt; {

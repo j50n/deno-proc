@@ -30,7 +30,7 @@ try {
     .lines
     .map(line => line.toUpperCase())
     .filter(line => line.includes("FAIL"))
-    .forEach(line => console.log(line));
+    .toStdout();
 } catch (error) {
   console.error(`Tests failed: ${error.code}`);
 }
@@ -85,11 +85,11 @@ console.log(`Current commit: ${result?.trim()}`);
 try {
   // Errors propagate through the entire pipeline
   // No need for error handling at each step
-  const result = await proc.run("npm", "test")
+  await proc.run("npm", "test")
     .lines
     .map(line => line.toUpperCase())
     .filter(line => line.includes("FAIL"))
-    .forEach(line => console.log(line));
+    .toStdout();
 } catch (error) {
   // Handle all errors in one place
   if (error.code) {

@@ -183,7 +183,7 @@
 <p>Analyze logs efficiently, even huge ones.</p>
 <h2 id="count-errors"><a class="header" href="#count-errors">Count Errors</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "log-processing: count errors" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
 
 const errorCount = await read("app.log")
   .lines
@@ -269,7 +269,7 @@ Object.entries(errorsByHour)
 </code></pre>
 <h2 id="multiple-log-files"><a class="header" href="#multiple-log-files">Multiple Log Files</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.0";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
 
 const files = ["app1.log", "app2.log", "app3.log"];
 
