@@ -38,6 +38,7 @@
 - [File I/O](./utilities/file-io.md)
 - [Range and Iteration](./utilities/range.md)
 - [Zip and Enumerate](./utilities/zip-enumerate.md)
+- [WritableIterable](./utilities/writable-iterable.md)
 
 # Recipes
 
