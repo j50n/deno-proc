@@ -243,7 +243,7 @@ stream3.on('error', handleError);
 <h3 id="exitcodeerror"><a class="header" href="#exitcodeerror">ExitCodeError</a></h3>
 <p>Thrown when a process exits with a non-zero code:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("false").lines.collect();
@@ -257,7 +257,7 @@ try {
 <h3 id="signalerror"><a class="header" href="#signalerror">SignalError</a></h3>
 <p>Thrown when a process is killed by a signal:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { SignalError } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { SignalError } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("sleep", "1000").lines.collect();
@@ -271,7 +271,7 @@ try {
 <h3 id="upstreamerror"><a class="header" href="#upstreamerror">UpstreamError</a></h3>
 <p>Thrown when an error comes from upstream in a pipeline:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { UpstreamError } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { UpstreamError } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("cat", "missing.txt")  // This fails

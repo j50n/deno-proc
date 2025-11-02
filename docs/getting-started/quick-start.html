@@ -184,7 +184,7 @@
 <h2 id="your-first-process"><a class="header" href="#your-first-process">Your First Process</a></h2>
 <p>Create a file called <code>hello.ts</code>:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: basic run and capture" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 // Run a command and capture output
 const lines = await run("echo", "Hello, proc!").lines.collect();
@@ -202,7 +202,7 @@ console.log(lines); // ["Hello, proc!"]
 <h2 id="chaining-processes"><a class="header" href="#chaining-processes">Chaining Processes</a></h2>
 <p>Let's chain commands together, like shell pipes:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: chain processes" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const result = await run("echo", "HELLO WORLD")
   .run("tr", "A-Z", "a-z")  // Convert to lowercase
@@ -214,7 +214,7 @@ console.log(result); // "hello world"
 <h2 id="working-with-files"><a class="header" href="#working-with-files">Working with Files</a></h2>
 <p>Process a file line by line:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: process file" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const errorCount = await read("app.log")
   .lines
@@ -226,7 +226,7 @@ console.log(`Found ${errorCount} errors`);
 <h2 id="handling-errors"><a class="header" href="#handling-errors">Handling Errors</a></h2>
 <p>Errors propagate naturally—catch them once at the end:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: handle errors" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("false")  // This command exits with code 1
@@ -240,7 +240,7 @@ try {
 <h2 id="using-array-methods"><a class="header" href="#using-array-methods">Using Array Methods</a></h2>
 <p>Work with async data using familiar Array methods:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: enumerate with indices" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const data = ["apple", "banana", "cherry"];
 
@@ -255,7 +255,7 @@ console.log(numbered);
 <h2 id="a-real-example"><a class="header" href="#a-real-example">A Real Example</a></h2>
 <p>Let's find the 5 most recent commits that mention "fix":</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: git log example" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const commits = await run("git", "log", "--oneline")
   .lines

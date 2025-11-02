@@ -185,7 +185,7 @@ practice.</p>
 <h2 id="pattern-run-and-collect"><a class="header" href="#pattern-run-and-collect">Pattern: Run and Collect</a></h2>
 <p>The most basic pattern—run a command and get all output:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const lines = await run("ls", "-la").lines.collect();
 // lines is string[]
@@ -199,7 +199,7 @@ const lines = await run("ls", "-la").lines.collect();
 <h2 id="pattern-process-pipeline"><a class="header" href="#pattern-process-pipeline">Pattern: Process Pipeline</a></h2>
 <p>Chain commands like shell pipes:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const count = await run("cat", "data.txt")
   .run("grep", "error")
@@ -215,7 +215,7 @@ const count = await run("cat", "data.txt")
 <h2 id="pattern-transform-and-filter"><a class="header" href="#pattern-transform-and-filter">Pattern: Transform and Filter</a></h2>
 <p>Process output with Array methods:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const errors = await run("cat", "app.log")
   .lines
@@ -233,7 +233,7 @@ const errors = await run("cat", "app.log")
 <h2 id="pattern-error-handling"><a class="header" href="#pattern-error-handling">Pattern: Error Handling</a></h2>
 <p>Catch errors at the end of the pipeline:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("npm", "test")
@@ -256,7 +256,7 @@ try {
 <h2 id="pattern-check-status-without-throwing"><a class="header" href="#pattern-check-status-without-throwing">Pattern: Check Status Without Throwing</a></h2>
 <p>Get exit status without throwing an error:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const p = run("some-command");
 await p.lines.collect(); // Consume output first
@@ -275,7 +275,7 @@ if (status.code !== 0) {
 <h2 id="pattern-enumerate-with-indices"><a class="header" href="#pattern-enumerate-with-indices">Pattern: Enumerate with Indices</a></h2>
 <p>Add indices to any iterable:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const numbered = await enumerate(["a", "b", "c"])
   .enum() // Adds [item, index] tuples
@@ -292,7 +292,7 @@ const numbered = await enumerate(["a", "b", "c"])
 <h2 id="pattern-enumerate-without-indices"><a class="header" href="#pattern-enumerate-without-indices">Pattern: Enumerate Without Indices</a></h2>
 <p>Use Array methods without adding indices:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const filtered = await enumerate(["a", "b", "c"])
   .filter((item) =&gt; item !== "b")
@@ -308,7 +308,7 @@ const filtered = await enumerate(["a", "b", "c"])
 <h2 id="pattern-stream-large-files"><a class="header" href="#pattern-stream-large-files">Pattern: Stream Large Files</a></h2>
 <p>Process files without loading into memory:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const errorCount = await read("huge-log.txt")
   .lines
@@ -324,7 +324,7 @@ const errorCount = await read("huge-log.txt")
 <h2 id="pattern-decompress-and-process"><a class="header" href="#pattern-decompress-and-process">Pattern: Decompress and Process</a></h2>
 <p>Handle compressed files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const lines = await read("data.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -340,7 +340,7 @@ const lines = await read("data.txt.gz")
 <h2 id="pattern-concurrent-processing"><a class="header" href="#pattern-concurrent-processing">Pattern: Concurrent Processing</a></h2>
 <p>Process items in parallel with concurrency control:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const urls = ["url1", "url2", "url3"];
 
@@ -361,7 +361,7 @@ unordered results)</li>
 <h2 id="pattern-build-objects-with-reduce"><a class="header" href="#pattern-build-objects-with-reduce">Pattern: Build Objects with Reduce</a></h2>
 <p>Aggregate data into a single value:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const wordCount = await run("cat", "data.txt")
   .lines
@@ -382,7 +382,7 @@ const wordCount = await run("cat", "data.txt")
 <h2 id="pattern-split-stream-with-tee"><a class="header" href="#pattern-split-stream-with-tee">Pattern: Split Stream with Tee</a></h2>
 <p>Process the same stream multiple ways:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const [errors, warnings] = run("cat", "app.log")
   .lines

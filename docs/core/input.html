@@ -201,7 +201,7 @@
 <h2 id="piping-between-processes"><a class="header" href="#piping-between-processes">Piping Between Processes</a></h2>
 <p>The most common way to provide input:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 await run("echo", "hello")
   .run("tr", "a-z", "A-Z")  // Receives "hello" as stdin
@@ -211,7 +211,7 @@ await run("echo", "hello")
 <h2 id="from-enumerable"><a class="header" href="#from-enumerable">From Enumerable</a></h2>
 <p>Pipe any enumerable to a process:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "input: pipe from enumerable" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const data = ["line 1", "line 2", "line 3"];
 
@@ -222,7 +222,7 @@ await enumerate(data)
 </code></pre>
 <h2 id="from-file"><a class="header" href="#from-file">From File</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 await read("input.txt")
   .run("grep", "pattern")
@@ -247,7 +247,7 @@ await read("input.txt")
 </code></pre>
 <h3 id="generate-and-process"><a class="header" href="#generate-and-process">Generate and Process</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.23.3";
 
 await range({ to: 100 })
   .map(n =&gt; n.toString())

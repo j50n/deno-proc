@@ -204,7 +204,7 @@ love this.</p>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
 <p>Count lines in a compressed file—streaming, no temp files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const lines = await read("war-and-peace.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -215,7 +215,7 @@ console.log(`${lines} lines`); // 23,166 lines
 </code></pre>
 <p>Chain processes like shell pipes:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const result = await run("cat", "data.txt")
   .run("grep", "error")
@@ -224,7 +224,7 @@ const result = await run("cat", "data.txt")
 </code></pre>
 <p>Handle errors gracefully:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("npm", "test")
@@ -262,7 +262,7 @@ efficiently</li>
 <p>Start with <a href="./getting-started/installation.html">Installation</a> or jump straight to
 the <a href="./getting-started/quick-start.html">Quick Start</a>.</p>
 <hr />
-<p><strong>Current Version:</strong> 0.23.2<br />
+<p><strong>Current Version:</strong> 0.23.3<br />
 <strong>Status:</strong> Stable, actively maintained, ready for production</p>
 <p>Found a bug? Have a question?
 <a href="https://github.com/j50n/deno-proc/issues">File an issue</a> or check the
@@ -272,11 +272,11 @@ the <a href="./getting-started/quick-start.html">Quick Start</a>.</p>
 <h2 id="import-from-jsr"><a class="header" href="#import-from-jsr">Import from JSR</a></h2>
 <p>Add proc to your Deno project:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import * as proc from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import * as proc from "jsr:@j50n/proc@0.23.3";
 </code></pre>
 <p>Or import just what you need:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run, enumerate, read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run, enumerate, read } from "jsr:@j50n/proc@0.23.3";
 </code></pre>
 <p>That's it! No installation step, no package.json, no node_modules.</p>
 <h2 id="permissions"><a class="header" href="#permissions">Permissions</a></h2>
@@ -313,7 +313,7 @@ deno run --allow-read=/var/log your-script.ts
 <h2 id="your-first-process"><a class="header" href="#your-first-process">Your First Process</a></h2>
 <p>Create a file called <code>hello.ts</code>:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: basic run and capture" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 // Run a command and capture output
 const lines = await run("echo", "Hello, proc!").lines.collect();
@@ -331,7 +331,7 @@ console.log(lines); // ["Hello, proc!"]
 <h2 id="chaining-processes"><a class="header" href="#chaining-processes">Chaining Processes</a></h2>
 <p>Let's chain commands together, like shell pipes:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: chain processes" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const result = await run("echo", "HELLO WORLD")
   .run("tr", "A-Z", "a-z")  // Convert to lowercase
@@ -343,7 +343,7 @@ console.log(result); // "hello world"
 <h2 id="working-with-files"><a class="header" href="#working-with-files">Working with Files</a></h2>
 <p>Process a file line by line:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: process file" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const errorCount = await read("app.log")
   .lines
@@ -355,7 +355,7 @@ console.log(`Found ${errorCount} errors`);
 <h2 id="handling-errors"><a class="header" href="#handling-errors">Handling Errors</a></h2>
 <p>Errors propagate naturally—catch them once at the end:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: handle errors" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("false")  // This command exits with code 1
@@ -369,7 +369,7 @@ try {
 <h2 id="using-array-methods"><a class="header" href="#using-array-methods">Using Array Methods</a></h2>
 <p>Work with async data using familiar Array methods:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: enumerate with indices" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const data = ["apple", "banana", "cherry"];
 
@@ -384,7 +384,7 @@ console.log(numbered);
 <h2 id="a-real-example"><a class="header" href="#a-real-example">A Real Example</a></h2>
 <p>Let's find the 5 most recent commits that mention "fix":</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: git log example" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const commits = await run("git", "log", "--oneline")
   .lines
@@ -452,7 +452,7 @@ await run("ls").lines.forEach(console.log);  // ✅ Output consumed
 <h2 id="enumeration-pattern"><a class="header" href="#enumeration-pattern">Enumeration Pattern</a></h2>
 <p><code>enumerate()</code> wraps an iterable to give it Array-like methods. To add indices, call <code>.enum()</code> on the result:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 // enumerate() wraps the iterable, .enum() adds indices
 const numbered = await enumerate(["a", "b", "c"])
@@ -506,7 +506,7 @@ practice.</p>
 <h2 id="pattern-run-and-collect"><a class="header" href="#pattern-run-and-collect">Pattern: Run and Collect</a></h2>
 <p>The most basic pattern—run a command and get all output:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const lines = await run("ls", "-la").lines.collect();
 // lines is string[]
@@ -520,7 +520,7 @@ const lines = await run("ls", "-la").lines.collect();
 <h2 id="pattern-process-pipeline"><a class="header" href="#pattern-process-pipeline">Pattern: Process Pipeline</a></h2>
 <p>Chain commands like shell pipes:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const count = await run("cat", "data.txt")
   .run("grep", "error")
@@ -536,7 +536,7 @@ const count = await run("cat", "data.txt")
 <h2 id="pattern-transform-and-filter"><a class="header" href="#pattern-transform-and-filter">Pattern: Transform and Filter</a></h2>
 <p>Process output with Array methods:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const errors = await run("cat", "app.log")
   .lines
@@ -554,7 +554,7 @@ const errors = await run("cat", "app.log")
 <h2 id="pattern-error-handling"><a class="header" href="#pattern-error-handling">Pattern: Error Handling</a></h2>
 <p>Catch errors at the end of the pipeline:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("npm", "test")
@@ -577,7 +577,7 @@ try {
 <h2 id="pattern-check-status-without-throwing"><a class="header" href="#pattern-check-status-without-throwing">Pattern: Check Status Without Throwing</a></h2>
 <p>Get exit status without throwing an error:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const p = run("some-command");
 await p.lines.collect(); // Consume output first
@@ -596,7 +596,7 @@ if (status.code !== 0) {
 <h2 id="pattern-enumerate-with-indices"><a class="header" href="#pattern-enumerate-with-indices">Pattern: Enumerate with Indices</a></h2>
 <p>Add indices to any iterable:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const numbered = await enumerate(["a", "b", "c"])
   .enum() // Adds [item, index] tuples
@@ -613,7 +613,7 @@ const numbered = await enumerate(["a", "b", "c"])
 <h2 id="pattern-enumerate-without-indices"><a class="header" href="#pattern-enumerate-without-indices">Pattern: Enumerate Without Indices</a></h2>
 <p>Use Array methods without adding indices:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const filtered = await enumerate(["a", "b", "c"])
   .filter((item) =&gt; item !== "b")
@@ -629,7 +629,7 @@ const filtered = await enumerate(["a", "b", "c"])
 <h2 id="pattern-stream-large-files"><a class="header" href="#pattern-stream-large-files">Pattern: Stream Large Files</a></h2>
 <p>Process files without loading into memory:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const errorCount = await read("huge-log.txt")
   .lines
@@ -645,7 +645,7 @@ const errorCount = await read("huge-log.txt")
 <h2 id="pattern-decompress-and-process"><a class="header" href="#pattern-decompress-and-process">Pattern: Decompress and Process</a></h2>
 <p>Handle compressed files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const lines = await read("data.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -661,7 +661,7 @@ const lines = await read("data.txt.gz")
 <h2 id="pattern-concurrent-processing"><a class="header" href="#pattern-concurrent-processing">Pattern: Concurrent Processing</a></h2>
 <p>Process items in parallel with concurrency control:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const urls = ["url1", "url2", "url3"];
 
@@ -682,7 +682,7 @@ unordered results)</li>
 <h2 id="pattern-build-objects-with-reduce"><a class="header" href="#pattern-build-objects-with-reduce">Pattern: Build Objects with Reduce</a></h2>
 <p>Aggregate data into a single value:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const wordCount = await run("cat", "data.txt")
   .lines
@@ -703,7 +703,7 @@ const wordCount = await run("cat", "data.txt")
 <h2 id="pattern-split-stream-with-tee"><a class="header" href="#pattern-split-stream-with-tee">Pattern: Split Stream with Tee</a></h2>
 <p>Process the same stream multiple ways:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const [errors, warnings] = run("cat", "app.log")
   .lines
@@ -807,7 +807,7 @@ stream3.on('error', handleError);
 <h3 id="exitcodeerror"><a class="header" href="#exitcodeerror">ExitCodeError</a></h3>
 <p>Thrown when a process exits with a non-zero code:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("false").lines.collect();
@@ -821,7 +821,7 @@ try {
 <h3 id="signalerror"><a class="header" href="#signalerror">SignalError</a></h3>
 <p>Thrown when a process is killed by a signal:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { SignalError } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { SignalError } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("sleep", "1000").lines.collect();
@@ -835,7 +835,7 @@ try {
 <h3 id="upstreamerror"><a class="header" href="#upstreamerror">UpstreamError</a></h3>
 <p>Thrown when an error comes from upstream in a pipeline:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { UpstreamError } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { UpstreamError } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("cat", "missing.txt")  // This fails
@@ -1059,7 +1059,7 @@ await run("command").lines.forEach(() =&gt; {});
 <p>Running a child process with proc is as simple as it gets.</p>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: capture output" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 // Run a command
 await run("ls", "-la").lines.collect();
@@ -1109,7 +1109,7 @@ const last = await run("ls").lines.last;
 <h2 id="building-commands-dynamically"><a class="header" href="#building-commands-dynamically">Building Commands Dynamically</a></h2>
 <p>Sometimes you need to build a command from variables:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.23.3";
 
 const cmd: Cmd = ["ls"];
 
@@ -1479,7 +1479,7 @@ for await (const line of step3) {
 <h2 id="getting-output"><a class="header" href="#getting-output">Getting Output</a></h2>
 <h3 id="as-lines"><a class="header" href="#as-lines">As Lines</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const lines = await run("ls", "-la").lines.collect();
 // string[]
@@ -1596,7 +1596,7 @@ const lines = await run("ls", "-la").lines.collect();
 <h2 id="piping-between-processes"><a class="header" href="#piping-between-processes">Piping Between Processes</a></h2>
 <p>The most common way to provide input:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 await run("echo", "hello")
   .run("tr", "a-z", "A-Z")  // Receives "hello" as stdin
@@ -1606,7 +1606,7 @@ await run("echo", "hello")
 <h2 id="from-enumerable"><a class="header" href="#from-enumerable">From Enumerable</a></h2>
 <p>Pipe any enumerable to a process:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "input: pipe from enumerable" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const data = ["line 1", "line 2", "line 3"];
 
@@ -1617,7 +1617,7 @@ await enumerate(data)
 </code></pre>
 <h2 id="from-file"><a class="header" href="#from-file">From File</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 await read("input.txt")
   .run("grep", "pattern")
@@ -1642,7 +1642,7 @@ await read("input.txt")
 </code></pre>
 <h3 id="generate-and-process"><a class="header" href="#generate-and-process">Generate and Process</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.23.3";
 
 await range({ to: 100 })
   .map(n =&gt; n.toString())
@@ -1660,7 +1660,7 @@ await range({ to: 100 })
 <h2 id="the-golden-rule"><a class="header" href="#the-golden-rule">The Golden Rule</a></h2>
 <p><strong>Always consume process output.</strong></p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 // ❌ Resource leak
 const p = run("ls");
@@ -1738,7 +1738,7 @@ for await (const line of run("tail", "-f", "log").lines) {
 <h2 id="what-is-enumerable"><a class="header" href="#what-is-enumerable">What is Enumerable?</a></h2>
 <p>Think of Enumerable as an Array, but for async data. It gives you <code>map</code>, <code>filter</code>, <code>reduce</code>, and more—but for data that arrives over time.</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 // Wrap any iterable
 const nums = enumerate([1, 2, 3, 4, 5]);
@@ -1792,14 +1792,14 @@ const nums = enumerate(generate());
 </code></pre>
 <h3 id="from-process-output"><a class="header" href="#from-process-output">From Process Output</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const lines = run("ls", "-la").lines;
 // lines is already an Enumerable&lt;string&gt;
 </code></pre>
 <h3 id="from-files"><a class="header" href="#from-files">From Files</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const bytes = read("file.txt");
 // bytes is Enumerable&lt;Uint8Array&gt;
@@ -1924,7 +1924,7 @@ await read("huge-file.txt")
 <h2 id="caching-iterables"><a class="header" href="#caching-iterables">Caching Iterables</a></h2>
 <p>Sometimes you need to reuse an iterable's results. Use <code>cache()</code> to store results for replay:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { cache, enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { cache, enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const expensive = enumerate(data)
   .map(expensiveOperation);
@@ -1952,7 +1952,7 @@ const result2 = await cached.collect();
 <h2 id="writable-iterables"><a class="header" href="#writable-iterables">Writable Iterables</a></h2>
 <p>Create async iterables you can write to programmatically:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.23.3";
 
 const writable = new WritableIterable&lt;string&gt;();
 
@@ -2266,7 +2266,7 @@ const results = await enumerate(urls)
 <h2 id="map-1"><a class="header" href="#map-1">map()</a></h2>
 <p>Transform each item:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const doubled = await enumerate([1, 2, 3])
   .map(n =&gt; n * 2)
@@ -2353,7 +2353,7 @@ const doubled = await enumerate([1, 2, 3])
 <h2 id="transform"><a class="header" href="#transform">transform()</a></h2>
 <p>Apply a TransformStream:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const decompressed = await read("file.gz")
   .transform(new DecompressionStream("gzip"))
@@ -2528,7 +2528,7 @@ const first10 = await enumerate(huge)
 <h2 id="reduce-1"><a class="header" href="#reduce-1">reduce()</a></h2>
 <p>The Swiss Army knife of aggregations:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "enumerable: reduce" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const sum = await enumerate([1, 2, 3, 4])
   .reduce((acc, n) =&gt; acc + n, 0);
@@ -2781,7 +2781,7 @@ const result = await enumerate(items)
 <h2 id="take-1"><a class="header" href="#take-1">take()</a></h2>
 <p>Take first N items:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "slicing: take" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const first3 = await enumerate([1, 2, 3, 4, 5])
   .take(3)
@@ -2942,7 +2942,7 @@ await Promise.all(urls.map(url =&gt; fetch(url)));
 <h2 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h2>
 <p>proc gives you controlled concurrency:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 // Process 5 at a time
 const results = await enumerate(urls)
@@ -3024,7 +3024,7 @@ const data = await enumerate(urls)
 </code></pre>
 <h3 id="process-files-in-parallel"><a class="header" href="#process-files-in-parallel">Process Files in Parallel</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["log1.txt", "log2.txt", "log3.txt"];
 
@@ -3274,7 +3274,7 @@ const lines = content.split("\n");
 <h2 id="the-solution-1"><a class="header" href="#the-solution-1">The Solution</a></h2>
 <p>Stream it, one line at a time:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 // ✅ Constant memory, any file size
 for await (const line of read("huge.log").lines) {
@@ -3339,7 +3339,7 @@ console.log(`${count} lines`);
 <h2 id="multiple-files"><a class="header" href="#multiple-files">Multiple Files</a></h2>
 <p>Process multiple large files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["log1.txt", "log2.txt", "log3.txt"];
 
@@ -3366,7 +3366,7 @@ for (const file of files) {
 <h2 id="writing-large-files"><a class="header" href="#writing-large-files">Writing Large Files</a></h2>
 <p>Stream output to a file:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.23.3";
 
 const processed = await read("input.txt")
   .lines
@@ -3493,7 +3493,7 @@ await Deno.writeFile("output.txt", concat(output));
 <h2 id="reading-files"><a class="header" href="#reading-files">Reading Files</a></h2>
 <h3 id="read-as-bytes"><a class="header" href="#read-as-bytes">Read as Bytes</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const bytes = await read("file.bin").collect();
 // Uint8Array[]
@@ -3563,7 +3563,7 @@ await Deno.writeTextFile("output.txt", content);
 </code></pre>
 <h3 id="stream-to-file"><a class="header" href="#stream-to-file">Stream to File</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.23.3";
 
 const bytes = await read("input.txt")
   .lines
@@ -3611,7 +3611,7 @@ for (const file of files) {
 </code></pre>
 <h3 id="concurrent-processing-1"><a class="header" href="#concurrent-processing-1">Concurrent Processing</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const results = await enumerate(files)
   .concurrentMap(async (file) =&gt; {
@@ -3700,7 +3700,7 @@ await Deno.writeTextFile("data.jsonl", jsonLines.join("\n"));
 <p>Generate sequences of numbers lazily.</p>
 <h2 id="basic-range"><a class="header" href="#basic-range">Basic Range</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "range: basic range" -->
-<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.23.3";
 
 const numbers = await range({ to: 5 }).collect();
 // [0, 1, 2, 3, 4]
@@ -3809,7 +3809,7 @@ const first10 = await huge.take(10).collect();
 <h2 id="enumerate"><a class="header" href="#enumerate">enumerate()</a></h2>
 <p>Wrap any iterable for Array-like methods:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const result = await enumerate([1, 2, 3])
   .map(n =&gt; n * 2)
@@ -3835,7 +3835,7 @@ const result = await enumerate([1, 2, 3])
 <h2 id="zip"><a class="header" href="#zip">zip()</a></h2>
 <p>Combine two iterables:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { zip } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { zip } from "jsr:@j50n/proc@0.23.3";
 
 const names = ["Alice", "Bob", "Charlie"];
 const ages = [25, 30, 35];
@@ -3885,12 +3885,312 @@ await enumerate(items)
 <li><a href="utilities/./range.html">Range and Iteration</a> - Generate sequences</li>
 <li><a href="utilities/../iterables/array-methods.html">Array-Like Methods</a> - Transform data</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="writableiterable"><a class="header" href="#writableiterable">WritableIterable</a></h1>
+<p><code>WritableIterable</code> is a fascinating utility that inverts the normal data flow: instead of pulling data from an iterable, you push data into it. It bridges the gap between push-based (callbacks, events) and pull-based (async iteration) programming models.</p>
+<h2 id="the-problem-it-solves"><a class="header" href="#the-problem-it-solves">The Problem It Solves</a></h2>
+<p>Imagine you have a callback-based API (like event emitters, WebSocket messages, or sensor data) and you want to process it with proc's pipeline operations. You can't easily convert callbacks to an AsyncIterable... until now.</p>
+<h2 id="how-it-works-3"><a class="header" href="#how-it-works-3">How It Works</a></h2>
+<p><code>WritableIterable</code> is both:</p>
+<ul>
+<li><strong>Writable</strong>: You can <code>.write()</code> items to it</li>
+<li><strong>AsyncIterable</strong>: You can iterate over it with <code>for await</code></li>
+</ul>
+<p>It uses an internal queue to buffer items between the writer and reader, allowing them to operate at different speeds.</p>
+<h2 id="basic-usage-1"><a class="header" href="#basic-usage-1">Basic Usage</a></h2>
+<!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - basic write and read" -->
+<pre><code class="language-typescript">import { WritableIterable, sleep } from "jsr:@j50n/proc@0.23.3";
+
+const writable = new WritableIterable&lt;number&gt;();
+
+// Write in background (simulating slow producer)
+(async () =&gt; {
+  await writable.write(1);
+  await sleep(100);
+  await writable.write(2);
+  await sleep(100);
+  await writable.write(3);
+  await writable.close();
+})();
+
+// Read (items arrive as they're written)
+const results: number[] = [];
+for await (const item of writable) {
+  console.log("Received:", item);
+  results.push(item);
+}
+
+console.log(results); // [1, 2, 3]
+</code></pre>
+<p>This demonstrates the streaming nature: the reader receives items as they're written, not all at once.</p>
+<blockquote>
+<p><strong>⚠️ Important</strong>: You MUST call <code>.close()</code> when done writing, or iteration will hang forever waiting for more data.</p>
+</blockquote>
+<h2 id="key-concepts-1"><a class="header" href="#key-concepts-1">Key Concepts</a></h2>
+<h3 id="push-vs-pull"><a class="header" href="#push-vs-pull">Push vs Pull</a></h3>
+<p><strong>Traditional AsyncIterable (pull-based)</strong>:</p>
+<pre><code class="language-typescript">// Consumer pulls data
+for await (const item of iterable) {
+  // Process item
+}
+</code></pre>
+<p><strong>WritableIterable (push-based)</strong>:</p>
+<pre><code class="language-typescript">// Producer pushes data
+await writable.write(item);
+</code></pre>
+<h3 id="backpressure"><a class="header" href="#backpressure">Backpressure</a></h3>
+<p><code>WritableIterable</code> implements automatic backpressure. If the writer is faster than the reader, <code>.write()</code> will pause until the reader catches up. This prevents unbounded memory growth.</p>
+<h2 id="real-world-examples-9"><a class="header" href="#real-world-examples-9">Real-World Examples</a></h2>
+<h3 id="example-1-event-stream-to-pipeline"><a class="header" href="#example-1-event-stream-to-pipeline">Example 1: Event Stream to Pipeline</a></h3>
+<p>Convert DOM events into a processable stream:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable, enumerate } from "jsr:@j50n/proc@0.23.3";
+
+const clicks = new WritableIterable&lt;MouseEvent&gt;();
+
+// Producer: capture clicks
+document.addEventListener("click", async (event) =&gt; {
+  await clicks.write(event);
+});
+
+// Consumer: process clicks
+enumerate(clicks)
+  .map(event =&gt; ({ x: event.clientX, y: event.clientY }))
+  .filter(pos =&gt; pos.x &gt; 100)
+  .forEach(pos =&gt; console.log("Click at:", pos));
+
+// Close when done (e.g., on page unload)
+window.addEventListener("unload", () =&gt; clicks.close());
+</code></pre>
+<h3 id="example-2-websocket-to-process"><a class="header" href="#example-2-websocket-to-process">Example 2: WebSocket to Process</a></h3>
+<p>Feed WebSocket messages to a process:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.23.3";
+
+const messages = new WritableIterable&lt;string&gt;();
+
+// Producer: WebSocket messages
+const ws = new WebSocket("wss://example.com");
+ws.onmessage = async (event) =&gt; {
+  await messages.write(event.data);
+};
+ws.onclose = () =&gt; messages.close();
+
+// Consumer: pipe to process
+await enumerate(messages)
+  .run("jq", ".")  // Pretty-print JSON
+  .toStdout();
+</code></pre>
+<h3 id="example-3-sensor-data-stream"><a class="header" href="#example-3-sensor-data-stream">Example 3: Sensor Data Stream</a></h3>
+<p>Process sensor readings as they arrive:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable, enumerate } from "jsr:@j50n/proc@0.23.3";
+
+interface SensorReading {
+  temperature: number;
+  timestamp: number;
+}
+
+const readings = new WritableIterable&lt;SensorReading&gt;();
+
+// Producer: sensor callback
+sensor.onReading(async (reading) =&gt; {
+  await readings.write(reading);
+});
+
+// Consumer: calculate moving average
+const averages = await enumerate(readings)
+  .map(r =&gt; r.temperature)
+  .take(100)  // First 100 readings
+  .reduce((acc, temp) =&gt; acc + temp, 0)
+  .then(sum =&gt; sum / 100);
+
+console.log(`Average: ${averages}°C`);
+await readings.close();
+</code></pre>
+<h3 id="example-4-manual-process-stdin"><a class="header" href="#example-4-manual-process-stdin">Example 4: Manual Process stdin</a></h3>
+<p>Feed data to a process programmatically:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable, enumerate } from "jsr:@j50n/proc@0.23.3";
+
+const input = new WritableIterable&lt;string&gt;();
+
+// Producer: generate data
+(async () =&gt; {
+  for (let i = 0; i &lt; 10; i++) {
+    await input.write(`line ${i}`);
+  }
+  await input.close();
+})();
+
+// Consumer: pipe to process
+await enumerate(input)
+  .run("grep", "5")
+  .toStdout();
+// Output: line 5
+</code></pre>
+<h2 id="error-handling-6"><a class="header" href="#error-handling-6">Error Handling</a></h2>
+<p>Errors propagate through the iteration:</p>
+<!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - error propagation" -->
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.23.3";
+
+const writable = new WritableIterable&lt;number&gt;();
+
+// Write and close with error
+(async () =&gt; {
+  await writable.write(1);
+  await writable.write(2);
+  await writable.close(new Error("something failed"));
+})();
+
+try {
+  for await (const item of writable) {
+    console.log(item);
+  }
+} catch (error) {
+  console.error("Error:", error.message);
+}
+// Output:
+// 1
+// 2
+// Error: something failed
+</code></pre>
+<h2 id="cleanup-with-onclose"><a class="header" href="#cleanup-with-onclose">Cleanup with onclose</a></h2>
+<p>You can provide a cleanup callback:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.23.3";
+
+const writable = new WritableIterable&lt;string&gt;({
+  onclose: async () =&gt; {
+    console.log("Cleaning up resources...");
+    // Close connections, files, etc.
+  }
+});
+
+await writable.write("data");
+await writable.close();
+// Output: Cleaning up resources...
+</code></pre>
+<h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
+<h3 id="constructor"><a class="header" href="#constructor">Constructor</a></h3>
+<pre><code class="language-typescript">new WritableIterable&lt;T&gt;(options?: { onclose?: () =&gt; void | Promise&lt;void&gt; })
+</code></pre>
+<ul>
+<li><code>options.onclose</code>: Optional callback invoked when <code>.close()</code> is called</li>
+</ul>
+<h3 id="methods"><a class="header" href="#methods">Methods</a></h3>
+<p><strong><code>.write(item: T): Promise&lt;void&gt;</code></strong></p>
+<ul>
+<li>Write an item to the stream</li>
+<li>Throws if already closed</li>
+<li>Implements backpressure (pauses if reader is slow)</li>
+</ul>
+<p><strong><code>.close(error?: Error): Promise&lt;void&gt;</code></strong></p>
+<ul>
+<li>Close the stream</li>
+<li>Must be called to end iteration</li>
+<li>Safe to call multiple times</li>
+<li>Optional error propagates to reader</li>
+</ul>
+<h3 id="properties"><a class="header" href="#properties">Properties</a></h3>
+<p><strong><code>.isClosed: boolean</code></strong></p>
+<ul>
+<li>Returns <code>true</code> if <code>.close()</code> has been called</li>
+</ul>
+<h2 id="common-patterns-7"><a class="header" href="#common-patterns-7">Common Patterns</a></h2>
+<h3 id="pattern-timed-data-generation"><a class="header" href="#pattern-timed-data-generation">Pattern: Timed Data Generation</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const timed = new WritableIterable&lt;number&gt;();
+
+(async () =&gt; {
+  for (let i = 0; i &lt; 5; i++) {
+    await timed.write(i);
+    await new Promise(resolve =&gt; setTimeout(resolve, 1000));
+  }
+  await timed.close();
+})();
+
+for await (const item of timed) {
+  console.log(item); // Prints 0, 1, 2, 3, 4 (one per second)
+}
+</code></pre>
+<h3 id="pattern-conditional-close"><a class="header" href="#pattern-conditional-close">Pattern: Conditional Close</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const conditional = new WritableIterable&lt;number&gt;();
+
+(async () =&gt; {
+  for (let i = 0; i &lt; 100; i++) {
+    await conditional.write(i);
+    if (i === 10) {
+      await conditional.close(); // Stop early
+      break;
+    }
+  }
+})();
+
+const items = await enumerate(conditional).collect();
+console.log(items.length); // 11 (0 through 10)
+</code></pre>
+<h2 id="when-to-use-writableiterable"><a class="header" href="#when-to-use-writableiterable">When to Use WritableIterable</a></h2>
+<p><strong>Use it when:</strong></p>
+<ul>
+<li>Converting callback-based APIs to AsyncIterable</li>
+<li>Feeding data to process stdin programmatically</li>
+<li>Bridging event-driven and stream-based code</li>
+<li>You need backpressure between producer and consumer</li>
+</ul>
+<p><strong>Don't use it when:</strong></p>
+<ul>
+<li>You already have an AsyncIterable (use <code>enumerate()</code> instead)</li>
+<li>You're working with synchronous data (use arrays)</li>
+<li>You need multi-consumer support (WritableIterable is single-consumer)</li>
+</ul>
+<h2 id="performance-notes"><a class="header" href="#performance-notes">Performance Notes</a></h2>
+<ul>
+<li>Internal queue grows if writer is faster than reader</li>
+<li>Backpressure prevents unbounded growth</li>
+<li>Each <code>.write()</code> creates a Promise (small overhead)</li>
+<li>Best for moderate data rates (not millions of items/second)</li>
+</ul>
+<h2 id="comparison-with-other-approaches"><a class="header" href="#comparison-with-other-approaches">Comparison with Other Approaches</a></h2>
+<h3 id="vs-array"><a class="header" href="#vs-array">vs. Array</a></h3>
+<pre><code class="language-typescript">// Array: all data in memory
+const data = [1, 2, 3];
+for (const item of data) { }
+
+// WritableIterable: streaming, backpressure
+const writable = new WritableIterable&lt;number&gt;();
+for await (const item of writable) { }
+</code></pre>
+<h3 id="vs-transformstream"><a class="header" href="#vs-transformstream">vs. TransformStream</a></h3>
+<pre><code class="language-typescript">// TransformStream: byte-oriented, Web Streams API
+const { readable, writable } = new TransformStream();
+
+// WritableIterable: value-oriented, AsyncIterable
+const writable = new WritableIterable&lt;T&gt;();
+</code></pre>
+<h3 id="vs-channel-from-other-languages"><a class="header" href="#vs-channel-from-other-languages">vs. Channel (from other languages)</a></h3>
+<p>If you're familiar with Go channels or Rust channels, <code>WritableIterable</code> is similar but:</p>
+<ul>
+<li>Single-consumer (not multi-consumer)</li>
+<li>Unbuffered by default (backpressure on every write)</li>
+<li>Integrates with AsyncIterable ecosystem</li>
+</ul>
+<h2 id="the-interesting-little-beast"><a class="header" href="#the-interesting-little-beast">The "Interesting Little Beast"</a></h2>
+<p>What makes <code>WritableIterable</code> interesting:</p>
+<ol>
+<li><strong>Inverted Control</strong>: Most iterables pull data; this one receives pushes</li>
+<li><strong>Backpressure</strong>: Automatically slows down fast producers</li>
+<li><strong>Bridge Pattern</strong>: Connects imperative (callbacks) to declarative (iteration)</li>
+<li><strong>Error Propagation</strong>: Errors flow naturally through the iteration</li>
+<li><strong>Simple API</strong>: Just <code>.write()</code>, <code>.close()</code>, and iterate</li>
+</ol>
+<p>It's a small utility that solves a specific problem elegantly: turning push-based data sources into pull-based async iterables that work seamlessly with proc's pipeline operations.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="counting-words"><a class="header" href="#counting-words">Counting Words</a></h1>
 <p>A classic example that shows the power of process pipelines.</p>
 <h2 id="simple-word-count"><a class="header" href="#simple-word-count">Simple Word Count</a></h2>
 <p>Count total words in a file:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const wordCount = await run("wc", "-w", "book.txt").lines.first;
 console.log(`Total words: ${wordCount}`);
@@ -3927,7 +4227,7 @@ topWords.forEach(line =&gt; console.log(line));
 <h2 id="pure-javascript-version"><a class="header" href="#pure-javascript-version">Pure JavaScript Version</a></h2>
 <p>Do it all in JavaScript:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const wordCounts = await read("book.txt")
   .lines
@@ -3960,7 +4260,7 @@ console.log(`Total words: ${wordCount}`);
 <h2 id="multiple-files-2"><a class="header" href="#multiple-files-2">Multiple Files</a></h2>
 <p>Count words across multiple files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["book1.txt", "book2.txt", "book3.txt"];
 
@@ -4075,7 +4375,7 @@ const words = await run("cat", "book.txt")
 <p>Analyze logs efficiently, even huge ones.</p>
 <h2 id="count-errors"><a class="header" href="#count-errors">Count Errors</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "log-processing: count errors" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const errorCount = await read("app.log")
   .lines
@@ -4161,7 +4461,7 @@ Object.entries(errorsByHour)
 </code></pre>
 <h2 id="multiple-log-files"><a class="header" href="#multiple-log-files">Multiple Log Files</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["app1.log", "app2.log", "app3.log"];
 
@@ -4209,7 +4509,7 @@ for await (const line of read("app.log").lines) {
 <p>Process compressed files without creating temporary files. Stream everything.</p>
 <h2 id="decompress-and-count-lines"><a class="header" href="#decompress-and-count-lines">Decompress and Count Lines</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "decompression: decompress and count" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const lineCount = await read("war-and-peace.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -4228,7 +4528,7 @@ console.log(`${lineCount} lines`);
 <p>All streaming. No temp files. Constant memory usage.</p>
 <h2 id="search-in-compressed-file"><a class="header" href="#search-in-compressed-file">Search in Compressed File</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const matches = await read("logs.gz")
   .transform(new DecompressionStream("gzip"))
@@ -4240,7 +4540,7 @@ console.log(`Found ${matches.length} errors`);
 </code></pre>
 <h2 id="process-multiple-compressed-files"><a class="header" href="#process-multiple-compressed-files">Process Multiple Compressed Files</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read, enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read, enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["log1.gz", "log2.gz", "log3.gz"];
 
@@ -4256,7 +4556,7 @@ for (const file of files) {
 </code></pre>
 <h2 id="decompress-and-transform"><a class="header" href="#decompress-and-transform">Decompress and Transform</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const data = await read("data.json.gz")
   .transform(new DecompressionStream("gzip"))
@@ -4285,7 +4585,7 @@ const data = await read("data.json.gz")
 <h2 id="compress-output"><a class="header" href="#compress-output">Compress Output</a></h2>
 <p>You can also compress:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const compressed = await read("large-file.txt")
   .transform(new CompressionStream("gzip"))
@@ -4296,7 +4596,7 @@ await Deno.writeFile("large-file.txt.gz", concat(compressed));
 <h2 id="real-world-example-log-analysis"><a class="header" href="#real-world-example-log-analysis">Real-World Example: Log Analysis</a></h2>
 <p>Analyze compressed logs without extracting them:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 interface LogEntry {
   timestamp: string;
@@ -4338,7 +4638,7 @@ for await (const line of read("huge.gz")
 <h3 id="use-concurrent-processing-1"><a class="header" href="#use-concurrent-processing-1">Use Concurrent Processing</a></h3>
 <p>Process multiple files in parallel:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["log1.gz", "log2.gz", "log3.gz"];
 
@@ -4382,7 +4682,7 @@ await read("file.gz")
 <p>Download multiple files concurrently with controlled concurrency.</p>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const urls = [
   "https://example.com/file1.json",
@@ -4410,7 +4710,7 @@ console.log(`Downloaded ${results.length} files`);
 <h2 id="download-and-save-files"><a class="header" href="#download-and-save-files">Download and Save Files</a></h2>
 <p>Download files and save them to disk:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const downloads = [
   { url: "https://example.com/image1.jpg", path: "./downloads/image1.jpg" },
@@ -4434,7 +4734,7 @@ console.log("All downloads complete");
 <h2 id="with-progress-tracking"><a class="header" href="#with-progress-tracking">With Progress Tracking</a></h2>
 <p>Track download progress:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 let completed = 0;
 const total = urls.length;
@@ -4454,7 +4754,7 @@ const results = await enumerate(urls)
 <h2 id="with-retry-logic"><a class="header" href="#with-retry-logic">With Retry Logic</a></h2>
 <p>Retry failed downloads:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 async function fetchWithRetry(url: string, maxRetries = 3): Promise&lt;Response&gt; {
   for (let attempt = 1; attempt &lt;= maxRetries; attempt++) {
@@ -4487,7 +4787,7 @@ const results = await enumerate(urls)
 <h2 id="download-large-files"><a class="header" href="#download-large-files">Download Large Files</a></h2>
 <p>Stream large files to disk without loading into memory:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const largeFiles = [
   { url: "https://example.com/large1.zip", path: "./large1.zip" },
@@ -4510,7 +4810,7 @@ await enumerate(largeFiles)
 <h2 id="api-rate-limiting"><a class="header" href="#api-rate-limiting">API Rate Limiting</a></h2>
 <p>Respect API rate limits:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const apiEndpoints = [
   "/api/users/1",
@@ -4534,7 +4834,7 @@ await enumerate(apiEndpoints)
 <h2 id="filter-failed-downloads"><a class="header" href="#filter-failed-downloads">Filter Failed Downloads</a></h2>
 <p>Continue even if some downloads fail:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const results = await enumerate(urls)
   .concurrentMap(async (url) =&gt; {
@@ -4590,7 +4890,7 @@ console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
 <li>Proper error handling</li>
 <li>Cross-platform</li>
 </ul>
-<h2 id="common-patterns-7"><a class="header" href="#common-patterns-7">Common Patterns</a></h2>
+<h2 id="common-patterns-8"><a class="header" href="#common-patterns-8">Common Patterns</a></h2>
 <h3 id="file-operations"><a class="header" href="#file-operations">File Operations</a></h3>
 <p><strong>Bash:</strong></p>
 <pre><code class="language-bash">#!/bin/bash
@@ -4601,7 +4901,7 @@ done
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { run } from "jsr:@j50n/proc@0.23.2";
+import { run } from "jsr:@j50n/proc@0.23.3";
 
 for await (const entry of Deno.readDir(".")) {
   if (entry.name.endsWith(".txt")) {
@@ -4618,7 +4918,7 @@ grep ERROR app.log | wc -l
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { read } from "jsr:@j50n/proc@0.23.2";
+import { read } from "jsr:@j50n/proc@0.23.3";
 
 const errors = await read("app.log")
   .lines
@@ -4635,7 +4935,7 @@ tar -czf backup-$(date +%Y%m%d).tar.gz /data
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { run } from "jsr:@j50n/proc@0.23.2";
+import { run } from "jsr:@j50n/proc@0.23.3";
 
 const date = new Date().toISOString().split("T")[0].replace(/-/g, "");
 await run("tar", "-czf", `backup-${date}.tar.gz`, "/data").toStdout();
@@ -4651,7 +4951,7 @@ done
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-run
-import { run, sleep } from "jsr:@j50n/proc@0.23.2";
+import { run, sleep } from "jsr:@j50n/proc@0.23.3";
 
 while (true) {
   const usage = await run("df", "-h")
@@ -4666,7 +4966,7 @@ while (true) {
 <p>Complete deployment script:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-all
-import { run } from "jsr:@j50n/proc@0.23.2";
+import { run } from "jsr:@j50n/proc@0.23.3";
 
 console.log("🚀 Deploying application...");
 
@@ -4716,7 +5016,7 @@ try {
 <li><a href="recipes/../core/error-handling.html">Error Handling</a> - Handle failures</li>
 <li><a href="recipes/../core/pipelines.html">Process Pipelines</a> - Chain commands</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="api-reference-1"><a class="header" href="#api-reference-1">API Reference</a></h1>
 <p>Complete API documentation is auto-generated from the source code using Deno's
 documentation tool.</p>
 <h2 :target="&quot;_blank&quot;"><a href="./api-docs/index.html">📚 View Full API Documentation</a></h2>
@@ -4812,7 +5112,7 @@ const output = await command.output();
 const text = new TextDecoder().decode(output.stdout);
 </code></pre>
 <p><strong>After:</strong></p>
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 const lines = await run("ls", "-la").lines.collect();
 </code></pre>
 <h2 id="from-shell-scripts"><a class="header" href="#from-shell-scripts">From Shell Scripts</a></h2>
@@ -4903,7 +5203,7 @@ run("ls", "-la");
 // ❌ Wrong
 run("ls -la");
 </code></pre>
-<h2 id="error-handling-6"><a class="header" href="#error-handling-6">Error Handling</a></h2>
+<h2 id="error-handling-7"><a class="header" href="#error-handling-7">Error Handling</a></h2>
 <h3 id="do-i-need-try-catch-at-every-step"><a class="header" href="#do-i-need-try-catch-at-every-step">Do I need try-catch at every step?</a></h3>
 <p>No! That's the whole point. Errors propagate through the pipeline:</p>
 <pre><code class="language-typescript">try {

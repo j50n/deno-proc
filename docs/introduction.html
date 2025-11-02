@@ -203,7 +203,7 @@ love this.</p>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
 <p>Count lines in a compressed file—streaming, no temp files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const lines = await read("war-and-peace.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -214,7 +214,7 @@ console.log(`${lines} lines`); // 23,166 lines
 </code></pre>
 <p>Chain processes like shell pipes:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const result = await run("cat", "data.txt")
   .run("grep", "error")
@@ -223,7 +223,7 @@ const result = await run("cat", "data.txt")
 </code></pre>
 <p>Handle errors gracefully:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 try {
   await run("npm", "test")
@@ -261,7 +261,7 @@ efficiently</li>
 <p>Start with <a href="./getting-started/installation.html">Installation</a> or jump straight to
 the <a href="./getting-started/quick-start.html">Quick Start</a>.</p>
 <hr />
-<p><strong>Current Version:</strong> 0.23.2<br />
+<p><strong>Current Version:</strong> 0.23.3<br />
 <strong>Status:</strong> Stable, actively maintained, ready for production</p>
 <p>Found a bug? Have a question?
 <a href="https://github.com/j50n/deno-proc/issues">File an issue</a> or check the

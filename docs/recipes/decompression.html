@@ -183,7 +183,7 @@
 <p>Process compressed files without creating temporary files. Stream everything.</p>
 <h2 id="decompress-and-count-lines"><a class="header" href="#decompress-and-count-lines">Decompress and Count Lines</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "decompression: decompress and count" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const lineCount = await read("war-and-peace.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -202,7 +202,7 @@ console.log(`${lineCount} lines`);
 <p>All streaming. No temp files. Constant memory usage.</p>
 <h2 id="search-in-compressed-file"><a class="header" href="#search-in-compressed-file">Search in Compressed File</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const matches = await read("logs.gz")
   .transform(new DecompressionStream("gzip"))
@@ -214,7 +214,7 @@ console.log(`Found ${matches.length} errors`);
 </code></pre>
 <h2 id="process-multiple-compressed-files"><a class="header" href="#process-multiple-compressed-files">Process Multiple Compressed Files</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read, enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read, enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["log1.gz", "log2.gz", "log3.gz"];
 
@@ -230,7 +230,7 @@ for (const file of files) {
 </code></pre>
 <h2 id="decompress-and-transform"><a class="header" href="#decompress-and-transform">Decompress and Transform</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const data = await read("data.json.gz")
   .transform(new DecompressionStream("gzip"))
@@ -259,7 +259,7 @@ const data = await read("data.json.gz")
 <h2 id="compress-output"><a class="header" href="#compress-output">Compress Output</a></h2>
 <p>You can also compress:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const compressed = await read("large-file.txt")
   .transform(new CompressionStream("gzip"))
@@ -270,7 +270,7 @@ await Deno.writeFile("large-file.txt.gz", concat(compressed));
 <h2 id="real-world-example-log-analysis"><a class="header" href="#real-world-example-log-analysis">Real-World Example: Log Analysis</a></h2>
 <p>Analyze compressed logs without extracting them:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 interface LogEntry {
   timestamp: string;
@@ -312,7 +312,7 @@ for await (const line of read("huge.gz")
 <h3 id="use-concurrent-processing"><a class="header" href="#use-concurrent-processing">Use Concurrent Processing</a></h3>
 <p>Process multiple files in parallel:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const files = ["log1.gz", "log2.gz", "log3.gz"];
 

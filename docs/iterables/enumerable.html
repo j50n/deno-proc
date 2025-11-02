@@ -184,7 +184,7 @@
 <h2 id="what-is-enumerable"><a class="header" href="#what-is-enumerable">What is Enumerable?</a></h2>
 <p>Think of Enumerable as an Array, but for async data. It gives you <code>map</code>, <code>filter</code>, <code>reduce</code>, and more—but for data that arrives over time.</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
 
 // Wrap any iterable
 const nums = enumerate([1, 2, 3, 4, 5]);
@@ -238,14 +238,14 @@ const nums = enumerate(generate());
 </code></pre>
 <h3 id="from-process-output"><a class="header" href="#from-process-output">From Process Output</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
 
 const lines = run("ls", "-la").lines;
 // lines is already an Enumerable&lt;string&gt;
 </code></pre>
 <h3 id="from-files"><a class="header" href="#from-files">From Files</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.23.3";
 
 const bytes = read("file.txt");
 // bytes is Enumerable&lt;Uint8Array&gt;
@@ -370,7 +370,7 @@ await read("huge-file.txt")
 <h2 id="caching-iterables"><a class="header" href="#caching-iterables">Caching Iterables</a></h2>
 <p>Sometimes you need to reuse an iterable's results. Use <code>cache()</code> to store results for replay:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { cache, enumerate } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { cache, enumerate } from "jsr:@j50n/proc@0.23.3";
 
 const expensive = enumerate(data)
   .map(expensiveOperation);
@@ -398,7 +398,7 @@ const result2 = await cached.collect();
 <h2 id="writable-iterables"><a class="header" href="#writable-iterables">Writable Iterables</a></h2>
 <p>Create async iterables you can write to programmatically:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.23.2";
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.23.3";
 
 const writable = new WritableIterable&lt;string&gt;();
 
