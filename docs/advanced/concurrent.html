@@ -214,6 +214,66 @@ const results = await enumerate(urls)
   .collect();
 </code></pre>
 <p>Fast, but won't overwhelm your system.</p>
+<h2 id="understanding-javascript-concurrency"><a class="header" href="#understanding-javascript-concurrency">Understanding JavaScript Concurrency</a></h2>
+<p><strong>Important:</strong> JavaScript concurrency is not parallelism. You're running on a single thread.</p>
+<h3 id="what-this-means"><a class="header" href="#what-this-means">What This Means</a></h3>
+<p>When you use <code>concurrentMap</code> or <code>concurrentUnorderedMap</code>, you're not creating threads or workers. You're managing multiple <strong>async operations</strong> on one thread. The JavaScript event loop switches between them when they're waiting.</p>
+<p><strong>This works great for:</strong></p>
+<ul>
+<li><strong>Network requests</strong> - While waiting for a response, other operations run</li>
+<li><strong>File I/O</strong> - While waiting for disk reads/writes, other operations run</li>
+<li><strong>Process execution</strong> - While a child process runs, other operations continue</li>
+<li><strong>Database queries</strong> - While waiting for results, other operations run</li>
+</ul>
+<p><strong>This does NOT work for:</strong></p>
+<ul>
+<li><strong>CPU-intensive calculations</strong> - Pure JavaScript math, parsing, etc. blocks everything</li>
+<li><strong>Synchronous operations</strong> - Anything that doesn't <code>await</code> blocks the thread</li>
+<li><strong>Heavy computation</strong> - You still only have one CPU core's worth of processing power</li>
+</ul>
+<h3 id="example-what-works"><a class="header" href="#example-what-works">Example: What Works</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// ✅ Good: I/O-bound operations run concurrently
+const results = await enumerate(urls)
+  .concurrentUnorderedMap(async (url) =&gt; {
+    // While waiting for fetch, other URLs are being fetched
+    const response = await fetch(url);
+    return response.json();
+  })
+  .collect();
+// This is genuinely faster - 10 URLs in ~1 second instead of ~10 seconds
+</code></pre>
+<h3 id="example-what-doesnt-work"><a class="header" href="#example-what-doesnt-work">Example: What Doesn't Work</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// ❌ Bad: CPU-bound operations don't benefit
+const results = await enumerate(numbers)
+  .concurrentUnorderedMap(async (n) =&gt; {
+    // This blocks the thread - no other operations can run
+    let result = 0;
+    for (let i = 0; i &lt; 1000000; i++) {
+      result += Math.sqrt(n * i);
+    }
+    return result;
+  })
+  .collect();
+// This is NOT faster - still uses one CPU core sequentially
+</code></pre>
+<h3 id="why-it-still-matters"><a class="header" href="#why-it-still-matters">Why It Still Matters</a></h3>
+<p>Even though it's not true parallelism, concurrency is incredibly useful:</p>
+<ol>
+<li><strong>I/O operations dominate</strong> - Most real-world tasks are waiting for network/disk</li>
+<li><strong>Child processes run in parallel</strong> - When you <code>run()</code> a command, it uses a separate process</li>
+<li><strong>Better resource utilization</strong> - Keep the CPU busy while waiting for I/O</li>
+<li><strong>Simpler than threads</strong> - No race conditions, no locks, no shared memory issues</li>
+</ol>
+<h3 id="when-you-need-true-parallelism"><a class="header" href="#when-you-need-true-parallelism">When You Need True Parallelism</a></h3>
+<p>If you need to parallelize CPU-intensive JavaScript code, use:</p>
+<ul>
+<li><strong>Web Workers</strong> (in browsers)</li>
+<li><strong>Worker Threads</strong> (in Node.js/Deno)</li>
+<li><strong>Child processes</strong> with <code>run()</code> - each process gets its own CPU</li>
+</ul>
+<p>But for most tasks (fetching URLs, processing files, running commands), JavaScript's concurrency model is perfect.</p>
 <h2 id="when-to-use-concurrent-processing"><a class="header" href="#when-to-use-concurrent-processing">When to Use Concurrent Processing</a></h2>
 <p><strong>Use <code>concurrentUnorderedMap()</code> (recommended default) when:</strong></p>
 <ul>
@@ -239,8 +299,8 @@ const results = await enumerate(urls)
 </ul>
 <p><strong>Choose concurrency level based on:</strong></p>
 <ul>
-<li><strong>I/O-bound tasks</strong> (network, disk): Start with 5-10, increase if you have bandwidth</li>
-<li><strong>CPU-bound tasks</strong>: Use <code>navigator.hardwareConcurrency</code> (typically 4-8)</li>
+<li><strong>I/O-bound tasks</strong> (network, disk): Start with 5-10, increase if you have bandwidth (see "Understanding JavaScript Concurrency" above)</li>
+<li><strong>CPU-bound tasks</strong>: Won't benefit from concurrency - use Worker Threads or child processes instead</li>
 <li><strong>Rate-limited APIs</strong>: Match the rate limit (e.g., 10 requests/second = concurrency 1 with 100ms delays)</li>
 <li><strong>Memory constraints</strong>: Lower concurrency if processing large data per task</li>
 </ul>
