@@ -15,7 +15,7 @@ async function* doubleGenerator(items: AsyncIterable<number>) {
 const doubleTransformStream = new TransformStream<number, number>({
   transform(chunk, controller) {
     controller.enqueue(chunk * 2);
-  }
+  },
 });
 
 // Complex transformation: batch items
@@ -33,7 +33,7 @@ async function* batchGenerator<T>(items: AsyncIterable<T>, size: number) {
 
 function createBatchTransformStream<T>(size: number) {
   let batch: T[] = [];
-  
+
   return new TransformStream<T, T[]>({
     transform(chunk, controller) {
       batch.push(chunk);
@@ -46,7 +46,7 @@ function createBatchTransformStream<T>(size: number) {
       if (batch.length > 0) {
         controller.enqueue(batch);
       }
-    }
+    },
   });
 }
 
@@ -64,7 +64,7 @@ Deno.bench("Simple transform - TransformStream", async () => {
 
 Deno.bench("Complex transform (batching) - async generator", async () => {
   await enumerate(testData)
-    .transform(items => batchGenerator(items, 100))
+    .transform((items) => batchGenerator(items, 100))
     .collect();
 });
 
@@ -75,8 +75,10 @@ Deno.bench("Complex transform (batching) - TransformStream", async () => {
 });
 
 // JSON parsing benchmark - more realistic workload
-const jsonLines = Array.from({ length: 1000 }, (_, i) => 
-  JSON.stringify({ id: i, value: `item-${i}`, timestamp: Date.now() })
+const jsonLines = Array.from(
+  { length: 1000 },
+  (_, i) =>
+    JSON.stringify({ id: i, value: `item-${i}`, timestamp: Date.now() }),
 );
 
 async function* parseJsonGenerator(lines: AsyncIterable<string>) {
@@ -92,7 +94,12 @@ async function* parseJsonGenerator(lines: AsyncIterable<string>) {
   }
 }
 
-const parseJsonTransformStream = new TransformStream<string, any>({
+interface ParsedObject {
+  id?: number;
+  [key: string]: unknown;
+}
+
+const parseJsonTransformStream = new TransformStream<string, ParsedObject>({
   transform(chunk, controller) {
     try {
       const obj = JSON.parse(chunk);
@@ -102,7 +109,7 @@ const parseJsonTransformStream = new TransformStream<string, any>({
     } catch {
       // Skip invalid JSON
     }
-  }
+  },
 });
 
 Deno.bench("JSON parsing - async generator", async () => {

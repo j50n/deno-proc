@@ -22,7 +22,7 @@ async function* asyncDoubleGenerator(items: AsyncIterable<number>) {
 const doubleStream = new TransformStream<number, number>({
   transform(chunk, controller) {
     controller.enqueue(chunk * 2);
-  }
+  },
 });
 
 // Test different approaches
@@ -48,7 +48,7 @@ Deno.bench("Library: enumerate + transform + collect", async () => {
 
 Deno.bench("Library: enumerate + map + collect", async () => {
   await enumerate(testData)
-    .map(x => x * 2)
+    .map((x) => x * 2)
     .collect();
 });
 
@@ -60,7 +60,9 @@ Deno.bench("TransformStream via library", async () => {
 
 Deno.bench("Raw ReadableStream.from + pipeThrough", async () => {
   const results = [];
-  for await (const item of ReadableStream.from(testData).pipeThrough(doubleStream)) {
+  for await (
+    const item of ReadableStream.from(testData).pipeThrough(doubleStream)
+  ) {
     results.push(item);
   }
 });
@@ -70,7 +72,7 @@ Deno.bench("Just enumerate + collect (no transform)", async () => {
   await enumerate(testData).collect();
 });
 
-Deno.bench("Raw array iteration", async () => {
+Deno.bench("Raw array iteration", () => {
   const results = [];
   for (const item of testData) {
     results.push(item);

@@ -339,7 +339,7 @@ Deno.test("custom-transformations examples", async (t) => {
     }
 
     const batches = await enumerate([1, 2, 3, 4, 5, 6, 7])
-      .transform(items => batch(items, 3))
+      .transform((items) => batch(items, 3))
       .collect();
 
     assertEquals(batches, [[1, 2, 3], [4, 5, 6], [7]]);
@@ -349,7 +349,7 @@ Deno.test("custom-transformations examples", async (t) => {
     async function* runningAverage(numbers: AsyncIterable<number>) {
       let sum = 0;
       let count = 0;
-      
+
       for await (const num of numbers) {
         sum += num;
         count++;
@@ -376,10 +376,10 @@ Deno.test("custom-transformations examples", async (t) => {
       for await (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
-        
+
         try {
           const obj = JSON.parse(trimmed);
-          
+
           if (obj.id && obj.timestamp && obj.level && obj.message) {
             yield obj as LogEntry;
           }
@@ -391,9 +391,9 @@ Deno.test("custom-transformations examples", async (t) => {
 
     const logs = await enumerate([
       '{"id":"1","timestamp":"2024-01-01","level":"info","message":"Started"}',
-      'invalid json line',
+      "invalid json line",
       '{"id":"2","timestamp":"2024-01-01","level":"error","message":"Failed"}',
-      ''
+      "",
     ]).transform(parseJsonLines).collect();
 
     assertEquals(logs.length, 2);
@@ -404,7 +404,7 @@ Deno.test("custom-transformations examples", async (t) => {
   await t.step("throttle", async () => {
     async function* throttle<T>(items: AsyncIterable<T>, delayMs: number) {
       let first = true;
-      
+
       for await (const item of items) {
         if (!first) {
           await sleep(delayMs);
@@ -416,7 +416,7 @@ Deno.test("custom-transformations examples", async (t) => {
 
     const start = Date.now();
     const results = await enumerate(["a", "b", "c"])
-      .transform(items => throttle(items, 50))
+      .transform((items) => throttle(items, 50))
       .collect();
     const elapsed = Date.now() - start;
 
@@ -430,21 +430,22 @@ Deno.test("custom-transformations examples", async (t) => {
       for await (const line of lines) {
         try {
           const entry = JSON.parse(line);
-          
-          if (entry.level !== 'error') continue;
-          
+
+          if (entry.level !== "error") continue;
+
           const enriched = {
             ...entry,
             processedAt: new Date().toISOString(),
-            severity: entry.message.toLowerCase().includes('critical') ? 'high' : 'medium'
+            severity: entry.message.toLowerCase().includes("critical")
+              ? "high"
+              : "medium",
           };
-          
+
           yield {
             timestamp: enriched.timestamp,
             severity: enriched.severity,
-            summary: enriched.message.substring(0, 100)
+            summary: enriched.message.substring(0, 100),
           };
-          
         } catch {
           // Skip invalid entries
         }
@@ -454,7 +455,7 @@ Deno.test("custom-transformations examples", async (t) => {
     const processed = await enumerate([
       '{"level":"info","message":"System started","timestamp":"2024-01-01T10:00:00Z"}',
       '{"level":"error","message":"Critical database failure","timestamp":"2024-01-01T10:01:00Z"}',
-      '{"level":"error","message":"Minor timeout","timestamp":"2024-01-01T10:02:00Z"}'
+      '{"level":"error","message":"Minor timeout","timestamp":"2024-01-01T10:02:00Z"}',
     ]).transform(processLogEntries).collect();
 
     assertEquals(processed.length, 2);
@@ -469,14 +470,16 @@ Deno.test("custom-transformations examples", async (t) => {
       email: string;
     }
 
-    function isValidUser(user: any): user is User {
-      return user && typeof user.id === 'string' && 
-             typeof user.name === 'string' && 
-             typeof user.email === 'string';
+    function isValidUser(user: unknown): user is User {
+      return user != null &&
+        typeof user === "object" &&
+        typeof (user as Record<string, unknown>).id === "string" &&
+        typeof (user as Record<string, unknown>).name === "string" &&
+        typeof (user as Record<string, unknown>).email === "string";
     }
 
     async function* parseAndValidateUsers(
-      lines: AsyncIterable<string>
+      lines: AsyncIterable<string>,
     ): AsyncGenerator<User> {
       for await (const line of lines) {
         try {
@@ -484,7 +487,7 @@ Deno.test("custom-transformations examples", async (t) => {
           if (isValidUser(user)) {
             yield user;
           }
-        } catch (error) {
+        } catch {
           // Skip invalid user data
         }
       }
@@ -493,7 +496,7 @@ Deno.test("custom-transformations examples", async (t) => {
     const users = await enumerate([
       '{"id":"1","name":"Alice","email":"alice@example.com"}',
       '{"id":"2","name":"Bob"}', // Missing email
-      '{"id":"3","name":"Charlie","email":"charlie@example.com"}'
+      '{"id":"3","name":"Charlie","email":"charlie@example.com"}',
     ]).transform(parseAndValidateUsers).collect();
 
     assertEquals(users.length, 2);

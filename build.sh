@@ -27,5 +27,9 @@ cd "$HERE" && (
     deno check **/*.ts
 
     deno test --reload --allow-read --allow-write=/tmp/ --allow-run=gzip,grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head,echo,sh,false ./tests
+
+    # Run performance benchmarks
+    echo "Running performance benchmarks..."
+    deno bench --allow-read --allow-write=/tmp/ --allow-run=gzip,grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head,echo,sh,false ./tests/comprehensive_benchmarks.test.ts
 )
 

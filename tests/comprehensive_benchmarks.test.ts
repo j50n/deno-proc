@@ -8,11 +8,13 @@ const small = Array.from({ length: 100 }, (_, i) => i);
 const medium = Array.from({ length: 10000 }, (_, i) => i);
 const large = Array.from({ length: 100000 }, (_, i) => i);
 
-const jsonSmall = Array.from({ length: 100 }, (_, i) => 
-  JSON.stringify({ id: i, name: `user-${i}`, active: i % 2 === 0 })
+const jsonSmall = Array.from(
+  { length: 100 },
+  (_, i) => JSON.stringify({ id: i, name: `user-${i}`, active: i % 2 === 0 }),
 );
-const jsonMedium = Array.from({ length: 10000 }, (_, i) => 
-  JSON.stringify({ id: i, name: `user-${i}`, active: i % 2 === 0 })
+const jsonMedium = Array.from(
+  { length: 10000 },
+  (_, i) => JSON.stringify({ id: i, name: `user-${i}`, active: i % 2 === 0 }),
 );
 
 // =============================================================================
@@ -28,7 +30,7 @@ async function* doubleGen(items: AsyncIterable<number>) {
 const doubleStream = new TransformStream<number, number>({
   transform(chunk, controller) {
     controller.enqueue(chunk * 2);
-  }
+  },
 });
 
 Deno.bench("Simple double - small (100) - generator", async () => {
@@ -72,7 +74,7 @@ const filterEvenStream = new TransformStream<number, number>({
     if (chunk % 2 === 0) {
       controller.enqueue(chunk);
     }
-  }
+  },
 });
 
 Deno.bench("Filter even - medium (10k) - generator", async () => {
@@ -101,7 +103,7 @@ function createRunningTotalStream() {
     transform(chunk, controller) {
       total += chunk;
       controller.enqueue(total);
-    }
+    },
   });
 }
 
@@ -143,12 +145,12 @@ function createBatchStream<T>(size: number) {
       if (batch.length > 0) {
         controller.enqueue(batch);
       }
-    }
+    },
   });
 }
 
 Deno.bench("Batch (size 10) - medium (10k) - generator", async () => {
-  await enumerate(medium).transform(items => batchGen(items, 10)).collect();
+  await enumerate(medium).transform((items) => batchGen(items, 10)).collect();
 });
 
 Deno.bench("Batch (size 10) - medium (10k) - stream", async () => {
@@ -156,7 +158,7 @@ Deno.bench("Batch (size 10) - medium (10k) - stream", async () => {
 });
 
 Deno.bench("Batch (size 100) - medium (10k) - generator", async () => {
-  await enumerate(medium).transform(items => batchGen(items, 100)).collect();
+  await enumerate(medium).transform((items) => batchGen(items, 100)).collect();
 });
 
 Deno.bench("Batch (size 100) - medium (10k) - stream", async () => {
@@ -196,7 +198,7 @@ const parseJsonStream = new TransformStream<string, User>({
     } catch {
       // Skip invalid JSON
     }
-  }
+  },
 });
 
 Deno.bench("JSON parse - small (100) - generator", async () => {
@@ -222,23 +224,23 @@ Deno.bench("JSON parse - medium (10k) - stream", async () => {
 async function* complexProcessingGen(items: AsyncIterable<number>) {
   let count = 0;
   let sum = 0;
-  
+
   for await (const item of items) {
     // Stage 1: Filter
     if (item % 3 === 0) continue;
-    
+
     // Stage 2: Transform
     const transformed = item * 2 + 1;
-    
+
     // Stage 3: Accumulate state
     count++;
     sum += transformed;
-    
+
     // Stage 4: Emit result with metadata
     yield {
       value: transformed,
       runningAvg: sum / count,
-      count: count
+      count: count,
     };
   }
 }
@@ -246,26 +248,29 @@ async function* complexProcessingGen(items: AsyncIterable<number>) {
 function createComplexProcessingStream() {
   let count = 0;
   let sum = 0;
-  
-  return new TransformStream<number, { value: number; runningAvg: number; count: number }>({
+
+  return new TransformStream<
+    number,
+    { value: number; runningAvg: number; count: number }
+  >({
     transform(chunk, controller) {
       // Stage 1: Filter
       if (chunk % 3 === 0) return;
-      
+
       // Stage 2: Transform
       const transformed = chunk * 2 + 1;
-      
+
       // Stage 3: Accumulate state
       count++;
       sum += transformed;
-      
+
       // Stage 4: Emit result with metadata
       controller.enqueue({
         value: transformed,
         runningAvg: sum / count,
-        count: count
+        count: count,
       });
-    }
+    },
   });
 }
 
@@ -287,7 +292,7 @@ const mixedJsonData = [
   ...jsonSmall.slice(50, 80),
   "{ incomplete json",
   ...jsonSmall.slice(80),
-  "another invalid line"
+  "another invalid line",
 ];
 
 async function* parseWithErrorsGen(lines: AsyncIterable<string>) {
@@ -318,7 +323,7 @@ function createParseWithErrorsStream() {
         errorCount++;
         // Continue processing
       }
-    }
+    },
   });
 }
 
@@ -327,5 +332,6 @@ Deno.bench("Parse with errors - generator", async () => {
 });
 
 Deno.bench("Parse with errors - stream", async () => {
-  await enumerate(mixedJsonData).transform(createParseWithErrorsStream()).collect();
+  await enumerate(mixedJsonData).transform(createParseWithErrorsStream())
+    .collect();
 });
