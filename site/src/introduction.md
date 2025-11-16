@@ -38,6 +38,30 @@ const lines = await read("war-and-peace.txt.gz")
 console.log(`${lines} lines`); // 23,166 lines
 ```
 
+Build custom transformations with readable async generators:
+
+<!-- NOT TESTED: Illustrative example -->
+
+```typescript
+import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
+
+// Parse and validate JSON lines
+async function* parseJsonLines(lines) {
+  for await (const line of lines) {
+    try {
+      const obj = JSON.parse(line.trim());
+      if (obj.id && obj.timestamp) yield obj;
+    } catch {
+      // Skip invalid JSON
+    }
+  }
+}
+
+const validEntries = await enumerate(logLines)
+  .transform(parseJsonLines)
+  .collect();
+```
+
 Chain processes like shell pipes:
 
 <!-- NOT TESTED: Illustrative example -->
@@ -77,6 +101,7 @@ proc gives you:
 
 - **Errors that propagate naturally** through pipelines
 - **Array methods on async iterables** (map, filter, reduce, and more)
+- **Custom transformations with async generators** (easier than streams API)
 - **Process management** that feels like shell scripting
 - **Streaming everything** for memory efficiency
 - **Type safety** with full TypeScript support

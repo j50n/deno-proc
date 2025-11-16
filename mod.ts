@@ -104,6 +104,27 @@
  * console.log(numbered); // ["1. apple", "2. banana", "3. cherry"]
  * ```
  *
+ * @example Custom transformations with async generators
+ * ```ts
+ * import { enumerate } from "@j50n/proc";
+ *
+ * // Parse JSON lines with error recovery
+ * async function* parseJsonLines(lines: AsyncIterable<string>) {
+ *   for await (const line of lines) {
+ *     try {
+ *       const obj = JSON.parse(line.trim());
+ *       if (obj.id && obj.timestamp) yield obj;
+ *     } catch {
+ *       // Skip invalid JSON
+ *     }
+ *   }
+ * }
+ *
+ * const validEntries = await enumerate(logLines)
+ *   .transform(parseJsonLines)
+ *   .collect();
+ * ```
+ *
  * @example Process large files efficiently
  * ```ts
  * import { read } from "@j50n/proc";

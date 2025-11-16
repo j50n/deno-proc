@@ -25,6 +25,7 @@
 - [Understanding Enumerable](./iterables/enumerable.md)
 - [Array-Like Methods](./iterables/array-methods.md)
 - [Transformations](./iterables/transformations.md)
+- [Custom Transformations](./iterables/custom-transformations.md)
 - [Aggregations](./iterables/aggregations.md)
 - [Slicing and Sampling](./iterables/slicing.md)
 
@@ -32,6 +33,7 @@
 
 - [Concurrent Processing](./advanced/concurrent.md)
 - [Streaming Large Files](./advanced/streaming.md)
+- [Performance Characteristics](./advanced/performance.md)
 
 # Utilities
 

@@ -1,8 +1,8 @@
 // Tests for key runnable examples from mdbook documentation
 // These are examples users are likely to copy-paste
 
-import { assertEquals } from "@std/assert";
-import { enumerate, range, read, run } from "../mod.ts";
+import { assert, assertEquals } from "@std/assert";
+import { enumerate, range, read, run, sleep } from "../mod.ts";
 
 // ===== Getting Started Examples =====
 
@@ -322,6 +322,184 @@ Deno.test("decompression: decompress and count", async () => {
     .lines
     .count();
   assertEquals(lineCount, 23166);
+});
+
+Deno.test("custom-transformations examples", async (t) => {
+  await t.step("batching", async () => {
+    async function* batch<T>(items: AsyncIterable<T>, size: number) {
+      let batch: T[] = [];
+      for await (const item of items) {
+        batch.push(item);
+        if (batch.length === size) {
+          yield batch;
+          batch = [];
+        }
+      }
+      if (batch.length > 0) yield batch;
+    }
+
+    const batches = await enumerate([1, 2, 3, 4, 5, 6, 7])
+      .transform(items => batch(items, 3))
+      .collect();
+
+    assertEquals(batches, [[1, 2, 3], [4, 5, 6], [7]]);
+  });
+
+  await t.step("running-average", async () => {
+    async function* runningAverage(numbers: AsyncIterable<number>) {
+      let sum = 0;
+      let count = 0;
+      
+      for await (const num of numbers) {
+        sum += num;
+        count++;
+        yield sum / count;
+      }
+    }
+
+    const averages = await enumerate([10, 20, 30, 40])
+      .transform(runningAverage)
+      .collect();
+
+    assertEquals(averages, [10, 15, 20, 25]);
+  });
+
+  await t.step("parse-json-lines", async () => {
+    interface LogEntry {
+      id: string;
+      timestamp: string;
+      level: string;
+      message: string;
+    }
+
+    async function* parseJsonLines(lines: AsyncIterable<string>) {
+      for await (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        
+        try {
+          const obj = JSON.parse(trimmed);
+          
+          if (obj.id && obj.timestamp && obj.level && obj.message) {
+            yield obj as LogEntry;
+          }
+        } catch {
+          // Skip invalid JSON silently
+        }
+      }
+    }
+
+    const logs = await enumerate([
+      '{"id":"1","timestamp":"2024-01-01","level":"info","message":"Started"}',
+      'invalid json line',
+      '{"id":"2","timestamp":"2024-01-01","level":"error","message":"Failed"}',
+      ''
+    ]).transform(parseJsonLines).collect();
+
+    assertEquals(logs.length, 2);
+    assertEquals(logs[0].id, "1");
+    assertEquals(logs[1].id, "2");
+  });
+
+  await t.step("throttle", async () => {
+    async function* throttle<T>(items: AsyncIterable<T>, delayMs: number) {
+      let first = true;
+      
+      for await (const item of items) {
+        if (!first) {
+          await sleep(delayMs);
+        }
+        first = false;
+        yield item;
+      }
+    }
+
+    const start = Date.now();
+    const results = await enumerate(["a", "b", "c"])
+      .transform(items => throttle(items, 50))
+      .collect();
+    const elapsed = Date.now() - start;
+
+    assertEquals(results, ["a", "b", "c"]);
+    // Should take at least 100ms (2 delays of 50ms each)
+    assert(elapsed >= 90, `Expected at least 90ms, got ${elapsed}ms`);
+  });
+
+  await t.step("multi-stage", async () => {
+    async function* processLogEntries(lines: AsyncIterable<string>) {
+      for await (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          
+          if (entry.level !== 'error') continue;
+          
+          const enriched = {
+            ...entry,
+            processedAt: new Date().toISOString(),
+            severity: entry.message.toLowerCase().includes('critical') ? 'high' : 'medium'
+          };
+          
+          yield {
+            timestamp: enriched.timestamp,
+            severity: enriched.severity,
+            summary: enriched.message.substring(0, 100)
+          };
+          
+        } catch {
+          // Skip invalid entries
+        }
+      }
+    }
+
+    const processed = await enumerate([
+      '{"level":"info","message":"System started","timestamp":"2024-01-01T10:00:00Z"}',
+      '{"level":"error","message":"Critical database failure","timestamp":"2024-01-01T10:01:00Z"}',
+      '{"level":"error","message":"Minor timeout","timestamp":"2024-01-01T10:02:00Z"}'
+    ]).transform(processLogEntries).collect();
+
+    assertEquals(processed.length, 2);
+    assertEquals(processed[0].severity, "high"); // "Critical database failure" contains "critical"
+    assertEquals(processed[1].severity, "medium"); // "Minor timeout" doesn't contain "critical"
+  });
+
+  await t.step("best-practices", async () => {
+    interface User {
+      id: string;
+      name: string;
+      email: string;
+    }
+
+    function isValidUser(user: any): user is User {
+      return user && typeof user.id === 'string' && 
+             typeof user.name === 'string' && 
+             typeof user.email === 'string';
+    }
+
+    async function* parseAndValidateUsers(
+      lines: AsyncIterable<string>
+    ): AsyncGenerator<User> {
+      for await (const line of lines) {
+        try {
+          const user = JSON.parse(line) as User;
+          if (isValidUser(user)) {
+            yield user;
+          }
+        } catch (error) {
+          // Skip invalid user data
+        }
+      }
+    }
+
+    const users = await enumerate([
+      '{"id":"1","name":"Alice","email":"alice@example.com"}',
+      '{"id":"2","name":"Bob"}', // Missing email
+      '{"id":"3","name":"Charlie","email":"charlie@example.com"}'
+    ]).transform(parseAndValidateUsers).collect();
+
+    assertEquals(users.length, 2);
+    assertEquals(users[0].name, "Alice");
+    assertEquals(users[1].name, "Charlie");
+  });
 });
 
 Deno.test("log-processing: count errors", async () => {

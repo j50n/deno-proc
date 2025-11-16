@@ -212,6 +212,26 @@ const lines = await read("war-and-peace.txt.gz")
 
 console.log(`${lines} lines`); // 23,166 lines
 </code></pre>
+<p>Build custom transformations with readable async generators:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.23.3";
+
+// Parse and validate JSON lines
+async function* parseJsonLines(lines) {
+  for await (const line of lines) {
+    try {
+      const obj = JSON.parse(line.trim());
+      if (obj.id &amp;&amp; obj.timestamp) yield obj;
+    } catch {
+      // Skip invalid JSON
+    }
+  }
+}
+
+const validEntries = await enumerate(logLines)
+  .transform(parseJsonLines)
+  .collect();
+</code></pre>
 <p>Chain processes like shell pipes:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
@@ -242,6 +262,7 @@ proc gives you:</p>
 <ul>
 <li><strong>Errors that propagate naturally</strong> through pipelines</li>
 <li><strong>Array methods on async iterables</strong> (map, filter, reduce, and more)</li>
+<li><strong>Custom transformations with async generators</strong> (easier than streams API)</li>
 <li><strong>Process management</strong> that feels like shell scripting</li>
 <li><strong>Streaming everything</strong> for memory efficiency</li>
 <li><strong>Type safety</strong> with full TypeScript support</li>
@@ -290,6 +311,22 @@ the <a href="./getting-started/quick-start.html">Quick Start</a>.</p>
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

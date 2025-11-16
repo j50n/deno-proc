@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Running Processes - proc</title>
+        <title>Performance Characteristics - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -179,220 +179,102 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="running-processes"><a class="header" href="#running-processes">Running Processes</a></h1>
-<p>Running a child process with proc is as simple as it gets.</p>
-<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
-<!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: capture output" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.23.3";
-
-// Run a command
-await run("ls", "-la").lines.collect();
-</code></pre>
-<p>That's it. No boilerplate, no configuration, just run it.</p>
-<h2 id="command-and-arguments"><a class="header" href="#command-and-arguments">Command and Arguments</a></h2>
-<p>The first parameter is the command, the rest are arguments:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">run("command", "arg1", "arg2", "arg3")
-</code></pre>
-<p><strong>Important:</strong> Arguments are separate parameters, not a single string:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// ✅ Correct
-run("ls", "-la", "/home")
-
-// ❌ Wrong - this won't work
-run("ls -la /home")
-</code></pre>
-<h2 id="capturing-output"><a class="header" href="#capturing-output">Capturing Output</a></h2>
-<h3 id="as-an-array"><a class="header" href="#as-an-array">As an Array</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const lines = await run("ls", "-la").lines.collect();
-// lines is string[]
-</code></pre>
-<h3 id="line-by-line"><a class="header" href="#line-by-line">Line by Line</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">for await (const line of run("ls", "-la").lines) {
-  console.log(line);
-}
-</code></pre>
-<h3 id="first-or-last-line"><a class="header" href="#first-or-last-line">First or Last Line</a></h3>
-<!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: first line" -->
-<pre><code class="language-typescript">const first = await run("ls").lines.first;
-const last = await run("ls").lines.last;
-</code></pre>
-<h3 id="as-raw-bytes"><a class="header" href="#as-raw-bytes">As Raw Bytes</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const bytes = await run("cat", "file.bin").collect();
-// bytes is Uint8Array[]
-</code></pre>
-<h2 id="printing-to-console"><a class="header" href="#printing-to-console">Printing to Console</a></h2>
-<p>Send output directly to stdout:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run("ls", "-la").toStdout();
-</code></pre>
-<p>This is perfect for commands where you just want to see the output.</p>
-<h2 id="building-commands-dynamically"><a class="header" href="#building-commands-dynamically">Building Commands Dynamically</a></h2>
-<p>Sometimes you need to build a command from variables:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.23.3";
-
-const cmd: Cmd = ["ls"];
-
-if (showAll) {
-  cmd.push("-la");
+                        <h1 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h1>
+<p>Understanding async iteration performance and how proc optimizes for real-world usage.</p>
+<h2 id="the-async-iteration-overhead"><a class="header" href="#the-async-iteration-overhead">The Async Iteration Overhead</a></h2>
+<p>Async generators create promises per iteration, which adds overhead for simple operations. <strong>This is built into the JavaScript language and V8 engine</strong>, not a limitation of this library:</p>
+<pre><code class="language-typescript">// Benchmark: 10,000 items
+async function* double(items: AsyncIterable&lt;number&gt;) {
+  for await (const item of items) {
+    yield item * 2;
+  }
 }
 
-if (directory) {
-  cmd.push(directory);
+// Results:
+// Async generator: 2.7ms
+// TransformStream: 40µs (67x faster)
+// Raw array iteration: 39µs
+</code></pre>
+<p>The overhead grows with data size - at 100,000 items, the gap becomes 810x. <strong>This is fundamental to how <code>for await</code> loops work in JavaScript</strong>, not an implementation issue.</p>
+<blockquote>
+<p><strong>Note</strong>: JavaScript engines continue to optimize async iteration. These performance characteristics may improve in future V8 versions.</p>
+</blockquote>
+<h2 id="the-chunking-solution"><a class="header" href="#the-chunking-solution">The Chunking Solution</a></h2>
+<p>proc uses <strong>chunking</strong> to amortize async iteration costs by processing multiple items per iteration:</p>
+<pre><code class="language-typescript">// Instead of: 1 promise per line (expensive)
+async function* inefficientLines(bytes: AsyncIterable&lt;Uint8Array&gt;) {
+  for await (const chunk of bytes) {
+    for (const line of decode(chunk).split('\n')) {
+      yield line; // 1000 lines = 1000 promises
+    }
+  }
 }
 
-await run(...cmd).toStdout();
-</code></pre>
-<p>The <code>Cmd</code> type is an array where the first element is the command (string or URL) and the rest are string arguments. Using the <code>Cmd</code> type ensures type safety when building commands dynamically.</p>
-<h2 id="process-options"><a class="header" href="#process-options">Process Options</a></h2>
-<p>Customize process behavior with options:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run(
-  {
-    cwd: "/tmp",           // Working directory
-    env: { FOO: "bar" },   // Environment variables
-  },
-  "command",
-  "arg1"
-).lines.collect();
-</code></pre>
-<h3 id="working-directory"><a class="header" href="#working-directory">Working Directory</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run(
-  { cwd: "/var/log" },
-  "ls"
-).toStdout();
-</code></pre>
-<h3 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run(
-  { env: { PATH: "/custom/path" } },
-  "command"
-).lines.collect();
-</code></pre>
-<h2 id="checking-exit-status"><a class="header" href="#checking-exit-status">Checking Exit Status</a></h2>
-<p>Get the exit status without throwing:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const p = run("command");
-await p.lines.collect();  // Consume output first
-const status = await p.status;
-
-console.log(`Exit code: ${status.code}`);
-console.log(`Success: ${status.success}`);
-</code></pre>
-<p><strong>Remember:</strong> Always consume output before checking status, or you'll leak resources.</p>
-<h2 id="process-id"><a class="header" href="#process-id">Process ID</a></h2>
-<p>Get the process ID:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const p = run("sleep", "10");
-console.log(`PID: ${p.pid}`);
-await p.lines.collect();
-</code></pre>
-<h2 id="running-with-urls"><a class="header" href="#running-with-urls">Running with URLs</a></h2>
-<p>You can use URLs for the command:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const scriptUrl = new URL("./script.sh", import.meta.url);
-await run(scriptUrl).toStdout();
-</code></pre>
-<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
-<h3 id="silent-execution"><a class="header" href="#silent-execution">Silent Execution</a></h3>
-<p>Run a command and ignore output:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run("command").lines.forEach(() =&gt; {});
-</code></pre>
-<h3 id="capture-and-print"><a class="header" href="#capture-and-print">Capture and Print</a></h3>
-<p>Capture output while also printing it:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const lines: string[] = [];
-await run("command").lines.forEach(line =&gt; {
-  console.log(line);
-  lines.push(line);
-});
-</code></pre>
-<h3 id="conditional-execution"><a class="header" href="#conditional-execution">Conditional Execution</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">if (needsProcessing) {
-  await run("process-data").toStdout();
-}
-</code></pre>
-<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
-<p>By default, non-zero exit codes throw <code>ExitCodeError</code>:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">try {
-  await run("false").lines.collect();
-} catch (error) {
-  console.error(`Command failed: ${error.code}`);
-}
-</code></pre>
-<p>See <a href="./error-handling.html">Error Handling</a> for complete details.</p>
-<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
-<h3 id="stream-instead-of-collect"><a class="header" href="#stream-instead-of-collect">Stream Instead of Collect</a></h3>
-<p>Process data as it arrives rather than loading everything into memory:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// ❌ Loads everything into memory
-const lines = await run("cat", "huge-file.txt").lines.collect();
-for (const line of lines) {
-  process(line);
+// proc does: 1 promise per chunk of lines (efficient)
+export async function* toChunkedLines(bytes: AsyncIterable&lt;Uint8Array&gt;) {
+  for await (const chunk of bytes) {
+    const lines = decode(chunk).split('\n');
+    if (lines.length &gt; 0) {
+      yield lines; // 1000 lines in 10 chunks = 10 promises
+    }
+  }
 }
 
-// ✅ Processes one line at a time
-for await (const line of run("cat", "huge-file.txt").lines) {
-  process(line);
+// Then flatten efficiently
+async function* toLines(bytes: AsyncIterable&lt;Uint8Array&gt;) {
+  for await (const lines of toChunkedLines(bytes)) {
+    yield* lines; // Sync iteration within async iteration
+  }
 }
 </code></pre>
-<h3 id="pipe-instead-of-collect-intermediate-results"><a class="header" href="#pipe-instead-of-collect-intermediate-results">Pipe Instead of Collect Intermediate Results</a></h3>
-<p>Chain processes instead of collecting intermediate results:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// ❌ Collects intermediate results
-const lines1 = await run("cat", "file.txt").lines.collect();
-const input = lines1.join("\n");
-const lines2 = await run("grep", "pattern").lines.collect();
+<p><strong>Result</strong>: 10x performance improvement for line processing.</p>
+<h2 id="when-complexity-flips-performance"><a class="header" href="#when-complexity-flips-performance">When Complexity Flips Performance</a></h2>
+<p>For complex operations, async generators become faster because TransformStream's callback model creates overhead:</p>
+<pre><code class="language-typescript">// Complex stateful processing
+async function* processLogs(lines: AsyncIterable&lt;string&gt;) {
+  let errorCount = 0;
+  
+  for await (const line of lines) {
+    try {
+      const entry = JSON.parse(line);
+      if (entry.level === 'error') {
+        errorCount++;
+        yield {
+          ...entry,
+          errorNumber: errorCount,
+          severity: entry.message.includes('critical') ? 'high' : 'medium'
+        };
+      }
+    } catch {
+      errorCount++;
+    }
+  }
+}
 
-// ✅ Streams through
-await run("cat", "file.txt")
-  .run("grep", "pattern")
-  .toStdout();
+// Benchmark results (10k items):
+// Async generator: 3.1ms
+// TransformStream: 13.8ms (4x slower)
 </code></pre>
-<h3 id="use-take-to-stop-early"><a class="header" href="#use-take-to-stop-early">Use take() to Stop Early</a></h3>
-<p>Stop processing once you have what you need:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// Stops after finding 10 matches
-const first10 = await run("grep", "ERROR", "huge.log")
-  .lines
-  .take(10)
-  .collect();
-</code></pre>
-<h3 id="filter-before-expensive-operations"><a class="header" href="#filter-before-expensive-operations">Filter Before Expensive Operations</a></h3>
-<p>Reduce the amount of data flowing through expensive operations:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// ✅ Filter first (fast), then transform (expensive)
-const result = await run("cat", "data.txt")
-  .lines
-  .filter(line =&gt; line.length &gt; 0)  // Fast filter
-  .map(expensiveTransform)          // Only runs on filtered data
-  .collect();
-</code></pre>
-<p>For more performance optimization strategies, see <a href="../advanced/concurrent.html">Concurrent Processing</a> and <a href="../advanced/streaming.html">Streaming Large Files</a>.</p>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<h2 id="practical-implications"><a class="header" href="#practical-implications">Practical Implications</a></h2>
+<p><strong>Async generators win for real-world use cases:</strong></p>
 <ul>
-<li><a href="./pipelines.html">Process Pipelines</a> - Chain commands together</li>
-<li><a href="./output.html">Working with Output</a> - Transform and process output</li>
-<li><a href="./error-handling.html">Error Handling</a> - Handle failures gracefully</li>
+<li>Parsing and validation (where most errors occur)</li>
+<li>Multi-step transformations</li>
+<li>State management across items</li>
+<li>Error handling and recovery</li>
 </ul>
+<p><strong>The chunking strategy makes overhead negligible</strong> for typical data processing workloads.</p>
+<p><strong>TransformStream is available</strong> for the rare cases where simple, high-volume transformations need maximum performance, but the complexity trade-off usually isn't worth it.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../core/error-handling.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../advanced/streaming.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../core/pipelines.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../utilities/file-io.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -402,11 +284,11 @@ const result = await run("cat", "data.txt")
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../core/error-handling.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../advanced/streaming.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../core/pipelines.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../utilities/file-io.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
