@@ -199,6 +199,39 @@ async function* double(items: AsyncIterable&lt;number&gt;) {
 <blockquote>
 <p><strong>Note</strong>: JavaScript engines continue to optimize async iteration. These performance characteristics may improve in future V8 versions.</p>
 </blockquote>
+<h2 id="the-v8-optimization-cliff"><a class="header" href="#the-v8-optimization-cliff">The V8 Optimization Cliff</a></h2>
+<p><strong>TransformStream performance has a dramatic cliff</strong> - it looks extremely fast in microbenchmarks but can become orders of magnitude slower with minimal added complexity.</p>
+<p><strong>Simple operations get heavily optimized:</strong></p>
+<pre><code class="language-typescript">// V8 can inline this entire pipeline
+const doubleStream = new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(chunk * 2); // Becomes nearly native code
+  }
+});
+// Result: 750x faster than generators
+</code></pre>
+<p><strong>Adding any complexity breaks optimization:</strong></p>
+<pre><code class="language-typescript">// Closure state prevents V8 inlining
+function createRunningTotalStream() {
+  let total = 0; // This breaks optimization
+  return new TransformStream({
+    transform(chunk, controller) {
+      total += chunk;              // Closure access overhead
+      controller.enqueue(total);   // Can't optimize with state
+    }
+  });
+}
+// Result: 6x slower than generators
+</code></pre>
+<p><strong>Why this happens:</strong></p>
+<ul>
+<li>V8 aggressively optimizes trivial TransformStream operations into native code paths</li>
+<li>Any closure variables, state dependencies, or complex logic breaks these optimizations</li>
+<li>Once optimization fails, the callback overhead makes TransformStream much slower</li>
+<li>Generators have consistent overhead regardless of complexity</li>
+</ul>
+<p><strong>Practical implication:</strong> TransformStream microbenchmarks are misleading - they show best-case performance that disappears in real-world usage.</p>
+<p><strong>The bottom line:</strong> JavaScript performance is notoriously difficult to predict. V8's aggressive optimizations can make simple code incredibly fast, but these optimizations are fragile and break easily. If performance truly matters for your use case, profile your actual workload rather than relying on synthetic benchmarks.</p>
 <h2 id="the-chunking-solution"><a class="header" href="#the-chunking-solution">The Chunking Solution</a></h2>
 <p>proc uses <strong>chunking</strong> to amortize async iteration costs by processing multiple items per iteration:</p>
 <pre><code class="language-typescript">// Instead of: 1 promise per line (expensive)
@@ -295,22 +328,6 @@ async function* processLogs(lines: AsyncIterable&lt;string&gt;) {
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

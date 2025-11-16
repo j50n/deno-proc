@@ -24,6 +24,46 @@ The overhead grows with data size - at 100,000 items, the gap becomes 810x. **Th
 
 > **Note**: JavaScript engines continue to optimize async iteration. These performance characteristics may improve in future V8 versions.
 
+## The V8 Optimization Cliff
+
+**TransformStream performance has a dramatic cliff** - it looks extremely fast in microbenchmarks but can become orders of magnitude slower with minimal added complexity.
+
+**Simple operations get heavily optimized:**
+```typescript
+// V8 can inline this entire pipeline
+const doubleStream = new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(chunk * 2); // Becomes nearly native code
+  }
+});
+// Result: 750x faster than generators
+```
+
+**Adding any complexity breaks optimization:**
+```typescript
+// Closure state prevents V8 inlining
+function createRunningTotalStream() {
+  let total = 0; // This breaks optimization
+  return new TransformStream({
+    transform(chunk, controller) {
+      total += chunk;              // Closure access overhead
+      controller.enqueue(total);   // Can't optimize with state
+    }
+  });
+}
+// Result: 6x slower than generators
+```
+
+**Why this happens:**
+- V8 aggressively optimizes trivial TransformStream operations into native code paths
+- Any closure variables, state dependencies, or complex logic breaks these optimizations
+- Once optimization fails, the callback overhead makes TransformStream much slower
+- Generators have consistent overhead regardless of complexity
+
+**Practical implication:** TransformStream microbenchmarks are misleading - they show best-case performance that disappears in real-world usage.
+
+**The bottom line:** JavaScript performance is notoriously difficult to predict. V8's aggressive optimizations can make simple code incredibly fast, but these optimizations are fragile and break easily. If performance truly matters for your use case, profile your actual workload rather than relying on synthetic benchmarks.
+
 ## The Chunking Solution
 
 proc uses **chunking** to amortize async iteration costs by processing multiple items per iteration:
