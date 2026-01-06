@@ -53,5 +53,17 @@
 
 ---
 
+# Contributing
+
+- [Overview](./contributor/README.md)
+- [Project Architecture](./contributor/architecture.md)
+- [Coding Standards](./contributor/coding-standards.md)
+- [API Design Patterns](./contributor/api-design.md)
+- [Documentation Guidelines](./contributor/documentation.md)
+- [Testing Strategy](./contributor/testing.md)
+- [Build Process](./contributor/build-process.md)
+
+---
+
 [API Reference](./api-reference.md) [Migration Guide](./migration.md)
 [FAQ](./faq.md)
