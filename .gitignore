@@ -1,5 +1,7 @@
-# Generated test data files
+# Generated test data files - these are huge!
 experiments/tabular-stream-bench/data/
-
-# Experiments and development files
-experiments/
+experiments/*/data/
+*.csv
+*.tsv
+**/data_*.csv
+**/data_*.tsv

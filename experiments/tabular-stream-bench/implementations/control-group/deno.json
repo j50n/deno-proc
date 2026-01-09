@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@std/csv": "jsr:@std/csv@^1.0.0",
+    "@j50n/proc": "jsr:@j50n/proc@0.23.3"
+  }
+}

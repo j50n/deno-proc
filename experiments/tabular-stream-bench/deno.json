@@ -1,0 +1,20 @@
+{
+  "name": "@local/tabular-stream-bench",
+  "version": "0.1.0",
+  "description": "Performance benchmarking suite for CSV/TSV streaming parsers",
+  "type": "module",
+  "tasks": {
+    "generate-data": "deno run --allow-write data/generate.ts",
+    "build-all": "deno run --allow-run --allow-read --allow-write scripts/build-all.ts",
+    "benchmark": "deno run --allow-all benchmark/runner.ts",
+    "analyze": "deno run --allow-read analysis/compare.ts",
+    "clean": "deno run --allow-write scripts/clean.ts"
+  },
+  "imports": {
+    "@j50n/proc": "jsr:@j50n/proc@^1.0.0"
+  },
+  "exports": {
+    "./benchmark": "./benchmark/mod.ts",
+    "./implementations": "./implementations/mod.ts"
+  }
+}
