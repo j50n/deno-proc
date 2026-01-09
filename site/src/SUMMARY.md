@@ -29,6 +29,13 @@
 - [Aggregations](./iterables/aggregations.md)
 - [Slicing and Sampling](./iterables/slicing.md)
 
+# Data Transformation
+
+- [Overview](./data-transform/README.md)
+- [StringRow API](./data-transform/stringrow-api.md)
+- [Performance Guide](./data-transform/performance.md)
+- [WASM Integration](./data-transform/wasm-integration.md)
+
 # Advanced Topics
 
 - [Concurrent Processing](./advanced/concurrent.md)

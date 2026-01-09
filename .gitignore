@@ -1,0 +1,5 @@
+# Generated test data files
+experiments/tabular-stream-bench/data/
+
+# Experiments and development files
+experiments/

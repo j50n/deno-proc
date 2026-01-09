@@ -12,6 +12,13 @@ cargo install mdbook
 HERE="$(realpath "$(dirname "$0")")"
 
 cd "$HERE" && (
+    # Build WASM module first
+    echo "Building FlatText WASM module..."
+    cd odin/flattext
+    odin build main.odin -file -target:js_wasm32 -out:../../wasm/flattext.wasm -o:speed
+    cd ../..
+    echo "✅ Built wasm/flattext.wasm"
+
     # Update Deno
     deno update --latest
 
