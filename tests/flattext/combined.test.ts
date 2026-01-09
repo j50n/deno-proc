@@ -1,14 +1,7 @@
-import { FlatText } from "../../wasm/flattext-api.ts";
+import { csvToTsv } from "./test-helpers.ts";
 import { assertEquals } from "@std/assert";
 
-let converter: FlatText;
 
-Deno.test({
-  name: "Combined - Setup converter instance",
-  async fn() {
-    converter = await FlatText.create();
-  },
-});
 
 // Multiple config options together
 Deno.test({
@@ -20,7 +13,7 @@ Alice; 30 ; Engineering
 # Updated 2024
 Bob; 25 ; Marketing`;
     
-    const result = converter.csvToTsv(input, {
+    const result = await csvToTsv(input, {
       delimiter: ";",
       comment: "#",
       trimLeadingSpace: true
@@ -35,7 +28,7 @@ Deno.test({
   async fn() {
     const input = 'name,description,notes\nAlice,"Software\tEngineer","Lives in\nNYC"\nBob,"Data\tScientist","Works\nremotely"';
     
-    const result = converter.csvToTsv(input, {
+    const result = await csvToTsv(input, {
       replaceTabs: "|",
       replaceNewlines: " ",
       fieldsPerRecord: 3
@@ -51,7 +44,7 @@ Deno.test({
     // Simplify this test to avoid complex CSV parsing issues
     const input = 'name;role;location\nAlice;"Developer";"NYC"\nBob;"Analyst";"Austin"';
     
-    const result = converter.csvToTsv(input, {
+    const result = await csvToTsv(input, {
       delimiter: ";",
       trimLeadingSpace: true
     });
@@ -70,7 +63,7 @@ Alice,"Tech\tLead","Builds\nsoftware"
 Bob,"Data\tAnalyst","Analyzes\ndata"
 # End of file`;
     
-    const result = converter.csvToTsv(input, {
+    const result = await csvToTsv(input, {
       comment: "#",
       fieldsPerRecord: 3,
       replaceTabs: " ",
@@ -91,7 +84,7 @@ Alice|Developer|Active
 # Intermediate comment
 Bob|Analyst|Active`;
     
-    const result = converter.csvToTsv(input, {
+    const result = await csvToTsv(input, {
       delimiter: "|",
       comment: "#",
       trimLeadingSpace: true,

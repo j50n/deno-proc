@@ -23,6 +23,9 @@
  * ```
  */
 
+import { parse } from "@std/csv";
+import { enumerate, concat } from "@j50n/proc";
+
 /**
  * Parser configuration options
  */
@@ -109,148 +112,106 @@ export class FlatText {
   }
 
   /**
-   * Convert CSV to TSV with optional configuration.
+   * Stream CSV to TSV conversion.
    */
-  csvToTsv(csv: string, config?: ParserConfig): string {
-    if (config) {
-      return this.convertWithConfig(csv, config, "\t");
-    }
-
-    // Use simple conversion for default case
-    const inputBytes = new TextEncoder().encode(csv);
-
-    const inputPtr = 1000;
-    const inputView = new Uint8Array(
-      this.memory.buffer,
-      inputPtr,
-      inputBytes.length,
-    );
-    inputView.set(inputBytes);
-
-    const outputLen = (this.wasmModule.exports.csv_to_tsv as CallableFunction)(
-      inputPtr,
-      inputBytes.length,
-    ) as number;
-
-    if (outputLen < 0) {
-      throw new Error(`CSV parsing failed with code: ${outputLen}`);
-    }
-
-    const outputPtr =
-      (this.wasmModule.exports.get_output_ptr as CallableFunction)() as number;
-    const outputView = new Uint8Array(this.memory.buffer, outputPtr, outputLen);
-
-    return new TextDecoder().decode(outputView);
+  async streamCsvToTsv(
+    input: ReadableStream<Uint8Array>,
+    output: WritableStream<Uint8Array>,
+    config?: ParserConfig
+  ): Promise<void> {
+    await enumerate(input)
+      .transform(this.csvChunkParser(config))
+      .transform(this.tsvFormatter)
+      .writeTo(output);
   }
 
   /**
-   * Convert TSV to CSV with optional configuration.
+   * Stream TSV to CSV conversion.
    */
-  tsvToCsv(tsv: string, config?: ParserConfig): string {
-    if (config) {
-      return this.convertWithConfig(tsv, { ...config, delimiter: "\t" }, ",");
-    }
-
-    // Simple replacement for now
-    return tsv.replace(/\t/g, ",");
-  }
-
-  private convertWithConfig(
-    input: string,
-    config: ParserConfig,
-    _targetDelimiter: string,
-  ): string {
-    const inputBytes = new TextEncoder().encode(input);
-
-    // Create config struct in WASM memory
-    const configPtr = 2000;
-    const configView = new DataView(this.memory.buffer, configPtr, 32);
-
-    // Pack config struct (matching Odin Parser_Config)
-    // Use first character of string or default values
-    const delimiter = config.delimiter ? config.delimiter.charCodeAt(0) : 44; // Default comma
-    const comment = config.comment ? config.comment.charCodeAt(0) : 0;
-    const replaceTabs = config.replaceTabs
-      ? config.replaceTabs.charCodeAt(0)
-      : 0;
-    const replaceNewlines = config.replaceNewlines
-      ? config.replaceNewlines.charCodeAt(0)
-      : 0;
-
-    configView.setUint32(0, delimiter, true); // delimiter rune
-    configView.setUint32(4, comment, true); // comment rune
-    configView.setInt32(8, config.fieldsPerRecord ?? -1, true); // fields_per_record
-    configView.setUint8(12, config.trimLeadingSpace ? 1 : 0); // trim_leading_space
-    configView.setUint8(13, config.lazyQuotes ? 1 : 0); // lazy_quotes
-    configView.setUint8(14, config.multilineFields ? 1 : 0); // multiline_fields
-    configView.setUint32(16, replaceTabs, true); // replace_tabs rune
-    configView.setUint32(20, replaceNewlines, true); // replace_newlines rune
-
-    // Write input to WASM memory
-    const inputPtr = 1000;
-    const inputView = new Uint8Array(
-      this.memory.buffer,
-      inputPtr,
-      inputBytes.length,
-    );
-    inputView.set(inputBytes);
-
-    // Call WASM conversion function with config
-    const outputLen =
-      (this.wasmModule.exports.csv_to_tsv_with_config as CallableFunction)(
-        inputPtr,
-        inputBytes.length,
-        configPtr,
-      ) as number;
-
-    if (outputLen < 0) {
-      const errorMessages = {
-        [-1]: "Parse error - malformed CSV/TSV",
-        [-2]: "Memory allocation error",
-        [-3]: "Embedded tab character found (use replaceTabs option)",
-        [-4]: "Embedded newline character found (use replaceNewlines option)",
-      };
-      const message = errorMessages[outputLen as keyof typeof errorMessages] ||
-        `Unknown error: ${outputLen}`;
-      throw new Error(message);
-    }
-
-    const outputPtr =
-      (this.wasmModule.exports.get_output_ptr as CallableFunction)() as number;
-    const outputView = new Uint8Array(this.memory.buffer, outputPtr, outputLen);
-
-    return new TextDecoder().decode(outputView);
-  }
-}
-
-/**
- * Convenience functions for one-off conversions without creating an instance.
- */
-export class FlatTextUtils {
-  private static instance: FlatText | null = null;
-
-  private static async getInstance(): Promise<FlatText> {
-    if (!this.instance) {
-      this.instance = await FlatText.create();
-    }
-    return this.instance;
+  async streamTsvToCsv(
+    input: ReadableStream<Uint8Array>,
+    output: WritableStream<Uint8Array>,
+    config?: ParserConfig
+  ): Promise<void> {
+    await enumerate(input)
+      .transform(this.tsvChunkParser(config))
+      .transform(this.csvFormatter)
+      .writeTo(output);
   }
 
   /**
-   * Convert CSV to TSV (convenience function).
-   * Creates a shared instance on first use.
+   * CSV chunk parser - converts chunks to parsed rows
    */
-  static async csvToTsv(csv: string): Promise<string> {
-    const converter = await this.getInstance();
-    return converter.csvToTsv(csv);
+  private csvChunkParser(config?: ParserConfig) {
+    return async function* (chunks: AsyncIterable<Uint8Array>) {
+      const allData = [];
+      
+      for await (const chunk of chunks) {
+        allData.push(chunk);
+      }
+      
+      const text = new TextDecoder().decode(concat(allData));
+      const rows = parse(text, {
+        separator: config?.delimiter || ",",
+        comment: config?.comment,
+        trimLeadingSpace: config?.trimLeadingSpace,
+        lazyQuotes: config?.lazyQuotes,
+        fieldsPerRecord: config?.fieldsPerRecord,
+      });
+      
+      for (const row of rows) {
+        yield row;
+      }
+    };
   }
 
   /**
-   * Convert TSV to CSV (convenience function).
-   * Creates a shared instance on first use.
+   * TSV chunk parser - converts chunks to parsed rows
    */
-  static async tsvToCsv(tsv: string): Promise<string> {
-    const converter = await this.getInstance();
-    return converter.tsvToCsv(tsv);
+  private tsvChunkParser(config?: ParserConfig) {
+    return async function* (chunks: AsyncIterable<Uint8Array>) {
+      const allData = [];
+      
+      for await (const chunk of chunks) {
+        allData.push(chunk);
+      }
+      
+      const text = new TextDecoder().decode(concat(allData));
+      const rows = parse(text, {
+        separator: config?.delimiter || "\t",
+        comment: config?.comment,
+        trimLeadingSpace: config?.trimLeadingSpace,
+        lazyQuotes: config?.lazyQuotes,
+        fieldsPerRecord: config?.fieldsPerRecord,
+      });
+      
+      for (const row of rows) {
+        yield row;
+      }
+    };
   }
+
+  /**
+   * TSV formatter - converts rows to TSV bytes
+   */
+  private tsvFormatter = async function* (rows: AsyncIterable<string[]>) {
+    for await (const row of rows) {
+      const tsvLine = row.join("\t") + "\n";
+      yield new TextEncoder().encode(tsvLine);
+    }
+  };
+
+  /**
+   * CSV formatter - converts rows to CSV bytes
+   */
+  private csvFormatter = async function* (rows: AsyncIterable<string[]>) {
+    for await (const row of rows) {
+      const csvLine = row.map(field => 
+        field.includes(",") || field.includes('"') || field.includes("\n")
+          ? `"${field.replace(/"/g, '""')}"`
+          : field
+      ).join(",") + "\n";
+      yield new TextEncoder().encode(csvLine);
+    }
+  };
 }

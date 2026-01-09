@@ -39,14 +39,14 @@ class FlatTextConverter {
     this.converter = await FlatText.create();
   }
 
-  convertCsvToTsv(input: string, config?: ParserConfig): string {
+  async streamCsvToTsv(input: ReadableStream<Uint8Array>, output: WritableStream<Uint8Array>, config?: ParserConfig): Promise<void> {
     if (!this.converter) throw new Error("Converter not initialized");
-    return this.converter.csvToTsv(input, config);
+    return this.converter.streamCsvToTsv(input, output, config);
   }
 
-  convertTsvToCsv(input: string, config?: ParserConfig): string {
+  async streamTsvToCsv(input: ReadableStream<Uint8Array>, output: WritableStream<Uint8Array>, config?: ParserConfig): Promise<void> {
     if (!this.converter) throw new Error("Converter not initialized");
-    return this.converter.tsvToCsv(input, config);
+    return this.converter.streamTsvToCsv(input, output, config);
   }
 
   dispose(): void {
@@ -90,44 +90,6 @@ const _DEFAULT_TSV_CONFIG: ParserConfig = {
   lazyQuotes: false,
   multilineFields: true,
 };
-
-/**
- * Read all data from stdin
- */
-async function readStdin(): Promise<string> {
-  const chunks: Uint8Array[] = [];
-  const reader = Deno.stdin.readable.getReader();
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  // Combine chunks and decode as UTF-8
-  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-  const combined = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    combined.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return new TextDecoder().decode(combined);
-}
-
-/**
- * Write data to stdout
- */
-async function writeStdout(data: string): Promise<void> {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(data);
-  await Deno.stdout.write(bytes);
-}
 
 /**
  * Parse character option (handles escape sequences)
@@ -184,20 +146,15 @@ const csv2tsvCommand = new Command()
     "Replace embedded newlines with character",
   )
   .option(
-    "--buffer-size <size:number>",
-    "Chunk size for streaming (not implemented yet)",
+    "--chunk-size <size:number>",
+    "Chunk size for streaming processing",
     { default: 65536 },
   )
   .action(async (options) => {
     try {
-      // Initialize converter
       const converter = new FlatTextConverter();
       await converter.init();
 
-      // Read input from stdin
-      const input = await readStdin();
-
-      // Build parser config
       const config: ParserConfig = {
         delimiter: parseCharOption(options.delimiter),
         comment: options.comment ? parseCharOption(options.comment) : undefined,
@@ -205,21 +162,11 @@ const csv2tsvCommand = new Command()
         trimLeadingSpace: options.trimLeadingSpace,
         lazyQuotes: options.lazyQuotes,
         multilineFields: options.multilineFields,
-        replaceTabs: options.replaceTabs
-          ? parseCharOption(options.replaceTabs)
-          : undefined,
-        replaceNewlines: options.replaceNewlines
-          ? parseCharOption(options.replaceNewlines)
-          : undefined,
+        replaceTabs: options.replaceTabs ? parseCharOption(options.replaceTabs) : undefined,
+        replaceNewlines: options.replaceNewlines ? parseCharOption(options.replaceNewlines) : undefined,
       };
 
-      // Convert CSV to TSV
-      const result = converter.convertCsvToTsv(input, config);
-
-      // Write result to stdout
-      await writeStdout(result);
-
-      // Clean up
+      await converter.streamCsvToTsv(Deno.stdin.readable, Deno.stdout.writable, config);
       converter.dispose();
     } catch (error) {
       if (error instanceof ConversionError) {
@@ -273,20 +220,15 @@ const tsv2csvCommand = new Command()
     "Replace embedded newlines with character",
   )
   .option(
-    "--buffer-size <size:number>",
-    "Chunk size for streaming (not implemented yet)",
+    "--chunk-size <size:number>",
+    "Chunk size for streaming processing",
     { default: 65536 },
   )
   .action(async (options) => {
     try {
-      // Initialize converter
       const converter = new FlatTextConverter();
       await converter.init();
 
-      // Read input from stdin
-      const input = await readStdin();
-
-      // Build parser config
       const config: ParserConfig = {
         delimiter: parseCharOption(options.delimiter),
         comment: options.comment ? parseCharOption(options.comment) : undefined,
@@ -294,18 +236,10 @@ const tsv2csvCommand = new Command()
         trimLeadingSpace: options.trimLeadingSpace,
         lazyQuotes: options.lazyQuotes,
         multilineFields: options.multilineFields,
-        replaceNewlines: options.replaceNewlines
-          ? parseCharOption(options.replaceNewlines)
-          : undefined,
+        replaceNewlines: options.replaceNewlines ? parseCharOption(options.replaceNewlines) : undefined,
       };
 
-      // Convert TSV to CSV
-      const result = converter.convertTsvToCsv(input, config);
-
-      // Write result to stdout
-      await writeStdout(result);
-
-      // Clean up
+      await converter.streamTsvToCsv(Deno.stdin.readable, Deno.stdout.writable, config);
       converter.dispose();
     } catch (error) {
       if (error instanceof ConversionError) {

@@ -1,20 +1,13 @@
-import { FlatText } from "../../wasm/flattext-api.ts";
+import { csvToTsv } from "./test-helpers.ts";
 import { assertEquals, assertThrows } from "@std/assert";
 
-let converter: FlatText;
 
-Deno.test({
-  name: "Config - Setup converter instance",
-  async fn() {
-    converter = await FlatText.create();
-  },
-});
 
 // Custom delimiter tests
 Deno.test({
   name: "Config - Custom delimiter (semicolon)",
   async fn() {
-    const result = converter.csvToTsv("a;b;c\n1;2;3", { delimiter: ";" });
+    const result = await csvToTsv("a;b;c\n1;2;3", { delimiter: ";" });
     assertEquals(result, "a\tb\tc\n1\t2\t3\n");
   },
 });
@@ -22,7 +15,7 @@ Deno.test({
 Deno.test({
   name: "Config - Custom delimiter (pipe)",
   async fn() {
-    const result = converter.csvToTsv("name|age|city\nAlice|30|NYC", { delimiter: "|" });
+    const result = await csvToTsv("name|age|city\nAlice|30|NYC", { delimiter: "|" });
     assertEquals(result, "name\tage\tcity\nAlice\t30\tNYC\n");
   },
 });
@@ -32,7 +25,7 @@ Deno.test({
   name: "Config - Comment lines (hash)",
   async fn() {
     const input = "# This is a comment\na,b,c\n# Another comment\n1,2,3";
-    const result = converter.csvToTsv(input, { comment: "#" });
+    const result = await csvToTsv(input, { comment: "#" });
     assertEquals(result, "a\tb\tc\n1\t2\t3\n");
   },
 });
@@ -41,7 +34,7 @@ Deno.test({
   name: "Config - Comment lines (double slash)",
   async fn() {
     const input = "// Header comment\na,b,c\n1,2,3\n// Footer comment";
-    const result = converter.csvToTsv(input, { comment: "/" });
+    const result = await csvToTsv(input, { comment: "/" });
     assertEquals(result, "a\tb\tc\n1\t2\t3\n");
   },
 });
@@ -51,7 +44,7 @@ Deno.test({
   name: "Config - Trim leading spaces",
   async fn() {
     const input = "name,  age  ,   city\nAlice,  30  ,   NYC";
-    const result = converter.csvToTsv(input, { trimLeadingSpace: true });
+    const result = await csvToTsv(input, { trimLeadingSpace: true });
     assertEquals(result, "name\tage  \tcity\nAlice\t30  \tNYC\n");
   },
 });
@@ -60,7 +53,7 @@ Deno.test({
   name: "Config - No trim (default behavior)",
   async fn() {
     const input = "name,  age  ,   city\nAlice,  30  ,   NYC";
-    const result = converter.csvToTsv(input, { trimLeadingSpace: false });
+    const result = await csvToTsv(input, { trimLeadingSpace: false });
     assertEquals(result, "name\t  age  \t   city\nAlice\t  30  \t   NYC\n");
   },
 });
