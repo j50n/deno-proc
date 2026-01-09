@@ -86,6 +86,18 @@ main :: proc() {
 - **CLI argument parsing** - Handle all FlatText configuration options
 - **Performance comparison** - WASI vs current JavaScript-mediated approach
 
+### Git Repository Management Notes
+**Important**: The experiments folder contains large data files (100MB+) that should not be in commit history.
+
+#### **Cleanup Strategy for Production:**
+1. **Clean current branch** - Interactive rebase to squash/organize commits
+2. **Create orphan branch** - `git checkout --orphan clean-implementation`
+3. **Selective add** - Only include production code, skip experiments/
+4. **Single clean commit** - Logical, reviewable change
+5. **Delete working branch** - Remove messy history
+
+This approach avoids the complexity and risks of `git filter-branch` while achieving a clean repository.
+
 ### Key Insights for Next Attempt
 1. **WASM must do the parsing** - That's the whole point of the project
 2. **Streaming needs stateful WASM parser** - Can't just replace with standard library
