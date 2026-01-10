@@ -34,7 +34,9 @@ Odin supports several WebAssembly targets:
 | `freestanding_wasm32` | None | Bare metal, no runtime, tiny output |
 | `freestanding_wasm64p32` | None | 64-bit bare metal |
 
-**This book uses `js_wasm32` exclusively.** It provides the full standard library (`fmt`, `core:math`, allocators) and targets JavaScript/Deno hosts. We won't mention the other targets again.
+**This book uses `js_wasm32` exclusively.** It provides the full standard library (`fmt`, `core:math`, allocators) and targets JavaScript/Deno hosts.
+
+Why not `freestanding_wasm32`? It produces tiny binaries but lobotomizes Odin—no `fmt`, no allocators, no standard library. You're left reimplementing basics. The ~30KB overhead of `js_wasm32` loads in under 0.1ms (see [Performance](../part4/ch11-performance.md)). You won't notice it, and you get all of Odin.
 
 > ⚠️ **Avoid WASI targets with Deno.** Deno's WASI support is incomplete and poorly documented. The `wasi_wasm32` target looks appealing but leads to hours of frustration. Stick with `js_wasm32`.
 
