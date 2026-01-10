@@ -4,3 +4,6 @@
 # mdbook output
 docs/book/
 *.pdf
+
+# Generated cover image
+docs/src/cover.png

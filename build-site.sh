@@ -26,4 +26,9 @@ cd "$HERE/site/" && (
     rsync -av ./book/ ../docs/
 )
 
-cd "$HERE/wasm/docs/" && mdbook build
+cd "$HERE/wasm/docs/" && (
+    # Generate cover image from SVG
+    convert -density 150 src/cover.svg src/cover.png
+    
+    mdbook build
+)
