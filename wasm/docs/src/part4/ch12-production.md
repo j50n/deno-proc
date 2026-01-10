@@ -12,16 +12,16 @@ The simplest approach—include the `.wasm` file with your application:
 my-app/
 ├── src/
 │   ├── main.ts
-│   └── math-demo.ts
+│   └── demo.ts
 ├── wasm/
-│   └── math-demo.wasm
+│   └── demo.wasm
 └── deno.json
 ```
 
 Load relative to your module:
 
 ```typescript
-const wasmPath = new URL("../wasm/math-demo.wasm", import.meta.url).pathname;
+const wasmPath = new URL("../wasm/demo.wasm", import.meta.url).pathname;
 ```
 
 ### CDN Distribution
@@ -29,7 +29,7 @@ const wasmPath = new URL("../wasm/math-demo.wasm", import.meta.url).pathname;
 For web applications, serve WASM from a CDN:
 
 ```typescript
-const wasmUrl = "https://cdn.example.com/wasm/math-demo.wasm";
+const wasmUrl = "https://cdn.example.com/wasm/demo.wasm";
 const response = await fetch(wasmUrl);
 const wasmBytes = await response.arrayBuffer();
 const module = await WebAssembly.compile(wasmBytes);
@@ -48,7 +48,7 @@ Publish as a package with the WASM file included:
 ```json
 // deno.json
 {
-  "name": "@yourname/math-demo",
+  "name": "@yourname/demo",
   "version": "1.0.0",
   "exports": "./mod.ts"
 }
@@ -56,13 +56,13 @@ Publish as a package with the WASM file included:
 
 ```typescript
 // mod.ts
-export { MathDemo } from "./math-demo.ts";
+export { Demo } from "./demo.ts";
 ```
 
 Users install and use:
 ```typescript
-import { MathDemo } from "@yourname/math-demo";
-const demo = await MathDemo.create();
+import { Demo } from "@yourname/demo";
+const demo = await Demo.create();
 ```
 
 ## Loading Optimization
@@ -130,9 +130,9 @@ Load WASM before it's needed:
 const modulePromise = WebAssembly.compileStreaming(fetch(wasmUrl));
 
 // Later, when needed
-async function createDemo(): Promise<MathDemo> {
+async function createDemo(): Promise<Demo> {
   const module = await modulePromise; // Already loaded
-  return MathDemo.fromModule(module);
+  return Demo.fromModule(module);
 }
 ```
 
@@ -289,7 +289,7 @@ Verify WASM is working:
 
 ```typescript
 class HealthCheck {
-  static async verify(demo: MathDemo): Promise<boolean> {
+  static async verify(demo: Demo): Promise<boolean> {
     try {
       // Test basic functionality
       const result = demo.calculateCircle(1);
@@ -310,7 +310,7 @@ class HealthCheck {
 }
 
 // On startup
-const demo = await MathDemo.create();
+const demo = await Demo.create();
 if (!await HealthCheck.verify(demo)) {
   throw new Error("WASM module failed health check");
 }
@@ -322,11 +322,11 @@ Have a fallback when WASM fails:
 
 ```typescript
 class MathService {
-  private wasmDemo: MathDemo | null = null;
+  private wasmDemo: Demo | null = null;
   
   async initialize(): Promise<void> {
     try {
-      this.wasmDemo = await MathDemo.create();
+      this.wasmDemo = await Demo.create();
     } catch (e) {
       console.warn("WASM unavailable, using JS fallback:", e);
     }

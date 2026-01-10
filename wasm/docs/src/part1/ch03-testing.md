@@ -8,10 +8,10 @@ Start with instantiation—if this fails, nothing else matters:
 
 ```typescript
 import { assertEquals, assertAlmostEquals } from "@std/assert";
-import { MathDemo } from "./math-demo.ts";
+import { Demo } from "./demo.ts";
 
-Deno.test("MathDemo - instantiation", async () => {
-  const demo = await MathDemo.create();
+Deno.test("Demo - instantiation", async () => {
+  const demo = await Demo.create();
   assertEquals(demo.fibonacci(5), 5);
 });
 ```
@@ -23,8 +23,8 @@ This catches corrupted WASM files, missing imports, and runtime initialization f
 WASM and JavaScript both follow IEEE 754, but implementation details can cause tiny differences. Use `assertAlmostEquals`:
 
 ```typescript
-Deno.test("MathDemo - circle calculation", async () => {
-  const demo = await MathDemo.create();
+Deno.test("Demo - circle calculation", async () => {
+  const demo = await Demo.create();
   
   const result = demo.calculateCircle(5.0);
   assertAlmostEquals(result, Math.PI * 25, 1e-10);
@@ -38,9 +38,9 @@ Exact equality checks will fail spuriously.
 WASM instances should be independent. Verify this:
 
 ```typescript
-Deno.test("MathDemo - instance isolation", async () => {
-  const demo1 = await MathDemo.create();
-  const demo2 = await MathDemo.create();
+Deno.test("Demo - instance isolation", async () => {
+  const demo1 = await Demo.create();
+  const demo2 = await Demo.create();
   
   // Modify state in one instance (if your module has state)
   // Verify the other is unaffected
@@ -60,8 +60,8 @@ Deno.test("MathDemo - instance isolation", async () => {
 Test boundaries and unusual inputs:
 
 ```typescript
-Deno.test("MathDemo - edge cases", async () => {
-  const demo = await MathDemo.create();
+Deno.test("Demo - edge cases", async () => {
+  const demo = await Demo.create();
   
   // Zero
   assertEquals(demo.calculateCircle(0), 0);
@@ -77,8 +77,8 @@ Deno.test("MathDemo - edge cases", async () => {
 When testing memory-related functions, verify bounds and cleanup:
 
 ```typescript
-Deno.test("MathDemo - memory allocation", async () => {
-  const demo = await MathDemo.create();
+Deno.test("Demo - memory allocation", async () => {
+  const demo = await Demo.create();
   
   const ptr = demo.allocate(1024);
   assertEquals(typeof ptr, "number");
@@ -101,7 +101,8 @@ Add tests to your build script:
 #!/bin/bash
 set -e
 
-odin build odin/ -target:js_wasm32 -out:math-demo.wasm -o:speed
+odin build odin/ -target:js_wasm32 -out:demo.wasm -o:speed \
+    -extra-linker-flags:"--import-memory --strip-all"
 deno fmt --check *.ts
 deno lint *.ts
 deno check *.ts

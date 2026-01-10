@@ -4,6 +4,8 @@ Numbers are the simplest data to pass between JavaScript and WASM. No memory man
 
 ## Type Mapping
 
+![Type funnel from Odin through WASM to JavaScript](images/type-funnel.svg)
+
 | Odin | WASM | JavaScript |
 |------|------|------------|
 | `i8`, `i16`, `i32`, `int` | `i32` | `number` |

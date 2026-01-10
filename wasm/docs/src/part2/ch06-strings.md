@@ -10,6 +10,8 @@ JavaScript and Odin both have memory allocators. They don't know about each othe
 
 ## Passing a String to Odin
 
+![String Passing](images/string-passing.svg)
+
 Four steps:
 
 1. Call Odin to allocate memory for the string
@@ -68,16 +70,35 @@ printString(message: string): number {
 }
 ```
 
-## UTF-8 Matters
+## Why UTF-8?
 
-JavaScript strings are UTF-16 internally. `TextEncoder` converts them to UTF-8 bytes. The byte length can differ from the character count:
+Odin uses UTF-8 natively. JavaScript is more complicated.
+
+The ECMAScript spec defines strings as sequences of 16-bit (UTF-16) code units, but V8 doesn't actually store them that way. V8 uses two internal representations:
+
+- **One-byte strings:** ASCII-only strings use 1 byte per character (Latin-1 encoding)
+- **Two-byte strings:** Strings with any non-ASCII character use 2 bytes per character
+
+Most strings in typical code—identifiers, HTML tags, URLs, JSON keys—are ASCII. V8 stores these efficiently as one-byte strings.
+
+`TextEncoder` and `TextDecoder` with UTF-8 are highly optimized for this common case. For ASCII strings, encoding to UTF-8 is essentially a fast memory copy since ASCII is identical in Latin-1 and UTF-8. The V8 team has invested heavily in these fast paths.
+
+Working with UTF-16 directly would be slower because:
+
+1. There's no equivalent optimized `TextEncoder` for UTF-16
+2. Accessing UTF-16 code units from V8's one-byte strings requires conversion
+3. Manual byte manipulation with `DataView` can't match the native fast paths
+
+**Bottom line:** Always use `TextEncoder`/`TextDecoder` with UTF-8. It's at least 2x faster than UTF-16 approaches and matches Odin's native encoding.
+
+Note that byte length can differ from character count:
 
 ```typescript
 const msg = "🎉 Hi";
 const bytes = new TextEncoder().encode(msg);
 
-bytes.length  // 7 bytes (emoji is 4 bytes)
-msg.length    // 4 characters
+bytes.length  // 7 bytes (emoji is 4 bytes in UTF-8)
+msg.length    // 4 characters (emoji is 2 UTF-16 code units)
 ```
 
 Always pass the **byte length** to Odin, not the string length.

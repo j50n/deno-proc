@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno run --allow-read
 /**
- * @fileoverview Demo script showcasing MathDemo WebAssembly functionality
+ * @fileoverview Demo script showcasing Demo WebAssembly functionality
  */
 
-import { MathDemo } from "./math-demo.ts";
+import { Demo } from "./demo.ts";
 
 /**
  * Main demo function that demonstrates various WASM capabilities
@@ -15,7 +15,7 @@ async function main() {
 
   try {
     // Create WASM instance using async factory
-    const demo = await MathDemo.create();
+    const demo = await Demo.create();
 
     console.log("\n" + "-".repeat(30));
     console.log("Test 1: Circle Area Calculation");
@@ -89,7 +89,7 @@ async function main() {
     console.log("-".repeat(30));
 
     // Demonstrate multiple instances
-    const demo2 = await MathDemo.create();
+    const demo2 = await Demo.create();
     console.log("🔄 Created second instance");
 
     demo2.calculateCircle(3.0);

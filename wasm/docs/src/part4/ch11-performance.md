@@ -170,13 +170,16 @@ const floats = new Float64Array(memory.buffer, ptr, count);
 
 ```bash
 # Development - fast compile
-odin build . -target:js_wasm32 -o:none
+odin build . -target:js_wasm32 -o:none \
+    -extra-linker-flags:"--import-memory"
 
 # Release - optimized
-odin build . -target:js_wasm32 -o:speed
+odin build . -target:js_wasm32 -o:speed \
+    -extra-linker-flags:"--import-memory --strip-all"
 
 # Size-constrained
-odin build . -target:js_wasm32 -o:size
+odin build . -target:js_wasm32 -o:size \
+    -extra-linker-flags:"--import-memory --strip-all"
 ```
 
 ### Code Patterns
@@ -221,15 +224,16 @@ square :: proc(x: f64) -> f64 {
 Smaller WASM files load faster. Measure your bundle:
 
 ```bash
-ls -la math-demo.wasm
-wc -c math-demo.wasm
+ls -la demo.wasm
+wc -c demo.wasm
 ```
 
 ### Reducing Size
 
 **Strip debug info:**
 ```bash
-odin build . -target:js_wasm32 -o:size
+odin build . -target:js_wasm32 -o:size \
+    -extra-linker-flags:"--import-memory --strip-all"
 ```
 
 **Remove unused exports:**
@@ -237,9 +241,9 @@ Only export what you need. Each export adds to the binary.
 
 **Compress for transfer:**
 ```bash
-gzip -9 math-demo.wasm
+gzip -9 demo.wasm
 # or
-brotli -9 math-demo.wasm
+brotli -9 demo.wasm
 ```
 
 Servers can serve compressed WASM with appropriate headers.
@@ -331,11 +335,11 @@ class CachedDemo {
 
 ```typescript
 class LazyDemo {
-  private instance: MathDemo | null = null;
+  private instance: Demo | null = null;
   
-  private async ensure(): Promise<MathDemo> {
+  private async ensure(): Promise<Demo> {
     if (!this.instance) {
-      this.instance = await MathDemo.create();
+      this.instance = await Demo.create();
     }
     return this.instance;
   }

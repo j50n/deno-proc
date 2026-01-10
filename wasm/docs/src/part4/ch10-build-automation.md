@@ -10,13 +10,14 @@ Here's a production-ready `build.sh`:
 #!/bin/bash
 set -e
 
-echo "🔨 Building math_demo.wasm..."
+echo "🔨 Building demo.wasm..."
 odin build odin/ \
     -target:js_wasm32 \
-    -out:math-demo.wasm \
-    -o:speed
+    -out:demo.wasm \
+    -o:speed \
+    -extra-linker-flags:"--import-memory --strip-all"
 
-echo "✅ Build: math-demo.wasm ($(du -h math-demo.wasm | cut -f1))"
+echo "✅ Build: demo.wasm ($(du -h demo.wasm | cut -f1))"
 
 echo "🎨 Formatting..."
 deno fmt --check *.ts || deno fmt *.ts
@@ -35,10 +36,15 @@ echo "🎉 All checks passed!"
 
 ```bash
 odin build odin/ \
-    -target:js_wasm32 \    # WASM with runtime
-    -out:math-demo.wasm \  # Output file
-    -o:speed               # Optimize for performance
+    -target:js_wasm32 \
+    -out:demo.wasm \
+    -o:speed \
+    -extra-linker-flags:"--import-memory --strip-all"
 ```
+
+Key flags:
+- `--import-memory` — JavaScript creates memory, passes to WASM
+- `--strip-all` — Remove debug symbols (~50% size reduction)
 
 Optimization options:
 - `-o:none` — Fast compile, no optimization
@@ -87,10 +93,11 @@ jobs:
 ## Build Variants
 
 ```bash
+FLAGS='-extra-linker-flags:"--import-memory --strip-all"'
 case "$1" in
-  dev)    odin build odin/ -target:js_wasm32 -out:math-demo.wasm -o:none ;;
-  release) odin build odin/ -target:js_wasm32 -out:math-demo.wasm -o:speed ;;
-  size)   odin build odin/ -target:js_wasm32 -out:math-demo.wasm -o:size ;;
+  dev)     odin build odin/ -target:js_wasm32 -out:demo.wasm -o:none $FLAGS ;;
+  release) odin build odin/ -target:js_wasm32 -out:demo.wasm -o:speed $FLAGS ;;
+  size)    odin build odin/ -target:js_wasm32 -out:demo.wasm -o:size $FLAGS ;;
 esac
 ```
 

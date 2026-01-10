@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 320">
+  <defs>
+    <linearGradient id="moduleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="instGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="instGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#34d399"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="instGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a78bfa"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="memGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f1f5f9"/>
+      <stop offset="100%" style="stop-color:#cbd5e1"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Title -->
+  <text x="300" y="25" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Multiple WASM Instances</text>
+  
+  <!-- Compiled Module (shared) -->
+  <rect x="200" y="45" width="200" height="50" rx="8" fill="url(#moduleGrad)"/>
+  <text x="300" y="70" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="white">Compiled Module</text>
+  <text x="300" y="85" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.85)">(shared, compile once)</text>
+  
+  <!-- Arrows from module to instances -->
+  <path d="M250 95 L130 130" stroke="#d97706" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M300 95 L300 130" stroke="#d97706" stroke-width="2" fill="none"/>
+  <path d="M350 95 L470 130" stroke="#d97706" stroke-width="2" fill="none"/>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  
+  <!-- Instance 1 -->
+  <g transform="translate(50, 135)">
+    <rect width="120" height="45" rx="6" fill="url(#instGrad1)"/>
+    <text x="60" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="white">Instance 1</text>
+    <text x="60" y="35" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.85)">exports, globals</text>
+    <!-- Memory -->
+    <rect y="55" width="120" height="35" rx="4" fill="url(#memGrad)" stroke="#2563eb" stroke-width="2"/>
+    <text x="60" y="77" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#1e293b">Memory A</text>
+  </g>
+  
+  <!-- Instance 2 -->
+  <g transform="translate(240, 135)">
+    <rect width="120" height="45" rx="6" fill="url(#instGrad2)"/>
+    <text x="60" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="white">Instance 2</text>
+    <text x="60" y="35" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.85)">exports, globals</text>
+    <!-- Memory -->
+    <rect y="55" width="120" height="35" rx="4" fill="url(#memGrad)" stroke="#059669" stroke-width="2"/>
+    <text x="60" y="77" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#1e293b">Memory B</text>
+  </g>
+  
+  <!-- Instance 3 -->
+  <g transform="translate(430, 135)">
+    <rect width="120" height="45" rx="6" fill="url(#instGrad3)"/>
+    <text x="60" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="white">Instance 3</text>
+    <text x="60" y="35" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.85)">exports, globals</text>
+    <!-- Memory -->
+    <rect y="55" width="120" height="35" rx="4" fill="url(#memGrad)" stroke="#7c3aed" stroke-width="2"/>
+    <text x="60" y="77" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#1e293b">Memory C</text>
+  </g>
+  
+  <!-- Isolation indicator -->
+  <line x1="185" y1="145" x2="185" y2="220" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="415" y1="145" x2="415" y2="220" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,3"/>
+  
+  <!-- Legend -->
+  <text x="300" y="260" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">Each instance has isolated memory and state</text>
+  <text x="300" y="280" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">Module compilation is expensive → share it</text>
+  <text x="300" y="300" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">Instance creation is cheap → create many</text>
+</svg>

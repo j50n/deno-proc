@@ -14,6 +14,8 @@ WASM functions return a single value, but we need two: a pointer and a length.
 
 **Solution:** Pack both into a 64-bit integer. Low 32 bits = pointer, high 32 bits = length.
 
+![Packed i64 bit layout](images/packed-i64.svg)
+
 **Odin:**
 
 ```odin
@@ -125,6 +127,8 @@ createPoint(x: number, y: number): { x: number; y: number } {
 ## Struct Return by Value (Gotcha)
 
 Odin can return structs by value, but WASM uses a **hidden first parameter**:
+
+![Hidden out-parameter transformation](images/hidden-out-param.svg)
 
 ```odin
 // Odin signature

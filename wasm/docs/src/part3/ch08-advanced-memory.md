@@ -28,6 +28,8 @@ Fast and simple. The catch? Memory is never freed. Works great for:
 
 Arenas group allocations that share a lifetime:
 
+![Arena allocation pattern](images/arena-allocation.svg)
+
 ```typescript
 class MemoryArena {
   private base: number;
@@ -87,6 +89,8 @@ arena.reset();
 ### Pool Allocation
 
 For fixed-size objects, pools are efficient:
+
+![Pool allocation with free list](images/pool-allocation.svg)
 
 ```typescript
 class ObjectPool<T> {

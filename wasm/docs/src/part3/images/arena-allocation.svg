@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 280">
+  <defs>
+    <linearGradient id="arenaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f1f5f9"/>
+      <stop offset="100%" style="stop-color:#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="alloc1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="alloc2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#34d399"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="alloc3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a78bfa"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="freeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fef3c7"/>
+      <stop offset="100%" style="stop-color:#fde68a"/>
+    </linearGradient>
+    <marker id="arrowBlk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="325" y="25" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Arena Allocation Pattern</text>
+  
+  <!-- Phase 1: Allocate -->
+  <text x="160" y="55" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#475569">1. Allocate</text>
+  <rect x="30" y="65" width="260" height="40" rx="4" fill="url(#arenaGrad)" stroke="#94a3b8" stroke-width="1"/>
+  <rect x="32" y="67" width="60" height="36" rx="2" fill="url(#alloc1)"/>
+  <rect x="94" y="67" width="80" height="36" rx="2" fill="url(#alloc2)"/>
+  <rect x="176" y="67" width="45" height="36" rx="2" fill="url(#alloc3)"/>
+  <text x="62" y="90" text-anchor="middle" font-family="monospace" font-size="9" fill="white">A</text>
+  <text x="134" y="90" text-anchor="middle" font-family="monospace" font-size="9" fill="white">B</text>
+  <text x="198" y="90" text-anchor="middle" font-family="monospace" font-size="9" fill="white">C</text>
+  <!-- Offset pointer -->
+  <line x1="223" y1="110" x2="223" y2="125" stroke="#ef4444" stroke-width="2"/>
+  <polygon points="223,125 218,118 228,118" fill="#ef4444"/>
+  <text x="223" y="140" text-anchor="middle" font-family="monospace" font-size="10" fill="#ef4444">offset</text>
+  
+  <!-- Arrow to phase 2 -->
+  <path d="M300 85 L340 85" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowBlk)"/>
+  
+  <!-- Phase 2: Reset -->
+  <text x="490" y="55" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#475569">2. Reset</text>
+  <rect x="360" y="65" width="260" height="40" rx="4" fill="url(#arenaGrad)" stroke="#94a3b8" stroke-width="1"/>
+  <rect x="362" y="67" width="256" height="36" rx="2" fill="url(#freeGrad)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="490" y="90" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#92400e">free (instant!)</text>
+  <!-- Offset pointer reset -->
+  <line x1="362" y1="110" x2="362" y2="125" stroke="#ef4444" stroke-width="2"/>
+  <polygon points="362,125 357,118 367,118" fill="#ef4444"/>
+  <text x="362" y="140" text-anchor="middle" font-family="monospace" font-size="10" fill="#ef4444">offset=0</text>
+  
+  <!-- Arrow to phase 3 -->
+  <path d="M490 150 L490 165 L160 165 L160 180" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowBlk)"/>
+  
+  <!-- Phase 3: Reuse -->
+  <text x="160" y="200" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#475569">3. Reuse</text>
+  <rect x="30" y="210" width="260" height="40" rx="4" fill="url(#arenaGrad)" stroke="#94a3b8" stroke-width="1"/>
+  <rect x="32" y="212" width="100" height="36" rx="2" fill="url(#alloc1)"/>
+  <rect x="134" y="212" width="55" height="36" rx="2" fill="url(#alloc2)"/>
+  <text x="82" y="235" text-anchor="middle" font-family="monospace" font-size="9" fill="white">D</text>
+  <text x="161" y="235" text-anchor="middle" font-family="monospace" font-size="9" fill="white">E</text>
+  <!-- Offset pointer -->
+  <line x1="191" y1="255" x2="191" y2="270" stroke="#ef4444" stroke-width="2"/>
+  <polygon points="191,270 186,263 196,263" fill="#ef4444"/>
+  
+  <!-- Benefits -->
+  <g transform="translate(360, 190)">
+    <text x="0" y="20" font-family="system-ui,sans-serif" font-size="11" fill="#059669">✓ O(1) reset - just move pointer</text>
+    <text x="0" y="38" font-family="system-ui,sans-serif" font-size="11" fill="#059669">✓ No fragmentation</text>
+    <text x="0" y="56" font-family="system-ui,sans-serif" font-size="11" fill="#059669">✓ No per-object free tracking</text>
+    <text x="0" y="74" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">✗ All-or-nothing deallocation</text>
+  </g>
+</svg>

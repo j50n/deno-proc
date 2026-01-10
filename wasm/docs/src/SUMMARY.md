@@ -1,5 +1,6 @@
 # Summary
 
+[Table of Contents](./cover.md)
 [Introduction](./introduction.md)
 
 # Part I: Getting Started

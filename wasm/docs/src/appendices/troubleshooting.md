@@ -43,7 +43,8 @@ Error: invalid target 'wasm32'
 
 **Solution**: Use the correct target:
 ```bash
-odin build . -target:js_wasm32
+odin build . -target:js_wasm32 -out:module.wasm \
+    -extra-linker-flags:"--import-memory --strip-all"
 ```
 
 ## Link Errors

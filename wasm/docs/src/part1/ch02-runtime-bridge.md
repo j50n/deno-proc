@@ -2,6 +2,8 @@
 
 When you call a WASM function from JavaScript, something has to translate between the two worlds. That's the runtime bridge—the `env` object you pass during instantiation.
 
+![Runtime Bridge](images/runtime-bridge.svg)
+
 ## The Minimal Example
 
 Let's start with Odin code that does something useful:
@@ -66,6 +68,22 @@ Here's a runtime class that provides everything Odin needs:
 class OdinRuntime {
   constructor(private memory: WebAssembly.Memory) {}
 
+  get env(): Record<string, WebAssembly.ImportValue> {
+    return {
+      sin: this.sin.bind(this),
+      cos: this.cos.bind(this),
+      sqrt: this.sqrt.bind(this),
+      pow: this.pow.bind(this),
+      ln: this.ln.bind(this),
+      exp: this.exp.bind(this),
+      ldexp: this.ldexp.bind(this),
+      fmuladd: this.fmuladd.bind(this),
+      write: this.write.bind(this),
+      trap: this.trap.bind(this),
+      abort: this.abort.bind(this),
+    };
+  }
+
   // Math
   sin(x: number): number { return Math.sin(x); }
   cos(x: number): number { return Math.cos(x); }
@@ -88,45 +106,60 @@ class OdinRuntime {
   // Errors
   trap(): never { throw new Error("WASM trap"); }
   abort(): never { throw new Error("WASM abort"); }
-
-  createEnv(): Record<string, WebAssembly.ImportValue> {
-    const env: Record<string, WebAssembly.ImportValue> = {};
-    for (const name of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
-      if (name !== "constructor" && name !== "createEnv") {
-        env[name] = (this as any)[name].bind(this);
-      }
-    }
-    return env;
-  }
 }
 ```
 
-The `createEnv()` method collects all methods into an object suitable for WASM imports. The `.bind(this)` is crucial—without it, methods lose their `this` context when called from WASM.
+The `env` getter returns a plain object with bound methods. The `.bind(this)` is crucial—without it, methods lose their `this` context when called from WASM.
+
+## Importing Memory
+
+By default, Odin exports its own memory. This creates a chicken-and-egg problem: you need memory to create the runtime, but memory comes from the instance.
+
+The solution is to tell Odin to import memory instead:
+
+```bash
+odin build main.odin -file -target:js_wasm32 \
+    -extra-linker-flags:"--import-memory"
+```
+
+Now you create memory first and pass it to both the runtime and WASM:
+
+```typescript
+const memory = new WebAssembly.Memory({ initial: 17, maximum: 256 });
+const runtime = new OdinRuntime(memory);
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  env: { memory },
+  odin_env: runtime.env,
+});
+```
+
+Odin can still grow the memory up to the maximum you specify.
 
 ## Wrapping It Up
 
 Now wrap everything in a clean API:
 
 ```typescript
-export class MathDemo {
+export class Demo {
   private constructor(
     private instance: WebAssembly.Instance,
     public memory: WebAssembly.Memory,
   ) {}
 
-  static async create(): Promise<MathDemo> {
-    const wasmPath = new URL("./math-demo.wasm", import.meta.url).pathname;
-    const wasmBytes = await Deno.readFile(wasmPath);
+  static async create(): Promise<Demo> {
+    const wasmBytes = await Deno.readFile("demo.wasm");
     const wasmModule = await WebAssembly.compile(wasmBytes);
 
-    const memory = new WebAssembly.Memory({ initial: 1, maximum: 256 });
+    const memory = new WebAssembly.Memory({ initial: 17, maximum: 256 });
     const runtime = new OdinRuntime(memory);
 
     const instance = await WebAssembly.instantiate(wasmModule, {
-      env: { memory, ...runtime.createEnv() },
+      env: { memory },
+      odin_env: runtime.env,
     });
 
-    return new MathDemo(instance, memory);
+    return new Demo(instance, memory);
   }
 
   calculateCircle(radius: number): number {
@@ -136,25 +169,15 @@ export class MathDemo {
   fibonacci(n: number): number {
     return (this.instance.exports.fibonacci as (n: number) => number)(n);
   }
-
-  // Memory allocation (we'll expand these in later chapters)
-  allocate(size: number): number {
-    return (this.instance.exports.allocate as (size: number) => number)(size);
-  }
-
-  deallocate(ptr: number, size: number): void {
-    (this.instance.exports.deallocate as (ptr: number, size: number) => void)(ptr, size);
-  }
 }
 ```
 
 Usage:
 
 ```typescript
-const demo = await MathDemo.create();
+const demo = await Demo.create();
 console.log(demo.calculateCircle(5));  // 78.53981633974483
 console.log(demo.fibonacci(10));       // 55
-// No cleanup needed - instances are garbage collected like any JS object
 ```
 
 ## The Import/Export Contract
@@ -162,9 +185,9 @@ console.log(demo.fibonacci(10));       // 55
 This is the fundamental pattern:
 
 - **Exports**: Functions WASM provides to JavaScript (marked with `@(export)`)
-- **Imports**: Functions JavaScript provides to WASM (the `env` object)
+- **Imports**: Functions JavaScript provides to WASM (the `env` and `odin_env` objects)
 
-The `env` namespace is conventional—Odin expects it. Other languages might use different names.
+Memory goes in `env`, runtime functions go in `odin_env`.
 
 ## Extending the Runtime
 

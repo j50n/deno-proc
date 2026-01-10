@@ -30,14 +30,6 @@ Displays an alert message (typically for debugging).
 - `ptr`: Pointer to message string
 - `len`: Length of message
 
-### Evaluation
-
-#### `evaluate(str_ptr: i32, str_len: i32) -> f64`
-Evaluates a string expression and returns the result.
-- `str_ptr`: Pointer to expression string
-- `str_len`: Length of expression
-- Returns: Evaluation result
-
 ### Time Operations
 
 #### `time_now() -> f64`
@@ -146,23 +138,48 @@ See the [thetarnav/odin-wasm](https://github.com/thetarnav/odin-wasm) repository
 
 ## Usage in TypeScript/Deno
 
+Build with `--import-memory` to allow JavaScript to create and manage memory:
+
+```bash
+odin build main.odin -file -target:js_wasm32 \
+    -extra-linker-flags:"--import-memory --strip-all"
+```
+
+Then instantiate:
+
 ```typescript
 class OdinRuntime {
-  constructor(memory: WebAssembly.Memory) {
-    this.env = {
-      // Core runtime functions
-      write: (fd: number, ptr: number, len: number) => { /* implementation */ },
-      trap: () => { throw new Error("WASM trap"); },
-      abort: (file_ptr: number, file_len: number, line: number, column: number) => { /* implementation */ },
-      
-      // Math functions
+  constructor(private memory: WebAssembly.Memory) {}
+
+  get env(): Record<string, WebAssembly.ImportValue> {
+    return {
+      write: this.write.bind(this),
+      trap: this.trap.bind(this),
+      abort: this.abort.bind(this),
       sin: Math.sin,
       cos: Math.cos,
-      sqrt: Math.sqrt,
-      pow: Math.pow,
-      
       // ... other functions
     };
   }
+
+  write(fd: number, ptr: number, len: number): number {
+    const bytes = new Uint8Array(this.memory.buffer, ptr, len);
+    const text = new TextDecoder().decode(bytes);
+    if (fd === 1) console.log(text);
+    else if (fd === 2) console.error(text);
+    return len;
+  }
+
+  trap(): never { throw new Error("WASM trap"); }
+  abort(): never { throw new Error("WASM abort"); }
 }
+
+// Usage
+const memory = new WebAssembly.Memory({ initial: 17, maximum: 256 });
+const runtime = new OdinRuntime(memory);
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  env: { memory },
+  odin_env: runtime.env,
+});
 ```

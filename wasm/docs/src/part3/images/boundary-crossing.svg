@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280">
+  <defs>
+    <linearGradient id="truckGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="roadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e2e8f0"/>
+      <stop offset="50%" style="stop-color:#cbd5e1"/>
+      <stop offset="100%" style="stop-color:#e2e8f0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Title -->
+  <text x="300" y="25" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Boundary Crossing: Batch vs Individual Calls</text>
+  
+  <!-- BAD: Many crossings -->
+  <text x="150" y="55" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#dc2626">✗ 1000 calls, 1 item each</text>
+  
+  <!-- JS side -->
+  <rect x="20" y="70" width="60" height="100" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="50" y="125" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#475569">JS</text>
+  
+  <!-- WASM side -->
+  <rect x="180" y="70" width="60" height="100" rx="4" fill="#fef3c7" stroke="#d97706"/>
+  <text x="210" y="125" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#92400e">WASM</text>
+  
+  <!-- Many small arrows (boundary crossings) -->
+  <g stroke="#ef4444" stroke-width="1" fill="none">
+    <path d="M80 85 L180 85"/>
+    <path d="M80 95 L180 95"/>
+    <path d="M80 105 L180 105"/>
+    <path d="M80 115 L180 115"/>
+    <path d="M80 125 L180 125"/>
+    <path d="M80 135 L180 135"/>
+    <path d="M80 145 L180 145"/>
+    <path d="M80 155 L180 155"/>
+  </g>
+  <text x="130" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#64748b">... × 1000</text>
+  
+  <!-- Small boxes representing individual items -->
+  <g fill="url(#boxGrad)">
+    <rect x="85" y="82" width="8" height="8" rx="1"/>
+    <rect x="85" y="92" width="8" height="8" rx="1"/>
+    <rect x="85" y="102" width="8" height="8" rx="1"/>
+    <rect x="85" y="112" width="8" height="8" rx="1"/>
+    <rect x="85" y="122" width="8" height="8" rx="1"/>
+    <rect x="85" y="132" width="8" height="8" rx="1"/>
+    <rect x="85" y="142" width="8" height="8" rx="1"/>
+    <rect x="85" y="152" width="8" height="8" rx="1"/>
+  </g>
+  
+  <!-- GOOD: One crossing -->
+  <text x="450" y="55" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#059669">✓ 1 call, 1000 items</text>
+  
+  <!-- JS side -->
+  <rect x="320" y="70" width="60" height="100" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="350" y="125" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#475569">JS</text>
+  
+  <!-- WASM side -->
+  <rect x="480" y="70" width="60" height="100" rx="4" fill="#fef3c7" stroke="#d97706"/>
+  <text x="510" y="125" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#92400e">WASM</text>
+  
+  <!-- One big arrow with truck -->
+  <path d="M380 120 L480 120" stroke="#059669" stroke-width="3" fill="none"/>
+  
+  <!-- Truck shape -->
+  <g transform="translate(400, 100)">
+    <!-- Truck bed with boxes -->
+    <rect x="0" y="10" width="50" height="25" rx="2" fill="url(#truckGrad)"/>
+    <!-- Boxes in truck -->
+    <g fill="url(#boxGrad)">
+      <rect x="3" y="13" width="6" height="6" rx="1"/>
+      <rect x="11" y="13" width="6" height="6" rx="1"/>
+      <rect x="19" y="13" width="6" height="6" rx="1"/>
+      <rect x="27" y="13" width="6" height="6" rx="1"/>
+      <rect x="35" y="13" width="6" height="6" rx="1"/>
+      <rect x="3" y="21" width="6" height="6" rx="1"/>
+      <rect x="11" y="21" width="6" height="6" rx="1"/>
+      <rect x="19" y="21" width="6" height="6" rx="1"/>
+      <rect x="27" y="21" width="6" height="6" rx="1"/>
+      <rect x="35" y="21" width="6" height="6" rx="1"/>
+    </g>
+    <!-- Cab -->
+    <rect x="50" y="15" width="18" height="20" rx="2" fill="url(#truckGrad)"/>
+    <!-- Wheels -->
+    <circle cx="12" cy="38" r="5" fill="#1e293b"/>
+    <circle cx="40" cy="38" r="5" fill="#1e293b"/>
+    <circle cx="58" cy="38" r="5" fill="#1e293b"/>
+  </g>
+  
+  <!-- Comparison -->
+  <g transform="translate(50, 210)">
+    <rect width="200" height="55" rx="6" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="100" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#dc2626">Slow</text>
+    <text x="100" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#7f1d1d">1000 boundary crossings</text>
+    <text x="100" y="50" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#7f1d1d">~50μs overhead each</text>
+  </g>
+  
+  <g transform="translate(350, 210)">
+    <rect width="200" height="55" rx="6" fill="#dcfce7" stroke="#86efac"/>
+    <text x="100" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#059669">Fast</text>
+    <text x="100" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#166534">1 boundary crossing</text>
+    <text x="100" y="50" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#166534">Loop runs in WASM</text>
+  </g>
+</svg>

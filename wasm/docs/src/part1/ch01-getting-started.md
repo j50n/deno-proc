@@ -41,7 +41,8 @@ Why not `freestanding_wasm32`? It produces tiny binaries but lobotomizes Odin—
 > ⚠️ **Avoid WASI targets with Deno.** Deno's WASI support is incomplete and poorly documented. The `wasi_wasm32` target looks appealing but leads to hours of frustration. Stick with `js_wasm32`.
 
 ```bash
-odin build . -target:js_wasm32
+odin build . -target:js_wasm32 -out:module.wasm \
+    -extra-linker-flags:"--import-memory --strip-all"
 ```
 
 Output is typically ~30-40KB for simple modules. The runtime requires `odin_env` imports that your JavaScript host must implement (covered in Part 2).
@@ -51,10 +52,10 @@ Output is typically ~30-40KB for simple modules. The runtime requires `odin_env`
 ```
 foundation/
 ├── odin/
-│   └── math_demo.odin    # Odin source
-├── math-demo.ts          # TypeScript wrapper
-├── math-demo.test.ts     # Tests
-├── math-demo.wasm        # Compiled output
+│   └── demo.odin    # Odin source
+├── demo.ts          # TypeScript wrapper
+├── demo.test.ts     # Tests
+├── demo.wasm        # Compiled output
 ├── build.sh              # Build script
 └── deno.json             # Deno config
 ```
@@ -67,16 +68,18 @@ Create `build.sh`:
 #!/bin/bash
 set -e
 
-echo "🔨 Building math_demo.wasm..."
+echo "🔨 Building demo.wasm..."
 odin build odin/ \
     -target:js_wasm32 \
-    -out:math-demo.wasm \
-    -o:speed
+    -out:demo.wasm \
+    -extra-linker-flags:"--import-memory --strip-all"
 
-echo "✅ Build: math-demo.wasm ($(du -h math-demo.wasm | cut -f1))"
+echo "✅ Build: demo.wasm ($(du -h demo.wasm | cut -f1))"
 ```
 
-The `-o:speed` flag optimizes for performance. Use `-o:size` for smaller output, `-o:none` for faster compilation during development.
+Key flags:
+- `--import-memory`: Let JavaScript create and manage memory (avoids chicken-and-egg problem)
+- `--strip-all`: Remove debug symbols for smaller output (~50% size reduction)
 
 ## Deno Configuration
 
@@ -92,7 +95,7 @@ Create `deno.json`:
 
 ## Verify Your Setup
 
-Create `odin/math_demo.odin`:
+Create `odin/demo.odin`:
 
 ```odin
 package main

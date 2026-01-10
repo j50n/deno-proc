@@ -8,6 +8,8 @@ This is where WASM earns its keep. Heavy computation that would choke JavaScript
 
 Move loops into WASM. One boundary crossing beats a million:
 
+![Batch vs individual calls](images/boundary-crossing.svg)
+
 ```odin
 @(export)
 mandelbrot_row :: proc "c" (
@@ -34,7 +36,7 @@ mandelbrot_escape :: proc(cx, cy: f64, max_iter: int) -> int {
 ```
 
 ```typescript
-function renderMandelbrot(demo: MathDemo, width: number, height: number): Uint8Array {
+function renderMandelbrot(demo: Demo, width: number, height: number): Uint8Array {
   const rowPtr = demo.allocate(width);
   const pixels = new Uint8Array(width * height);
   
@@ -97,7 +99,7 @@ statistics :: proc "c" (data: [^]f64, len: int, out: [^]f64) {
 ### Passing Arrays
 
 ```typescript
-function processArray(demo: MathDemo, values: number[]): Float64Array {
+function processArray(demo: Demo, values: number[]): Float64Array {
   const data = new Float64Array(values);
   const ptr = demo.allocate(data.byteLength);
   new Float64Array(demo.memory.buffer, ptr, data.length).set(data);
@@ -153,7 +155,7 @@ closest_point :: proc "c" (points: [^]Point, count: int, target: ^Point) -> int 
 ```
 
 ```typescript
-function closestPoint(demo: MathDemo, points: Point[], target: Point): number {
+function closestPoint(demo: Demo, points: Point[], target: Point): number {
   const arrayPtr = demo.allocate(points.length * POINT_SIZE);
   const targetPtr = demo.allocate(POINT_SIZE);
   

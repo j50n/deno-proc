@@ -4,6 +4,8 @@ WASM errors are different from JavaScript errors. When something goes wrong, you
 
 ## Error Types
 
+![Error types and when they occur](images/error-flow.svg)
+
 ### Traps (RuntimeError)
 
 Catastrophic failures: division by zero, out-of-bounds access, unreachable code.
@@ -96,11 +98,11 @@ WASM errors may corrupt instance state. For critical applications:
 
 ```typescript
 class ResilientWasm {
-  private instance: MathDemo | null = null;
+  private instance: Demo | null = null;
   
   async calculate(radius: number): Promise<number> {
     try {
-      if (!this.instance) this.instance = await MathDemo.create();
+      if (!this.instance) this.instance = await Demo.create();
       return this.instance.calculateCircle(radius);
     } catch {
       this.instance = null;  // Allow GC, will recreate on next call

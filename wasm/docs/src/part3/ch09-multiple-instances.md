@@ -2,6 +2,8 @@
 
 So far we've worked with single WASM instances. But sometimes you need more than one—for isolation, parallelism, or architectural reasons.
 
+![Multiple instances architecture](images/multiple-instances.svg)
+
 ## Why Multiple Instances?
 
 ### Isolation
@@ -9,8 +11,8 @@ So far we've worked with single WASM instances. But sometimes you need more than
 Each instance has its own memory. One instance can't corrupt another's state:
 
 ```typescript
-const instance1 = await MathDemo.create();
-const instance2 = await MathDemo.create();
+const instance1 = await Demo.create();
+const instance2 = await Demo.create();
 
 // These operate on completely separate memory
 instance1.processData(data1);
@@ -25,7 +27,7 @@ WASM instances can run concurrently in Web Workers:
 
 ```typescript
 // worker.ts
-const demo = await MathDemo.create();
+const demo = await Demo.create();
 
 self.onmessage = (e) => {
   const result = demo.calculate(e.data);
@@ -57,8 +59,8 @@ const results = await Promise.all(
 Same module, different setups:
 
 ```typescript
-const smallInstance = await MathDemo.create({ memoryPages: 1 });
-const largeInstance = await MathDemo.create({ memoryPages: 256 });
+const smallInstance = await Demo.create({ memoryPages: 1 });
+const largeInstance = await Demo.create({ memoryPages: 256 });
 ```
 
 ## Creating Multiple Instances
@@ -66,10 +68,10 @@ const largeInstance = await MathDemo.create({ memoryPages: 256 });
 The pattern is straightforward—just call your factory multiple times:
 
 ```typescript
-const instances: MathDemo[] = [];
+const instances: Demo[] = [];
 
 for (let i = 0; i < 4; i++) {
-  instances.push(await MathDemo.create());
+  instances.push(await Demo.create());
 }
 ```
 
@@ -87,33 +89,33 @@ They share:
 Compiling WASM is expensive. Compile once, instantiate many times:
 
 ```typescript
-class MathDemoFactory {
+class DemoFactory {
   private module: WebAssembly.Module | null = null;
   
   async compile(): Promise<void> {
     if (this.module) return;
     
-    const wasmPath = new URL("./math-demo.wasm", import.meta.url).pathname;
-    const wasmBytes = await Deno.readFile(wasmPath);
+    const wasmBytes = await Deno.readFile("demo.wasm");
     this.module = await WebAssembly.compile(wasmBytes);
   }
   
-  async create(): Promise<MathDemo> {
+  async create(): Promise<Demo> {
     await this.compile();
     
-    const memory = new WebAssembly.Memory({ initial: 1, maximum: 256 });
+    const memory = new WebAssembly.Memory({ initial: 17, maximum: 256 });
     const runtime = new OdinRuntime(memory);
     
     const instance = await WebAssembly.instantiate(this.module!, {
-      env: runtime.createEnv(),
+      env: { memory },
+      odin_env: runtime.env,
     });
     
-    return new MathDemo(instance, memory, runtime);
+    return new Demo(instance, memory);
   }
 }
 
 // Usage
-const factory = new MathDemoFactory();
+const factory = new DemoFactory();
 await factory.compile();
 
 const instance1 = await factory.create(); // Fast - module already compiled
@@ -127,12 +129,12 @@ For high-throughput scenarios, maintain a pool of ready instances:
 
 ```typescript
 class InstancePool {
-  private available: MathDemo[] = [];
-  private inUse = new Set<MathDemo>();
-  private factory: MathDemoFactory;
+  private available: Demo[] = [];
+  private inUse = new Set<Demo>();
+  private factory: DemoFactory;
   
   constructor(private maxSize: number) {
-    this.factory = new MathDemoFactory();
+    this.factory = new DemoFactory();
   }
   
   async initialize(count: number): Promise<void> {
@@ -143,7 +145,7 @@ class InstancePool {
     }
   }
   
-  async acquire(): Promise<MathDemo> {
+  async acquire(): Promise<Demo> {
     let instance = this.available.pop();
     
     if (!instance && this.inUse.size < this.maxSize) {
@@ -158,7 +160,7 @@ class InstancePool {
     return instance;
   }
   
-  release(instance: MathDemo): void {
+  release(instance: Demo): void {
     if (!this.inUse.has(instance)) {
       throw new Error("Instance not from this pool");
     }
@@ -168,7 +170,7 @@ class InstancePool {
     this.available.push(instance);
   }
   
-  async withInstance<T>(fn: (instance: MathDemo) => Promise<T>): Promise<T> {
+  async withInstance<T>(fn: (instance: Demo) => Promise<T>): Promise<T> {
     const instance = await this.acquire();
     try {
       return await fn(instance);
@@ -212,14 +214,14 @@ Instances can't directly call each other. Communication goes through JavaScript:
 
 ```typescript
 class InstanceCoordinator {
-  private instances: MathDemo[];
+  private instances: Demo[];
   
-  constructor(instances: MathDemo[]) {
+  constructor(instances: Demo[]) {
     this.instances = instances;
   }
   
   // Fan-out: same operation on all instances
-  async broadcast(fn: (demo: MathDemo) => Promise<number>): Promise<number[]> {
+  async broadcast(fn: (demo: Demo) => Promise<number>): Promise<number[]> {
     return Promise.all(this.instances.map(fn));
   }
   
@@ -235,7 +237,7 @@ class InstanceCoordinator {
   // Map-reduce: distribute work, combine results
   async mapReduce(
     data: number[],
-    map: (demo: MathDemo, chunk: number[]) => number,
+    map: (demo: Demo, chunk: number[]) => number,
     reduce: (results: number[]) => number
   ): Promise<number> {
     const chunkSize = Math.ceil(data.length / this.instances.length);
@@ -260,8 +262,8 @@ Verify instances are truly independent:
 
 ```typescript
 Deno.test("Multiple instances are isolated", async () => {
-  const demo1 = await MathDemo.create();
-  const demo2 = await MathDemo.create();
+  const demo1 = await Demo.create();
+  const demo2 = await Demo.create();
   
   // Modify state in instance 1
   demo1.setState(42);
@@ -271,8 +273,8 @@ Deno.test("Multiple instances are isolated", async () => {
 });
 
 Deno.test("Instances can run concurrently", async () => {
-  const demo1 = await MathDemo.create();
-  const demo2 = await MathDemo.create();
+  const demo1 = await Demo.create();
+  const demo2 = await Demo.create();
   
   // Run simultaneously
   const [result1, result2] = await Promise.all([

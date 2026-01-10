@@ -2,6 +2,8 @@
 
 A practical guide for building WebAssembly applications using Deno and Odin.
 
+A practical guide for building WebAssembly applications using Deno and Odin.
+
 ## What This Book Covers
 
 This is a hands-on guide that takes you from first WASM module to production deployment. We use Odin as our systems language (clean syntax, excellent WASM support) and Deno as our runtime (first-class WASM integration).
