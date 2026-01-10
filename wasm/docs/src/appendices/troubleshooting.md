@@ -44,16 +44,14 @@ Error: invalid target 'wasm32'
 **Solution**: Use the correct target:
 ```bash
 odin build . -target:js_wasm32
-# or
-odin build . -target:freestanding_wasm32
 ```
 
 ## Link Errors
 
-### "LinkError: import env::xyz not found"
+### "LinkError: import odin_env::xyz not found"
 
 ```
-LinkError: WebAssembly.instantiate(): Import #0 module="env" function="sin" error: function import requires a callable
+LinkError: WebAssembly.instantiate(): Import #0 module="odin_env" function="sin" error: function import requires a callable
 ```
 
 **Cause**: WASM module expects a function that isn't in your imports.
@@ -61,7 +59,7 @@ LinkError: WebAssembly.instantiate(): Import #0 module="env" function="sin" erro
 **Solution**: Add the missing function to your runtime:
 ```typescript
 const imports = {
-  env: {
+  odin_env: {
     sin: Math.sin,  // Add missing function
     // ...
   },
@@ -193,12 +191,11 @@ bytes = new Uint8Array(memory.buffer);  // Create new view
 
 ### Large Bundle Size
 
-**Cause**: Using `js_wasm32` target includes runtime.
+**Cause**: Debug builds include extra information.
 
 **Solutions**:
-1. Use `freestanding_wasm32` if you don't need runtime features
-2. Build with `-o:size`
-3. Compress the WASM file (gzip/brotli)
+1. Build with `-o:size`
+2. Compress the WASM file (gzip/brotli)
 
 ## Build Issues
 

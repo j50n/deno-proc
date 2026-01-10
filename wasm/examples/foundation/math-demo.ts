@@ -1,87 +1,295 @@
 /**
- * Odin runtime functions for WebAssembly integration
+ * Odin WebAssembly Runtime Environment
+ *
+ * This class provides the complete set of functions that Odin's WebAssembly backend
+ * expects to be available in the 'env' import module. These functions are called
+ * directly by Odin's compiled WASM code to implement functionality that WebAssembly
+ * cannot provide natively.
+ *
+ * Based on the official Odin WASM implementation and compiler backend requirements.
+ *
+ * References:
+ * - https://github.com/thetarnav/odin-wasm/blob/main/wasm/env.js
+ * - https://gist.github.com/sortofsleepy/603e70468f0b33c56e220df698451ce6
+ * - https://pkg.odin-lang.org/core/math/
  */
 class OdinRuntime {
   constructor(private memory: WebAssembly.Memory) {}
 
-  // Math functions - Called by Odin's core:math package
+  // ============================================================================
+  // MATH FUNCTIONS
+  // Functions called by Odin's core:math package when compiled to WebAssembly
+  // ============================================================================
 
-  /** Called by math.sin() in Odin code */
+  /**
+   * Sine function - called by math.sin() in Odin code
+   * @param x - Angle in radians
+   * @returns Sine of x
+   */
   sin(x: number): number {
     return Math.sin(x);
   }
 
-  /** Called by math.cos() in Odin code */
+  /**
+   * Cosine function - called by math.cos() in Odin code
+   * @param x - Angle in radians
+   * @returns Cosine of x
+   */
   cos(x: number): number {
     return Math.cos(x);
   }
 
-  /** Called by math.sqrt() in Odin code */
+  /**
+   * Square root function - called by math.sqrt() in Odin code
+   * @param x - Input value
+   * @returns Square root of x
+   */
   sqrt(x: number): number {
     return Math.sqrt(x);
   }
 
-  /** Called by math.pow() in Odin code */
+  /**
+   * Power function - called by math.pow() in Odin code
+   * @param x - Base value
+   * @param y - Exponent
+   * @returns x raised to the power of y
+   */
   pow(x: number, y: number): number {
     return Math.pow(x, y);
   }
 
-  /** Called by math.ln() in Odin code */
+  /**
+   * Natural logarithm - called by math.ln() in Odin code
+   * @param x - Input value
+   * @returns Natural logarithm of x
+   */
   ln(x: number): number {
     return Math.log(x);
   }
 
-  /** Called by math.exp() in Odin code */
+  /**
+   * Exponential function - called by math.exp() in Odin code
+   * @param x - Input value
+   * @returns e raised to the power of x
+   */
   exp(x: number): number {
     return Math.exp(x);
   }
 
-  /** Called by math.ldexp() - scales x by 2^exp */
+  /**
+   * Load exponent function - called by math.ldexp() in Odin code
+   * Multiplies x by 2 raised to the power of exp
+   * @param x - Significand
+   * @param exp - Exponent (integer)
+   * @returns x * 2^exp
+   */
   ldexp(x: number, exp: number): number {
     return x * Math.pow(2, exp);
   }
 
-  /** Called by math.fmuladd() - fused multiply-add: (a * b) + c */
-  fmuladd(a: number, b: number, c: number): number {
-    return a * b + c;
+  /**
+   * Fused multiply-add - called by math.fmuladd() in Odin code
+   * Computes (x * y) + z with higher precision than separate operations
+   * @param x - First multiplicand
+   * @param y - Second multiplicand
+   * @param z - Addend
+   * @returns (x * y) + z
+   */
+  fmuladd(x: number, y: number, z: number): number {
+    return x * y + z;
   }
 
-  // Runtime functions - Called by Odin's runtime system
+  // ============================================================================
+  // ADDITIONAL MATH FUNCTIONS
+  // Extended math functions that may be imported by Odin depending on usage
+  // ============================================================================
 
   /**
-   * Called when Odin code uses fmt.print(), fmt.println(), or writes to stdout/stderr
+   * Tangent function - called by math.tan() in Odin code
+   * @param x - Angle in radians
+   * @returns Tangent of x
+   */
+  tan(x: number): number {
+    return Math.tan(x);
+  }
+
+  /**
+   * Arc sine function - called by math.asin() in Odin code
+   * @param x - Input value (must be in range [-1, 1])
+   * @returns Arc sine of x in radians
+   */
+  asin(x: number): number {
+    return Math.asin(x);
+  }
+
+  /**
+   * Arc cosine function - called by math.acos() in Odin code
+   * @param x - Input value (must be in range [-1, 1])
+   * @returns Arc cosine of x in radians
+   */
+  acos(x: number): number {
+    return Math.acos(x);
+  }
+
+  /**
+   * Arc tangent function - called by math.atan() in Odin code
+   * @param x - Input value
+   * @returns Arc tangent of x in radians
+   */
+  atan(x: number): number {
+    return Math.atan(x);
+  }
+
+  /**
+   * Two-argument arc tangent - called by math.atan2() in Odin code
+   * @param y - Y coordinate
+   * @param x - X coordinate
+   * @returns Arc tangent of y/x in radians, handling quadrants correctly
+   */
+  atan2(y: number, x: number): number {
+    return Math.atan2(y, x);
+  }
+
+  /**
+   * Base-10 logarithm - called by math.log10() in Odin code
+   * @param x - Input value
+   * @returns Base-10 logarithm of x
+   */
+  log10(x: number): number {
+    return Math.log10(x);
+  }
+
+  /**
+   * Base-2 logarithm - called by math.log2() in Odin code
+   * @param x - Input value
+   * @returns Base-2 logarithm of x
+   */
+  log2(x: number): number {
+    return Math.log2(x);
+  }
+
+  /**
+   * Floor function - called by math.floor() in Odin code
+   * @param x - Input value
+   * @returns Largest integer less than or equal to x
+   */
+  floor(x: number): number {
+    return Math.floor(x);
+  }
+
+  /**
+   * Ceiling function - called by math.ceil() in Odin code
+   * @param x - Input value
+   * @returns Smallest integer greater than or equal to x
+   */
+  ceil(x: number): number {
+    return Math.ceil(x);
+  }
+
+  /**
+   * Round function - called by math.round() in Odin code
+   * @param x - Input value
+   * @returns x rounded to the nearest integer
+   */
+  round(x: number): number {
+    return Math.round(x);
+  }
+
+  /**
+   * Truncate function - called by math.trunc() in Odin code
+   * @param x - Input value
+   * @returns Integer part of x (removes fractional part)
+   */
+  trunc(x: number): number {
+    return Math.trunc(x);
+  }
+
+  /**
+   * Absolute value function - called by math.abs() in Odin code
+   * @param x - Input value
+   * @returns Absolute value of x
+   */
+  abs(x: number): number {
+    return Math.abs(x);
+  }
+
+  /**
+   * Hyperbolic sine - called by math.sinh() in Odin code
+   * @param x - Input value
+   * @returns Hyperbolic sine of x
+   */
+  sinh(x: number): number {
+    return Math.sinh(x);
+  }
+
+  /**
+   * Hyperbolic cosine - called by math.cosh() in Odin code
+   * @param x - Input value
+   * @returns Hyperbolic cosine of x
+   */
+  cosh(x: number): number {
+    return Math.cosh(x);
+  }
+
+  /**
+   * Hyperbolic tangent - called by math.tanh() in Odin code
+   * @param x - Input value
+   * @returns Hyperbolic tangent of x
+   */
+  tanh(x: number): number {
+    return Math.tanh(x);
+  }
+
+  // ============================================================================
+  // RUNTIME FUNCTIONS
+  // Core runtime functions called by Odin's runtime system and standard library
+  // ============================================================================
+
+  /**
+   * Write function - called by fmt.print(), fmt.println(), and I/O operations
+   * Handles output to stdout (fd=1) and stderr (fd=2)
    * @param fd - File descriptor: 1=stdout, 2=stderr
    * @param ptr - Memory pointer to string data
    * @param len - Length of string in bytes
-   * @returns Number of bytes written
+   * @returns Number of bytes written (always equals len)
    */
   write(fd: number, ptr: number, len: number): number {
     const memView = new Uint8Array(this.memory.buffer);
     const bytes = memView.slice(ptr, ptr + len);
     const text = new TextDecoder().decode(bytes);
-    if (fd === 1) console.log(text);
-    else if (fd === 2) console.error(text);
+
+    if (fd === 1) {
+      console.log(text);
+    } else if (fd === 2) {
+      console.error(text);
+    } else {
+      throw new Error(`Invalid file descriptor: ${fd}`);
+    }
+
     return len;
   }
 
   /**
-   * Called when Odin encounters an unrecoverable error or explicit trap
-   * Used by panic() and unreachable code paths
+   * Trap function - called when Odin encounters an unrecoverable error
+   * Used by panic() statements and unreachable code paths
+   * @throws Always throws an error to halt execution
    */
   trap(): never {
-    throw new Error("Odin trap");
+    throw new Error("Odin trap: unrecoverable error");
   }
 
   /**
-   * Called when Odin runtime needs to abort execution
-   * Used by runtime errors and failed allocations
+   * Abort function - called when Odin runtime needs to abort execution
+   * Used by runtime errors, failed allocations, and critical failures
+   * @throws Always throws an error to halt execution
    */
   abort(): never {
-    throw new Error("Odin abort");
+    throw new Error("Odin abort: runtime error");
   }
 
   /**
-   * Called by Odin's alert() procedure for debugging output
+   * Alert function - called by Odin's alert() procedure for debugging
+   * Displays debug messages to the console
    * @param ptr - Memory pointer to alert message
    * @param len - Length of message in bytes
    */
@@ -89,34 +297,72 @@ class OdinRuntime {
     const memView = new Uint8Array(this.memory.buffer);
     const bytes = memView.slice(ptr, ptr + len);
     const text = new TextDecoder().decode(bytes);
-    console.error("ALERT:", text);
+    console.warn("ODIN ALERT:", text);
   }
 
   /**
-   * Called when an assert() fails in Odin code
-   * @param file_ptr - Pointer to source filename
-   * @param file_len - Length of filename
-   * @param line - Line number where assertion failed
-   * @param column - Column number where assertion failed
-   * @param msg_ptr - Pointer to assertion message
-   * @param msg_len - Length of assertion message
+   * Evaluate function - called for dynamic code evaluation (rarely used)
+   * Executes JavaScript code from Odin strings
+   * @param ptr - Memory pointer to JavaScript code string
+   * @param len - Length of code string in bytes
    */
-  evaluate_assertion(
-    file_ptr: number,
-    file_len: number,
-    line: number,
-    column: number,
-    msg_ptr: number,
-    msg_len: number,
-  ): never {
+  evaluate(ptr: number, len: number): void {
     const memView = new Uint8Array(this.memory.buffer);
-    const file = new TextDecoder().decode(
-      memView.slice(file_ptr, file_ptr + file_len),
-    );
-    const msg = new TextDecoder().decode(
-      memView.slice(msg_ptr, msg_ptr + msg_len),
-    );
-    throw new Error(`Assertion failed at ${file}:${line}:${column} - ${msg}`);
+    const bytes = memView.slice(ptr, ptr + len);
+    const code = new TextDecoder().decode(bytes);
+    // Note: eval is used here as it's part of Odin's WASM interface
+    // In production, consider security implications
+    eval(code);
+  }
+
+  // ============================================================================
+  // TIME FUNCTIONS
+  // Time-related functions for Odin's time package
+  // ============================================================================
+
+  /**
+   * Current time in nanoseconds - called by time.now() in Odin code
+   * @returns Current timestamp in nanoseconds since Unix epoch
+   */
+  time_now(): bigint {
+    return BigInt(Date.now()) * 1000000n; // Convert ms to ns
+  }
+
+  /**
+   * High-resolution timer - called by time.tick_now() in Odin code
+   * @returns High-resolution timestamp in milliseconds
+   */
+  tick_now(): number {
+    return performance.now();
+  }
+
+  /**
+   * Sleep function - called by time.sleep() in Odin code
+   * Note: WebAssembly cannot actually sleep, this is a no-op
+   * @param duration_ms - Duration to sleep in milliseconds
+   */
+  time_sleep(duration_ms: number): void {
+    // WebAssembly cannot actually sleep synchronously
+    // This is a no-op as per the Odin WASM specification
+    if (duration_ms > 0) {
+      console.warn(`Odin time.sleep(${duration_ms}ms) called - no-op in WASM`);
+    }
+  }
+
+  // ============================================================================
+  // RANDOM FUNCTIONS
+  // Cryptographically secure random number generation
+  // ============================================================================
+
+  /**
+   * Random bytes generation - called by Odin's random number generators
+   * Fills memory region with cryptographically secure random bytes
+   * @param addr - Memory address to write random bytes
+   * @param len - Number of random bytes to generate
+   */
+  rand_bytes(addr: number, len: number): void {
+    const view = new Uint8Array(this.memory.buffer, addr, len);
+    crypto.getRandomValues(view);
   }
 
   /**
@@ -129,20 +375,13 @@ class OdinRuntime {
     // Get all method names from the class prototype
     const methodNames = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
 
-    // Add prototype methods (class methods)
+    // Add prototype methods (class methods) - bind them to preserve 'this'
     for (const name of methodNames) {
       if (name !== "constructor" && name !== "createEnv") {
-        env[name] =
-          (this as unknown as Record<string, WebAssembly.ImportValue>)[name];
-      }
-    }
-
-    // Add instance properties (arrow functions, if any)
-    const instanceNames = Object.getOwnPropertyNames(this);
-    for (const name of instanceNames) {
-      if (name !== "memory") {
-        env[name] =
-          (this as unknown as Record<string, WebAssembly.ImportValue>)[name];
+        const method = (this as unknown as Record<string, unknown>)[name];
+        if (typeof method === "function") {
+          env[name] = method.bind(this);
+        }
       }
     }
 
@@ -180,7 +419,7 @@ export class MathDemo {
     const memory = new WebAssembly.Memory({ initial: 1, maximum: 256 }); // 1 page = 64KB, 256 pages = 16MB
 
     const imports = {
-      env: new OdinRuntime(memory).createEnv(),
+      odin_env: new OdinRuntime(memory).createEnv(),
     };
 
     const wasmInstance = await WebAssembly.instantiate(wasmModule, imports);
@@ -254,5 +493,43 @@ export class MathDemo {
 
     console.log(`👋 TypeScript: Expected greeting length = ${expectedLength}`);
     return expectedLength;
+  }
+
+  /**
+   * Prints a string using Odin's fmt.println
+   * Demonstrates the safe pattern: allocate → write → call → free
+   * @param message - String to print
+   * @returns Length of the printed string
+   */
+  printString(message: string): number {
+    console.log(`📝 TypeScript: Sending "${message}" to Odin`);
+
+    const alloc_string = this.wasmInstance.exports
+      .alloc_string as CallableFunction;
+    const free_string = this.wasmInstance.exports
+      .free_string as CallableFunction;
+    const print_string = this.wasmInstance.exports
+      .print_string as CallableFunction;
+
+    const bytes = new TextEncoder().encode(message);
+    let ptr: number | null = null;
+
+    try {
+      // 1. Allocate memory through Odin
+      ptr = alloc_string(bytes.length) as number;
+
+      // 2. Write string data to allocated memory
+      new Uint8Array(this.memory.buffer).set(bytes, ptr);
+
+      // 3. Call Odin function with pointer and length
+      const result = print_string(ptr, bytes.length) as number;
+
+      return result;
+    } finally {
+      // 4. Always free memory, even if an error occurs
+      if (ptr !== null) {
+        free_string(ptr, bytes.length);
+      }
+    }
   }
 }

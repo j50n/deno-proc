@@ -30,6 +30,7 @@
 # Appendices
 
 - [Odin Language Reference](./appendices/odin-reference.md)
+- [Odin WASM Environment Functions](./appendices/odin-wasm-env.md)
 - [Deno WASM API Reference](./appendices/deno-reference.md)
 - [Troubleshooting Guide](./appendices/troubleshooting.md)
 - [Resources](./appendices/resources.md)

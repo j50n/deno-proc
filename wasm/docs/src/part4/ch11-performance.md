@@ -87,16 +87,16 @@ You might wonder: how expensive is it to create a new WASM instance? Should you 
 **Benchmark results** (Chromebook Plus in Crostini VM—modest hardware):
 
 ```
-WASM Instance Startup (100,000 iterations, after 10k warmup)
+WASM Instance Startup (100,000 iterations, after 10k warmup + 3s sleep)
 ──────────────────────────────────────────────────
-Average: 0.191 ms
-Min:     0.072 ms
-P50:     0.099 ms
-P95:     0.407 ms
-P99:     2.869 ms
+Average: 0.181 ms
+Min:     0.055 ms
+P50:     0.083 ms
+P99:     2.913 ms
+Max:     7.857 ms
 ```
 
-Creating a fresh instance, calling a function, and disposing takes ~0.1ms median. That's fast enough to create ~10,000 instances per second on mediocre hardware.
+Creating a fresh instance, calling a function, and disposing takes ~0.08ms median. That's fast enough to create ~12,000 instances per second on mediocre hardware.
 
 **Implications:**
 
@@ -111,6 +111,8 @@ Creating a fresh instance, calling a function, and disposing takes ~0.1ms median
 - Memory-constrained environments where you want to reuse allocations
 
 For most applications, just create instances when you need them and let them get garbage collected.
+
+See `examples/startup-bench/` for the benchmark code.
 
 ## Memory Access Patterns
 
@@ -225,13 +227,9 @@ wc -c math-demo.wasm
 
 ### Reducing Size
 
-**Choose the right target:**
-- `freestanding_wasm32`: ~2KB for simple modules
-- `js_wasm32`: ~30KB+ (includes runtime)
-
 **Strip debug info:**
 ```bash
-odin build . -target:js_wasm32 -o:size  # Strips by default in release
+odin build . -target:js_wasm32 -o:size
 ```
 
 **Remove unused exports:**

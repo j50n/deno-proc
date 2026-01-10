@@ -118,5 +118,5 @@ Recreate the instance after errors to ensure clean state.
 |-------|-------|-----|
 | `unreachable executed` | Assertion/panic/missing case | Check Odin code logic |
 | `out of bounds memory access` | Bad pointer/index | Verify bounds |
-| `import env::xyz not found` | Missing runtime function | Add to OdinRuntime |
+| `import odin_env::xyz not found` | Missing runtime function | Add to OdinRuntime |
 | `call stack exhausted` | Infinite recursion | Fix recursion base case |

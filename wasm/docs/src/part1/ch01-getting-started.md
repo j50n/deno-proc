@@ -21,33 +21,17 @@ calculate_area :: proc(radius: f64) -> f64 {
 
 If you can read that, you can read Odin.
 
-## Build Targets
+## Build Target
 
-Odin compiles to WebAssembly using different targets. Your choice matters.
-
-### freestanding_wasm32
-
-Minimal WASM modules. No runtime, no standard library, just your code.
-
-```bash
-odin build . -target:freestanding_wasm32
-```
-
-Output is tiny—often just a few kilobytes. But you're on your own: no `print`, no memory allocation, no math functions unless you provide them from JavaScript.
-
-Use when bundle size is critical or you need maximum control.
-
-### js_wasm32
-
-Includes Odin's runtime and standard library access.
+Odin compiles to WebAssembly using the `js_wasm32` target:
 
 ```bash
 odin build . -target:js_wasm32
 ```
 
-Output is larger (~30-40KB) but you get `fmt.println`, dynamic allocation with `make`/`delete`, and the full `core:math` package.
+This includes Odin's runtime and standard library access. You get `fmt.println`, dynamic allocation with `make`/`delete`, and the full `core:math` package.
 
-Use when you need standard library features or development speed matters more than bundle size.
+Output is typically ~30-40KB for simple modules. The runtime provides the `odin_env` imports that your JavaScript host must implement (covered in Part 2).
 
 We'll use `js_wasm32` throughout this book—it demonstrates more concepts and the patterns apply to both targets.
 

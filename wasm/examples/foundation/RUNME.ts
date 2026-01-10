@@ -38,7 +38,20 @@ async function main() {
     console.log(`Final result: Fibonacci(${n}) = ${fibResult}`);
 
     console.log("\n" + "-".repeat(30));
-    console.log("Test 3: String Handling");
+    console.log("Test 3: Safe String Printing");
+    console.log("-".repeat(30));
+
+    // Test safe string printing with memory management
+    const msg1 = "Hello from Odin WASM!";
+    const bytes1 = demo.printString(msg1);
+    console.log(`✅ Printed "${msg1}" (${bytes1} bytes)`);
+
+    const msg2 = "🎉 UTF-8 works!";
+    const bytes2 = demo.printString(msg2);
+    console.log(`✅ Printed "${msg2}" (${bytes2} bytes, ${msg2.length} chars)`);
+
+    console.log("\n" + "-".repeat(30));
+    console.log("Test 4: String Handling (Legacy)");
     console.log("-".repeat(30));
 
     // Test string handling
@@ -49,7 +62,7 @@ async function main() {
     );
 
     console.log("\n" + "-".repeat(30));
-    console.log("Test 4: Multiple Instances");
+    console.log("Test 5: Multiple Instances");
     console.log("-".repeat(30));
 
     // Demonstrate multiple instances
@@ -58,10 +71,6 @@ async function main() {
 
     demo2.calculateCircle(3.0);
     demo.fibonacci(7);
-
-    // Clean up
-    demo.dispose();
-    demo2.dispose();
 
     console.log("\n" + "=".repeat(50));
     console.log("✅ Demo completed successfully!");

@@ -9,15 +9,15 @@ odin test odin/math_demo.test.odin -file -vet -vet-style -vet-semicolon
 
 # Check and vet the Odin code for WASM target
 echo "🔍 Checking Odin code for WASM..."
-odin check odin/math_demo.odin -file -vet -vet-style -vet-semicolon -target:freestanding_wasm32
+odin check odin/math_demo.odin -file -vet -vet-style -vet-semicolon -target:js_wasm32
 
 # Strip unneeded semicolons
 echo "🎨 Formatting Odin code..."
-odin strip-semicolon odin/math_demo.odin -file -target:freestanding_wasm32
+odin strip-semicolon odin/math_demo.odin -file -target:js_wasm32
 
 # Build the WASM
 odin build odin/math_demo.odin -file \
-    -target:freestanding_wasm32 \
+    -target:js_wasm32 \
     -out:math-demo.wasm \
     -debug
 

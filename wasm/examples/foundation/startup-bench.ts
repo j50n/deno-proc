@@ -41,7 +41,9 @@ const p50 = sorted[Math.floor(times.length * 0.5)];
 const p95 = sorted[Math.floor(times.length * 0.95)];
 const p99 = sorted[Math.floor(times.length * 0.99)];
 
-console.log(`\nWASM Instance Startup Benchmark (${ITERATIONS.toLocaleString()} iterations)`);
+console.log(
+  `\nWASM Instance Startup Benchmark (${ITERATIONS.toLocaleString()} iterations)`,
+);
 console.log("─".repeat(50));
 console.log(`Average: ${avg.toFixed(3)} ms`);
 console.log(`Min:     ${min.toFixed(3)} ms`);

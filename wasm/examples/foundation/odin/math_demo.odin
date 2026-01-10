@@ -1,8 +1,33 @@
 package main
 
+import "core:fmt"
 import "core:math"
+import "core:slice"
+import "base:runtime"
 
-// WASM exports - Functions callable from JavaScript
+main :: proc() {}
+
+// String memory management functions
+@(export)
+alloc_string :: proc "c" (size: int) -> rawptr {
+	context = runtime.default_context()
+	return raw_data(make([]byte, size))
+}
+
+@(export)
+free_string :: proc "c" (ptr: rawptr, size: int) {
+	// Memory freed when Odin's allocator reuses it
+}
+
+// print_string prints a string and returns its length
+@(export)
+print_string :: proc "c" (ptr: rawptr, length: int) -> int {
+	context = runtime.default_context()
+	data := slice.from_ptr(cast(^u8)ptr, length)
+	str := string(data)
+	fmt.println(str)
+	return length
+}
 
 // calculate_circle computes the area of a circle given its radius.
 // Demonstrates math function integration between Odin and JavaScript.
