@@ -33,8 +33,6 @@ This includes Odin's runtime and standard library access. You get `fmt.println`,
 
 Output is typically ~30-40KB for simple modules. The runtime provides the `odin_env` imports that your JavaScript host must implement (covered in Part 2).
 
-We'll use `js_wasm32` throughout this book—it demonstrates more concepts and the patterns apply to both targets.
-
 ## Project Structure
 
 ```
