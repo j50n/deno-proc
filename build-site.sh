@@ -5,7 +5,7 @@ set -x
 
 # Update Rust and Cargo
 rustup update 
-cargo install mdbook mdbook-graphviz
+cargo install mdbook mdbook-graphviz mdbook-pdf
 
 HERE="$(realpath "$(dirname "$0")")"
 
@@ -25,3 +25,5 @@ cd "$HERE/site/" && (
     mkdir ../docs/
     rsync -av ./book/ ../docs/
 )
+
+cd "$HERE/wasm/docs/" && mdbook build

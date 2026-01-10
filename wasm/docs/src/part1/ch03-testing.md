@@ -12,7 +12,7 @@ import { MathDemo } from "./math-demo.ts";
 
 Deno.test("MathDemo - instantiation", async () => {
   const demo = await MathDemo.create();
-  demo.dispose();
+  assertEquals(demo.fibonacci(5), 5);
 });
 ```
 
@@ -28,8 +28,6 @@ Deno.test("MathDemo - circle calculation", async () => {
   
   const result = demo.calculateCircle(5.0);
   assertAlmostEquals(result, Math.PI * 25, 1e-10);
-  
-  demo.dispose();
 });
 ```
 
@@ -54,9 +52,6 @@ Deno.test("MathDemo - instance isolation", async () => {
   
   assertAlmostEquals(r1, Math.PI * 9, 1e-10);
   assertEquals(r2, 21);
-  
-  demo1.dispose();
-  demo2.dispose();
 });
 ```
 
@@ -74,8 +69,6 @@ Deno.test("MathDemo - edge cases", async () => {
   // Negative (behavior depends on your implementation)
   const negResult = demo.fibonacci(-1);
   assertEquals(typeof negResult, "number"); // At minimum, shouldn't crash
-  
-  demo.dispose();
 });
 ```
 
@@ -97,7 +90,6 @@ Deno.test("MathDemo - memory allocation", async () => {
   assertEquals(bytes[0], 1);
   
   demo.deallocate(ptr, 1024);
-  demo.dispose();
 });
 ```
 

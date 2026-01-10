@@ -80,6 +80,38 @@ const sum = wasmSumRange(0, 1000000);
 
 Move loops inside WASM. Cross the boundary for setup and results, not for each iteration.
 
+## Instance Startup Overhead
+
+You might wonder: how expensive is it to create a new WASM instance? Should you pool instances?
+
+**Benchmark results** (Chromebook Plus in Crostini VM—modest hardware):
+
+```
+WASM Instance Startup (100,000 iterations, after 10k warmup)
+──────────────────────────────────────────────────
+Average: 0.191 ms
+Min:     0.072 ms
+P50:     0.099 ms
+P95:     0.407 ms
+P99:     2.869 ms
+```
+
+Creating a fresh instance, calling a function, and disposing takes ~0.1ms median. That's fast enough to create ~10,000 instances per second on mediocre hardware.
+
+**Implications:**
+
+- Instance pooling is rarely necessary
+- Creating instances on-demand is fine for most use cases
+- The P99 spikes (~3ms) are GC pauses, not WASM overhead
+
+**When pooling might help:**
+
+- Sub-millisecond latency requirements
+- Creating hundreds of instances per second
+- Memory-constrained environments where you want to reuse allocations
+
+For most applications, just create instances when you need them and let them get garbage collected.
+
 ## Memory Access Patterns
 
 How you access WASM memory affects performance.

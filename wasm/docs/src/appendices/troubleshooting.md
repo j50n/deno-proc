@@ -176,7 +176,6 @@ bytes = new Uint8Array(memory.buffer);  // Create new view
 1. Track allocations
 2. Ensure every `allocate` has a matching `deallocate`
 3. Use arenas for batch operations
-4. Dispose instances when done
 
 ## Performance Issues
 

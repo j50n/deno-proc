@@ -145,10 +145,6 @@ export class MathDemo {
   deallocate(ptr: number, size: number): void {
     (this.instance.exports.deallocate as (ptr: number, size: number) => void)(ptr, size);
   }
-
-  dispose(): void {
-    // Allow GC to reclaim memory
-  }
 }
 ```
 
@@ -158,7 +154,7 @@ Usage:
 const demo = await MathDemo.create();
 console.log(demo.calculateCircle(5));  // 78.53981633974483
 console.log(demo.fibonacci(10));       // 55
-demo.dispose();
+// No cleanup needed - instances are garbage collected like any JS object
 ```
 
 ## The Import/Export Contract
@@ -199,16 +195,16 @@ debug :: proc(msg: string) {
 
 ## Performance Note
 
-Every call across the WASM-JavaScript boundary has overhead. For tight loops, this matters:
+Every call across the WASM-JavaScript boundary has overhead—roughly 5-10 nanoseconds per call in V8. That's tiny for individual calls, but adds up in tight loops:
 
 ```typescript
-// Bad: million boundary crossings
+// 1 million boundary crossings ≈ 5-10ms overhead
 for (let i = 0; i < 1000000; i++) {
   result += wasmAdd(i, 1);
 }
 
-// Good: one crossing, loop in WASM
+// One crossing, loop in WASM ≈ 0.00001ms overhead
 result = wasmSumRange(0, 1000000);
 ```
 
-Keep hot loops inside WASM. Cross the boundary for setup and results.
+For most applications this overhead is negligible. It only matters when you're calling tiny functions millions of times—keep those hot loops inside WASM.

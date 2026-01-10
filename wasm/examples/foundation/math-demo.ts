@@ -240,15 +240,6 @@ export class MathDemo {
   }
 
   /**
-   * Cleans up WASM instance resources
-   */
-  dispose(): void {
-    console.log("🗑️  TypeScript: Disposing WASM instance");
-    // In a real implementation, you might want to clear references
-    // The WASM instance will be garbage collected
-  }
-
-  /**
    * Demonstrates string handling with WASM
    * @param name - Name to greet
    * @returns Expected length of greeting message

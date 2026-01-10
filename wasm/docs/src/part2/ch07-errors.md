@@ -102,9 +102,8 @@ class ResilientWasm {
     try {
       if (!this.instance) this.instance = await MathDemo.create();
       return this.instance.calculateCircle(radius);
-    } catch (e) {
-      this.instance?.dispose();
-      this.instance = null;
+    } catch {
+      this.instance = null;  // Allow GC, will recreate on next call
       throw e;
     }
   }

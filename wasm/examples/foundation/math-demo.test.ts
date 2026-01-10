@@ -6,11 +6,11 @@ import { assertAlmostEquals, assertEquals } from "@std/assert";
 import { MathDemo } from "./math-demo.ts";
 
 /**
- * Test basic MathDemo instantiation and disposal
+ * Test basic MathDemo instantiation
  */
 Deno.test("MathDemo - Basic instantiation", async () => {
   const demo = await MathDemo.create();
-  demo.dispose();
+  assertEquals(demo.fibonacci(5), 5);
 });
 
 /**
@@ -23,7 +23,6 @@ Deno.test("MathDemo - Circle area calculation", async () => {
   const expected = Math.PI * 5 * 5; // π * r²
 
   assertAlmostEquals(result, expected, 0.01);
-  demo.dispose();
 });
 
 /**
@@ -36,8 +35,6 @@ Deno.test("MathDemo - Fibonacci calculation", async () => {
   assertEquals(demo.fibonacci(1), 1);
   assertEquals(demo.fibonacci(10), 55);
   assertEquals(demo.fibonacci(15), 610);
-
-  demo.dispose();
 });
 
 /**
@@ -53,9 +50,6 @@ Deno.test("MathDemo - Multiple instances isolation", async () => {
 
   assertAlmostEquals(result1, Math.PI * 9, 0.01);
   assertEquals(result2, 21);
-
-  demo1.dispose();
-  demo2.dispose();
 });
 
 /**
@@ -69,8 +63,6 @@ Deno.test("MathDemo - String handling", async () => {
 
   // "Hello, World!" = 13 characters
   assertEquals(expectedLength, 13);
-
-  demo.dispose();
 });
 
 /**
@@ -108,6 +100,4 @@ Deno.test("MathDemo - Memory allocation test", async () => {
 
   // Should be at least 1MB (probably more due to page alignment)
   assertEquals(result.memorySize >= oneMB, true);
-
-  demo.dispose();
 });

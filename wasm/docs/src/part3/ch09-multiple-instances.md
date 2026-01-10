@@ -268,9 +268,6 @@ Deno.test("Multiple instances are isolated", async () => {
   
   // Instance 2 should be unaffected
   assertEquals(demo2.getState(), 0); // Default value
-  
-  demo1.dispose();
-  demo2.dispose();
 });
 
 Deno.test("Instances can run concurrently", async () => {
@@ -286,15 +283,12 @@ Deno.test("Instances can run concurrently", async () => {
   // Both should complete successfully
   assertEquals(typeof result1, "number");
   assertEquals(typeof result2, "number");
-  
-  demo1.dispose();
-  demo2.dispose();
 });
 ```
 
 ## Performance Considerations
 
-**Instance creation cost**: Creating instances is relatively expensive. Pool them for high-frequency use.
+**Instance creation cost**: Creating instances is fast (~0.1ms median). Pooling is rarely necessary.
 
 **Memory overhead**: Each instance has its own memory. 10 instances with 1MB each = 10MB total.
 

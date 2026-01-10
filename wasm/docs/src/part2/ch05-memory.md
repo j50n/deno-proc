@@ -106,18 +106,6 @@ Be explicit about who owns memory:
 
 Memory leaks in WASM are silent—no garbage collector will save you.
 
-## Resource Cleanup
-
-```typescript
-class MathDemo {
-  dispose(): void {
-    // Clear references, allow GC
-    this.instance = null!;
-    this.memory = null!;
-  }
-}
-```
-
 ## Debugging
 
 ```typescript

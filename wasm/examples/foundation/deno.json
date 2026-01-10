@@ -1,5 +1,6 @@
 {
   "imports": {
-    "@std/assert": "https://deno.land/std@0.208.0/assert/mod.ts"
+    "@std/assert": "https://deno.land/std@0.208.0/assert/mod.ts",
+    "@j50n/proc": "../../../mod.ts"
   }
 }
