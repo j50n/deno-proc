@@ -23,15 +23,24 @@ If you can read that, you can read Odin.
 
 ## Build Target
 
-Odin compiles to WebAssembly using the `js_wasm32` target:
+Odin supports several WebAssembly targets:
+
+| Target | Runtime | Use Case |
+|--------|---------|----------|
+| `js_wasm32` | Full | JavaScript host with `odin_env` imports |
+| `js_wasm64p32` | Full | 64-bit WASM with 32-bit pointers for JS |
+| `wasi_wasm32` | Full | WASI-compatible runtimes (Wasmtime, etc.) |
+| `wasi_wasm64p32` | Full | 64-bit WASI with 32-bit pointers |
+| `freestanding_wasm32` | None | Bare metal, no runtime, tiny output |
+| `freestanding_wasm64p32` | None | 64-bit bare metal |
+
+**This book uses `js_wasm32` exclusively.** It provides the full standard library (`fmt`, `core:math`, allocators) and targets JavaScript/Deno hosts. We won't mention the other targets again.
 
 ```bash
 odin build . -target:js_wasm32
 ```
 
-This includes Odin's runtime and standard library access. You get `fmt.println`, dynamic allocation with `make`/`delete`, and the full `core:math` package.
-
-Output is typically ~30-40KB for simple modules. The runtime provides the `odin_env` imports that your JavaScript host must implement (covered in Part 2).
+Output is typically ~30-40KB for simple modules. The runtime requires `odin_env` imports that your JavaScript host must implement (covered in Part 2).
 
 ## Project Structure
 
