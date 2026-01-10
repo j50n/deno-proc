@@ -1,0 +1,13 @@
+[book]
+title = "WebAssembly with Deno and Odin"
+description = "A guide to building high-performance applications using WebAssembly, Deno, and Odin"
+authors = ["Developer"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"

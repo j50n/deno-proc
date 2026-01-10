@@ -1,0 +1,5 @@
+# Generated files
+*.wasm
+
+# mdbook output
+docs/book/

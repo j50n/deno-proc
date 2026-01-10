@@ -1,0 +1,88 @@
+package main
+
+import "core:math"
+
+// WASM exports - Functions callable from JavaScript
+
+// calculate_circle computes the area of a circle given its radius.
+// Demonstrates math function integration between Odin and JavaScript.
+// 
+// Parameters:
+//   radius: Circle radius as f64
+// Returns:
+//   Circle area (π * radius²) as f64
+@(export)
+calculate_circle :: proc "c" (radius: f64) -> f64 {
+	// Use standard math functions to demonstrate WASM integration
+	angle := math.PI / 4 // 45 degrees
+	_ = math.sin(angle)  // Demonstrate math usage
+	_ = math.cos(angle)  // Demonstrate math usage
+	
+	area := math.PI * radius * radius
+	
+	return area
+}
+
+// fibonacci calculates the nth Fibonacci number iteratively.
+// Demonstrates integer computation and control flow in WASM.
+//
+// Parameters:
+//   n: Position in Fibonacci sequence (0-based)
+// Returns:
+//   Fibonacci number at position n (0 for n=0, 1 for n=1, sequence value for n>1)
+@(export)
+fibonacci :: proc "c" (n: int) -> int {
+	if n <= 1 do return n
+
+	a, b := 0, 1
+	for _ in 2 ..= n {
+		a, b = b, a + b
+	}
+
+	return b
+}
+
+// allocate_memory demonstrates memory allocation concepts for WASM.
+// Returns a fixed pointer for demonstration purposes (not real allocation).
+//
+// Parameters:
+//   size: Requested allocation size in bytes
+// Returns:
+//   Pointer to allocated memory (nil if size <= 0, fixed demo pointer otherwise)
+@(export)
+allocate_memory :: proc "c" (size: int) -> rawptr {
+	// Return a pointer to some memory area
+	if size <= 0 do return nil
+	return rawptr(uintptr(1024)) // Fixed offset for demo
+}
+
+// free_memory demonstrates memory deallocation concepts for WASM.
+// Acknowledges memory free request (no actual deallocation in this demo).
+//
+// Parameters:
+//   ptr: Pointer to memory to be freed
+@(export)
+free_memory :: proc "c" (ptr: rawptr) {
+	// In a real implementation, you'd free the memory
+	// For this demo, we just acknowledge the call
+	_ = ptr
+}
+
+// greet_user demonstrates string handling between WASM and JavaScript.
+// Calculates expected greeting message length without actual string processing.
+//
+// Parameters:
+//   name_ptr: Pointer to name string in WASM memory
+//   name_len: Length of name string in bytes
+// Returns:
+//   Expected length of "Hello, [name]!" message
+@(export)
+greet_user :: proc "c" (name_ptr: rawptr, name_len: int) -> int {
+	// In a real implementation, you'd read the string from memory
+	// and write a response back. For this demo, we just return a fixed length
+	_ = name_ptr
+	_ = name_len
+	
+	// Return length of "Hello, [name]!" message
+	return name_len + 8 // "Hello, " (7) + "!" (1) = 8 extra chars
+}
