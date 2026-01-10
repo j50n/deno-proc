@@ -570,7 +570,7 @@ export class MathDemo {
 
   /**
    * Creates a Point struct in Odin and reads it back
-   * Demonstrates returning structs from WASM
+   * Demonstrates returning structs from WASM (explicit pointer)
    * @param x - X coordinate
    * @param y - Y coordinate
    * @returns Point object with x and y
@@ -595,6 +595,41 @@ export class MathDemo {
       return point;
     } finally {
       free_point(ptr);
+    }
+  }
+
+  /**
+   * Creates a Point using struct-by-value return (hidden out-parameter)
+   * Demonstrates how Odin's by-value struct returns work in WASM
+   * @param x - X coordinate
+   * @param y - Y coordinate
+   * @returns Point object with x and y
+   */
+  makePoint(x: number, y: number): { x: number; y: number } {
+    console.log(`📍 TypeScript: Making point (${x}, ${y}) via by-value return`);
+
+    const alloc_string = this.wasmInstance.exports
+      .alloc_string as CallableFunction;
+    const free_string = this.wasmInstance.exports
+      .free_string as CallableFunction;
+    const make_point = this.wasmInstance.exports.make_point as CallableFunction;
+
+    // Allocate 16 bytes for Point (two f64)
+    const outPtr = alloc_string(16) as number;
+
+    try {
+      // Hidden first parameter: out pointer for struct result
+      make_point(outPtr, x, y);
+
+      const view = new DataView(this.memory.buffer);
+      const point = {
+        x: view.getFloat64(outPtr, true),
+        y: view.getFloat64(outPtr + 8, true),
+      };
+      console.log(`📍 TypeScript: Got point (${point.x}, ${point.y})`);
+      return point;
+    } finally {
+      free_string(outPtr, 16);
     }
   }
 }

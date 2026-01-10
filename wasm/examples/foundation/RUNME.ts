@@ -65,12 +65,13 @@ async function main() {
     console.log("Test 5: Struct Return");
     console.log("-".repeat(30));
 
-    // Test struct return from Odin
+    // Test struct return from Odin (explicit pointer)
     const p1 = demo.createPoint(3.5, 7.2);
-    console.log(`✅ Point: (${p1.x}, ${p1.y})`);
+    console.log(`✅ createPoint: (${p1.x}, ${p1.y})`);
 
-    const p2 = demo.createPoint(-1.0, 0.0);
-    console.log(`✅ Point: (${p2.x}, ${p2.y})`);
+    // Test struct return by value (hidden out-parameter)
+    const p2 = demo.makePoint(-1.0, 2.5);
+    console.log(`✅ makePoint: (${p2.x}, ${p2.y})`);
 
     console.log("\n" + "-".repeat(30));
     console.log("Test 6: String Handling (Legacy)");

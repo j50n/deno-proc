@@ -138,4 +138,30 @@ createPoint(x: number, y: number): { x: number; y: number } {
 - Odin uses little-endian byte order
 - `f64` = 8 bytes, `i32` = 4 bytes, `i64` = 8 bytes
 
-See `examples/foundation/` for a working implementation.
+## Struct Return by Value (Hidden Out-Parameter)
+
+Odin can return structs by value, but WASM can't return complex types directly. The compiler uses a **hidden first parameter** where the caller provides a pointer for the result.
+
+```odin
+// Odin signature
+@(export)
+make_point :: proc "c" (x: f64, y: f64) -> Point {
+    return Point{x, y}
+}
+```
+
+```typescript
+// Actual WASM call - first arg is out pointer!
+const outPtr = 1024; // or allocate properly
+this.exports.make_point(outPtr, x, y);
+
+const view = new DataView(this.memory.buffer);
+const point = {
+  x: view.getFloat64(outPtr, true),
+  y: view.getFloat64(outPtr + 8, true),
+};
+```
+
+This is implicit and easy to get wrong. **The explicit pointer approach is recommended** - it's clearer what's happening and matches the actual calling convention.
+
+See `examples/foundation/` for working examples of both patterns.

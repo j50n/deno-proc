@@ -71,6 +71,13 @@ free_point :: proc "c" (p: ^Point) {
 	free(p)
 }
 
+// make_point returns a Point by value
+// Note: WASM uses hidden out-parameter - caller passes pointer as first arg
+@(export)
+make_point :: proc "c" (x: f64, y: f64) -> Point {
+	return Point{x, y}
+}
+
 // calculate_circle computes the area of a circle given its radius.
 // Demonstrates math function integration between Odin and JavaScript.
 // 

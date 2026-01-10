@@ -101,3 +101,53 @@ Deno.test("MathDemo - Memory allocation test", async () => {
   // Should be at least 1MB (probably more due to page alignment)
   assertEquals(result.memorySize >= oneMB, true);
 });
+
+/**
+ * Test printString - passing strings to Odin
+ */
+Deno.test("MathDemo - printString", async () => {
+  const demo = await MathDemo.create();
+
+  const len1 = demo.printString("Hello");
+  assertEquals(len1, 5);
+
+  // UTF-8: emoji is 4 bytes
+  const len2 = demo.printString("🎉");
+  assertEquals(len2, 4);
+});
+
+/**
+ * Test createGreeting - dynamic string return from Odin
+ */
+Deno.test("MathDemo - createGreeting", async () => {
+  const demo = await MathDemo.create();
+
+  const greeting = demo.createGreeting("World");
+  assertEquals(greeting, "Hello, World!");
+
+  // UTF-8 in name
+  const greeting2 = demo.createGreeting("🚀");
+  assertEquals(greeting2, "Hello, 🚀!");
+});
+
+/**
+ * Test createPoint - struct return via explicit pointer
+ */
+Deno.test("MathDemo - createPoint", async () => {
+  const demo = await MathDemo.create();
+
+  const p = demo.createPoint(3.5, -7.2);
+  assertAlmostEquals(p.x, 3.5, 0.001);
+  assertAlmostEquals(p.y, -7.2, 0.001);
+});
+
+/**
+ * Test makePoint - struct return by value (hidden out-parameter)
+ */
+Deno.test("MathDemo - makePoint", async () => {
+  const demo = await MathDemo.create();
+
+  const p = demo.makePoint(-1.0, 2.5);
+  assertAlmostEquals(p.x, -1.0, 0.001);
+  assertAlmostEquals(p.y, 2.5, 0.001);
+});
