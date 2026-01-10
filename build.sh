@@ -7,7 +7,7 @@ set -x
 rustup update
 
 # Update mdbook and plugins (only if newer version available)
-cargo install mdbook mdbook-pdf
+cargo install mdbook mdbook-pdf mdbook-epub
 
 HERE="$(realpath "$(dirname "$0")")"
 

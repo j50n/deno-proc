@@ -12,4 +12,7 @@ build-dir = "book"
 default-theme = "light"
 preferred-dark-theme = "navy"
 
+[output.epub]
+curly-quotes = true
+
 [output.pdf]

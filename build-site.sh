@@ -5,7 +5,7 @@ set -x
 
 # Update Rust and Cargo
 rustup update 
-cargo install mdbook mdbook-graphviz mdbook-pdf
+cargo install mdbook mdbook-graphviz mdbook-pdf mdbook-epub
 
 HERE="$(realpath "$(dirname "$0")")"
 
