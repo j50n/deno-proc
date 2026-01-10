@@ -51,7 +51,18 @@ async function main() {
     console.log(`✅ Printed "${msg2}" (${bytes2} bytes, ${msg2.length} chars)`);
 
     console.log("\n" + "-".repeat(30));
-    console.log("Test 4: String Handling (Legacy)");
+    console.log("Test 4: Dynamic String Return");
+    console.log("-".repeat(30));
+
+    // Test dynamic data return from Odin
+    const greeting1 = demo.createGreeting("World");
+    console.log(`✅ Got: "${greeting1}"`);
+
+    const greeting2 = demo.createGreeting("Odin 🚀");
+    console.log(`✅ Got: "${greeting2}"`);
+
+    console.log("\n" + "-".repeat(30));
+    console.log("Test 5: String Handling (Legacy)");
     console.log("-".repeat(30));
 
     // Test string handling
@@ -62,7 +73,7 @@ async function main() {
     );
 
     console.log("\n" + "-".repeat(30));
-    console.log("Test 5: Multiple Instances");
+    console.log("Test 6: Multiple Instances");
     console.log("-".repeat(30));
 
     // Demonstrate multiple instances

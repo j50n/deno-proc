@@ -84,7 +84,7 @@ Always pass the **byte length** to Odin, not the string length.
 
 ## Getting a String Back from Odin
 
-Same pattern in reverse. Allocate a buffer, let Odin write into it, then decode:
+When you know the maximum size, allocate a buffer and let Odin write into it:
 
 ```odin
 import "core:mem"
@@ -115,95 +115,6 @@ getGreeting(): string {
 }
 ```
 
-See `examples/foundation/` for a complete working example.
+For dynamic data where you don't know the size upfront, see [Returning Dynamic Data](./ch06b-returning-data.md).
 
-
-## Returning Dynamic Data from Odin
-
-The previous example requires knowing the maximum size upfront. When Odin generates data of unknown size, it must allocate and return both the pointer and length.
-
-**The challenge:** WASM functions can only return one value. We need to return two (pointer and length).
-
-**Solution:** Return a packed i64, or use an out-parameter.
-
-### Option 1: Packed Return Value
-
-Pack pointer and length into a single 64-bit integer:
-
-```odin
-// Returns: high 32 bits = length, low 32 bits = pointer
-@(export)
-create_message :: proc "c" () -> i64 {
-    context = runtime.default_context()
-    msg := fmt.aprintf("Generated at {}", time.now())
-    ptr := raw_data(msg)
-    len := i64(len(msg))
-    return (len << 32) | i64(uintptr(ptr))
-}
-
-@(export)
-free_buffer :: proc "c" (ptr: rawptr, size: int) {
-    context = runtime.default_context()
-    free(ptr)
-}
-```
-
-```typescript
-getMessage(): string {
-  const packed = this.exports.create_message() as bigint;
-  const ptr = Number(packed & 0xFFFFFFFFn);
-  const len = Number(packed >> 32n);
-  
-  try {
-    return new TextDecoder().decode(
-      new Uint8Array(this.memory.buffer, ptr, len)
-    );
-  } finally {
-    this.exports.free_buffer(ptr, len);
-  }
-}
-```
-
-### Option 2: Out-Parameter for Length
-
-Pass a pointer where Odin writes the length:
-
-```odin
-// Writes length to len_out, returns data pointer
-@(export)
-create_message :: proc "c" (len_out: ^int) -> rawptr {
-    context = runtime.default_context()
-    msg := fmt.aprintf("Generated at {}", time.now())
-    len_out^ = len(msg)
-    return raw_data(msg)
-}
-```
-
-```typescript
-getMessage(): string {
-  // Allocate 4 bytes for the length (i32)
-  const lenPtr = this.exports.alloc_string(4) as number;
-  
-  try {
-    const dataPtr = this.exports.create_message(lenPtr) as number;
-    const len = new DataView(this.memory.buffer).getInt32(lenPtr, true);
-    
-    try {
-      return new TextDecoder().decode(
-        new Uint8Array(this.memory.buffer, dataPtr, len)
-      );
-    } finally {
-      this.exports.free_buffer(dataPtr, len);
-    }
-  } finally {
-    this.exports.free_string(lenPtr, 4);
-  }
-}
-```
-
-### Which to Use?
-
-- **Packed i64**: Simpler TypeScript, but requires BigInt handling
-- **Out-parameter**: More explicit, works naturally with 32-bit values
-
-Both patterns ensure Odin controls allocation and JavaScript handles cleanup.
+See `examples/foundation/` for working examples.

@@ -19,6 +19,12 @@ free_string :: proc "c" (ptr: rawptr, size: int) {
 	// Memory freed when Odin's allocator reuses it
 }
 
+@(export)
+free_buffer :: proc "c" (ptr: rawptr) {
+	context = runtime.default_context()
+	free(ptr)
+}
+
 // print_string prints a string and returns its length
 @(export)
 print_string :: proc "c" (ptr: rawptr, length: int) -> int {
@@ -27,6 +33,18 @@ print_string :: proc "c" (ptr: rawptr, length: int) -> int {
 	str := string(data)
 	fmt.println(str)
 	return length
+}
+
+// create_greeting returns a dynamically allocated greeting
+// Returns: high 32 bits = length, low 32 bits = pointer
+@(export)
+create_greeting :: proc "c" (name_ptr: rawptr, name_len: int) -> i64 {
+	context = runtime.default_context()
+	name := string(slice.from_ptr(cast(^u8)name_ptr, name_len))
+	msg := fmt.aprintf("Hello, {}!", name)
+	ptr := i64(uintptr(raw_data(msg)))
+	length := i64(len(msg))
+	return (length << 32) | ptr
 }
 
 // calculate_circle computes the area of a circle given its radius.

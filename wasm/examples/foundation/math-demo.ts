@@ -499,7 +499,7 @@ export class MathDemo {
    * Prints a string using Odin's fmt.println
    * Demonstrates the safe pattern: allocate → write → call → free
    * @param message - String to print
-   * @returns Length of the printed string
+   * @returns Byte length of the printed string
    */
   printString(message: string): number {
     console.log(`📝 TypeScript: Sending "${message}" to Odin`);
@@ -515,21 +515,56 @@ export class MathDemo {
     let ptr: number | null = null;
 
     try {
-      // 1. Allocate memory through Odin
       ptr = alloc_string(bytes.length) as number;
-
-      // 2. Write string data to allocated memory
       new Uint8Array(this.memory.buffer).set(bytes, ptr);
-
-      // 3. Call Odin function with pointer and length
-      const result = print_string(ptr, bytes.length) as number;
-
-      return result;
+      return print_string(ptr, bytes.length) as number;
     } finally {
-      // 4. Always free memory, even if an error occurs
       if (ptr !== null) {
         free_string(ptr, bytes.length);
       }
+    }
+  }
+
+  /**
+   * Creates a greeting using Odin's dynamic allocation
+   * Demonstrates returning dynamic data: Odin allocates, JS reads and frees
+   * @param name - Name to greet
+   * @returns The greeting string
+   */
+  createGreeting(name: string): string {
+    console.log(`🎁 TypeScript: Creating greeting for "${name}"`);
+
+    const alloc_string = this.wasmInstance.exports
+      .alloc_string as CallableFunction;
+    const free_string = this.wasmInstance.exports
+      .free_string as CallableFunction;
+    const free_buffer = this.wasmInstance.exports
+      .free_buffer as CallableFunction;
+    const create_greeting = this.wasmInstance.exports
+      .create_greeting as CallableFunction;
+
+    const nameBytes = new TextEncoder().encode(name);
+    const namePtr = alloc_string(nameBytes.length) as number;
+
+    try {
+      new Uint8Array(this.memory.buffer).set(nameBytes, namePtr);
+
+      // Odin returns packed i64: high 32 bits = length, low 32 bits = pointer
+      const packed = create_greeting(namePtr, nameBytes.length) as bigint;
+      const ptr = Number(packed & 0xFFFFFFFFn);
+      const len = Number(packed >> 32n);
+
+      try {
+        const result = new TextDecoder().decode(
+          new Uint8Array(this.memory.buffer, ptr, len),
+        );
+        console.log(`🎁 TypeScript: Got "${result}"`);
+        return result;
+      } finally {
+        free_buffer(ptr);
+      }
+    } finally {
+      free_string(namePtr, nameBytes.length);
     }
   }
 }

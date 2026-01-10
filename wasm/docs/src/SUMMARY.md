@@ -13,6 +13,7 @@
 - [Working with Numbers](./part2/ch04-numbers.md)
 - [The Memory Model](./part2/ch05-memory.md)
 - [String Handling](./part2/ch06-strings.md)
+- [Returning Dynamic Data](./part2/ch06b-returning-data.md)
 - [Error Handling](./part2/ch07-errors.md)
 
 # Part III: Advanced Patterns
