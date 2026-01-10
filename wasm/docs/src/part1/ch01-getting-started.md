@@ -36,6 +36,8 @@ Odin supports several WebAssembly targets:
 
 **This book uses `js_wasm32` exclusively.** It provides the full standard library (`fmt`, `core:math`, allocators) and targets JavaScript/Deno hosts. We won't mention the other targets again.
 
+> ⚠️ **Avoid WASI targets with Deno.** Deno's WASI support is incomplete and poorly documented. The `wasi_wasm32` target looks appealing but leads to hours of frustration. Stick with `js_wasm32`.
+
 ```bash
 odin build . -target:js_wasm32
 ```
