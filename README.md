@@ -166,3 +166,31 @@ import { run, enumerate, read } from "jsr:@j50n/proc";
 ## License
 
 MIT
+
+## Building Documentation
+
+The WASM book (`wasm/docs/`) generates HTML, EPUB, and PDF outputs.
+
+### Prerequisites (Debian/Ubuntu)
+
+```bash
+# Rust toolchain
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# mdbook
+cargo install mdbook
+
+# Document generation tools
+sudo apt install pandoc weasyprint ghostscript imagemagick
+```
+
+### Build
+
+```bash
+./build-site.sh
+```
+
+Outputs:
+- `wasm/docs/book/` — HTML
+- `wasm/docs/book/book.epub` — EPUB with cover
+- `wasm/docs/book/book.pdf` — PDF with cover
