@@ -6,8 +6,8 @@ set -x
 # Update Rust and Cargo
 rustup update
 
-# Update mdbook and plugins (only if newer version available)
-cargo install mdbook mdbook-pdf mdbook-epub
+# Update mdbook (only if newer version available)
+cargo install mdbook
 
 HERE="$(realpath "$(dirname "$0")")"
 
