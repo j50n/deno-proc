@@ -86,4 +86,56 @@ createGreeting(name: string): string {
 
 Always free in reverse order of allocation, and use `try/finally` to ensure cleanup.
 
+## Returning Structs
+
+Structs work the same way. Odin allocates, returns a pointer, JavaScript reads the fields and frees.
+
+**Odin:**
+
+```odin
+Point :: struct {
+    x: f64,
+    y: f64,
+}
+
+@(export)
+create_point :: proc "c" (x: f64, y: f64) -> ^Point {
+    context = runtime.default_context()
+    p := new(Point)
+    p.x = x
+    p.y = y
+    return p
+}
+
+@(export)
+free_point :: proc "c" (p: ^Point) {
+    context = runtime.default_context()
+    free(p)
+}
+```
+
+**TypeScript:**
+
+```typescript
+createPoint(x: number, y: number): { x: number; y: number } {
+  const ptr = this.exports.create_point(x, y) as number;
+  
+  try {
+    // Point struct: two f64 values (8 bytes each), little-endian
+    const view = new DataView(this.memory.buffer);
+    return {
+      x: view.getFloat64(ptr, true),
+      y: view.getFloat64(ptr + 8, true),
+    };
+  } finally {
+    this.exports.free_point(ptr);
+  }
+}
+```
+
+**Key points:**
+- Know your struct layout (field sizes and order)
+- Odin uses little-endian byte order
+- `f64` = 8 bytes, `i32` = 4 bytes, `i64` = 8 bytes
+
 See `examples/foundation/` for a working implementation.

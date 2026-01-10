@@ -567,4 +567,34 @@ export class MathDemo {
       free_string(namePtr, nameBytes.length);
     }
   }
+
+  /**
+   * Creates a Point struct in Odin and reads it back
+   * Demonstrates returning structs from WASM
+   * @param x - X coordinate
+   * @param y - Y coordinate
+   * @returns Point object with x and y
+   */
+  createPoint(x: number, y: number): { x: number; y: number } {
+    console.log(`📍 TypeScript: Creating point (${x}, ${y})`);
+
+    const create_point = this.wasmInstance.exports
+      .create_point as CallableFunction;
+    const free_point = this.wasmInstance.exports.free_point as CallableFunction;
+
+    const ptr = create_point(x, y) as number;
+
+    try {
+      // Point struct: two f64 values (8 bytes each)
+      const view = new DataView(this.memory.buffer);
+      const point = {
+        x: view.getFloat64(ptr, true), // little-endian
+        y: view.getFloat64(ptr + 8, true),
+      };
+      console.log(`📍 TypeScript: Got point (${point.x}, ${point.y})`);
+      return point;
+    } finally {
+      free_point(ptr);
+    }
+  }
 }

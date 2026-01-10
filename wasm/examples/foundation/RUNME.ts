@@ -62,7 +62,18 @@ async function main() {
     console.log(`✅ Got: "${greeting2}"`);
 
     console.log("\n" + "-".repeat(30));
-    console.log("Test 5: String Handling (Legacy)");
+    console.log("Test 5: Struct Return");
+    console.log("-".repeat(30));
+
+    // Test struct return from Odin
+    const p1 = demo.createPoint(3.5, 7.2);
+    console.log(`✅ Point: (${p1.x}, ${p1.y})`);
+
+    const p2 = demo.createPoint(-1.0, 0.0);
+    console.log(`✅ Point: (${p2.x}, ${p2.y})`);
+
+    console.log("\n" + "-".repeat(30));
+    console.log("Test 6: String Handling (Legacy)");
     console.log("-".repeat(30));
 
     // Test string handling
@@ -73,7 +84,7 @@ async function main() {
     );
 
     console.log("\n" + "-".repeat(30));
-    console.log("Test 6: Multiple Instances");
+    console.log("Test 7: Multiple Instances");
     console.log("-".repeat(30));
 
     // Demonstrate multiple instances

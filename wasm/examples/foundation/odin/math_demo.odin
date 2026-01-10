@@ -47,6 +47,30 @@ create_greeting :: proc "c" (name_ptr: rawptr, name_len: int) -> i64 {
 	return (length << 32) | ptr
 }
 
+// Point represents a 2D coordinate
+Point :: struct {
+	x: f64,
+	y: f64,
+}
+
+// create_point allocates and returns a Point struct
+// Returns pointer to allocated Point
+@(export)
+create_point :: proc "c" (x: f64, y: f64) -> ^Point {
+	context = runtime.default_context()
+	p := new(Point)
+	p.x = x
+	p.y = y
+	return p
+}
+
+// free_point frees an allocated Point
+@(export)
+free_point :: proc "c" (p: ^Point) {
+	context = runtime.default_context()
+	free(p)
+}
+
 // calculate_circle computes the area of a circle given its radius.
 // Demonstrates math function integration between Odin and JavaScript.
 // 
