@@ -1,12 +1,12 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
-import { fromTsvBytes, fromTsvBytesToBinaryRow, toTsvBytes } from "../../src/transforms/tsv.ts";
+import { fromTsvToRows, fromTsvToLazyRows, toTsv } from "../../src/transforms/tsv.ts";
 
-Deno.test("TSV - basic parsing to RowData", async () => {
+Deno.test("TSV - basic parsing to rows", async () => {
   const tsvData = "name\tage\tcity\nAlice\t30\tNYC\nBob\t25\tLA";
   
   const result = await enumerate([new TextEncoder().encode(tsvData)])
-    .transform(fromTsvBytes)
+    .transform(fromTsvToRows())
     .collect();
   
   assertEquals(result, [
@@ -17,11 +17,11 @@ Deno.test("TSV - basic parsing to RowData", async () => {
   ]);
 });
 
-Deno.test("TSV - basic parsing to BinaryRow", async () => {
+Deno.test("TSV - basic parsing to LazyRows", async () => {
   const tsvData = "name\tage\tcity\nAlice\t30\tNYC\nBob\t25\tLA";
   
   const result = await enumerate([new TextEncoder().encode(tsvData)])
-    .transform(fromTsvBytesToBinaryRow)
+    .transform(fromTsvToLazyRows())
     .collect();
   
   assertEquals(result.length, 1);
@@ -35,7 +35,7 @@ Deno.test("TSV - chunked input", async () => {
   const chunks = ["name\tage\n", "Alice\t30\n", "Bob\t25"];
   
   const result = await enumerate(chunks.map(s => new TextEncoder().encode(s)))
-    .transform(fromTsvBytes)
+    .transform(fromTsvToRows())
     .collect();
   
   assertEquals(result, [
@@ -50,7 +50,7 @@ Deno.test("TSV - empty fields", async () => {
   const tsvData = "name\tage\tcity\nAlice\t\tNYC\nBob\t25\t";
   
   const result = await enumerate([new TextEncoder().encode(tsvData)])
-    .transform(fromTsvBytes)
+    .transform(fromTsvToRows())
     .collect();
   
   assertEquals(result, [
@@ -61,7 +61,7 @@ Deno.test("TSV - empty fields", async () => {
   ]);
 });
 
-Deno.test("TSV - stringify from RowData", async () => {
+Deno.test("TSV - stringify from rows", async () => {
   const data = [
     [
       { name: "Alice", age: "30" },
@@ -70,66 +70,83 @@ Deno.test("TSV - stringify from RowData", async () => {
   ];
   
   const result = await enumerate(data)
-    .transform(toTsvBytes)
+    .transform(toTsv())
     .collect();
   
   const tsvText = new TextDecoder().decode(result[0]);
   assertEquals(tsvText, "Alice\t30\nBob\t25\n");
 });
 
-Deno.test("TSV - stringify from BinaryRow", async () => {
+Deno.test("TSV - stringify from LazyRows", async () => {
   const tsvData = "Alice\t30\nBob\t25";
   
-  // First parse to BinaryRow
-  const binaryRows = await enumerate([new TextEncoder().encode(tsvData)])
-    .transform(fromTsvBytesToBinaryRow)
+  // First parse to LazyRows
+  const lazyRows = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToLazyRows())
     .collect();
   
   // Then stringify back
-  const result = await enumerate(binaryRows)
-    .transform(toTsvBytes)
+  const result = await enumerate(lazyRows)
+    .transform(toTsv())
     .collect();
   
   const tsvText = new TextDecoder().decode(result[0]);
   assertEquals(tsvText, "Alice\t30\nBob\t25\n");
 });
 
-Deno.test("TSV - round trip RowData", async () => {
+Deno.test("TSV - round trip rows", async () => {
   const originalTsv = "name\tage\tcity\nAlice\t30\tNYC\nBob\t25\tLA";
   
-  // Parse to RowData
-  const rowData = await enumerate([new TextEncoder().encode(originalTsv)])
-    .transform(fromTsvBytes)
+  // Parse to rows
+  const rows = await enumerate([new TextEncoder().encode(originalTsv)])
+    .transform(fromTsvToRows())
     .collect();
   
   // Convert back to TSV
-  const tsvBytes = await enumerate(rowData)
-    .transform(toTsvBytes)
+  const tsvBytes = await enumerate(rows)
+    .transform(toTsv())
     .collect();
   
   const resultTsv = new TextDecoder().decode(tsvBytes[0]);
-  // Note: We lose headers in RowData conversion, so we only check data rows
+  // Note: We lose headers in Row conversion, so we only check data rows
   assertEquals(resultTsv, "Alice\t30\tNYC\nBob\t25\tLA\n");
 });
 
-Deno.test("TSV - UTF-8 handling", async () => {
-  const tsvData = "name\tcity\n北京\t中国\nTokyo\t日本";
+Deno.test("TSV - multi-byte UTF-8 handling", async () => {
+  const tsvData = "name\tcity\temoji\n北京\t中国\t🏙️\nTokyo\t日本\t🗾";
   
   const result = await enumerate([new TextEncoder().encode(tsvData)])
-    .transform(fromTsvBytes)
+    .transform(fromTsvToRows())
     .collect();
   
   assertEquals(result, [
     [
-      { name: "北京", city: "中国" },
-      { name: "Tokyo", city: "日本" }
+      { name: "北京", city: "中国", emoji: "🏙️" },
+      { name: "Tokyo", city: "日本", emoji: "🗾" }
     ]
+  ]);
+});
+
+Deno.test("TSV - multi-byte UTF-8 chunked at boundaries", async () => {
+  const text = "name\tcity\n北京\t中国";
+  const bytes = new TextEncoder().encode(text);
+  
+  // Split at a position that breaks a multi-byte character
+  const chunk1 = bytes.slice(0, 15);
+  const chunk2 = bytes.slice(15);
+  
+  const result = await enumerate([chunk1, chunk2])
+    .transform(fromTsvToRows())
+    .collect();
+  
+  assertEquals(result, [
+    [{ name: "北京", city: "中国" }]
   ]);
 });
 
 Deno.test("TSV - empty input", async () => {
   const result = await enumerate([new TextEncoder().encode("")])
-    .transform(fromTsvBytes)
+    .transform(fromTsvToRows())
     .collect();
   
   assertEquals(result, []);
@@ -139,8 +156,54 @@ Deno.test("TSV - only headers", async () => {
   const tsvData = "name\tage\tcity";
   
   const result = await enumerate([new TextEncoder().encode(tsvData)])
-    .transform(fromTsvBytes)
+    .transform(fromTsvToRows())
     .collect();
   
   assertEquals(result, []);
+});
+
+// Error handling tests
+Deno.test("TSV - invalid UTF-8 throws", async () => {
+  const invalidUtf8 = new Uint8Array([0xFF, 0xFE, 0xFD]);
+  
+  try {
+    const result = enumerate([invalidUtf8]).transform(fromTsvToRows());
+    for await (const batch of result) {
+      // Should throw before we get here
+    }
+    throw new Error("Expected error to be thrown");
+  } catch (error) {
+    assertEquals(error instanceof TypeError, true);
+  }
+});
+
+Deno.test("TSV - data with embedded tabs (should work)", async () => {
+  // TSV spec says data shouldn't contain tabs, but let's test what happens
+  const tsvData = "name\tdescription\nAlice\tHas\ttabs\nBob\tNormal";
+  
+  const result = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToRows())
+    .collect();
+  
+  // Will split on all tabs, so Alice gets extra fields
+  assertEquals(result[0][0].name, "Alice");
+  assertEquals(result[0][0].description, "Has");
+  assertEquals(result[0][1].name, "Bob");
+  assertEquals(result[0][1].description, "Normal");
+});
+
+Deno.test("TSV - LazyRow selective access", async () => {
+  const tsvData = "name\tage\tcity\tcountry\tcontinent\nAlice\t30\tNYC\tUSA\tNorth America\nBob\t25\tLA\tUSA\tNorth America";
+  
+  const result = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToLazyRows())
+    .collect();
+  
+  const rows = result[0];
+  
+  // Test selective access - only get name and city (indices 0 and 2)
+  assertEquals(rows[1].getField(0), "Alice"); // name
+  assertEquals(rows[1].getField(2), "NYC");   // city
+  assertEquals(rows[2].getField(0), "Bob");   // name  
+  assertEquals(rows[2].getField(2), "LA");    // city
 });

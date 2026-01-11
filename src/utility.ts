@@ -30,6 +30,27 @@ export function read(path: string | URL): Enumerable<Uint8Array> {
 }
 
 /**
+ * Read a file as lines of text.
+ *
+ * This is a convenience function equivalent to `read(path).lines`.
+ * Useful for developers who expect a direct readLines function.
+ *
+ * @example Read file lines
+ * ```typescript
+ * import { readLines } from "jsr:@j50n/proc";
+ *
+ * const lines = await readLines("data.txt").collect();
+ * // Array of strings, one per line
+ * ```
+ *
+ * @param path The path of the file.
+ * @returns An Enumerable of text lines.
+ */
+export function readLines(path: string | URL): Enumerable<string> {
+  return read(path).lines;
+}
+
+/**
  * Fast-concatenate Uint8Array arrays into a single array.
  *
  * Optimized to avoid unnecessary copying:

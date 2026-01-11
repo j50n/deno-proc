@@ -1,17 +1,17 @@
 /**
- * High-performance binary row representation optimized for read-only field access.
+ * High-performance lazy row representation optimized for selective field access.
  * 
  * Format:
  * - int32: Number of columns (N)
  * - int32[N]: Byte offsets (end position of each column in data)
  * - UTF-8 data: Concatenated field values
  */
-export class BinaryRow {
+export class LazyRow {
   private decoder = new TextDecoder('utf-8', { fatal: true });
 
   constructor(private data: Uint8Array) {
     if (data.length < 4) {
-      throw new Error('BinaryRow data too short');
+      throw new Error('LazyRow data too short');
     }
   }
 
@@ -57,7 +57,7 @@ export class BinaryRow {
     return result;
   }
 
-  static fromStringArray(fields: string[]): BinaryRow {
+  static fromStringArray(fields: string[]): LazyRow {
     const encoder = new TextEncoder();
     const columnCount = fields.length;
     
@@ -87,6 +87,6 @@ export class BinaryRow {
       view.setInt32(offsetsStart + i * 4, currentOffset, true);
     }
     
-    return new BinaryRow(buffer);
+    return new LazyRow(buffer);
   }
 }

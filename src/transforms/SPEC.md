@@ -12,12 +12,12 @@ Transformers are used with the `.transform()` method on async iterables to proce
 
 ## Data Types
 
-### RowData
+### Row
 ```typescript
-type RowData = Record<string, string>; // Object with string keys and values
+type Row = Record<string, string>; // Object with string keys and values
 ```
 
-### BinaryRow Format
+### LazyRow Format
 Binary representation optimized for read-only field access:
 
 **Structure**:
@@ -27,7 +27,7 @@ Binary representation optimized for read-only field access:
 
 **Stream Format** (additional header):
 - `int32` - Total record byte length
-- Followed by standard BinaryRow structure
+- Followed by standard LazyRow structure
 
 **Field Access**: Use byte slices with TextDecoder for on-demand string conversion.
 
@@ -35,15 +35,15 @@ Binary representation optimized for read-only field access:
 - Convert to/from `string[]` arrays
 - Field access by index with lazy UTF-8 decoding
 
-### BinaryRow Class
+### LazyRow Class
 ```typescript
-class BinaryRow {
+class LazyRow {
   constructor(private data: Uint8Array) {}
   
   get columnCount(): number;
   getField(index: number): string;     // Lazy UTF-8 decode field by index
   toStringArray(): string[];           // Convert all fields to string[]
-  static fromStringArray(fields: string[]): BinaryRow;
+  static fromStringArray(fields: string[]): LazyRow;
 }
 ```
 
@@ -63,18 +63,18 @@ These follow the standard transformer signature: `AsyncIterable<Uint8Array> → 
 
 ### TSV Transformers
 ```typescript
-function fromTsvBytes(bytes: AsyncIterable<Uint8Array>): AsyncIterable<RowData[]>
-function fromTsvBytesToBinaryRow(bytes: AsyncIterable<Uint8Array>): AsyncIterable<BinaryRow[]>
-function toTsvBytes(data: AsyncIterable<RowData[] | BinaryRow[]>): AsyncIterable<Uint8Array>
+function fromTsvToRows(): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<Row[]>
+function fromTsvToLazyRows(): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<LazyRow[]>
+function toTsv(): (data: AsyncIterable<Row[] | LazyRow[]>) => AsyncIterable<Uint8Array>
 ```
 
 **Format**: Tab-separated values where fields contain no `\t` or `\n` characters.
 
 ### Record Transformers
 ```typescript
-function fromRecordBytes(bytes: AsyncIterable<Uint8Array>): AsyncIterable<RowData[]>
-function fromRecordBytesToBinaryRow(bytes: AsyncIterable<Uint8Array>): AsyncIterable<BinaryRow[]>
-function toRecordBytes(data: AsyncIterable<RowData[] | BinaryRow[]>): AsyncIterable<Uint8Array>
+function fromRecordToRows(): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<Row[]>
+function fromRecordToLazyRows(): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<LazyRow[]>
+function toRecord(): (data: AsyncIterable<Row[] | LazyRow[]>) => AsyncIterable<Uint8Array>
 ```
 
 **Format**: Uses ASCII control characters for reliable parsing:
@@ -85,9 +85,9 @@ These characters are defined in `common.ts` and should not appear in actual data
 
 ### JSON Transformers
 ```typescript
-function fromJsonBytes(bytes: AsyncIterable<Uint8Array>, options?: JsonOptions): AsyncIterable<RowData[]>
-function fromJsonBytesToBinaryRow(bytes: AsyncIterable<Uint8Array>, options?: JsonOptions): AsyncIterable<BinaryRow[]>
-function toJsonBytes(data: AsyncIterable<RowData[] | BinaryRow[]>): AsyncIterable<Uint8Array>
+function fromJsonToRows(options?: JsonOptions): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<Row[]>
+function fromJsonToLazyRows(options?: JsonOptions): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<LazyRow[]>
+function toJson(): (data: AsyncIterable<Row[] | LazyRow[]>) => AsyncIterable<Uint8Array>
 ```
 
 **JsonOptions**:
@@ -104,10 +104,14 @@ interface JsonOptions {
 
 ### CSV Transformers (Using Deno CSV Library)
 ```typescript
-function createCsvTransformers(parseOptions?: CsvParseOptions, stringifyOptions?: CsvStringifyOptions): {
-  fromCsvBytes: (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<string[][]>
-  toCsvBytes: (data: AsyncIterable<string[][]>) => AsyncIterable<Uint8Array>
-}
+function fromCsvToRows(parseOptions?: CsvParseOptions): 
+  (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<string[][]>
+
+function fromCsvToLazyRows(parseOptions?: CsvParseOptions): 
+  (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<LazyRow[]>
+
+function toCsv(stringifyOptions?: CsvStringifyOptions): 
+  (data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>) => AsyncIterable<Uint8Array>
 ```
 
 **CsvParseOptions**:
@@ -131,7 +135,10 @@ interface CsvStringifyOptions {
 }
 ```
 
-**Note**: CSV always works with `string[][]` arrays (batched), never objects. Headers are treated as the first data row.
+**Note**: 
+- CSV works with `string[][]` arrays (batched rows), where `RowData` is `string[]`
+- Headers are treated as the first data row
+- Each function returns a single transform function for use with `.transform()`
 
 **Implementation Note**: CSV transformers use `jsr:@std/csv` for parsing and generation to ensure RFC 4180 compliance and proper handling of quoted fields, escaping, and edge cases.
 
@@ -176,6 +183,14 @@ Optimized for large-scale streaming (100GB+ datasets):
 
 ### Error Handling
 **Strict mode**: Library throws on any data format errors or invalid UTF-8 characters. No error recovery or skipping malformed records.
+
+**Error Types**:
+- **UTF-8 errors**: Invalid byte sequences throw with `fatal: true` TextDecoder
+- **Format errors**: Malformed CSV/JSON/TSV/Record data throws appropriate errors
+- **Validation errors**: Zod schema validation failures (JSON only)
+- **Bounds errors**: LazyRow field access out of range throws errors
+
+**Testing**: All transformers must have comprehensive error tests covering invalid input scenarios.
 
 ### Header Handling
 **Flow-through**: Headers are treated as regular data rows. Callers extract headers as needed. This avoids object creation overhead compared to header-based object mapping.
