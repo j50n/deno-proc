@@ -118,8 +118,8 @@ By default, Odin exports its own memory. This creates a chicken-and-egg problem:
 The solution is to tell Odin to import memory instead:
 
 ```bash
-odin build main.odin -file -target:js_wasm32 \
-    -extra-linker-flags:"--import-memory"
+odin build main.odin -file -target:js_wasm32 -o:size \
+    -extra-linker-flags:"--import-memory --strip-all"
 ```
 
 Now you create memory first and pass it to both the runtime and WASM:

@@ -141,7 +141,7 @@ See the [thetarnav/odin-wasm](https://github.com/thetarnav/odin-wasm) repository
 Build with `--import-memory` to allow JavaScript to create and manage memory:
 
 ```bash
-odin build main.odin -file -target:js_wasm32 \
+odin build main.odin -file -target:js_wasm32 -o:size \
     -extra-linker-flags:"--import-memory --strip-all"
 ```
 

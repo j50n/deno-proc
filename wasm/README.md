@@ -1,10 +1,13 @@
 # Deno + Odin + WebAssembly
 
-A complete guide to building WebAssembly modules with Odin and running them in Deno/TypeScript.
+A complete guide to building WebAssembly modules with Odin and running them in
+Deno/TypeScript.
 
 ## For AI Assistants
 
-**Read `AI_GUIDE.md` instead of the book.** It contains everything you need in ~200 lines. The `docs/` folder contains a human-readable book that's too long for efficient AI context usage.
+**Read `AI_GUIDE.md` instead of the book.** It contains everything you need in
+~200 lines. The `docs/` folder contains a human-readable book that's too long
+for efficient AI context usage.
 
 Working example: `examples/foundation/`
 

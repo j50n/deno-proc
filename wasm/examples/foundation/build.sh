@@ -17,6 +17,7 @@ odin strip-semicolon odin/demo.odin -file -target:js_wasm32
 
 # Build the WASM
 odin build odin/demo.odin -file \
+    -o:size \
     -target:js_wasm32 \
     -out:demo.wasm \
     -extra-linker-flags:"--import-memory --strip-all"

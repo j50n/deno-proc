@@ -2,7 +2,8 @@
 
 ## Current State (2026-01-09)
 
-Successfully built a complete WebAssembly project using Deno and Odin, completely removing WASI complexity.
+Successfully built a complete WebAssembly project using Deno and Odin,
+completely removing WASI complexity.
 
 ## Project Structure
 
@@ -28,16 +29,19 @@ wasm/
 ## Key Technical Decisions
 
 ### WASM Instead of WASI
+
 - **Abandoned WASI approach** - Too complex, limited streaming support
 - **Pure WebAssembly** - Direct memory access, better performance
 - **Deno handles I/O** - JavaScript manages streaming, WASM processes data
 
 ### Odin Compilation
+
 - **Target**: `freestanding_wasm32` (not wasi_wasm32)
 - **Export functions**: `@(export)` with `proc "c"` calling convention
 - **Memory management**: Direct slice manipulation with `core:slice`
 
 ### Architecture Pattern
+
 ```
 Deno (I/O) → WASM Memory → Odin Function → WASM Memory → Deno (Output)
 ```
@@ -45,6 +49,7 @@ Deno (I/O) → WASM Memory → Odin Function → WASM Memory → Deno (Output)
 ## Working Example
 
 ### Odin Function (uppercase.odin)
+
 ```odin
 package main
 import "core:slice"
@@ -67,6 +72,7 @@ uppercase :: proc "c" (input_ptr: rawptr, input_len: int, output_ptr: rawptr) ->
 ```
 
 ### Deno Runner (run.ts)
+
 ```typescript
 const wasmBytes = await Deno.readFile("./uppercase.wasm");
 const wasmModule = await WebAssembly.compile(wasmBytes);
@@ -76,20 +82,22 @@ const uppercase = wasmInstance.exports.uppercase as CallableFunction;
 const memory = wasmInstance.exports.memory as WebAssembly.Memory;
 
 for await (const chunk of Deno.stdin.readable) {
-    const memView = new Uint8Array(memory.buffer);
-    memView.set(chunk, 0);
-    const outputLen = uppercase(0, chunk.length, chunk.length) as number;
-    const result = memView.slice(chunk.length, chunk.length + outputLen);
-    await Deno.stdout.write(result);
+  const memView = new Uint8Array(memory.buffer);
+  memView.set(chunk, 0);
+  const outputLen = uppercase(0, chunk.length, chunk.length) as number;
+  const result = memView.slice(chunk.length, chunk.length + outputLen);
+  await Deno.stdout.write(result);
 }
 ```
 
 ### Build Process
+
 ```bash
 odin build uppercase.odin -file -target:freestanding_wasm32 -out:uppercase.wasm -debug
 ```
 
 ## Testing
+
 ```bash
 echo "hello world" | deno run --allow-read run.ts
 # Output: HELLO WORLD
@@ -98,6 +106,7 @@ echo "hello world" | deno run --allow-read run.ts
 ## Next Steps for Expansion
 
 The "simple" example is the foundation. Ready to layer on:
+
 1. **Line-oriented processing** - Handle partial lines with overflow buffers
 2. **Multiple functions** - Export several WASM functions
 3. **Complex data types** - JSON, structured data processing
@@ -115,6 +124,6 @@ The "simple" example is the foundation. Ready to layer on:
 ## Documentation Status
 
 - ✅ Complete mdbook with 5 chapters
-- ✅ Working example tested and verified  
+- ✅ Working example tested and verified
 - ✅ Zero WASI references (pure WASM focus)
 - ✅ Ready for expansion with more complex examples

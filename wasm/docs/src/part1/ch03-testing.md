@@ -101,7 +101,7 @@ Add tests to your build script:
 #!/bin/bash
 set -e
 
-odin build odin/ -target:js_wasm32 -out:demo.wasm -o:speed \
+odin build odin/ -target:js_wasm32 -out:demo.wasm -o:size \
     -extra-linker-flags:"--import-memory --strip-all"
 deno fmt --check *.ts
 deno lint *.ts

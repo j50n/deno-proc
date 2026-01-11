@@ -38,11 +38,13 @@ try {
 
 ## Why proc?
 
-**Errors that just work** — Errors propagate through pipelines naturally, just like data. No edge cases, no separate error channels, no callbacks. One try-catch at the end handles everything. JavaScript streaming is fast, but error handling shouldn't break your brain.
+**Solves backpressure by design** — Traditional streams require complex coordination between producers and consumers. proc uses async iterators (pull-based) instead of streams (push-based), eliminating backpressure entirely. No buffering, no coordination, no memory pressure.
 
-**Powerful process management** — Run commands, pipe between processes, capture output, and control execution with a clean, composable API.
+**Errors that just work** — Errors propagate through pipelines naturally, just like data. No edge cases, no separate error channels, no callbacks. One try-catch at the end handles everything.
 
 **Async iterables that feel like Arrays** — Use `map`, `filter`, `reduce`, `flatMap`, `take`, `drop`, and more on any async iterable. No more wrestling with streams.
+
+**Powerful process management** — Run commands, pipe between processes, capture output, and control execution with a clean, composable API.
 
 **Type-safe and ergonomic** — Full TypeScript support with intuitive APIs that guide you toward correct usage.
 

@@ -2,6 +2,54 @@
 
 Error handling is proc's primary design goal. **Errors flow through pipelines naturally, just like data.**
 
+## The Backpressure Problem Solved
+
+Traditional streams create two problems: complex backpressure coordination AND complex error handling. proc solves both:
+
+### Traditional Streams - Complex Backpressure + Error Handling
+<!-- NOT TESTED: Illustrative example -->
+```typescript
+// Node.js streams - backpressure AND error handling complexity
+const stream1 = createReadStream('input.txt');
+const transform1 = new Transform({ /* options */ });
+const transform2 = new Transform({ /* options */ });
+const output = createWriteStream('output.txt');
+
+// Backpressure handling
+stream1.pipe(transform1, { end: false });
+transform1.pipe(transform2, { end: false });
+transform2.pipe(output);
+
+// Error handling at each stage
+stream1.on('error', handleError);
+transform1.on('error', handleError);
+transform2.on('error', handleError);
+output.on('error', handleError);
+
+// Plus drain events, pause/resume, etc.
+```
+
+### proc - No Backpressure, Simple Errors
+<!-- NOT TESTED: Illustrative example -->
+```typescript
+// proc - pull-based flow eliminates both problems
+try {
+  await read('input.txt')
+    .lines
+    .map(transform1)
+    .map(transform2)
+    .writeTo('output.txt');
+} catch (error) {
+  // All errors caught here - no backpressure coordination needed
+  console.error(`Pipeline failed: ${error.message}`);
+}
+```
+
+**Why this works:**
+- **Pull-based flow**: Consumer controls pace, no backpressure needed
+- **Error propagation**: Errors flow with data through the same path
+- **One catch block**: Handle all errors in one place
+
 ## The Problem
 
 Traditional stream error handling requires managing errors at multiple points:

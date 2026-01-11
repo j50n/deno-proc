@@ -41,11 +41,11 @@ Why not `freestanding_wasm32`? It produces tiny binaries but lobotomizes Odin—
 > ⚠️ **Avoid WASI targets with Deno.** Deno's WASI support is incomplete and poorly documented. The `wasi_wasm32` target looks appealing but leads to hours of frustration. Stick with `js_wasm32`.
 
 ```bash
-odin build . -target:js_wasm32 -out:module.wasm \
+odin build . -target:js_wasm32 -o:size -out:module.wasm \
     -extra-linker-flags:"--import-memory --strip-all"
 ```
 
-Output is typically ~30-40KB for simple modules. The runtime requires `odin_env` imports that your JavaScript host must implement (covered in Part 2).
+The `-o:size` flag optimizes for smallest binary. Use `-o:speed` if performance matters more than size. Output is typically ~30-40KB for simple modules. The runtime requires `odin_env` imports that your JavaScript host must implement (covered in Part 2).
 
 ## Project Structure
 
