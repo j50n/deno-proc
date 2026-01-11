@@ -180,6 +180,31 @@ Optimized for large-scale streaming (100GB+ datasets):
 ### Header Handling
 **Flow-through**: Headers are treated as regular data rows. Callers extract headers as needed. This avoids object creation overhead compared to header-based object mapping.
 
+## Testing Strategy
+
+Transform functions integrate seamlessly with the project's `enumerate().transform().collect()` pattern:
+
+```typescript
+// Test CSV parsing
+const csvData = "name,age\nAlice,30\nBob,25";
+const result = await enumerate([new TextEncoder().encode(csvData)])
+  .transform(fromCsvBytes)
+  .collect();
+
+// Test with multiple chunks
+const chunks = ["name,age\n", "Alice,30\n", "Bob,25"];
+const result = await enumerate(chunks.map(s => new TextEncoder().encode(s)))
+  .transform(fromCsvBytes)
+  .collect();
+```
+
+**Key testing patterns**:
+- Use `TextEncoder().encode()` to convert test strings to `Uint8Array`
+- Use `enumerate()` to create `AsyncIterable<Uint8Array>` from test data
+- Chain with `.transform(transformFunction)` to test the transform
+- Use `.collect()` to gather all results for assertions
+- Test both single chunks and multi-chunk scenarios for streaming behavior
+
 ### Line Ending Normalization
 Consistent LF line endings across all formats:
 ```typescript
