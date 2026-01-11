@@ -11,9 +11,10 @@ Deno.test("Record - basic parsing to RowData", async () => {
     .collect();
   
   assertEquals(result.length, 1);
-  assertEquals(result[0].length, 2); // 2 data rows (headers treated as first row)
-  assertEquals(result[0][0], { name: "Alice", age: "30", city: "NYC" });
-  assertEquals(result[0][1], { name: "Bob", age: "25", city: "LA" });
+  assertEquals(result[0].length, 3); // All 3 records including header
+  assertEquals(result[0][0], ["name", "age", "city"]); // Header row
+  assertEquals(result[0][1], ["Alice", "30", "NYC"]);
+  assertEquals(result[0][2], ["Bob", "25", "LA"]);
 });
 
 Deno.test("Record - basic parsing to LazyRow", async () => {
@@ -32,8 +33,8 @@ Deno.test("Record - basic parsing to LazyRow", async () => {
 
 Deno.test("Record - stringify from RowData", async () => {
   const data = [
-    { name: "Alice", age: "30", city: "NYC" },
-    { name: "Bob", age: "25", city: "LA" }
+    ["Alice", "30", "NYC"],
+    ["Bob", "25", "LA"]
   ];
   
   const result = await enumerate([data])
@@ -57,5 +58,5 @@ Deno.test("Record - round trip", async () => {
     .collect();
   
   const output = new TextDecoder().decode(stringified[0]);
-  assertEquals(output, `Alice${FIELD_SEPARATOR}30${RECORD_SEPARATOR}Bob${FIELD_SEPARATOR}25${RECORD_SEPARATOR}`);
+  assertEquals(output, `name${FIELD_SEPARATOR}age${RECORD_SEPARATOR}Alice${FIELD_SEPARATOR}30${RECORD_SEPARATOR}Bob${FIELD_SEPARATOR}25${RECORD_SEPARATOR}`);
 });

@@ -8,7 +8,8 @@
       "tools/",
       "site/",
       "docs/",
-      "wasm/"
+      "wasm/",
+      "benchmarks/"
     ]
   },
   "exports": {

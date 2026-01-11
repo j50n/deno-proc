@@ -11,6 +11,7 @@
     "jsr:@std/assert@1.0.6": "1.0.6",
     "jsr:@std/async@1.0.16": "1.0.16",
     "jsr:@std/async@1.0.6": "1.0.6",
+    "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/crypto@1.0.3": "1.0.3",
     "jsr:@std/csv@*": "1.0.6",
     "jsr:@std/encoding@1.0.5": "1.0.5",
@@ -77,6 +78,9 @@
     "@std/async@1.0.16": {
       "integrity": "6c9e43035313b67b5de43e2b3ee3eadb39a488a0a0a3143097f112e025d3ee9a"
     },
+    "@std/bytes@1.0.6": {
+      "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
+    },
     "@std/crypto@1.0.3": {
       "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
     },
@@ -114,7 +118,10 @@
       ]
     },
     "@std/streams@1.0.16": {
-      "integrity": "85030627befb1767c60d4f65cb30fa2f94af1d6ee6e5b2515b76157a542e89c4"
+      "integrity": "85030627befb1767c60d4f65cb30fa2f94af1d6ee6e5b2515b76157a542e89c4",
+      "dependencies": [
+        "jsr:@std/bytes"
+      ]
     },
     "@std/text@1.0.13": {
       "integrity": "2191c90e6e667b0c3b7dea1cd082137580a93b3c136bad597c0212d5fe006eb1"

@@ -666,7 +666,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Collect all items from this async iterable into an array.
-   * 
+   *
    * This is an alias for {@link collect} - both methods do exactly the same thing.
    * Use whichever name feels more natural in your code.
    *
@@ -681,7 +681,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @returns A Promise resolving to an array of all items.
    */
   async toArray(): Promise<T[]> {
-    return this.collect();
+    return await this.collect();
   }
 
   /**

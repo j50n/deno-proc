@@ -1,2 +1,8 @@
 # Temp files from running doc examples
 output.txt
+
+# Benchmark data files
+benchmarks/data/*.csv
+benchmarks/data/*.tsv
+benchmarks/data/*.json
+benchmarks/data/*.record

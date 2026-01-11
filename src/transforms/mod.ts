@@ -28,7 +28,6 @@ export {
 // JSON transformers
 export { 
   fromJsonToRows,
-  fromJsonToLazyRows,
   toJson,
   type JsonOptions 
 } from "./json.ts";

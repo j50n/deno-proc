@@ -1,92 +1,143 @@
-/**
- * High-performance lazy row representation optimized for selective field access.
- * 
- * Format:
- * - int32: Number of columns (N)
- * - int32[N]: Byte offsets (end position of each column in data)
- * - UTF-8 data: Concatenated field values
- */
-export class LazyRow {
-  private decoder = new TextDecoder('utf-8', { fatal: true });
+const decoder = new TextDecoder('utf-8', { fatal: true });
+const encoder = new TextEncoder();
 
-  constructor(private data: Uint8Array) {
-    if (data.length < 4) {
-      throw new Error('LazyRow data too short');
-    }
+export abstract class LazyRow {
+  abstract readonly columnCount: number;
+  abstract getField(index: number): string;
+  abstract toStringArray(): string[];
+  abstract toBinary(): Uint8Array;
+
+  static fromStringArray(fields: string[]): LazyRow {
+    return new StringArrayLazyRow(fields);
+  }
+
+  static fromBinary(data: Uint8Array, fieldBoundaries?: number[]): LazyRow {
+    return new BinaryLazyRow(data, fieldBoundaries);
+  }
+}
+
+class StringArrayLazyRow extends LazyRow {
+  private binaryCache?: Uint8Array;
+
+  constructor(private fields: string[]) {
+    super();
   }
 
   get columnCount(): number {
-    const view = new DataView(this.data.buffer, this.data.byteOffset);
-    return view.getInt32(0, true); // little-endian
+    return this.fields.length;
   }
 
   getField(index: number): string {
-    const columnCount = this.columnCount;
-    if (index < 0 || index >= columnCount) {
-      throw new Error(`Field index ${index} out of range [0, ${columnCount})`);
+    if (index < 0 || index >= this.fields.length) {
+      throw new RangeError(`Field index ${index} out of range [0, ${this.fields.length})`);
     }
-
-    const view = new DataView(this.data.buffer, this.data.byteOffset);
-    const offsetsStart = 4;
-    const dataStart = offsetsStart + columnCount * 4;
-    
-    const startOffset = index === 0 ? dataStart : 
-      dataStart + view.getInt32(offsetsStart + (index - 1) * 4, true);
-    const endOffset = dataStart + view.getInt32(offsetsStart + index * 4, true);
-    
-    const fieldBytes = this.data.subarray(startOffset, endOffset);
-    return this.decoder.decode(fieldBytes);
+    return this.fields[index];
   }
 
   toStringArray(): string[] {
-    const columnCount = this.columnCount;
-    const result = new Array<string>(columnCount);
-    
-    const view = new DataView(this.data.buffer, this.data.byteOffset);
-    const offsetsStart = 4;
-    const dataStart = offsetsStart + columnCount * 4;
-    
-    let prevOffset = dataStart;
-    for (let i = 0; i < columnCount; i++) {
-      const endOffset = dataStart + view.getInt32(offsetsStart + i * 4, true);
-      const fieldBytes = this.data.subarray(prevOffset, endOffset);
-      result[i] = this.decoder.decode(fieldBytes);
-      prevOffset = endOffset;
-    }
-    
-    return result;
+    return [...this.fields];
   }
 
-  static fromStringArray(fields: string[]): LazyRow {
-    const encoder = new TextEncoder();
-    const columnCount = fields.length;
+  toBinary(): Uint8Array {
+    if (this.binaryCache) {
+      return this.binaryCache;
+    }
+
+    // Create binary format: field_count + field_lengths + field_data
+    const fieldBytes = this.fields.map(field => encoder.encode(field));
+    const totalDataSize = fieldBytes.reduce((sum, bytes) => sum + bytes.length, 0);
+    const headerSize = 4 + (this.fields.length * 4); // field_count + field_lengths
     
-    // Encode all fields and calculate total size
-    const encodedFields = fields.map(field => encoder.encode(field));
-    const totalDataSize = encodedFields.reduce((sum, field) => sum + field.length, 0);
-    
-    // Allocate buffer: 4 bytes for count + 4*N bytes for offsets + data
-    const bufferSize = 4 + columnCount * 4 + totalDataSize;
-    const buffer = new Uint8Array(bufferSize);
+    const buffer = new Uint8Array(headerSize + totalDataSize);
     const view = new DataView(buffer.buffer);
     
-    // Write column count
-    view.setInt32(0, columnCount, true);
+    // Write field count
+    view.setUint32(0, this.fields.length, true);
     
-    // Write field data and offsets
-    const offsetsStart = 4;
-    const dataStart = offsetsStart + columnCount * 4;
-    let currentOffset = 0;
+    // Write field lengths and data
+    let offset = 4 + (this.fields.length * 4);
+    for (let i = 0; i < this.fields.length; i++) {
+      const fieldData = fieldBytes[i];
+      view.setUint32(4 + (i * 4), fieldData.length, true);
+      buffer.set(fieldData, offset);
+      offset += fieldData.length;
+    }
+
+    this.binaryCache = buffer;
+    return buffer;
+  }
+}
+
+class BinaryLazyRow extends LazyRow {
+  private stringCache?: string[];
+  private fieldCache = new Map<number, string>();
+  private fieldBoundaries: number[];
+
+  constructor(private data: Uint8Array, fieldBoundaries?: number[]) {
+    super();
+    if (fieldBoundaries) {
+      this.fieldBoundaries = fieldBoundaries;
+    } else {
+      // Parse header to get field boundaries
+      this.fieldBoundaries = this.parseFieldBoundaries();
+    }
+  }
+
+  private parseFieldBoundaries(): number[] {
+    const view = new DataView(this.data.buffer, this.data.byteOffset);
+    const fieldCount = view.getUint32(0, true);
+    const boundaries: number[] = [];
     
-    for (let i = 0; i < columnCount; i++) {
-      const fieldData = encodedFields[i];
-      buffer.set(fieldData, dataStart + currentOffset);
-      currentOffset += fieldData.length;
-      
-      // Write end offset for this field
-      view.setInt32(offsetsStart + i * 4, currentOffset, true);
+    let offset = 4 + (fieldCount * 4);
+    for (let i = 0; i < fieldCount; i++) {
+      const fieldLength = view.getUint32(4 + (i * 4), true);
+      boundaries.push(offset);
+      offset += fieldLength;
     }
     
-    return new LazyRow(buffer);
+    return boundaries;
+  }
+
+  get columnCount(): number {
+    return this.fieldBoundaries.length;
+  }
+
+  getField(index: number): string {
+    if (index < 0 || index >= this.fieldBoundaries.length) {
+      throw new RangeError(`Field index ${index} out of range [0, ${this.fieldBoundaries.length})`);
+    }
+
+    if (this.fieldCache.has(index)) {
+      return this.fieldCache.get(index)!;
+    }
+
+    const start = this.fieldBoundaries[index];
+    const end = index < this.fieldBoundaries.length - 1 
+      ? this.fieldBoundaries[index + 1] 
+      : this.data.length;
+    
+    const fieldData = this.data.slice(start, end);
+    const field = decoder.decode(fieldData);
+    this.fieldCache.set(index, field);
+    
+    return field;
+  }
+
+  toStringArray(): string[] {
+    if (this.stringCache) {
+      return [...this.stringCache];
+    }
+
+    const fields: string[] = [];
+    for (let i = 0; i < this.fieldBoundaries.length; i++) {
+      fields.push(this.getField(i));
+    }
+
+    this.stringCache = fields;
+    return [...fields];
+  }
+
+  toBinary(): Uint8Array {
+    return this.data;
   }
 }

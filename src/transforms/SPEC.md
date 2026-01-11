@@ -35,17 +35,36 @@ Binary representation optimized for read-only field access:
 - Convert to/from `string[]` arrays
 - Field access by index with lazy UTF-8 decoding
 
-### LazyRow Class
+### LazyRow Design
+
+**Polymorphic Implementation**: LazyRow uses a strategy pattern with two backing implementations optimized for different source data types.
+
+**Interface**:
 ```typescript
-class LazyRow {
-  constructor(private data: Uint8Array) {}
-  
-  get columnCount(): number;
-  getField(index: number): string;     // Lazy UTF-8 decode field by index
-  toStringArray(): string[];           // Convert all fields to string[]
-  static fromStringArray(fields: string[]): LazyRow;
+interface LazyRow {
+  readonly columnCount: number;
+  getField(index: number): string;
+  toStringArray(): string[];
+  toBinary(): Uint8Array;
 }
 ```
+
+**Factory Functions**:
+```typescript
+// Create from pre-parsed string array (zero conversion cost)
+LazyRow.fromStringArray(fields: string[]): LazyRow
+
+// Create from binary data with field boundaries (zero parsing cost)  
+LazyRow.fromBinary(data: Uint8Array, fieldBoundaries: number[]): LazyRow
+```
+
+**Implementation Strategy**:
+- **StringArrayLazyRow**: Backed by `string[]` with lazy binary conversion
+- **BinaryLazyRow**: Backed by `Uint8Array` with lazy string parsing
+- **Lazy Evaluation**: Conversions happen only when needed and are cached
+- **Binary Output Priority**: Transform functions prefer binary-backed LazyRows for output efficiency
+
+This design eliminates upfront conversion penalties while maintaining a clean polymorphic interface.
 
 ## Transform Functions vs Transformers
 
@@ -83,24 +102,33 @@ function toRecord(): (data: AsyncIterable<Row[] | LazyRow[]>) => AsyncIterable<U
 
 These characters are defined in `common.ts` and should not appear in actual data, allowing safe processing of tabs and newlines within field values.
 
-### JSON Transformers
+### JSON Transformers (Full Object Graphs)
 ```typescript
-function fromJsonToRows(options?: JsonOptions): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<Row[]>
-function fromJsonToLazyRows(options?: JsonOptions): (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<LazyRow[]>
-function toJson(): (data: AsyncIterable<Row[] | LazyRow[]>) => AsyncIterable<Uint8Array>
+function fromJsonToRows<T = unknown>(options?: JsonOptions<T>): 
+  (bytes: AsyncIterable<Uint8Array>) => AsyncIterable<T[]>
+
+function toJson<T = unknown>(): 
+  (data: AsyncIterable<T[]>) => AsyncIterable<Uint8Array>
 ```
 
 **JsonOptions**:
 ```typescript
-interface JsonOptions {
-  schema?: ZodSchema;     // Optional Zod validation schema
-  sampleSize?: number;    // Validate only first N rows (default: all rows)
+interface JsonOptions<T = unknown> {
+  schema?: ZodSchema<T>;   // Optional Zod validation schema
+  sampleSize?: number;     // Validate only first N rows (default: all rows)
 }
 ```
 
-**Format**: JSONL (JSON Lines) - one JSON object per line.
+**Format**: JSONL (JSON Lines) - one JSON value per line.
 
-**Validation Strategy**: Zod validation adds significant overhead, so sampling validates only the first N rows then assumes remaining data is valid.
+**Important**: JSON transformers work with complete JSON values (objects, arrays, primitives, null) - NOT flattened tabular data. Each line can be any valid JSON:
+- `{"name": "Alice", "age": 30}` (object)
+- `[1, 2, 3]` (array) 
+- `"hello"` (string)
+- `42` (number)
+- `null` (null)
+
+**No LazyRow Support**: JSON preserves full object structure and cannot be converted to/from LazyRow format since it's not tabular data.
 
 ### CSV Transformers (Using Deno CSV Library)
 ```typescript
@@ -193,7 +221,22 @@ Optimized for large-scale streaming (100GB+ datasets):
 **Testing**: All transformers must have comprehensive error tests covering invalid input scenarios.
 
 ### Header Handling
-**Flow-through**: Headers are treated as regular data rows. Callers extract headers as needed. This avoids object creation overhead compared to header-based object mapping.
+
+**Flow-through Design**: Headers are treated as regular data rows. Callers extract headers as needed. This avoids object creation overhead compared to header-based object mapping.
+
+**Design Decision**: Transform functions do NOT process headers specially:
+- Headers are returned as the first row of data (if present)
+- No automatic header extraction or object key mapping
+- No validation of column counts against headers
+- Users must handle header processing in their application code if needed
+
+**Column Count**: Transform functions do NOT guarantee consistent column counts:
+- Rows may have different numbers of fields
+- No validation that all rows match header column count
+- Malformed data may produce rows with varying field counts
+- Users should validate column consistency in their application if required
+
+This design prioritizes performance and flexibility over convenience, allowing users to implement their own header and validation logic as needed.
 
 ## Testing Strategy
 

@@ -1,12 +1,12 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
-import { fromJsonToRows, fromJsonToLazyRows, toJson } from "../../src/transforms/json.ts";
+import { fromJsonToRows, toJson } from "../../src/transforms/json.ts";
 
-Deno.test("JSON - basic parsing to RowData", async () => {
+Deno.test("JSON - basic parsing to objects", async () => {
   const jsonlData = '{"name":"Alice","age":"30","city":"NYC"}\n{"name":"Bob","age":"25","city":"LA"}';
   
   const result = await enumerate([new TextEncoder().encode(jsonlData)])
-    .transform(fromJsonToRows())
+    .transform(fromJsonToRows<{name: string, age: string, city: string}>())
     .collect();
   
   assertEquals(result.length, 1);
@@ -15,24 +15,26 @@ Deno.test("JSON - basic parsing to RowData", async () => {
   assertEquals(result[0][1], { name: "Bob", age: "25", city: "LA" });
 });
 
-Deno.test("JSON - basic parsing to LazyRow", async () => {
-  const jsonlData = '{"name":"Alice","age":"30"}\n{"name":"Bob","age":"25"}';
+Deno.test("JSON - arrays and primitives", async () => {
+  const jsonlData = '[1,2,3]\n"hello"\n42\nnull';
   
   const result = await enumerate([new TextEncoder().encode(jsonlData)])
-    .transform(fromJsonToLazyRows())
+    .transform(fromJsonToRows())
     .collect();
   
   assertEquals(result.length, 1);
-  assertEquals(result[0].length, 2);
-  assertEquals(result[0][0].toStringArray(), ["Alice", "30"]);
-  assertEquals(result[0][1].toStringArray(), ["Bob", "25"]);
+  assertEquals(result[0].length, 4);
+  assertEquals(result[0][0], [1, 2, 3]);
+  assertEquals(result[0][1], "hello");
+  assertEquals(result[0][2], 42);
+  assertEquals(result[0][3], null);
 });
 
 Deno.test("JSON - chunked input", async () => {
   const chunks = ['{"name":"Alice"', ',"age":"30"}\n{"name":', '"Bob","age":"25"}'];
   
   const result = await enumerate(chunks.map(s => new TextEncoder().encode(s)))
-    .transform(fromJsonToRows())
+    .transform(fromJsonToRows<{name: string, age: string}>())
     .collect();
   
   assertEquals(result.length, 1);
@@ -41,7 +43,7 @@ Deno.test("JSON - chunked input", async () => {
   assertEquals(result[0][1], { name: "Bob", age: "25" });
 });
 
-Deno.test("JSON - stringify from RowData", async () => {
+Deno.test("JSON - stringify objects", async () => {
   const data = [
     { name: "Alice", age: "30" },
     { name: "Bob", age: "25" }

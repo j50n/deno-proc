@@ -1,17 +1,16 @@
 import { BATCH_SIZE_BYTES, RECORD_SEPARATOR, FIELD_SEPARATOR } from "./common.ts";
 import { LazyRow } from "./lazy_row.ts";
 
-type RowData = Record<string, string>;
+type Row = string[];
 
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const encoder = new TextEncoder();
 
 export function fromRecordToRows() {
-  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<RowData[]> {
+  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<Row[]> {
     let buffer = "";
-    let currentBatch: RowData[] = [];
+    let currentBatch: Row[] = [];
     let currentBatchSize = 0;
-    let headers: string[] | null = null;
 
     for await (const chunk of bytes) {
       buffer += decoder.decode(chunk, { stream: true });
@@ -23,18 +22,7 @@ export function fromRecordToRows() {
         if (!record) continue;
         
         const fields = record.split(FIELD_SEPARATOR);
-        
-        if (headers === null) {
-          headers = fields;
-          continue;
-        }
-        
-        const row: RowData = {};
-        for (let i = 0; i < headers.length; i++) {
-          row[headers[i]] = fields[i] || "";
-        }
-        
-        currentBatch.push(row);
+        currentBatch.push(fields);
         currentBatchSize += record.length;
         
         if (currentBatchSize >= BATCH_SIZE_BYTES) {
@@ -48,15 +36,7 @@ export function fromRecordToRows() {
     buffer += decoder.decode();
     if (buffer) {
       const fields = buffer.split(FIELD_SEPARATOR);
-      if (headers === null) {
-        headers = fields;
-      } else {
-        const row: RowData = {};
-        for (let i = 0; i < headers.length; i++) {
-          row[headers[i]] = fields[i] || "";
-        }
-        currentBatch.push(row);
-      }
+      currentBatch.push(fields);
     }
 
     if (currentBatch.length > 0) {
@@ -108,7 +88,7 @@ export function fromRecordToLazyRows() {
 }
 
 export function toRecord() {
-  return async function* (data: AsyncIterable<RowData[] | LazyRow[]>): AsyncIterable<Uint8Array> {
+  return async function* (data: AsyncIterable<Row[] | LazyRow[]>): AsyncIterable<Uint8Array> {
     for await (const batch of data) {
       if (batch.length === 0) continue;
       
@@ -118,8 +98,8 @@ export function toRecord() {
         const lazyRows = batch as LazyRow[];
         records = lazyRows.map(row => row.toStringArray().join(FIELD_SEPARATOR));
       } else {
-        const rowData = batch as RowData[];
-        records = rowData.map(row => Object.values(row).join(FIELD_SEPARATOR));
+        const rows = batch as Row[];
+        records = rows.map(row => row.join(FIELD_SEPARATOR));
       }
       
       const recordData = records.join(RECORD_SEPARATOR) + RECORD_SEPARATOR;

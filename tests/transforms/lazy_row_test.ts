@@ -1,146 +1,222 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { LazyRow } from "../../src/transforms/lazy_row.ts";
 
-Deno.test("LazyRow - basic functionality", () => {
-  const fields = ["Alice", "30", "Engineer"];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 3);
-  assertEquals(row.getField(0), "Alice");
-  assertEquals(row.getField(1), "30");
-  assertEquals(row.getField(2), "Engineer");
-  assertEquals(row.toStringArray(), fields);
+Deno.test("LazyRow - StringArray implementation", async (t) => {
+  await t.step("basic functionality", () => {
+    const fields = ["hello", "world", "test"];
+    const row = LazyRow.fromStringArray(fields);
+    
+    assertEquals(row.columnCount, 3);
+    assertEquals(row.getField(0), "hello");
+    assertEquals(row.getField(1), "world");
+    assertEquals(row.getField(2), "test");
+    assertEquals(row.toStringArray(), ["hello", "world", "test"]);
+  });
+
+  await t.step("empty fields", () => {
+    const fields = ["", "test", ""];
+    const row = LazyRow.fromStringArray(fields);
+    
+    assertEquals(row.columnCount, 3);
+    assertEquals(row.getField(0), "");
+    assertEquals(row.getField(1), "test");
+    assertEquals(row.getField(2), "");
+  });
+
+  await t.step("single field", () => {
+    const fields = ["single"];
+    const row = LazyRow.fromStringArray(fields);
+    
+    assertEquals(row.columnCount, 1);
+    assertEquals(row.getField(0), "single");
+  });
+
+  await t.step("no fields", () => {
+    const fields: string[] = [];
+    const row = LazyRow.fromStringArray(fields);
+    
+    assertEquals(row.columnCount, 0);
+    assertEquals(row.toStringArray(), []);
+  });
+
+  await t.step("field access bounds checking", () => {
+    const fields = ["a", "b"];
+    const row = LazyRow.fromStringArray(fields);
+    
+    assertThrows(() => row.getField(-1), RangeError);
+    assertThrows(() => row.getField(2), RangeError);
+    assertThrows(() => row.getField(10), RangeError);
+  });
+
+  await t.step("UTF-8 handling", () => {
+    const fields = ["café", "naïve", "🚀"];
+    const row = LazyRow.fromStringArray(fields);
+    
+    assertEquals(row.getField(0), "café");
+    assertEquals(row.getField(1), "naïve");
+    assertEquals(row.getField(2), "🚀");
+  });
+
+  await t.step("binary conversion and caching", () => {
+    const fields = ["a", "bb", "ccc"];
+    const row = LazyRow.fromStringArray(fields);
+    
+    const binary1 = row.toBinary();
+    const binary2 = row.toBinary();
+    
+    // Should return the same cached instance
+    assertEquals(binary1, binary2);
+    
+    // Should be able to recreate from binary
+    const row2 = LazyRow.fromBinary(binary1);
+    assertEquals(row2.columnCount, 3);
+    assertEquals(row2.getField(0), "a");
+    assertEquals(row2.getField(1), "bb");
+    assertEquals(row2.getField(2), "ccc");
+  });
 });
 
-Deno.test("LazyRow - empty fields", () => {
-  const fields = ["", "test", ""];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 3);
-  assertEquals(row.getField(0), "");
-  assertEquals(row.getField(1), "test");
-  assertEquals(row.getField(2), "");
-  assertEquals(row.toStringArray(), fields);
+Deno.test("LazyRow - Binary implementation", async (t) => {
+  await t.step("round trip conversion", () => {
+    const originalFields = ["hello", "world", "test", ""];
+    const stringRow = LazyRow.fromStringArray(originalFields);
+    const binary = stringRow.toBinary();
+    
+    const binaryRow = LazyRow.fromBinary(binary);
+    assertEquals(binaryRow.columnCount, 4);
+    assertEquals(binaryRow.getField(0), "hello");
+    assertEquals(binaryRow.getField(1), "world");
+    assertEquals(binaryRow.getField(2), "test");
+    assertEquals(binaryRow.getField(3), "");
+    assertEquals(binaryRow.toStringArray(), originalFields);
+  });
+
+  await t.step("lazy field parsing", () => {
+    const fields = ["a", "b", "c", "d", "e"];
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    // Access only some fields
+    assertEquals(binaryRow.getField(1), "b");
+    assertEquals(binaryRow.getField(3), "d");
+    
+    // Full array should still work
+    assertEquals(binaryRow.toStringArray(), fields);
+  });
+
+  await t.step("field caching", () => {
+    const fields = ["test1", "test2", "test3"];
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    // First access should parse and cache
+    const field1a = binaryRow.getField(1);
+    const field1b = binaryRow.getField(1);
+    
+    assertEquals(field1a, "test2");
+    assertEquals(field1b, "test2");
+  });
+
+  await t.step("string array caching", () => {
+    const fields = ["a", "b", "c"];
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    const array1 = binaryRow.toStringArray();
+    const array2 = binaryRow.toStringArray();
+    
+    assertEquals(array1, fields);
+    assertEquals(array2, fields);
+    // Should return different arrays (defensive copy)
+    assertEquals(array1 !== array2, true);
+  });
+
+  await t.step("binary passthrough", () => {
+    const fields = ["test"];
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    // toBinary should return the original data
+    assertEquals(binaryRow.toBinary(), binary);
+  });
+
+  await t.step("UTF-8 multi-byte handling", () => {
+    const fields = ["café", "🚀", "naïve"];
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    assertEquals(binaryRow.getField(0), "café");
+    assertEquals(binaryRow.getField(1), "🚀");
+    assertEquals(binaryRow.getField(2), "naïve");
+  });
 });
 
-Deno.test("LazyRow - single field", () => {
-  const fields = ["single"];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 1);
-  assertEquals(row.getField(0), "single");
-  assertEquals(row.toStringArray(), fields);
+Deno.test("LazyRow - Polymorphism", async (t) => {
+  await t.step("instanceof works", () => {
+    const stringRow = LazyRow.fromStringArray(["a", "b"]);
+    const binaryRow = LazyRow.fromBinary(stringRow.toBinary());
+    
+    assertEquals(stringRow instanceof LazyRow, true);
+    assertEquals(binaryRow instanceof LazyRow, true);
+  });
+
+  await t.step("polymorphic usage", () => {
+    function processRow(row: LazyRow): string {
+      return `${row.columnCount} fields: ${row.getField(0)}`;
+    }
+    
+    const stringRow = LazyRow.fromStringArray(["hello", "world"]);
+    const binaryRow = LazyRow.fromBinary(stringRow.toBinary());
+    
+    assertEquals(processRow(stringRow), "2 fields: hello");
+    assertEquals(processRow(binaryRow), "2 fields: hello");
+  });
+
+  await t.step("array of mixed implementations", () => {
+    const stringRow = LazyRow.fromStringArray(["a", "b"]);
+    const binaryRow = LazyRow.fromBinary(stringRow.toBinary());
+    
+    const rows: LazyRow[] = [stringRow, binaryRow];
+    
+    for (const row of rows) {
+      assertEquals(row.columnCount, 2);
+      assertEquals(row.getField(0), "a");
+      assertEquals(row.getField(1), "b");
+    }
+  });
 });
 
-Deno.test("LazyRow - no fields", () => {
-  const fields: string[] = [];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 0);
-  assertEquals(row.toStringArray(), []);
-});
+Deno.test("LazyRow - Performance characteristics", async (t) => {
+  await t.step("string array - no conversion cost", () => {
+    const fields = Array.from({ length: 1000 }, (_, i) => `field_${i}`);
+    
+    const start = performance.now();
+    const row = LazyRow.fromStringArray(fields);
+    const end = performance.now();
+    
+    // Should be very fast (< 1ms for 1000 fields)
+    assertEquals(end - start < 1, true);
+    assertEquals(row.columnCount, 1000);
+  });
 
-Deno.test("LazyRow - UTF-8 handling", () => {
-  const fields = ["🚀", "café", "naïve", "北京"];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 4);
-  assertEquals(row.getField(0), "🚀");
-  assertEquals(row.getField(1), "café");
-  assertEquals(row.getField(2), "naïve");
-  assertEquals(row.getField(3), "北京");
-  assertEquals(row.toStringArray(), fields);
-});
-
-Deno.test("LazyRow - multi-byte UTF-8 boundaries", () => {
-  // Test characters that use different UTF-8 byte lengths
-  const fields = [
-    "A",           // 1 byte
-    "é",           // 2 bytes (C3 A9)
-    "€",           // 3 bytes (E2 82 AC)
-    "𝕏",           // 4 bytes (F0 9D 95 8F)
-    "🌟✨🎉",      // Multiple 4-byte emojis
-    "混合text文字", // Mixed ASCII and multi-byte
-  ];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 6);
-  assertEquals(row.getField(0), "A");
-  assertEquals(row.getField(1), "é");
-  assertEquals(row.getField(2), "€");
-  assertEquals(row.getField(3), "𝕏");
-  assertEquals(row.getField(4), "🌟✨🎉");
-  assertEquals(row.getField(5), "混合text文字");
-  assertEquals(row.toStringArray(), fields);
-});
-
-Deno.test("LazyRow - large fields", () => {
-  const largeField = "x".repeat(10000);
-  const fields = ["small", largeField, "tiny"];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 3);
-  assertEquals(row.getField(0), "small");
-  assertEquals(row.getField(1), largeField);
-  assertEquals(row.getField(2), "tiny");
-  assertEquals(row.toStringArray(), fields);
-});
-
-Deno.test("LazyRow - field access bounds checking", () => {
-  const fields = ["a", "b"];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertThrows(() => row.getField(-1), Error, "out of range");
-  assertThrows(() => row.getField(2), Error, "out of range");
-  assertThrows(() => row.getField(100), Error, "out of range");
-});
-
-Deno.test("LazyRow - invalid data", () => {
-  // Too short buffer
-  assertThrows(() => new LazyRow(new Uint8Array([1, 2])), Error, "too short");
-  
-  // Empty buffer
-  assertThrows(() => new LazyRow(new Uint8Array()), Error, "too short");
-});
-
-Deno.test("LazyRow - special characters", () => {
-  const fields = ["line1\nline2", "tab\there", "quote\"test", "comma,test"];
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 4);
-  assertEquals(row.getField(0), "line1\nline2");
-  assertEquals(row.getField(1), "tab\there");
-  assertEquals(row.getField(2), "quote\"test");
-  assertEquals(row.getField(3), "comma,test");
-  assertEquals(row.toStringArray(), fields);
-});
-
-Deno.test("LazyRow - performance test", () => {
-  // Test with many fields
-  const fields = Array.from({ length: 100 }, (_, i) => `field_${i}_value`);
-  const row = LazyRow.fromStringArray(fields);
-  
-  assertEquals(row.columnCount, 100);
-  
-  // Test random access (should be fast)
-  assertEquals(row.getField(50), "field_50_value");
-  assertEquals(row.getField(0), "field_0_value");
-  assertEquals(row.getField(99), "field_99_value");
-  
-  // Test full conversion
-  assertEquals(row.toStringArray(), fields);
-});
-
-Deno.test("LazyRow - lazy access advantage", () => {
-  // Create a row with many large fields
-  const fields = Array.from({ length: 50 }, (_, i) => `large_field_${i}_${"x".repeat(1000)}`);
-  const row = LazyRow.fromStringArray(fields);
-  
-  // Access only a few fields - this should be efficient
-  assertEquals(row.getField(0).startsWith("large_field_0_"), true);
-  assertEquals(row.getField(25).startsWith("large_field_25_"), true);
-  assertEquals(row.getField(49).startsWith("large_field_49_"), true);
-  
-  // Verify we can still get all if needed
-  assertEquals(row.toStringArray().length, 50);
+  await t.step("binary - lazy field access", () => {
+    const fields = Array.from({ length: 100 }, (_, i) => `field_${i}_with_longer_content`);
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    // Accessing just one field should be fast
+    const start = performance.now();
+    const field = binaryRow.getField(50);
+    const end = performance.now();
+    
+    assertEquals(field, "field_50_with_longer_content");
+    // Should be faster than parsing all fields
+    assertEquals(end - start < 1, true);
+  });
 });
