@@ -7,7 +7,7 @@
       "dev/",
       "site/",
       "docs/",
-      "wasm/",
+      "labs/",
       "benchmarks/",
       "coverage/",
       "tests/",

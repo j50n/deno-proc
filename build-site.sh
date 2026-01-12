@@ -25,7 +25,3 @@ cd "$HERE/site/" && (
     mkdir ../docs/
     rsync -av ./book/ ../docs/
 )
-
-cd "$HERE/wasm/docs/" && (
-    mdbook build
-)

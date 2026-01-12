@@ -171,7 +171,7 @@ MIT
 
 ## Building Documentation
 
-The WASM book (`wasm/docs/`) generates HTML, EPUB, and PDF outputs.
+The WASM book (`labs/wasm/docs/`) generates HTML, EPUB, and PDF outputs.
 
 ### Prerequisites (Debian/Ubuntu)
 
@@ -193,6 +193,6 @@ sudo apt install pandoc weasyprint ghostscript imagemagick
 ```
 
 Outputs:
-- `wasm/docs/book/` — HTML
-- `wasm/docs/book/book.epub` — EPUB with cover
-- `wasm/docs/book/book.pdf` — PDF with cover
+- `labs/wasm/docs/book/` — HTML
+- `labs/wasm/docs/book/book.epub` — EPUB with cover
+- `labs/wasm/docs/book/book.pdf` — PDF with cover
