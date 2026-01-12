@@ -1,25 +1,70 @@
 import { parse, stringify } from "jsr:@std/csv";
 import { BATCH_SIZE_BYTES } from "./common.ts";
-import { LazyRow } from "./lazy_row.ts";
+import { LazyRow } from "./lazy-row.ts";
 
+/**
+ * Options for parsing CSV data.
+ * @see https://jsr.io/@std/csv for full documentation
+ */
 export interface CsvParseOptions {
+  /** Field separator character. Defaults to comma. */
   separator?: string;
+  /** Comment character. Lines starting with this are skipped. */
   comment?: string;
+  /** Trim leading whitespace from fields. */
   trimLeadingSpace?: boolean;
+  /** Allow quotes to appear in unquoted fields. */
   lazyQuotes?: boolean;
+  /** Expected number of fields per record. Use 0 for variable. */
   fieldsPerRecord?: number;
 }
 
+/**
+ * Options for stringifying data to CSV.
+ */
 export interface CsvStringifyOptions {
+  /** Field separator character. Defaults to comma. */
   separator?: string;
+  /** Use CRLF line endings instead of LF. */
   crlf?: boolean;
+  /** Quote character. Defaults to double quote. */
   quote?: string;
+  /** Quote all fields, not just those requiring it. */
   quotedFields?: boolean;
 }
 
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const encoder = new TextEncoder();
 
+/**
+ * Parse CSV bytes into batches of string arrays.
+ *
+ * Streams CSV data efficiently, yielding batches of parsed rows (~128KB each).
+ * Handles RFC 4180 compliant CSV including quoted fields and embedded newlines.
+ *
+ * @example Basic CSV parsing
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromCsvToRows } from "jsr:@j50n/proc/transforms";
+ *
+ * const rows = await read("data.csv")
+ *   .transform(fromCsvToRows())
+ *   .flatten()
+ *   .collect();
+ * // string[][] - each inner array is one row
+ * ```
+ *
+ * @example With custom separator
+ * ```typescript
+ * const rows = await read("data.csv")
+ *   .transform(fromCsvToRows({ separator: ";" }))
+ *   .flatten()
+ *   .collect();
+ * ```
+ *
+ * @param parseOptions CSV parsing options.
+ * @returns A transformer function for use with `.transform()`.
+ */
 export function fromCsvToRows(parseOptions?: CsvParseOptions) {
   return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<string[][]> {
     let buffer = "";
@@ -61,6 +106,31 @@ export function fromCsvToRows(parseOptions?: CsvParseOptions) {
   };
 }
 
+/**
+ * Parse CSV bytes into batches of LazyRow objects.
+ *
+ * Like {@link fromCsvToRows} but returns {@link LazyRow} objects for better
+ * performance when you only need to access specific fields. LazyRow defers
+ * string conversion until fields are accessed.
+ *
+ * **Performance**: Up to 1.7x faster than `fromCsvToRows` for large datasets
+ * when accessing only a subset of fields.
+ *
+ * @example Efficient field access
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromCsvToLazyRows } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("large.csv")
+ *   .transform(fromCsvToLazyRows())
+ *   .flatten()
+ *   .filter(row => row.getField(0) === "active")
+ *   .forEach(row => console.log(row.getField(1)));
+ * ```
+ *
+ * @param parseOptions CSV parsing options.
+ * @returns A transformer function for use with `.transform()`.
+ */
 export function fromCsvToLazyRows(parseOptions?: CsvParseOptions) {
   return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<LazyRow[]> {
     let buffer = "";
@@ -105,6 +175,38 @@ export function fromCsvToLazyRows(parseOptions?: CsvParseOptions) {
   };
 }
 
+/**
+ * Convert row data to CSV bytes.
+ *
+ * Accepts string arrays, batches of string arrays, LazyRow objects, or batches
+ * of LazyRow objects. Produces RFC 4180 compliant CSV output.
+ *
+ * @example Write CSV file
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromCsvToRows, toCsv } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("input.csv")
+ *   .transform(fromCsvToRows())
+ *   .transform(toCsv())
+ *   .writeTo("output.csv");
+ * ```
+ *
+ * @example Convert TSV to CSV
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromTsvToLazyRows } from "jsr:@j50n/proc/transforms";
+ * import { toCsv } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("data.tsv")
+ *   .transform(fromTsvToLazyRows())
+ *   .transform(toCsv())
+ *   .writeTo("data.csv");
+ * ```
+ *
+ * @param stringifyOptions CSV output options.
+ * @returns A transformer function for use with `.transform()`.
+ */
 export function toCsv(stringifyOptions?: CsvStringifyOptions) {
   return async function* (data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>): AsyncIterable<Uint8Array> {
     for await (const item of data) {

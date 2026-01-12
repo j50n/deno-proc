@@ -96,8 +96,9 @@ try {
 
 ## Why proc?
 
-**JavaScript streaming is fast, but error handling shouldn't break your brain.**
-proc gives you:
+JavaScript streaming is powerful, but traditional approaches create unnecessary complexity. proc eliminates the two biggest pain points: backpressure coordination and error handling. By using async iterators (pull-based) instead of streams (push-based), backpressure disappears entirely and errors propagate naturally through pipelines.
+
+This design gives you:
 
 - **Errors that propagate naturally** through pipelines
 - **Array methods on async iterables** (map, filter, reduce, and more)

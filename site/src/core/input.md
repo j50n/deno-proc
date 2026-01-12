@@ -1,28 +1,32 @@
 # Working with Input
 
-Send data to process stdin.
+Sending data to process stdin is fundamental to building effective data processing pipelines. proc provides several approaches depending on your data source and use case.
 
-## Choosing Your Approach
+## Choosing the Right Input Method
 
-**Use `.run()` for process-to-process pipes** (most common):
+The most common approach is using `.run()` to pipe output from one process directly to another, creating efficient process-to-process pipelines:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 await run("cat", "file.txt").run("grep", "pattern").toStdout();
 ```
 
-**Use `enumerate()` for in-memory data**:
+When you have in-memory data that you want to send to a process, `enumerate()` wraps your data and makes it pipeable:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 await enumerate(["line1", "line2"]).run("grep", "1").toStdout();
 ```
 
-**Use `read()` for file input**:
+For file input, `read()` creates a stream directly from the file system:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 await read("input.txt").run("grep", "pattern").toStdout();
 ```
 
-**Use `range()` for generated sequences**:
+When you need generated sequences, `range()` creates numeric streams that you can transform and pipe:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 await range({ to: 100 }).map(n => n.toString()).run("shuf").toStdout();
@@ -30,7 +34,7 @@ await range({ to: 100 }).map(n => n.toString()).run("shuf").toStdout();
 
 ## Piping Between Processes
 
-The most common way to provide input:
+The most common way to provide input is piping output from one process directly to another. This creates efficient data flows without intermediate storage:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -42,9 +46,9 @@ await run("echo", "hello")
 // HELLO
 ```
 
-## From Enumerable
+## Working with In-Memory Data
 
-Pipe any enumerable to a process:
+When you have data in memory that you want to send to a process, `enumerate()` makes any iterable pipeable to processes:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "input: pipe from enumerable" -->
 ```typescript
@@ -58,7 +62,9 @@ await enumerate(data)
 // line 2
 ```
 
-## From File
+## Reading from Files
+
+For file input, `read()` creates a stream directly from the file system, allowing you to process files of any size efficiently:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript

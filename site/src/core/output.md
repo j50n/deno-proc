@@ -1,16 +1,18 @@
 # Working with Output
 
-Capture, transform, and process command output.
+Capturing, transforming, and processing command output is central to building effective data processing pipelines. proc provides multiple approaches depending on your data size and processing needs.
 
-## Choosing Your Approach
+## Choosing the Right Output Method
 
-**Use `.lines.collect()`** when you need all output as an array (small outputs only):
+When you need all output as an array and you're confident the output is small enough to fit in memory, use `.lines.collect()`:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 const lines = await run("ls").lines.collect();  // All lines in memory
 ```
 
-**Use `.lines` with for-await** when processing large outputs line-by-line:
+For large outputs that you want to process line-by-line without loading everything into memory, use `.lines` with for-await loops:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 for await (const line of run("cat", "huge.log").lines) {
@@ -18,13 +20,15 @@ for await (const line of run("cat", "huge.log").lines) {
 }
 ```
 
-**Use `.toStdout()`** when you just want to see the output:
+When you just want to see the output in your console, `.toStdout()` prints directly without capturing:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 await run("ls", "-la").toStdout();  // Prints directly to console
 ```
 
-**Use `.first` or `.last`** when you only need one line:
+For single-line results, `.first` or `.last` properties give you exactly what you need:
+
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 const result = await run("git", "rev-parse", "HEAD").lines.first;

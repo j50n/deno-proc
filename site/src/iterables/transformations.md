@@ -1,10 +1,10 @@
 # Transformations
 
-Change data as it flows through your pipeline.
+Transform data as it flows through your pipeline using familiar Array-like methods that work seamlessly with async data streams.
 
-## map()
+## Understanding map()
 
-Transform each item:
+The `map()` method transforms each item in your stream, applying a function to every element and returning a new stream with the transformed values:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -16,7 +16,7 @@ const doubled = await enumerate([1, 2, 3])
 // [2, 4, 6]
 ```
 
-### With Async Functions
+Map works seamlessly with async functions, making it perfect for I/O operations like API calls:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "transformations: map with async" -->
 ```typescript
@@ -28,7 +28,7 @@ const results = await enumerate(urls)
   .collect();
 ```
 
-### Type Transformations
+You can transform data types, converting numbers to strings or restructuring objects:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -38,7 +38,7 @@ const strings = await enumerate([1, 2, 3])
 // ["1", "2", "3"]
 ```
 
-### Complex Transformations
+For complex transformations, map can restructure entire objects:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -51,10 +51,13 @@ const processed = await enumerate(rawData)
   }))
   .collect();
 ```
+  }))
+  .collect();
+```
 
-## flatMap()
+## Working with flatMap()
 
-Map and flatten in one step:
+The `flatMap()` method combines mapping and flattening in a single operation, which is perfect when your transformation function returns arrays that you want to merge into a single stream:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -64,7 +67,7 @@ const words = await enumerate(["hello world", "foo bar"])
 // ["hello", "world", "foo", "bar"]
 ```
 
-### Expanding Items
+You can use flatMap to expand items, creating multiple output items from each input:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -74,7 +77,7 @@ const expanded = await enumerate([1, 2, 3])
 // [1, 10, 2, 20, 3, 30]
 ```
 
-### Filtering While Mapping
+FlatMap is also useful for filtering while mapping—return an empty array to skip items:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -88,9 +91,9 @@ const valid = await enumerate(data)
   .collect();
 ```
 
-## filter()
+## Filtering with filter()
 
-Keep only matching items:
+The `filter()` method keeps only items that match your criteria, discarding everything else:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -100,7 +103,7 @@ const evens = await enumerate([1, 2, 3, 4, 5])
 // [2, 4]
 ```
 
-### Complex Predicates
+You can use complex predicates that check multiple conditions:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -113,7 +116,7 @@ const active = await enumerate(users)
   .collect();
 ```
 
-### With Type Guards
+Filter works well with TypeScript type guards to narrow types:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -122,9 +125,9 @@ const numbers = await enumerate(mixed)
   .collect();
 ```
 
-## transform()
+## Using transform() with Streams
 
-Apply a TransformStream:
+The `transform()` method lets you apply any TransformStream to your data, which is particularly useful for built-in transformations like compression:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -136,7 +139,7 @@ const decompressed = await read("file.gz")
   .collect();
 ```
 
-### Custom Transform
+You can also create custom TransformStreams for specialized processing:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -223,11 +226,9 @@ const objects = await read("data.jsonl")
   .collect();
 ```
 
-## Performance Tips
+## Performance Optimization
 
-### Lazy Evaluation
-
-Transformations don't run until you consume:
+Understanding how transformations work can help you build more efficient pipelines. Transformations use lazy evaluation, meaning nothing actually runs until you consume the results:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -240,9 +241,7 @@ const pipeline = enumerate(data)
 const result = await pipeline.collect();
 ```
 
-### Early Filtering
-
-Filter before expensive operations:
+For better performance, filter before expensive operations to reduce the amount of data that needs processing:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -259,7 +258,7 @@ const result = await enumerate(data)
   .collect();
 ```
 
-### Use take() to Limit
+Use `take()` to limit processing when you only need a subset of results:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript

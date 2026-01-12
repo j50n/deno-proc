@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert";
-import { LazyRow } from "../../src/transforms/lazy_row.ts";
+import { LazyRow } from "../../src/transforms/lazy-row.ts";
 
 Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("basic functionality", () => {

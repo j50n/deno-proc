@@ -1,8 +1,10 @@
 # Running Processes
 
-Running a child process with proc is as simple as it gets.
+Running child processes with proc is designed to be as simple and intuitive as possible, eliminating the boilerplate typically required for process management.
 
-## Basic Usage
+## Getting Started
+
+The most basic usage requires just importing `run` and calling it with your command:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: capture output" -->
 ```typescript
@@ -12,18 +14,18 @@ import { run } from "jsr:@j50n/proc@{{gitv}}";
 await run("ls", "-la").lines.collect();
 ```
 
-That's it. No boilerplate, no configuration, just run it.
+That's all you need. No configuration objects, no callback functions, no complex setup—just run the command and get the results.
 
-## Command and Arguments
+## Understanding Command Arguments
 
-The first parameter is the command, the rest are arguments:
+The first parameter to `run()` is the command name, and all subsequent parameters are individual arguments. This approach prevents shell injection vulnerabilities and makes argument handling explicit:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 run("command", "arg1", "arg2", "arg3")
 ```
 
-**Important:** Arguments are separate parameters, not a single string:
+It's important to pass arguments as separate parameters rather than as a single string:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript

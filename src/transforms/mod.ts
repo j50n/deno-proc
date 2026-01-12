@@ -1,5 +1,5 @@
 // Transform functions for data format conversion
-export { LazyRow } from "./lazy_row.ts";
+export { LazyRow } from "./lazy-row.ts";
 export { BATCH_SIZE_BYTES, RECORD_SEPARATOR, FIELD_SEPARATOR } from "./common.ts";
 
 // CSV transformers

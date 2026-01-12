@@ -1,8 +1,8 @@
 # Process Pipelines
 
-Chain processes together like shell pipes. It's beautiful.
+Chaining processes together creates powerful data processing workflows that combine the efficiency of Unix tools with the expressiveness of JavaScript.
 
-## The Basics
+## Understanding Pipeline Basics
 
 In a shell, you'd write:
 
@@ -10,7 +10,7 @@ In a shell, you'd write:
 cat file.txt | grep error | wc -l
 ```
 
-In proc, you write:
+In proc, you write the same logic with method chaining:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -20,7 +20,7 @@ const count = await run("cat", "file.txt")
   .lines.first;
 ```
 
-Each `.run()` pipes the previous output to the next command's stdin.
+Each `.run()` pipes the previous output to the next command's stdin, creating a seamless data flow where each process receives exactly what the previous one produces.
 
 ## How It Works
 
@@ -114,7 +114,7 @@ stats.forEach(line => console.log(line));
 
 ## Branching Pipelines
 
-Sometimes you need to process the same data in multiple ways. Use `.tee()` to split a pipeline into multiple branches:
+Sometimes you need to process the same data in multiple ways. Use `.tee()` to split a pipeline into multiple branches that can be processed independently:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -129,14 +129,7 @@ const [result1, result2] = await Promise.all([
 ]);
 ```
 
-**How it works:** `.tee()` creates two independent iterables from one source. Each branch can be processed differently, and both can run concurrently.
-
-**Use cases:**
-- Collect different subsets of data in one pass
-- Calculate multiple statistics simultaneously
-- Process data while also logging it
-
-**Important:** Both branches must be consumed, or you'll leak resources.
+The `.tee()` method creates two independent iterables from one source, allowing each branch to be processed differently while both run concurrently. This is perfect for collecting different subsets of data in one pass, calculating multiple statistics simultaneously, or processing data while also logging it. Remember that both branches must be consumed to avoid resource leaks.
 
 ## Error Handling in Pipelines
 
@@ -157,14 +150,9 @@ try {
 
 See [Error Handling](./error-handling.md) for details.
 
-## Performance Characteristics
+## Performance and Efficiency
 
-Pipelines are:
-
-- **Streaming** - Data flows through, not collected in memory
-- **Lazy** - Nothing runs until you consume the output
-- **Concurrent** - All processes run at the same time
-- **Efficient** - Minimal memory usage, even for huge files
+Pipelines are designed for optimal performance and resource usage. They stream data through the pipeline one buffer at a time, meaning nothing is collected in memory unless you explicitly request it. All processes in the pipeline run concurrently, creating efficient parallel processing:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -174,6 +162,8 @@ await run("cat", "huge-file.txt")
   .run("wc", "-l")
   .lines.first;
 ```
+
+The lazy evaluation means nothing actually runs until you consume the output, and the streaming nature ensures minimal memory usage even for huge files.
 
 ## Debugging Pipelines
 
@@ -238,21 +228,15 @@ const sum = await run("cat", "numbers.txt")
   .reduce((acc, n) => acc + n, 0);
 ```
 
-## When to Use Pipelines
+## Choosing Between Pipelines and JavaScript
 
-**Use pipelines when:**
-- You're processing large files
-- You want to chain Unix tools
-- You need streaming performance
-- You're replacing shell scripts
+Understanding when to use each approach helps you build efficient and maintainable data processing workflows.
 
-**Use JavaScript when:**
-- You need complex logic
-- You're working with structured data (JSON, etc.)
-- You need type safety
-- The operation is CPU-bound
+Use pipelines when you're processing large files, want to chain Unix tools together, need streaming performance, or you're replacing shell scripts with more robust TypeScript code.
 
-**Mix both** for the best of both worlds!
+Use JavaScript transformations when you need complex logic that's difficult to express with Unix tools, you're working with structured data like JSON, you need type safety and IDE support, or the operation is CPU-bound rather than I/O-bound.
+
+The most powerful approach is mixing both techniques, using Unix tools for efficient data filtering and JavaScript for complex transformations and business logic.
 
 ## Next Steps
 

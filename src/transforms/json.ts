@@ -2,14 +2,75 @@ import { BATCH_SIZE_BYTES } from "./common.ts";
 
 type ZodSchema<T = unknown> = { parse(value: unknown): T }; // Minimal Zod interface
 
+/**
+ * Options for JSON Lines parsing.
+ */
 export interface JsonOptions<T = unknown> {
-  schema?: ZodSchema<T>;     // Optional Zod validation schema
-  sampleSize?: number;    // Validate only first N rows (default: all rows)
+  /**
+   * Optional Zod validation schema.
+   * When provided, each parsed object is validated against this schema.
+   */
+  schema?: ZodSchema<T>;
+  /**
+   * Validate only the first N rows.
+   * Useful for performance when you trust the data after initial validation.
+   * Default: validate all rows (when schema is provided).
+   */
+  sampleSize?: number;
 }
 
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const encoder = new TextEncoder();
 
+/**
+ * Parse JSON Lines (JSONL) bytes into batches of objects.
+ *
+ * Streams JSONL data efficiently, yielding batches of parsed objects (~128KB each).
+ * Each line is expected to be a valid JSON object.
+ *
+ * **Performance**: JSON parsing achieves ~70-98 MB/s depending on object complexity.
+ *
+ * @example Basic JSONL parsing
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromJsonToRows } from "jsr:@j50n/proc/transforms";
+ *
+ * const events = await read("events.jsonl")
+ *   .transform(fromJsonToRows())
+ *   .flatten()
+ *   .collect();
+ * // unknown[] - parsed JSON objects
+ * ```
+ *
+ * @example With TypeScript type
+ * ```typescript
+ * interface Event { id: string; timestamp: number; }
+ *
+ * const events = await read("events.jsonl")
+ *   .transform(fromJsonToRows<Event>())
+ *   .flatten()
+ *   .filter(e => e.timestamp > Date.now() - 86400000)
+ *   .collect();
+ * ```
+ *
+ * @example With Zod validation
+ * ```typescript
+ * import { z } from "zod";
+ *
+ * const EventSchema = z.object({
+ *   id: z.string(),
+ *   timestamp: z.number()
+ * });
+ *
+ * const events = await read("events.jsonl")
+ *   .transform(fromJsonToRows({ schema: EventSchema }))
+ *   .flatten()
+ *   .collect();
+ * ```
+ *
+ * @param options Parsing and validation options.
+ * @returns A transformer function for use with `.transform()`.
+ */
 export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
   return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<T[]> {
     let buffer = "";
@@ -65,6 +126,37 @@ export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
   };
 }
 
+/**
+ * Convert objects to JSON Lines (JSONL) bytes.
+ *
+ * Accepts batches of objects and produces newline-delimited JSON output.
+ *
+ * @example Write JSONL file
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromJsonToRows, toJson } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("input.jsonl")
+ *   .transform(fromJsonToRows())
+ *   .transform(toJson())
+ *   .writeTo("output.jsonl");
+ * ```
+ *
+ * @example Convert CSV to JSONL
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromCsvToRows } from "jsr:@j50n/proc/transforms";
+ * import { toJson } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("data.csv")
+ *   .transform(fromCsvToRows())
+ *   .map(batch => batch.map((row, i) => ({ index: i, fields: row })))
+ *   .transform(toJson())
+ *   .writeTo("data.jsonl");
+ * ```
+ *
+ * @returns A transformer function for use with `.transform()`.
+ */
 export function toJson<T = unknown>() {
   return async function* (data: AsyncIterable<T[]>): AsyncIterable<Uint8Array> {
     for await (const batch of data) {

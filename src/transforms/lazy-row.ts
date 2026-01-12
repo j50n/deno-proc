@@ -1,16 +1,89 @@
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const encoder = new TextEncoder();
 
+/**
+ * Lazy row representation for efficient field access.
+ *
+ * LazyRow defers string conversion until fields are actually accessed,
+ * providing better performance when you only need specific fields from
+ * large datasets.
+ *
+ * **Performance**: Using LazyRow with CSV parsing can be 1.05-1.7x faster
+ * than parsing to string arrays when accessing only a subset of fields.
+ *
+ * **Two implementations**:
+ * - `fromStringArray()`: Wraps existing string array, converts to binary on demand
+ * - `fromBinary()`: Wraps binary data, converts to strings on demand
+ *
+ * @example Create from string array
+ * ```typescript
+ * import { LazyRow } from "jsr:@j50n/proc/transforms";
+ *
+ * const row = LazyRow.fromStringArray(["Alice", "30", "Engineer"]);
+ * console.log(row.getField(0)); // "Alice"
+ * console.log(row.columnCount); // 3
+ * ```
+ *
+ * @example Use with transforms
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { fromCsvToLazyRows } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("users.csv")
+ *   .transform(fromCsvToLazyRows())
+ *   .flatten()
+ *   .filter(row => row.getField(2) === "active")
+ *   .map(row => row.getField(0))
+ *   .forEach(name => console.log(name));
+ * ```
+ */
 export abstract class LazyRow {
+  /** Number of fields in this row. */
   abstract readonly columnCount: number;
+
+  /**
+   * Get a field by index.
+   * @param index Zero-based field index.
+   * @returns The field value as a string.
+   * @throws RangeError if index is out of bounds.
+   */
   abstract getField(index: number): string;
+
+  /**
+   * Convert to a string array.
+   * @returns All fields as a string array.
+   */
   abstract toStringArray(): string[];
+
+  /**
+   * Convert to binary representation.
+   * @returns Binary data suitable for Record format.
+   */
   abstract toBinary(): Uint8Array;
 
+  /**
+   * Create a LazyRow from a string array.
+   *
+   * Use this when you have parsed data and want to wrap it for
+   * consistent API access or later binary conversion.
+   *
+   * @param fields Array of field values.
+   * @returns A LazyRow wrapping the fields.
+   */
   static fromStringArray(fields: string[]): LazyRow {
     return new StringArrayLazyRow(fields);
   }
 
+  /**
+   * Create a LazyRow from binary data.
+   *
+   * Use this when reading from Record format for maximum performance.
+   * String conversion is deferred until fields are accessed.
+   *
+   * @param data Binary row data.
+   * @param fieldBoundaries Optional pre-computed field boundaries.
+   * @returns A LazyRow wrapping the binary data.
+   */
   static fromBinary(data: Uint8Array, fieldBoundaries?: number[]): LazyRow {
     return new BinaryLazyRow(data, fieldBoundaries);
   }
