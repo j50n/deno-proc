@@ -16,19 +16,8 @@ async function* suppressExitCodeError<T>(
 Deno.test({
   name: "I can suppress an error with a transform.",
   async fn() {
-    const result = await run(
-      "bash",
-      "-c",
-      `
-        set -e
-        
-        echo "A"
-        echo "B"
-        echo "C"
-
-        exit 7
-     `,
-    ).lines
+    const result = await run("sh", "-c", "printf 'A\nB\nC\n'; exit 7")
+      .lines
       .transform(suppressExitCodeError)
       .collect();
 
@@ -47,17 +36,9 @@ Deno.test({
           }
         },
       },
-      "bash",
+      "sh",
       "-c",
-      `
-        set -e
-        
-        echo "A"
-        echo "B"
-        echo "C"
-
-        exit 7
-     `,
+      "printf 'A\nB\nC\n'; exit 7",
     ).lines
       .transform(suppressExitCodeError)
       .collect();

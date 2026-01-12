@@ -472,7 +472,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     everyFn: (element: T) => boolean | Promise<boolean>,
   ): Promise<boolean> {
     for await (const element of this.iter) {
-      if (!everyFn(element)) {
+      if (!(await everyFn(element))) {
         return false;
       }
     }
@@ -498,7 +498,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     someFn: (element: T) => boolean | Promise<boolean>,
   ): Promise<boolean> {
     for await (const element of this.iter) {
-      if (someFn(element)) {
+      if (await someFn(element)) {
         return true;
       }
     }
@@ -522,7 +522,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     } else {
       let count = 0;
       for await (const item of this.iter) {
-        if (filterFn(item)) {
+        if (await filterFn(item)) {
           count++;
         }
       }
@@ -638,6 +638,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       await p;
       p = forEachFn(item);
     }
+    await p;
   }
 
   /**
@@ -946,16 +947,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
             }
           } finally {
             await Promise.all([
-              async () => {
+              (async () => {
                 for await (const _a of iterA) {
                   break;
                 }
-              },
-              async () => {
+              })(),
+              (async () => {
                 for await (const _b of iterB) {
                   break;
                 }
-              },
+              })(),
             ]);
           }
         },

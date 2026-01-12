@@ -4,18 +4,7 @@ import { assert, assertEquals, fail } from "@std/assert";
 Deno.test({
   name: "I can gather lines of output.",
   async fn() {
-    const result = await run(
-      "bash",
-      "-c",
-      `
-        set -e
-        
-        echo "A"
-        echo "B"
-        echo "C"
-     `,
-    ).lines.collect();
-
+    const result = await run("printf", "A\nB\nC\n").lines.collect();
     assertEquals(result, ["A", "B", "C"], "I can get lines from a process.");
   },
 });
@@ -23,19 +12,7 @@ Deno.test({
 Deno.test({
   name: "I can gather lines of output and catch the error.",
   async fn() {
-    const output = await run(
-      "bash",
-      "-c",
-      `
-          set -e
-
-          echo "A"
-          echo "B"
-          echo "C"
-
-          exit 7
-       `,
-    ).lines;
+    const output = await run("sh", "-c", "printf 'A\nB\nC\n'; exit 7").lines;
 
     const result: string[] = [];
     try {
@@ -60,19 +37,8 @@ Deno.test({
   name:
     "I can gather lines of output and catch the error through an intervening process.",
   async fn() {
-    const output = await run(
-      "bash",
-      "-c",
-      `
-            set -e
-
-            echo "A"
-            echo "B"
-            echo "C"
-
-            exit 7
-         `,
-    ).run("tr", "[:upper:]", "[:lower:]").lines;
+    const output = await run("sh", "-c", "printf 'A\nB\nC\n'; exit 7")
+      .run("tr", "[:upper:]", "[:lower:]").lines;
 
     const result: string[] = [];
     try {

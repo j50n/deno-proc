@@ -14,14 +14,9 @@ Deno.test(
   async () => {
     try {
       const cmd: Cmd = [
-        "bash",
+        "sh",
         "-c",
-        `
-      echo "Hello,"
-      echo "world."
-      echo "BAD-NEWS" >&2
-      exit 1
-    `,
+        "echo Hello,; echo world.; echo BAD-NEWS >&2; exit 1",
       ];
 
       await run({
@@ -62,14 +57,9 @@ Deno.test(
   async () => {
     try {
       const cmd: Cmd = [
-        "bash",
+        "sh",
         "-c",
-        `
-        echo "Hello,"
-        echo "world."
-        echo "BAD-NEWS" >&2
-        exit 1
-      `,
+        "echo Hello,; echo world.; echo BAD-NEWS >&2; exit 1",
       ];
 
       await run({
@@ -102,14 +92,9 @@ Deno.test(
 
 Deno.test("error suppression", async () => {
   const cmd: Cmd = [
-    "bash",
+    "sh",
     "-c",
-    `
-          echo "Hello,"
-          echo "world."
-          
-          exit 22
-        `,
+    "echo Hello,; echo world.; exit 22",
   ];
 
   await run({
