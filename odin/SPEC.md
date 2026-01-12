@@ -40,6 +40,7 @@
 - Use `proc "c"` calling convention for exports
 - Build with `js_wasm32` target and `--import-memory`
 - Memory.buffer invalidates after WASM calls that allocate
+- **AVOID returning structs from hot-path functions** - use out parameters instead. Struct returns cause expensive copies in WASM. Example: `parse_field(...) -> FieldResult` was 25% slower than `parse_field_out(..., out_end: ^int, out_start: ^int, ...) -> bool`
 
 **⚠️ CRITICAL: Chunk Boundary Handling:**
 
@@ -897,13 +898,23 @@ export function toCsvFast(stringifyOptions?: CsvStringifyOptionsFast) {
 ```
 odin/
 ├── SPEC.md                 # This specification
-├── csv.odin               # Main CSV parsing logic
-├── memory.odin            # Memory management utilities
-└── build.sh               # Build script
+├── src/
+│   ├── csv.odin           # Main CSV parsing logic
+│   ├── memory.odin        # Memory management utilities
+│   ├── parsing.odin       # Core parsing utilities (DRY functions)
+│   └── exports.odin       # WASM export functions
+├── tests/
+│   ├── test_parsing.odin  # Unit tests for parsing utilities
+│   ├── test_csv.odin      # Integration tests for CSV logic
+│   ├── test_memory.odin   # Memory management tests
+│   └── test_runner.odin   # Test framework runner
+├── build.sh               # Build script with tests
+└── test.sh                # Run tests only
 
 src/transforms/
 ├── csv-fast.ts            # TypeScript wrapper
-└── csv-fast.test.ts       # Compatibility tests
+├── csv-fast.test.ts       # Compatibility tests
+└── csv-fast.bench.ts      # Performance benchmarks
 
 wasm/
 └── csv.wasm               # Built WASM module
@@ -911,7 +922,28 @@ wasm/
 
 ## Testing Strategy
 
+### Odin Unit Tests
+- **Core Function Tests**: Test individual parsing utilities (field extraction, quote handling, escape sequences)
+- **State Machine Tests**: Test parser state transitions with edge cases
+- **Memory Management Tests**: Verify no leaks in buffer allocation/deallocation
+- **UTF-8 Boundary Tests**: Test chunk splitting across multibyte characters
+- **Performance Tests**: Verify allocation-free inner loops with `@(no_instrumentation)`
+
+### TypeScript Integration Tests
 - **Compatibility Tests**: Identical behavior to std/csv on same inputs
+- **Memory Leak Detection**: Track WASM memory growth over multiple operations
 - **Performance Tests**: Throughput comparison with existing transforms
 - **Edge Case Tests**: Malformed CSV, encoding issues, memory limits
 - **Integration Tests**: Full pipeline testing with proc library
+
+### Memory Requirements
+- **Allocation-Free Inner Loops**: Core parsing loops must not allocate during field processing
+- **Grow-Only Buffers**: Buffers grow as needed but never shrink during processing
+- **Leak Detection**: All allocated memory must be freed when transform completes
+- **Memory Profiling**: Track peak memory usage and allocation patterns
+
+### Code Quality Requirements
+- **DRY Principle**: Reusable functions for common operations (quote handling, field parsing)
+- **Single Responsibility**: Each function has one clear purpose for better testability
+- **Inline Optimization**: Use `@(inline)` for hot path functions to eliminate call overhead
+- **Test Coverage**: Unit tests for all public functions and critical internal utilities
