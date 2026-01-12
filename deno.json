@@ -5,7 +5,6 @@
     "exclude": [
       "**/warandpeace.txt.gz",
       "dev/",
-      "tools/",
       "site/",
       "docs/",
       "wasm/",
