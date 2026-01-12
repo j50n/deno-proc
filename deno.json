@@ -9,7 +9,12 @@
       "site/",
       "docs/",
       "wasm/",
-      "benchmarks/"
+      "benchmarks/",
+      "coverage/",
+      "tests/",
+      "**/*.test.ts",
+      "build.sh",
+      "build-site.sh"
     ]
   },
   "exports": {
