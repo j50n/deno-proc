@@ -160,6 +160,276 @@ async function recordToDelimitedWasm(
 }
 
 // =============================================================================
+// Binary LazyRow Format
+// =============================================================================
+
+const FIELD_SEP = 0x1F;
+const RECORD_SEP = 0x1E;
+const encoder = new TextEncoder();
+
+/**
+ * Convert CSV/TSV to binary lazyrow format.
+ * Binary format: [row_len:u32][field_count:u32][field_lens:u32[]][field_data]
+ */
+async function delimitedToLazyRowBinary(
+  input: ReadableStream<Uint8Array>,
+  write: Writer,
+  separator: number,
+): Promise<void> {
+  await initWasm();
+  const exp = wasmInstance!.exports as any;
+  const memory = wasmMemory!;
+
+  const CHUNK = 64 * 1024;
+  const inputPtr = exp.alloc_input_buffer(CHUNK);
+  const outputPtr = exp.alloc_output_buffer(CHUNK * 2);
+  const parserId = exp.create_direct_parser(separator, 0);
+
+  const reader = input.getReader();
+  let recordBuffer = new Uint8Array(0);
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      for (let off = 0; off < value.length; off += CHUNK) {
+        const slice = value.subarray(off, Math.min(off + CHUNK, value.length));
+        new Uint8Array(memory.buffer, inputPtr, slice.length).set(slice);
+
+        const outLen = exp.parse_direct(parserId, slice.length);
+        if (outLen > 0) {
+          const recordData = new Uint8Array(memory.buffer, outputPtr, outLen);
+          await processRecordChunk(recordData, recordBuffer, write);
+          recordBuffer = new Uint8Array(0);
+        }
+      }
+    }
+
+    const finalLen = exp.finish_direct(parserId);
+    if (finalLen > 0) {
+      const recordData = new Uint8Array(memory.buffer, outputPtr, finalLen);
+      await processRecordChunk(recordData, recordBuffer, write);
+    }
+  } finally {
+    exp.destroy_direct_parser(parserId);
+  }
+}
+
+async function processRecordChunk(
+  data: Uint8Array,
+  _leftover: Uint8Array,
+  write: Writer,
+): Promise<void> {
+  // Parse record format and convert to binary lazyrow
+  let start = 0;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i] === RECORD_SEP) {
+      const record = data.subarray(start, i);
+      await writeRowAsBinary(record, write);
+      start = i + 1;
+    }
+  }
+}
+
+async function writeRowAsBinary(record: Uint8Array, write: Writer): Promise<void> {
+  // Split on FIELD_SEP to get fields
+  const fields: Uint8Array[] = [];
+  let fieldStart = 0;
+  for (let i = 0; i <= record.length; i++) {
+    if (i === record.length || record[i] === FIELD_SEP) {
+      fields.push(record.subarray(fieldStart, i));
+      fieldStart = i + 1;
+    }
+  }
+
+  const fieldCount = fields.length;
+  const dataSize = fields.reduce((sum, f) => sum + f.length, 0);
+  const headerSize = 4 + fieldCount * 4;
+  const rowLength = headerSize + dataSize;
+
+  const buffer = new Uint8Array(4 + rowLength);
+  const view = new DataView(buffer.buffer);
+
+  view.setUint32(0, rowLength, true);
+  view.setUint32(4, fieldCount, true);
+
+  let offset = 8 + fieldCount * 4;
+  for (let i = 0; i < fieldCount; i++) {
+    view.setUint32(8 + i * 4, fields[i].length, true);
+    buffer.set(fields[i], offset);
+    offset += fields[i].length;
+  }
+
+  await write(buffer);
+}
+
+/**
+ * Convert binary lazyrow format to record format for stringifier.
+ */
+async function lazyRowBinaryToDelimited(
+  input: ReadableStream<Uint8Array>,
+  write: Writer,
+  separator: number,
+  quoteAll: boolean,
+): Promise<void> {
+  await initWasm();
+  const exp = wasmInstance!.exports as any;
+  const memory = wasmMemory!;
+
+  const CHUNK_SIZE = 64 * 1024;
+  const inputPtr = exp.alloc_input_buffer(CHUNK_SIZE);
+  const outputPtr = exp.alloc_output_buffer(CHUNK_SIZE * 4);
+  const stringifierId = exp.create_delimited_stringifier(separator, 0, quoteAll ? 1 : 0, 0);
+
+  const reader = input.getReader();
+  let buffer = new Uint8Array(0);
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      // Append to buffer
+      const newBuf = new Uint8Array(buffer.length + value.length);
+      newBuf.set(buffer);
+      newBuf.set(value, buffer.length);
+      buffer = newBuf;
+
+      // Process complete rows
+      while (buffer.length >= 4) {
+        const view = new DataView(buffer.buffer, buffer.byteOffset);
+        const rowLength = view.getUint32(0, true);
+
+        if (buffer.length < 4 + rowLength) break;
+
+        // Convert binary row to record format
+        const rowData = buffer.subarray(4, 4 + rowLength);
+        const recordData = binaryRowToRecord(rowData);
+
+        // Feed to stringifier
+        new Uint8Array(memory.buffer, inputPtr, recordData.length).set(recordData);
+        exp.stringify_delimited(stringifierId, recordData.length);
+
+        const outLen = exp.get_stringify_output(stringifierId);
+        if (outLen > 0) {
+          await write(new Uint8Array(memory.buffer, outputPtr, outLen).slice());
+          exp.clear_stringify_output(stringifierId);
+        }
+
+        buffer = buffer.subarray(4 + rowLength);
+      }
+    }
+
+    // Final output
+    const outLen = exp.get_stringify_output(stringifierId);
+    if (outLen > 0) {
+      await write(new Uint8Array(memory.buffer, outputPtr, outLen).slice());
+    }
+  } finally {
+    exp.destroy_delimited_stringifier(stringifierId);
+  }
+}
+
+function binaryRowToRecord(rowData: Uint8Array): Uint8Array {
+  const view = new DataView(rowData.buffer, rowData.byteOffset);
+  const fieldCount = view.getUint32(0, true);
+
+  // Read field lengths and compute offsets
+  const fieldLengths: number[] = [];
+  for (let i = 0; i < fieldCount; i++) {
+    fieldLengths.push(view.getUint32(4 + i * 4, true));
+  }
+
+  const dataStart = 4 + fieldCount * 4;
+  const totalDataLen = fieldLengths.reduce((a, b) => a + b, 0);
+  const outputLen = totalDataLen + fieldCount; // fields + separators
+
+  const output = new Uint8Array(outputLen);
+  let readOff = dataStart;
+  let writeOff = 0;
+
+  for (let i = 0; i < fieldCount; i++) {
+    const len = fieldLengths[i];
+    output.set(rowData.subarray(readOff, readOff + len), writeOff);
+    readOff += len;
+    writeOff += len;
+    output[writeOff++] = i < fieldCount - 1 ? FIELD_SEP : RECORD_SEP;
+  }
+
+  return output;
+}
+
+/**
+ * Convert record format to binary lazyrow format.
+ */
+async function recordToLazyRowBinary(
+  input: ReadableStream<Uint8Array>,
+  write: Writer,
+): Promise<void> {
+  const reader = input.getReader();
+  let buffer = new Uint8Array(0);
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const newBuf = new Uint8Array(buffer.length + value.length);
+    newBuf.set(buffer);
+    newBuf.set(value, buffer.length);
+    buffer = newBuf;
+
+    let start = 0;
+    for (let i = 0; i < buffer.length; i++) {
+      if (buffer[i] === RECORD_SEP) {
+        const record = buffer.subarray(start, i);
+        await writeRowAsBinary(record, write);
+        start = i + 1;
+      }
+    }
+    buffer = buffer.subarray(start);
+  }
+
+  if (buffer.length > 0) {
+    await writeRowAsBinary(buffer, write);
+  }
+}
+
+/**
+ * Convert binary lazyrow format to record format.
+ */
+async function lazyRowBinaryToRecord(
+  input: ReadableStream<Uint8Array>,
+  write: Writer,
+): Promise<void> {
+  const reader = input.getReader();
+  let buffer = new Uint8Array(0);
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const newBuf = new Uint8Array(buffer.length + value.length);
+    newBuf.set(buffer);
+    newBuf.set(value, buffer.length);
+    buffer = newBuf;
+
+    while (buffer.length >= 4) {
+      const view = new DataView(buffer.buffer, buffer.byteOffset);
+      const rowLength = view.getUint32(0, true);
+
+      if (buffer.length < 4 + rowLength) break;
+
+      const rowData = buffer.subarray(4, 4 + rowLength);
+      const recordData = binaryRowToRecord(rowData);
+      await write(recordData);
+
+      buffer = buffer.subarray(4 + rowLength);
+    }
+  }
+}
+
+// =============================================================================
 // CLI
 // =============================================================================
 
@@ -179,14 +449,14 @@ const csv2record = new Command()
   });
 
 const csv2lazyrow = new Command()
-  .description("Convert CSV to lazyrow format (same as record, row-at-a-time)")
+  .description("Convert CSV to binary lazyrow format")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ separator, input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await delimitedToRecord(stream, write, separator!.charCodeAt(0));
+    await delimitedToLazyRowBinary(stream, write, separator!.charCodeAt(0));
     close();
   });
 
@@ -204,13 +474,13 @@ const tsv2record = new Command()
   });
 
 const tsv2lazyrow = new Command()
-  .description("Convert TSV to lazyrow format (same as record, row-at-a-time)")
+  .description("Convert TSV to binary lazyrow format")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await delimitedToRecord(stream, write, 9);
+    await delimitedToLazyRowBinary(stream, write, 9);
     close();
   });
 
@@ -242,9 +512,9 @@ const record2tsv = new Command()
     close();
   });
 
-// Lazyrow output commands (same as record)
+// Lazyrow output commands (binary format)
 const lazyrow2csv = new Command()
-  .description("Convert lazyrow format to CSV")
+  .description("Convert binary lazyrow format to CSV")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
   .option("-q, --quote-all", "Quote all fields, not just those requiring it")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
@@ -252,18 +522,41 @@ const lazyrow2csv = new Command()
   .action(async ({ separator, quoteAll, input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await recordToDelimitedWasm(stream, write, separator!.charCodeAt(0), quoteAll ?? false);
+    await lazyRowBinaryToDelimited(stream, write, separator!.charCodeAt(0), quoteAll ?? false);
     close();
   });
 
 const lazyrow2tsv = new Command()
-  .description("Convert lazyrow format to TSV")
+  .description("Convert binary lazyrow format to TSV")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await recordToDelimitedWasm(stream, write, 9, false);
+    await lazyRowBinaryToDelimited(stream, write, 9, false);
+    close();
+  });
+
+// Record <-> Lazyrow conversion commands
+const record2lazyrow = new Command()
+  .description("Convert record format to binary lazyrow format")
+  .option("-i, --input <file:string>", "Input file (default: stdin)")
+  .option("-o, --output <file:string>", "Output file (default: stdout)")
+  .action(async ({ input, output }) => {
+    const stream = await getInput(input);
+    const { write, close } = await getWriter(output);
+    await recordToLazyRowBinary(stream, write);
+    close();
+  });
+
+const lazyrow2record = new Command()
+  .description("Convert binary lazyrow format to record format")
+  .option("-i, --input <file:string>", "Input file (default: stdin)")
+  .option("-o, --output <file:string>", "Output file (default: stdout)")
+  .action(async ({ input, output }) => {
+    const stream = await getInput(input);
+    const { write, close } = await getWriter(output);
+    await lazyRowBinaryToRecord(stream, write);
     close();
   });
 
@@ -276,8 +569,8 @@ await new Command()
 Formats:
   csv      RFC 4180 comma-separated values (configurable separator)
   tsv      Tab-separated values
-  record   Binary format using \\x1F (field) and \\x1E (record) separators
-  lazyrow  Same as record (semantic alias for streaming row access)
+  record   Text format using \\x1F (field) and \\x1E (record) separators
+  lazyrow  Binary format with length-prefixed fields for efficient random access
 
 Uses WebAssembly for high-performance parsing (~100+ MB/s).`)
   .example("CSV to record", "cat data.csv | flatdata csv2record | ./process")
@@ -289,6 +582,8 @@ Uses WebAssembly for high-performance parsing (~100+ MB/s).`)
   .command("tsv2lazyrow", tsv2lazyrow)
   .command("record2csv", record2csv)
   .command("record2tsv", record2tsv)
+  .command("record2lazyrow", record2lazyrow)
   .command("lazyrow2csv", lazyrow2csv)
   .command("lazyrow2tsv", lazyrow2tsv)
+  .command("lazyrow2record", lazyrow2record)
   .parse(Deno.args);

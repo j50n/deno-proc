@@ -25,6 +25,12 @@ export {
   toRecord
 } from "./record.ts";
 
+// Binary LazyRow transformers
+export {
+  fromLazyRowBinary,
+  toLazyRowBinary
+} from "./lazyrow-binary.ts";
+
 // JSON transformers
 export { 
   fromJsonToRows,

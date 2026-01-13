@@ -29,15 +29,21 @@ type Input = [CONTEXT, BOOK];
 if (Deno.args[0] === "supports") {
   Deno.exit(0);
 } else {
-  const [_context, book]: Input = JSON.parse(
+  const input = JSON.parse(
     (await enumerate(Deno.stdin.readable).transform(toLines).collect())
       .join("\n"),
   );
 
+  // Handle both array format [context, book] and object format {sections: [...]}
+  const book: BOOK = Array.isArray(input) ? input[1] : input;
+
+  if (!book?.sections) {
+    console.log(JSON.stringify(book));
+    Deno.exit(0);
+  }
+
   const gitv = (await run("git", "describe", "--tags").lines.first)
     .split("-")[0];
-
-  // deno eval --quiet 'import { run } from "https://deno.land/x/proc/mod3.ts"; console.log(JSON.stringify({ version: (await run("git", "describe", "--tags").lines.first).split("-")[0] }));'
 
   for (const section of book.sections) {
     if (isSection(section)) {

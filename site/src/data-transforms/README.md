@@ -6,7 +6,7 @@ Transform structured data between formats with high performance and streaming su
 
 The data transforms module provides powerful functions to convert between common data formats like CSV, TSV, JSON, and Record format. All transforms are designed for **streaming large datasets** without loading everything into memory.
 
-> **💡 For maximum performance**, use the [flatdata CLI](../utilities/flatdata.md) to offload CSV parsing to a WASM-powered subprocess. This achieves ~150 MB/s throughput—about 7x faster than pure JavaScript transforms.
+> **💡 For maximum performance**, use the [flatdata CLI](../utilities/flatdata.md) to offload CSV parsing to a WASM-powered subprocess. This achieves ~330 MB/s throughput—about 7x faster than pure JavaScript transforms.
 
 ## Quick Start
 
@@ -24,7 +24,7 @@ await read("data.csv")
 ## Key Benefits
 
 ### 🚀 **High Performance**
-- **flatdata CLI**: WASM-powered parsing at ~150 MB/s
+- **flatdata CLI**: WASM-powered parsing at ~330 MB/s
 - **LazyRow optimization**: Up to 1.7x faster parsing for CSV/TSV
 - **Streaming design**: Constant memory usage regardless of file size
 - **Optimized batching**: ~128KB chunks for maximum throughput
@@ -46,7 +46,7 @@ Based on comprehensive benchmarks across dataset sizes:
 
 | Method | Throughput | Notes |
 |--------|------------|-------|
-| **flatdata -w** | ~150 MB/s | WASM subprocess, best for large files |
+| **flatdata -w** | ~330 MB/s | WASM subprocess, best for large files |
 | **Record** | 60-93 MB/s | In-process, highest JS throughput |
 | **JSON** | 70-98 MB/s | Object structures |
 | **TSV** | 57-72 MB/s | Human readable |

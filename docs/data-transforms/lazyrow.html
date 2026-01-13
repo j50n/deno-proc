@@ -1,0 +1,629 @@
+<!DOCTYPE HTML>
+<html lang="en" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>LazyRow Guide - proc</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Run child processes and work with async iterables in Deno—with the fluent Array API you already know.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/custom-318e1af4.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-7606117d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-c66c9043.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">proc</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/j50n/deno-proc" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="lazyrow-guide"><a class="header" href="#lazyrow-guide">LazyRow Guide</a></h1>
+<p>Optimized read-only data access with lazy evaluation and caching for maximum performance.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>LazyRow is a high-performance data structure designed for efficient field access in tabular data. It uses <strong>lazy evaluation</strong> and <strong>caching</strong> to minimize parsing overhead while providing a clean, simple API.</p>
+<h2 id="key-benefits"><a class="header" href="#key-benefits">Key Benefits</a></h2>
+<ul>
+<li><strong>Zero conversion cost</strong>: Choose optimal backing based on source data</li>
+<li><strong>Lazy evaluation</strong>: Parse fields only when accessed</li>
+<li><strong>Automatic caching</strong>: Repeated access uses cached results</li>
+<li><strong>Performance</strong>: 1.05-1.7x faster than regular parsing</li>
+<li><strong>Memory efficient</strong>: Minimal overhead for conversion caching</li>
+</ul>
+<h2 id="performance-improvements"><a class="header" href="#performance-improvements">Performance Improvements</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Dataset Size</th><th>CSV Performance</th><th>TSV Performance</th><th>Record Performance</th></tr>
+</thead>
+<tbody>
+<tr><td>Small (1K)</td><td><strong>1.51x</strong> faster</td><td><strong>1.45x</strong> faster</td><td><strong>1.72x</strong> faster</td></tr>
+<tr><td>Medium (10K)</td><td><strong>1.12x</strong> faster</td><td><strong>1.09x</strong> faster</td><td><strong>0.93x</strong> faster</td></tr>
+<tr><td>Large (50K)</td><td><strong>1.07x</strong> faster</td><td><strong>1.55x</strong> faster</td><td><strong>0.83x</strong> faster</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Best Use Cases</strong>: LazyRow excels with CSV and large TSV datasets. For Record format, benefits vary by dataset size.</p>
+</blockquote>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<h3 id="creating-lazyrow"><a class="header" href="#creating-lazyrow">Creating LazyRow</a></h3>
+<pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+// From string array (zero cost)
+const lazyRow1 = LazyRow.fromStringArray(['Alice', '30', 'Engineer']);
+
+// From binary data (zero cost)  
+const binaryData = new Uint8Array([...]); // LazyRow binary format
+const lazyRow2 = LazyRow.fromBinary(binaryData);
+</code></pre>
+<h3 id="field-access"><a class="header" href="#field-access">Field Access</a></h3>
+<pre><code class="language-typescript">// Efficient field access
+const name = lazyRow.getField(0);     // "Alice"
+const age = lazyRow.getField(1);      // "30"
+const job = lazyRow.getField(2);      // "Engineer"
+
+// Column count
+console.log(lazyRow.columnCount);     // 3
+</code></pre>
+<h3 id="conversions-with-caching"><a class="header" href="#conversions-with-caching">Conversions with Caching</a></h3>
+<pre><code class="language-typescript">// Convert to string array (cached after first call)
+const fields1 = lazyRow.toStringArray();  // Converts and caches
+const fields2 = lazyRow.toStringArray();  // Returns cached result
+
+// Convert to binary (cached after first call)
+const binary1 = lazyRow.toBinary();       // Converts and caches  
+const binary2 = lazyRow.toBinary();       // Returns cached result
+</code></pre>
+<h2 id="parsing-with-lazyrow"><a class="header" href="#parsing-with-lazyrow">Parsing with LazyRow</a></h2>
+<h3 id="csv-to-lazyrow"><a class="header" href="#csv-to-lazyrow">CSV to LazyRow</a></h3>
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+const lazyRows = await read("data.csv")
+  .transform(fromCsvToLazyRows())
+  .collect();
+
+// Process efficiently
+for (const row of lazyRows) {
+  // Only parse the fields you actually use
+  const id = row.getField(0);
+  
+  if (id.startsWith("USER_")) {
+    const name = row.getField(1);    // Parse on demand
+    const email = row.getField(2);   // Parse on demand
+    console.log(`User: ${name} &lt;${email}&gt;`);
+  }
+  // Fields 3+ are never parsed if not accessed
+}
+</code></pre>
+<h3 id="tsv-to-lazyrow"><a class="header" href="#tsv-to-lazyrow">TSV to LazyRow</a></h3>
+<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+const lazyRows = await read("logs.tsv")
+  .transform(fromTsvToLazyRows())
+  .collect();
+
+// Efficient log processing
+for (const row of lazyRows) {
+  const level = row.getField(2);     // Parse log level
+  
+  if (level === "ERROR") {
+    const timestamp = row.getField(0);
+    const message = row.getField(3);
+    console.error(`${timestamp}: ${message}`);
+  }
+}
+</code></pre>
+<h3 id="record-to-lazyrow"><a class="header" href="#record-to-lazyrow">Record to LazyRow</a></h3>
+<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+const lazyRows = await read("data.record")
+  .transform(fromRecordToLazyRows())
+  .collect();
+</code></pre>
+<h2 id="binary-format-specification"><a class="header" href="#binary-format-specification">Binary Format Specification</a></h2>
+<p>LazyRow uses an efficient binary format for storage and transmission:</p>
+<pre><code>LazyRow Binary Layout:
+┌─────────────────┬──────────────────┬─────────────────┐
+│ Field Count     │ Field Lengths    │ Field Data      │
+│ (4 bytes)       │ (4 * N bytes)    │ (UTF-8 bytes)   │
+└─────────────────┴──────────────────┴─────────────────┘
+
+Field Count: int32 - Number of fields (N)
+Field Lengths: int32[N] - Byte length of each field  
+Field Data: Concatenated UTF-8 encoded field values
+</code></pre>
+<h3 id="binary-format-example"><a class="header" href="#binary-format-example">Binary Format Example</a></h3>
+<pre><code class="language-typescript">// For data: ["Alice", "30", "Engineer"]
+const binary = lazyRow.toBinary();
+
+// Binary layout:
+// [0-3]:   0x00000003           // 3 fields
+// [4-7]:   0x00000005           // "Alice" = 5 bytes
+// [8-11]:  0x00000002           // "30" = 2 bytes  
+// [12-15]: 0x00000008           // "Engineer" = 8 bytes
+// [16-20]: "Alice"              // UTF-8 data
+// [21-22]: "30"                 // UTF-8 data
+// [23-30]: "Engineer"           // UTF-8 data
+</code></pre>
+<h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
+<h3 id="polymorphic-design"><a class="header" href="#polymorphic-design">Polymorphic Design</a></h3>
+<p>LazyRow uses an abstract base class with two concrete implementations:</p>
+<pre><code class="language-typescript">abstract class LazyRow {
+  abstract readonly columnCount: number;
+  abstract getField(index: number): string;
+  abstract toStringArray(): string[];
+  abstract toBinary(): Uint8Array;
+  
+  // Static factory methods
+  static fromStringArray(fields: string[]): LazyRow;
+  static fromBinary(data: Uint8Array): LazyRow;
+}
+</code></pre>
+<h3 id="stringarraylazyrow"><a class="header" href="#stringarraylazyrow">StringArrayLazyRow</a></h3>
+<ul>
+<li><strong>Backing</strong>: <code>string[]</code> array</li>
+<li><strong>Best for</strong>: Data parsed from text formats (CSV, TSV)</li>
+<li><strong>Lazy conversion</strong>: Binary format generated on demand</li>
+<li><strong>Caching</strong>: Binary result cached after first <code>toBinary()</code> call</li>
+</ul>
+<h3 id="binarylazyrow"><a class="header" href="#binarylazyrow">BinaryLazyRow</a></h3>
+<ul>
+<li><strong>Backing</strong>: <code>Uint8Array</code> with field boundaries</li>
+<li><strong>Best for</strong>: Data from binary sources or network transmission</li>
+<li><strong>Lazy conversion</strong>: String parsing on demand</li>
+<li><strong>Caching</strong>: String results cached after field access</li>
+</ul>
+<h2 id="performance-patterns"><a class="header" href="#performance-patterns">Performance Patterns</a></h2>
+<h3 id="selective-field-access"><a class="header" href="#selective-field-access">Selective Field Access</a></h3>
+<pre><code class="language-typescript">// ✅ Efficient - only parse needed fields
+await read("large.csv")
+  .transform(fromCsvToLazyRows())
+  .filter(row =&gt; {
+    const status = row.getField(5);  // Only parse field 5
+    return status === "active";
+  })
+  .map(row =&gt; ({
+    id: row.getField(0),             // Parse fields 0, 1, 2 on demand
+    name: row.getField(1),
+    email: row.getField(2)
+    // Fields 3, 4, 6+ never parsed
+  }))
+  .collect();
+</code></pre>
+<h3 id="avoid-unnecessary-conversions"><a class="header" href="#avoid-unnecessary-conversions">Avoid Unnecessary Conversions</a></h3>
+<pre><code class="language-typescript">// ✅ Efficient - work with LazyRow directly
+const processRow = (row: LazyRow) =&gt; {
+  const name = row.getField(0);
+  const age = parseInt(row.getField(1));
+  return age &gt;= 18 ? name : null;
+};
+
+// ❌ Less efficient - unnecessary conversion
+const processRow = (row: LazyRow) =&gt; {
+  const fields = row.toStringArray();  // Converts all fields
+  const name = fields[0];
+  const age = parseInt(fields[1]);
+  return age &gt;= 18 ? name : null;
+};
+</code></pre>
+<h3 id="batch-conversions"><a class="header" href="#batch-conversions">Batch Conversions</a></h3>
+<pre><code class="language-typescript">// When you need all fields, convert once
+const processAllFields = (row: LazyRow) =&gt; {
+  const fields = row.toStringArray();  // Convert once
+  
+  return {
+    name: fields[0],
+    age: parseInt(fields[1]),
+    city: fields[2],
+    country: fields[3],
+    email: fields[4]
+  };
+};
+</code></pre>
+<h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
+<h3 id="log-analysis"><a class="header" href="#log-analysis">Log Analysis</a></h3>
+<pre><code class="language-typescript">// Analyze web server logs efficiently
+let errorCount = 0;
+let totalRequests = 0;
+
+await read("access.log.tsv")
+  .transform(fromTsvToLazyRows())
+  .forEach(row =&gt; {
+    totalRequests++;
+    
+    const statusCode = row.getField(6);  // Only parse status code
+    
+    if (statusCode.startsWith("4") || statusCode.startsWith("5")) {
+      errorCount++;
+      
+      // Only parse additional fields for errors
+      const timestamp = row.getField(0);
+      const path = row.getField(4);
+      const userAgent = row.getField(8);
+      
+      console.error(`${timestamp}: ${statusCode} ${path} - ${userAgent}`);
+    }
+  });
+
+console.log(`Error rate: ${(errorCount / totalRequests * 100).toFixed(2)}%`);
+</code></pre>
+<h3 id="data-validation"><a class="header" href="#data-validation">Data Validation</a></h3>
+<pre><code class="language-typescript">// Validate CSV data with detailed error reporting
+const errors: string[] = [];
+
+await read("users.csv")
+  .transform(fromCsvToLazyRows())
+  .drop(1)  // Skip header
+  .forEach((row, index) =&gt; {
+    const rowNum = index + 2;  // Account for header and 0-based index
+    
+    // Validate required fields exist
+    if (row.columnCount &lt; 4) {
+      errors.push(`Row ${rowNum}: Missing required fields`);
+      return;
+    }
+    
+    // Validate email format (only parse if needed)
+    const email = row.getField(2);
+    if (!email.includes("@")) {
+      errors.push(`Row ${rowNum}: Invalid email format: ${email}`);
+    }
+    
+    // Validate age (only parse if needed)
+    const ageStr = row.getField(1);
+    const age = parseInt(ageStr);
+    if (isNaN(age) || age &lt; 0 || age &gt; 150) {
+      errors.push(`Row ${rowNum}: Invalid age: ${ageStr}`);
+    }
+  });
+
+if (errors.length &gt; 0) {
+  console.error(`Validation failed with ${errors.length} errors:`);
+  errors.forEach(error =&gt; console.error(`  ${error}`));
+}
+</code></pre>
+<h3 id="format-conversion-with-filtering"><a class="header" href="#format-conversion-with-filtering">Format Conversion with Filtering</a></h3>
+<pre><code class="language-typescript">// Convert CSV to JSON, filtering and transforming data
+await read("products.csv")
+  .transform(fromCsvToLazyRows())
+  .drop(1)  // Skip header
+  .filter(row =&gt; {
+    const price = parseFloat(row.getField(3));
+    return price &gt; 10.00;  // Only expensive products
+  })
+  .map(row =&gt; ({
+    id: row.getField(0),
+    name: row.getField(1),
+    category: row.getField(2),
+    price: parseFloat(row.getField(3)),
+    inStock: row.getField(4) === "true",
+    lastUpdated: new Date().toISOString()
+  }))
+  .transform(toJson())
+  .writeTo("expensive-products.jsonl");
+</code></pre>
+<h3 id="streaming-aggregation"><a class="header" href="#streaming-aggregation">Streaming Aggregation</a></h3>
+<pre><code class="language-typescript">// Calculate statistics without loading all data
+const stats = {
+  totalRows: 0,
+  totalSales: 0,
+  avgAge: 0,
+  ageSum: 0
+};
+
+await read("sales-data.csv")
+  .transform(fromCsvToLazyRows())
+  .drop(1)  // Skip header
+  .forEach(row =&gt; {
+    stats.totalRows++;
+    
+    // Only parse fields we need for calculations
+    const saleAmount = parseFloat(row.getField(4));
+    const customerAge = parseInt(row.getField(2));
+    
+    stats.totalSales += saleAmount;
+    stats.ageSum += customerAge;
+  });
+
+stats.avgAge = stats.ageSum / stats.totalRows;
+
+console.log(`Processed ${stats.totalRows} sales`);
+console.log(`Total revenue: $${stats.totalSales.toFixed(2)}`);
+console.log(`Average customer age: ${stats.avgAge.toFixed(1)}`);
+</code></pre>
+<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
+<h3 id="field-access-errors"><a class="header" href="#field-access-errors">Field Access Errors</a></h3>
+<pre><code class="language-typescript">try {
+  const value = row.getField(10);  // Index out of bounds
+} catch (error) {
+  console.error(`Field access error: ${error.message}`);
+}
+
+// Safe field access
+const safeGetField = (row: LazyRow, index: number): string | null =&gt; {
+  if (index &gt;= 0 &amp;&amp; index &lt; row.columnCount) {
+    return row.getField(index);
+  }
+  return null;
+};
+</code></pre>
+<h3 id="conversion-errors"><a class="header" href="#conversion-errors">Conversion Errors</a></h3>
+<pre><code class="language-typescript">try {
+  const binary = row.toBinary();
+} catch (error) {
+  if (error.message.includes("UTF-8")) {
+    console.error("Invalid UTF-8 in field data");
+  } else {
+    console.error(`Binary conversion failed: ${error.message}`);
+  }
+}
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Use selective field access</strong> - only parse fields you actually need</li>
+<li><strong>Cache conversions</strong> - let LazyRow handle caching automatically</li>
+<li><strong>Prefer LazyRow over string arrays</strong> for large datasets</li>
+<li><strong>Validate field counts</strong> before accessing fields by index</li>
+<li><strong>Handle encoding errors</strong> when working with binary data</li>
+<li><strong>Use appropriate factory methods</strong> based on your data source</li>
+</ol>
+<h2 id="integration-examples"><a class="header" href="#integration-examples">Integration Examples</a></h2>
+<h3 id="with-other-transforms"><a class="header" href="#with-other-transforms">With Other Transforms</a></h3>
+<pre><code class="language-typescript">// LazyRow → other formats
+await read("data.csv")
+  .transform(fromCsvToLazyRows())
+  .map(row =&gt; row.toStringArray())  // Convert when needed
+  .transform(toTsv())
+  .writeTo("data.tsv");
+</code></pre>
+<h3 id="with-validation-libraries"><a class="header" href="#with-validation-libraries">With Validation Libraries</a></h3>
+<pre><code class="language-typescript">import { z } from "zod";
+
+const UserSchema = z.object({
+  name: z.string().min(1),
+  age: z.number().min(0).max(150),
+  email: z.string().email()
+});
+
+await read("users.csv")
+  .transform(fromCsvToLazyRows())
+  .drop(1)
+  .map(row =&gt; {
+    const user = {
+      name: row.getField(0),
+      age: parseInt(row.getField(1)),
+      email: row.getField(2)
+    };
+    
+    return UserSchema.parse(user);  // Validates and throws on error
+  })
+  .transform(toJson())
+  .writeTo("validated-users.jsonl");
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./csv.html">CSV Transforms</a> - Using LazyRow with CSV data</li>
+<li><a href="./tsv.html">TSV Transforms</a> - Using LazyRow with TSV data</li>
+<li><a href="./performance.html">Performance Guide</a> - Optimization strategies</li>
+<li><a href="./record.html">Record Format</a> - Binary format for maximum speed</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../data-transforms/record.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../data-transforms/performance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../data-transforms/record.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../data-transforms/performance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom-285056d7.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

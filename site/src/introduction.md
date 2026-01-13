@@ -21,6 +21,9 @@ callbacks. One try-catch at the end handles everything.
 > **💡 Tip**: If you've ever struggled with JavaScript streams, you're going to
 > love this.
 
+> **🚀 Need speed?** Check out [flatdata](./utilities/flatdata.md)—a
+> WASM-powered CLI for CSV/TSV processing at ~330 MB/s (7x faster than pure JS).
+
 ## A Taste of proc
 
 Count lines in a compressed file—streaming, no temp files:
@@ -96,18 +99,25 @@ try {
 
 ## Why proc?
 
-JavaScript streaming is powerful, but traditional approaches create unnecessary complexity. proc eliminates the two biggest pain points: backpressure coordination and error handling. By using async iterators (pull-based) instead of streams (push-based), backpressure disappears entirely and errors propagate naturally through pipelines.
+JavaScript streaming is powerful, but traditional approaches create unnecessary
+complexity. proc eliminates the two biggest pain points: backpressure
+coordination and error handling. By using async iterators (pull-based) instead
+of streams (push-based), backpressure disappears entirely and errors propagate
+naturally through pipelines.
 
 ## High-Performance Data Processing
 
-proc includes **flatdata**, a WASM-powered CLI for converting between CSV, TSV, and binary record formats. By offloading CSV parsing to a subprocess, your main application stays responsive while processing data at ~150 MB/s—about 7x faster than pure JavaScript.
+proc includes **flatdata**, a WASM-powered CLI for converting between CSV, TSV,
+and binary record formats. By offloading CSV parsing to a subprocess, your main
+application stays responsive while processing data at ~330 MB/s—about 7x faster
+than pure JavaScript.
 
 ```bash
 # Install flatdata globally
-deno install -g -A jsr:@j50n/proc/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
 
 # Use in pipelines
-cat huge.csv | flatdata csv2record -w | ./your-processor | flatdata record2csv
+cat huge.csv | flatdata csv2record | ./your-processor | flatdata record2csv
 ```
 
 See the [flatdata documentation](./utilities/flatdata.md) for details.

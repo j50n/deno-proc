@@ -78,8 +78,20 @@ TSV Output Options:
 ```
 flatdata lazyrow2csv [options]
 flatdata lazyrow2tsv [options]
+flatdata lazyrow2record [options]
 
 (Same options as record2csv/record2tsv)
+```
+
+### Record <-> Lazyrow Conversion
+
+```
+flatdata record2lazyrow [options]
+flatdata lazyrow2record [options]
+
+Options:
+  -i, --input <file>       Input file (default: stdin)
+  -o, --output <file>      Output file (default: stdout)
 ```
 
 ## Formats
@@ -88,8 +100,8 @@ flatdata lazyrow2tsv [options]
 |--------|-------------|-------------|
 | csv | RFC 4180 comma-separated values | Text with quoting rules |
 | tsv | Tab-separated values | Text, no quoting |
-| record | Record-delimited binary | Fields: `\x1F`, Records: `\x1E` |
-| lazyrow | Same as record | Same wire format, row-at-a-time semantics |
+| record | Record-delimited text | Fields: `\x1F`, Records: `\x1E` |
+| lazyrow | Binary format | Length-prefixed fields for random access |
 
 ## Examples
 

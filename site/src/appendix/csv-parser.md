@@ -146,7 +146,7 @@ With `always_quote` enabled, all fields are quoted regardless of content.
 | Metric | Value |
 |--------|-------|
 | Native throughput | ~550 MB/s |
-| WASM throughput | ~150 MB/s |
+| WASM throughput | ~330 MB/s |
 | Memory overhead | ~10% of input size |
 | Streaming chunk size | 64 KB recommended |
 

@@ -2,48 +2,110 @@ package csv
 
 import "base:runtime"
 
-// RFC 4180 compliant CSV push parser
-// Two implementations: DelimitedParser (copies output) and SpanParser (zero-copy offsets)
+/*
+RFC 4180 Compliant CSV Push Parser
+==================================
 
-FIELD_SEP :: 0x1F  // Unit Separator
-RECORD_SEP :: 0x1E // Record Separator
+This module implements a streaming CSV parser designed for WASM environments.
+It uses a "push parser" architecture where you feed chunks of input and receive
+parsed output incrementally - ideal for processing large files with constant memory.
 
+Output Format (Delimited)
+-------------------------
+Parsed output uses ASCII control characters for unambiguous field/record separation:
+  - \x1F (Unit Separator) between fields within a record
+  - \x1E (Record Separator) at the end of each record
+
+Example: "Alice,30\nBob,25\n" → "Alice\x1FBob\x1E30\x1F25\x1E"
+
+This format is trivial to parse downstream: split on \x1E for rows, \x1F for fields.
+
+Parser Types
+------------
+1. DelimitedParser - Copies field content to output buffer with \x1F/\x1E separators.
+   Best for: streaming to another process, when you need the actual text.
+
+2. SpanParser - Records (start, end, flags) offsets into the original input.
+   Best for: random access, when you want to avoid copying, or need to preserve
+   the original input for reference.
+
+3. DirectParser (in exports.odin) - Writes directly to output buffer without
+   intermediate storage. Best for: maximum throughput in WASM streaming scenarios.
+
+Stringifier Types
+-----------------
+1. DelimitedStringifier - Converts \x1F/\x1E delimited input back to CSV.
+2. SpanStringifier - Converts span offsets back to CSV (requires original source).
+
+Error Handling
+--------------
+Parsers track errors with row/column position. Error kinds:
+  - BareQuote: Unescaped quote in unquoted field (strict mode)
+  - UnclosedQuote: EOF inside quoted field (strict mode)
+  - InvalidCharAfterQuote: Character other than separator/newline after closing quote
+  - BareCR: Carriage return not followed by newline (strict mode)
+  - FieldCountMismatch: Row has different field count than expected (strict mode)
+
+Streaming Usage
+---------------
+1. Create parser with options (separator, strict mode, expected fields)
+2. Call parse() with each input chunk - returns number of complete rows
+3. Call get_output() to retrieve parsed data, then reset_output()
+4. Call finish() after last chunk to flush any remaining data
+5. Destroy parser to free resources
+*/
+
+// ASCII control characters for output format
+FIELD_SEP :: 0x1F  // Unit Separator - delimits fields within a record
+RECORD_SEP :: 0x1E // Record Separator - marks end of each record
+
+// Parser state machine states
 CsvState :: enum u8 {
-    FieldStart,
-    Unquoted,
-    Quoted,
-    QuoteInQuoted,
-    RecordEnd,
+    FieldStart,     // At start of a field (may be quoted or unquoted)
+    Unquoted,       // Inside an unquoted field
+    Quoted,         // Inside a quoted field
+    QuoteInQuoted,  // Just saw a quote inside a quoted field (escape or end)
+    RecordEnd,      // Just saw CR, expecting LF
 }
 
+// Error types that can occur during parsing
 CsvErrorKind :: enum u8 {
     None = 0,
-    BareQuote,
-    UnclosedQuote,
-    InvalidCharAfterQuote,
-    BareCR,
-    FieldCountMismatch,
+    BareQuote,           // Quote character in unquoted field (strict mode)
+    UnclosedQuote,       // EOF reached inside quoted field (strict mode)
+    InvalidCharAfterQuote, // Non-separator/newline after closing quote
+    BareCR,              // CR not followed by LF (strict mode)
+    FieldCountMismatch,  // Row has wrong number of fields (strict mode)
 }
 
+// Error details with position information
 CsvError :: struct {
     kind: CsvErrorKind,
-    row: u32,
-    col: u32,
+    row: u32,   // 0-indexed row where error occurred
+    col: u32,   // 0-indexed column (byte offset in row)
 }
 
+// Parser configuration options
 CsvOptions :: struct {
-    separator: u8,
-    strict: bool,
-    expected_fields: u32,
+    separator: u8,        // Field separator character (default: ',')
+    strict: bool,         // If true, errors on malformed input; if false, best-effort parsing
+    expected_fields: u32, // If > 0, error when row has different field count (strict mode)
 }
 
 default_csv_options :: proc() -> CsvOptions {
     return CsvOptions{separator = ',', strict = false, expected_fields = 0}
 }
 
-// =============================================================================
-// Delimited Output Parser
-// =============================================================================
+/*
+Delimited Output Parser
+=======================
+Parses CSV input and produces \x1F/\x1E delimited output.
+Copies field content to an internal buffer - use when you need the text.
+
+The parser maintains state between calls, allowing chunked input processing.
+Only complete records are returned; incomplete records are buffered until
+more input arrives or finish() is called.
+*/
 
 DelimitedParser :: struct {
     state: CsvState,
@@ -54,9 +116,10 @@ DelimitedParser :: struct {
     error: CsvError,
     output: [dynamic]u8,
     row_started: bool,
-    complete_output_len: int,  // length of output containing only complete records
+    complete_output_len: int,  // Length of output containing only complete records
 }
 
+// Create a new delimited parser with the given options
 delimited_init :: proc(opts := CsvOptions{}) -> DelimitedParser {
     o := opts
     if o.separator == 0 do o.separator = ','
@@ -67,10 +130,12 @@ delimited_init :: proc(opts := CsvOptions{}) -> DelimitedParser {
     }
 }
 
+// Free parser resources
 delimited_destroy :: proc(p: ^DelimitedParser) {
     delete(p.output)
 }
 
+// Clear output buffer, preserving any incomplete record data for next parse call
 delimited_reset_output :: proc(p: ^DelimitedParser) {
     // Keep incomplete record data, remove only complete records
     if p.complete_output_len > 0 && p.complete_output_len < len(p.output) {
@@ -84,11 +149,13 @@ delimited_reset_output :: proc(p: ^DelimitedParser) {
     p.complete_output_len = 0
 }
 
-// Get only complete records from output
+// Get only complete records from output (excludes any partial record at end)
 delimited_get_complete_output :: proc(p: ^DelimitedParser) -> []u8 {
     return p.output[:p.complete_output_len]
 }
 
+// Parse a chunk of CSV input. Returns (rows_completed, success).
+// On error, check p.error for details. Call get_complete_output() to retrieve results.
 delimited_parse :: proc(p: ^DelimitedParser, input: []u8) -> (rows: u32, ok: bool) {
     if p.error.kind != .None do return 0, false
     
@@ -222,6 +289,9 @@ delimited_parse :: proc(p: ^DelimitedParser, input: []u8) -> (rows: u32, ok: boo
     raw.len = out_len
     return rows, true
 }
+
+// Finalize parsing after all input has been provided.
+// Flushes any remaining partial record. Returns (rows_completed, success).
 delimited_finish :: proc(p: ^DelimitedParser) -> (rows: u32, ok: bool) {
     if p.error.kind != .None do return 0, false
     
@@ -276,17 +346,30 @@ delimited_emit_record :: proc(p: ^DelimitedParser) -> u32 {
     return 1
 }
 
-// =============================================================================
-// Span Output Parser (zero-copy)
-// =============================================================================
+/*
+Span Output Parser (Zero-Copy)
+==============================
+Parses CSV and records field positions as (start, end, flags) tuples.
+Does NOT copy field content - just records offsets into the original input.
 
+Use when:
+- You need random access to fields
+- You want to avoid copying data
+- You need to preserve the original input
+
+The spans reference positions in the input buffer, so the input must remain
+valid while using the spans. For streaming, use base_offset parameter to
+adjust span positions across chunks.
+*/
+
+// A field's position in the source buffer
 FieldSpan :: struct {
-    start: u32,
-    end: u32,
-    flags: u8,  // bit 0: quoted (needs unescape)
+    start: u32,  // Start offset (inclusive)
+    end: u32,    // End offset (exclusive)
+    flags: u8,   // Bit 0: quoted (field content needs quote unescaping)
 }
 
-SPAN_FLAG_QUOTED :: u8(1)
+SPAN_FLAG_QUOTED :: u8(1)  // Field was quoted; content may contain escaped quotes ("")
 
 SpanParser :: struct {
     state: CsvState,
@@ -296,12 +379,13 @@ SpanParser :: struct {
     fields_in_row: u32,
     opts: CsvOptions,
     error: CsvError,
-    spans: [dynamic]FieldSpan,
-    row_ends: [dynamic]u32,
+    spans: [dynamic]FieldSpan,  // All field spans
+    row_ends: [dynamic]u32,     // Index into spans where each row ends
     is_quoted: bool,
-    base_offset: u32,  // offset added to all spans (for streaming)
+    base_offset: u32,           // Offset added to all spans (for streaming across chunks)
 }
 
+// Create a new span parser with the given options
 span_init :: proc(opts := CsvOptions{}) -> SpanParser {
     o := opts
     if o.separator == 0 do o.separator = ','
@@ -497,36 +581,49 @@ span_emit_record :: proc(p: ^SpanParser) -> u32 {
 }
 
 
-// =============================================================================
-// Stringifier Types
-// =============================================================================
+/*
+Stringifier Types
+=================
+Convert parsed data back to CSV format.
 
+DelimitedStringifier: Takes \x1F/\x1E delimited input, outputs RFC 4180 CSV.
+SpanStringifier: Takes spans + source buffer, outputs RFC 4180 CSV.
+
+Both handle proper quoting: fields containing separator, quote, or newline
+characters are quoted, and internal quotes are escaped as "".
+*/
+
+// Line ending style for output
 LineEnding :: enum u8 {
-    LF,
-    CRLF,
+    LF,    // Unix style: \n
+    CRLF,  // Windows/RFC 4180 style: \r\n
 }
 
+// Stringifier configuration
 StringifyOptions :: struct {
-    separator:       u8,
-    line_ending:     LineEnding,
-    always_quote:    bool,
-    expected_fields: u32,
+    separator:       u8,          // Field separator (default: ',')
+    line_ending:     LineEnding,  // Line ending style (default: LF)
+    always_quote:    bool,        // If true, quote all fields; if false, quote only when needed
+    expected_fields: u32,         // If > 0, error when row has different field count
 }
 
+// Stringifier error types
 StringifyErrorKind :: enum u8 {
     None = 0,
-    FieldCountMismatch,
-    InvalidInput,
+    FieldCountMismatch,  // Row has wrong number of fields
+    InvalidInput,        // Malformed input data
 }
 
 StringifyError :: struct {
     kind: StringifyErrorKind,
-    row:  u32,
+    row:  u32,  // Row where error occurred
 }
 
-// =============================================================================
-// Delimited Stringifier
-// =============================================================================
+/*
+Delimited Stringifier
+---------------------
+Converts \x1F/\x1E delimited input back to RFC 4180 CSV.
+*/
 
 DelimitedStringifier :: struct {
     opts:   StringifyOptions,
@@ -554,7 +651,8 @@ delimited_stringify_reset :: proc(s: ^DelimitedStringifier) {
     s.row = 0
 }
 
-// Stringify delimited input (fields separated by \x1F, records by \x1E)
+// Stringify delimited input (fields separated by \x1F, records by \x1E).
+// Returns true on success, false on error (check s.error for details).
 delimited_stringify :: proc(s: ^DelimitedStringifier, input: []u8) -> bool {
     if s.error.kind != .None do return false
     if len(input) == 0 do return true
@@ -637,9 +735,12 @@ write_field :: proc(s: ^DelimitedStringifier, field: []u8) {
     }
 }
 
-// =============================================================================
-// Span Stringifier
-// =============================================================================
+/*
+Span Stringifier
+----------------
+Converts span offsets back to RFC 4180 CSV.
+Requires the original source buffer that the spans reference.
+*/
 
 SpanStringifier :: struct {
     opts:   StringifyOptions,

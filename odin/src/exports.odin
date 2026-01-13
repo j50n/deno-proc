@@ -4,15 +4,59 @@ import "base:runtime"
 import "core:slice"
 import "csv"
 
-// WASM exports for RFC 4180 CSV parser
+/*
+WASM Exports for RFC 4180 CSV Parser
+====================================
 
-// Parser instance storage
+This module provides WebAssembly exports for the CSV parser, designed for
+high-performance streaming CSV processing from JavaScript/TypeScript.
+
+Memory Model
+------------
+Uses shared memory buffers for efficient data transfer:
+- Input buffer: Caller writes CSV data here before calling parse functions
+- Output buffer: Parser writes results here; caller reads after parse calls
+
+Call alloc_input_buffer() and alloc_output_buffer() once at startup, then
+reuse for all operations. Buffers persist until explicitly freed.
+
+Parser Lifecycle
+----------------
+1. Allocate buffers: alloc_input_buffer(size), alloc_output_buffer(size)
+2. Create parser: create_*_parser(...) → returns parser ID
+3. For each chunk:
+   a. Copy input to input buffer
+   b. Call parse_*(id, len) → returns packed result
+   c. Call get_*_output(id) → returns bytes written to output buffer
+   d. Read output buffer
+   e. Call clear_*_output(id)
+4. After last chunk: call finish_*(id)
+5. Destroy parser: destroy_*_parser(id)
+
+Return Value Format
+-------------------
+Parse functions return i64 with packed values:
+- High 32 bits: number of complete rows parsed
+- Low 32 bits: error code (0 = success, >0 = CsvErrorKind)
+
+Example: result = 0x0000000500000000 means 5 rows, no error
+         result = 0x0000000300000002 means 3 rows, then UnclosedQuote error
+
+Parser Types
+------------
+1. DelimitedParser - Outputs \x1F/\x1E separated text to internal buffer
+2. DirectParser - Outputs \x1F/\x1E directly to output buffer (fastest for streaming)
+3. SpanParser - Outputs field offset tuples (for zero-copy access)
+4. DelimitedStringifier - Converts \x1F/\x1E back to CSV
+*/
+
+// Parser instance storage (maps ID → parser pointer)
 delimited_parsers: map[i32]^csv.DelimitedParser
 span_parsers: map[i32]^csv.SpanParser
 delimited_stringifiers: map[i32]^csv.DelimitedStringifier
-next_id: i32 = 1
+next_id: i32 = 1  // Next available parser ID
 
-// Shared memory buffers
+// Shared memory buffers for WASM ↔ JS data transfer
 input_buffer: rawptr
 input_capacity: int
 output_buffer: rawptr
@@ -23,10 +67,15 @@ output_capacity: int
 
 main :: proc() {}
 
-// =============================================================================
-// Buffer Management
-// =============================================================================
+/*
+Buffer Management
+=================
+Allocate shared buffers for data transfer between JS and WASM.
+Call once at startup; reuse for all operations.
+*/
 
+// Allocate input buffer. Returns pointer to buffer start.
+// Caller writes CSV data here before calling parse functions.
 @(export)
 alloc_input_buffer :: proc "c" (size: i32) -> rawptr {
     context = runtime.default_context()
@@ -37,6 +86,8 @@ alloc_input_buffer :: proc "c" (size: i32) -> rawptr {
     return input_buffer
 }
 
+// Allocate output buffer. Returns pointer to buffer start.
+// Parser writes results here; caller reads after parse calls.
 @(export)
 alloc_output_buffer :: proc "c" (size: i32) -> rawptr {
     context = runtime.default_context()
@@ -47,6 +98,7 @@ alloc_output_buffer :: proc "c" (size: i32) -> rawptr {
     return output_buffer
 }
 
+// Free a previously allocated buffer
 @(export)
 free_buffer :: proc "c" (ptr: rawptr) {
     context = runtime.default_context()
@@ -61,10 +113,20 @@ free_buffer :: proc "c" (ptr: rawptr) {
     free(ptr)
 }
 
-// =============================================================================
-// Delimited Parser (outputs \x1F/\x1E separated text)
-// =============================================================================
+/*
+Delimited Parser
+================
+Parses CSV and outputs \x1F/\x1E separated text to an internal buffer.
+Use get_delimited_output() to copy results to the output buffer.
 
+Best for: when you need parsed text and want to control when output is retrieved.
+*/
+
+// Create a delimited parser. Returns parser ID (>0) or error (<0).
+// Parameters:
+//   separator: field separator char code (0 = default comma)
+//   strict: 1 = fail on errors, 0 = best-effort parsing
+//   expected_fields: if >0, error when row has different field count
 @(export)
 create_delimited_parser :: proc "c" (separator: i32, strict: i32, expected_fields: i32) -> i32 {
     context = runtime.default_context()
@@ -84,6 +146,7 @@ create_delimited_parser :: proc "c" (separator: i32, strict: i32, expected_field
     return id
 }
 
+// Destroy a delimited parser and free its resources
 @(export)
 destroy_delimited_parser :: proc "c" (id: i32) {
     context = runtime.default_context()
@@ -94,8 +157,9 @@ destroy_delimited_parser :: proc "c" (id: i32) {
     }
 }
 
-// Parse chunk. Returns: high 32 bits = rows, low 32 bits = error (0 = ok)
-// Output written to parser's internal buffer
+// Parse CSV data from input buffer.
+// Returns: high 32 bits = rows completed, low 32 bits = error code (0 = ok)
+// Output is stored in parser's internal buffer; call get_delimited_output() to retrieve.
 @(export)
 parse_delimited :: proc "c" (id: i32, input_len: i32) -> i64 {
     context = runtime.default_context()
@@ -110,7 +174,8 @@ parse_delimited :: proc "c" (id: i32, input_len: i32) -> i64 {
     return (i64(rows) << 32) | i64(err)
 }
 
-// Finish parsing. Returns same format as parse_delimited
+// Finalize parsing after all input. Flushes any remaining partial record.
+// Returns: same format as parse_delimited
 @(export)
 finish_delimited :: proc "c" (id: i32) -> i64 {
     context = runtime.default_context()
@@ -124,8 +189,9 @@ finish_delimited :: proc "c" (id: i32) -> i64 {
     return (i64(rows) << 32) | i64(err)
 }
 
-// Copy parser output to output buffer. Returns bytes written.
-// Only returns complete records (those ending with \x1E)
+// Copy complete records from parser to output buffer.
+// Returns: number of bytes written to output buffer.
+// Only returns complete records (those ending with \x1E).
 @(export)
 get_delimited_output :: proc "c" (id: i32) -> i32 {
     context = runtime.default_context()
@@ -143,7 +209,8 @@ get_delimited_output :: proc "c" (id: i32) -> i32 {
     return i32(copy_len)
 }
 
-// Clear parser output buffer (call after reading output)
+// Clear parser's output buffer. Call after reading output to free memory.
+// Preserves any incomplete record data for the next parse call.
 @(export)
 clear_delimited_output :: proc "c" (id: i32) {
     context = runtime.default_context()
@@ -152,7 +219,7 @@ clear_delimited_output :: proc "c" (id: i32) {
     }
 }
 
-// Get error details. Returns: high 32 = row, low 32 = col
+// Get error position details. Returns: high 32 bits = row, low 32 bits = column
 @(export)
 get_delimited_error :: proc "c" (id: i32) -> i64 {
     context = runtime.default_context()
@@ -163,11 +230,17 @@ get_delimited_error :: proc "c" (id: i32) -> i64 {
     return (i64(p.error.row) << 32) | i64(p.error.col)
 }
 
-// =============================================================================
-// Direct Buffer Parser (zero-copy output)
-// =============================================================================
+/*
+Direct Buffer Parser
+====================
+Parses CSV and writes \x1F/\x1E output directly to the output buffer.
+Fastest option for streaming - no intermediate buffer copy.
 
-// Streaming parser state for direct buffer output
+Handles incomplete records by carrying them to the next parse call.
+Returns only complete records; partial data is buffered internally.
+*/
+
+// Internal state for direct buffer parser
 DirectParser :: struct {
     state: csv.CsvState,
     row: u32,
@@ -175,12 +248,15 @@ DirectParser :: struct {
     opts: csv.CsvOptions,
     error: csv.CsvError,
     row_started: bool,
-    // Carry buffer for incomplete records
-    carry: [dynamic]u8,
+    carry: [dynamic]u8,  // Buffer for incomplete record data between chunks
 }
 
 direct_parsers: map[i32]^DirectParser
 
+// Create a direct parser. Returns parser ID.
+// Parameters:
+//   separator: field separator char code (0 = default comma)
+//   strict: 1 = fail on errors, 0 = best-effort parsing
 @(export)
 create_direct_parser :: proc "c" (separator: i32, strict: i32) -> i32 {
     context = runtime.default_context()
@@ -199,6 +275,7 @@ create_direct_parser :: proc "c" (separator: i32, strict: i32) -> i32 {
     return id
 }
 
+// Destroy a direct parser and free its resources
 @(export)
 destroy_direct_parser :: proc "c" (id: i32) {
     context = runtime.default_context()
@@ -209,9 +286,9 @@ destroy_direct_parser :: proc "c" (id: i32) {
     }
 }
 
-// Parse input and write directly to output buffer
-// Returns: bytes written to output (complete records only)
-// Incomplete record data is carried to next call
+// Parse CSV from input buffer, write directly to output buffer.
+// Returns: number of bytes written (complete records only).
+// Incomplete record data is carried to the next call automatically.
 @(export)
 parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     context = runtime.default_context()
@@ -355,7 +432,8 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     return i32(out_len)
 }
 
-// Finish parsing - flush any remaining data
+// Finalize parsing - flush any remaining buffered data to output.
+// Returns: number of bytes written to output buffer.
 @(export)
 finish_direct :: proc "c" (id: i32) -> i32 {
     context = runtime.default_context()
@@ -385,10 +463,21 @@ finish_direct :: proc "c" (id: i32) -> i32 {
     return i32(out_len)
 }
 
-// =============================================================================
-// Span Parser (outputs offset tuples)
-// =============================================================================
+/*
+Span Parser
+===========
+Parses CSV and outputs field position tuples instead of copying text.
+Zero-copy approach - records (start, end, flags) offsets into original input.
 
+Output format in output buffer (per span, 12 bytes):
+  - start: u32 - start offset in source
+  - end: u32 - end offset in source (exclusive)
+  - flags: u32 - bit 0 = quoted (needs unescape)
+
+Use get_spans() and get_row_ends() to retrieve parsed structure.
+*/
+
+// Create a span parser. Returns parser ID.
 @(export)
 create_span_parser :: proc "c" (separator: i32, strict: i32, expected_fields: i32) -> i32 {
     context = runtime.default_context()
@@ -408,6 +497,7 @@ create_span_parser :: proc "c" (separator: i32, strict: i32, expected_fields: i3
     return id
 }
 
+// Destroy a span parser and free its resources
 @(export)
 destroy_span_parser :: proc "c" (id: i32) {
     context = runtime.default_context()
@@ -418,7 +508,11 @@ destroy_span_parser :: proc "c" (id: i32) {
     }
 }
 
-// Parse chunk. Returns: high 32 bits = rows, low 32 bits = error (0 = ok)
+// Parse CSV from input buffer into span offsets.
+// Parameters:
+//   input_len: bytes of CSV data in input buffer
+//   base_offset: offset to add to all span positions (for streaming across chunks)
+// Returns: high 32 bits = rows, low 32 bits = error code
 @(export)
 parse_span :: proc "c" (id: i32, input_len: i32, base_offset: i32) -> i64 {
     context = runtime.default_context()
@@ -433,7 +527,7 @@ parse_span :: proc "c" (id: i32, input_len: i32, base_offset: i32) -> i64 {
     return (i64(rows) << 32) | i64(err)
 }
 
-// Finish parsing
+// Finalize span parsing
 @(export)
 finish_span :: proc "c" (id: i32, input_len: i32) -> i64 {
     context = runtime.default_context()
@@ -447,7 +541,7 @@ finish_span :: proc "c" (id: i32, input_len: i32) -> i64 {
     return (i64(rows) << 32) | i64(err)
 }
 
-// Get span count
+// Get total number of field spans parsed
 @(export)
 get_span_count :: proc "c" (id: i32) -> i32 {
     context = runtime.default_context()
@@ -456,7 +550,7 @@ get_span_count :: proc "c" (id: i32) -> i32 {
     return i32(len(p.spans))
 }
 
-// Get row count
+// Get number of complete rows parsed
 @(export)
 get_span_row_count :: proc "c" (id: i32) -> i32 {
     context = runtime.default_context()
@@ -465,8 +559,9 @@ get_span_row_count :: proc "c" (id: i32) -> i32 {
     return i32(len(p.row_ends))
 }
 
-// Copy spans to output buffer. Format: [start:u32, end:u32, flags:u32] per span
-// Returns number of spans written
+// Copy field spans to output buffer.
+// Format: [start:u32, end:u32, flags:u32] × N (12 bytes per span)
+// Returns: number of spans written
 @(export)
 get_spans :: proc "c" (id: i32) -> i32 {
     context = runtime.default_context()
@@ -491,7 +586,9 @@ get_spans :: proc "c" (id: i32) -> i32 {
     return i32(copy_count)
 }
 
-// Copy row_ends to output buffer
+// Copy row end indices to output buffer.
+// Each u32 is the index into spans array where that row ends.
+// Returns: number of row ends written
 @(export)
 get_row_ends :: proc "c" (id: i32) -> i32 {
     context = runtime.default_context()
@@ -511,7 +608,7 @@ get_row_ends :: proc "c" (id: i32) -> i32 {
     return i32(copy_count)
 }
 
-// Clear span parser output
+// Clear span parser's output arrays
 @(export)
 clear_span_output :: proc "c" (id: i32) {
     context = runtime.default_context()
@@ -520,10 +617,19 @@ clear_span_output :: proc "c" (id: i32) {
     }
 }
 
-// =============================================================================
-// Delimited Stringifier
-// =============================================================================
+/*
+Delimited Stringifier
+=====================
+Converts \x1F/\x1E delimited input back to RFC 4180 CSV.
+Handles proper quoting of fields containing special characters.
+*/
 
+// Create a stringifier. Returns stringifier ID.
+// Parameters:
+//   separator: output field separator (0 = default comma)
+//   crlf: 1 = use \r\n line endings, 0 = use \n
+//   always_quote: 1 = quote all fields, 0 = quote only when needed
+//   expected_fields: if >0, error when row has different field count
 @(export)
 create_delimited_stringifier :: proc "c" (separator: i32, crlf: i32, always_quote: i32, expected_fields: i32) -> i32 {
     context = runtime.default_context()
@@ -544,6 +650,7 @@ create_delimited_stringifier :: proc "c" (separator: i32, crlf: i32, always_quot
     return id
 }
 
+// Destroy a stringifier and free its resources
 @(export)
 destroy_delimited_stringifier :: proc "c" (id: i32) {
     context = runtime.default_context()
@@ -554,7 +661,8 @@ destroy_delimited_stringifier :: proc "c" (id: i32) {
     }
 }
 
-// Stringify delimited input. Returns 1 on success, 0 on error
+// Convert delimited input to CSV. Input is read from input buffer.
+// Returns: 1 on success, 0 on error
 @(export)
 stringify_delimited :: proc "c" (id: i32, input_len: i32) -> i32 {
     context = runtime.default_context()
@@ -568,7 +676,8 @@ stringify_delimited :: proc "c" (id: i32, input_len: i32) -> i32 {
     return 1 if success else 0
 }
 
-// Get stringifier output
+// Copy stringifier output to output buffer.
+// Returns: number of bytes written
 @(export)
 get_stringify_output :: proc "c" (id: i32) -> i32 {
     context = runtime.default_context()
@@ -586,7 +695,7 @@ get_stringify_output :: proc "c" (id: i32) -> i32 {
     return i32(copy_len)
 }
 
-// Clear stringifier output
+// Clear stringifier's output buffer
 @(export)
 clear_stringify_output :: proc "c" (id: i32) {
     context = runtime.default_context()
