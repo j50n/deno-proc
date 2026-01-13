@@ -198,7 +198,6 @@ class CsvProcessor {
     const expectedFields = 0;
     
     this.stringifierId = this.exports.create_delimited_stringifier(sep, crlf, alwaysQuote, expectedFields);
-    const encoder = new TextEncoder();
     
     try {
       for await (const item of data) {

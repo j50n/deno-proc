@@ -9,9 +9,6 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.4/command/mod.ts";
 import denoJson from "../../deno.json" with { type: "json" };
 
-const FIELD_SEP = 0x1F;
-const RECORD_SEP = 0x1E;
-
 type Writer = (data: Uint8Array) => Promise<number>;
 
 // =============================================================================
@@ -73,8 +70,6 @@ async function delimitedToRecord(
   input: ReadableStream<Uint8Array>,
   write: Writer,
   separator: number,
-  _strict: boolean,
-  _columns?: number,
 ): Promise<void> {
   await initWasm();
   const exp = wasmInstance!.exports as any;
@@ -133,33 +128,35 @@ async function recordToDelimitedWasm(
   const stringifierId = exp.create_delimited_stringifier(separator, 0, quoteAll ? 1 : 0, 0);
   const reader = input.getReader();
   
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    
-    for (let off = 0; off < value.length; off += CHUNK_SIZE) {
-      const slice = value.subarray(off, Math.min(off + CHUNK_SIZE, value.length));
-      new Uint8Array(memory.buffer, inputPtr, slice.length).set(slice);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
       
-      exp.stringify_delimited(stringifierId, slice.length);
-      
-      const outLen = exp.get_stringify_output(stringifierId);
-      if (outLen > 0) {
-        const output = new Uint8Array(memory.buffer, outputPtr, outLen);
-        await write(output.slice());
-        exp.clear_stringify_output(stringifierId);
+      for (let off = 0; off < value.length; off += CHUNK_SIZE) {
+        const slice = value.subarray(off, Math.min(off + CHUNK_SIZE, value.length));
+        new Uint8Array(memory.buffer, inputPtr, slice.length).set(slice);
+        
+        exp.stringify_delimited(stringifierId, slice.length);
+        
+        const outLen = exp.get_stringify_output(stringifierId);
+        if (outLen > 0) {
+          const output = new Uint8Array(memory.buffer, outputPtr, outLen);
+          await write(output.slice());
+          exp.clear_stringify_output(stringifierId);
+        }
       }
     }
+    
+    // Get any remaining output
+    const outLen = exp.get_stringify_output(stringifierId);
+    if (outLen > 0) {
+      const output = new Uint8Array(memory.buffer, outputPtr, outLen);
+      await write(output.slice());
+    }
+  } finally {
+    exp.destroy_delimited_stringifier(stringifierId);
   }
-  
-  // Get any remaining output
-  const outLen = exp.get_stringify_output(stringifierId);
-  if (outLen > 0) {
-    const output = new Uint8Array(memory.buffer, outputPtr, outLen);
-    await write(output.slice());
-  }
-  
-  exp.destroy_delimited_stringifier(stringifierId);
 }
 
 // =============================================================================
@@ -170,58 +167,50 @@ async function recordToDelimitedWasm(
 const csv2record = new Command()
   .description("Convert CSV to record format (\\x1F/\\x1E delimited)")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
-  .option("-c, --columns <n:number>", "Expected column count (fail if mismatch)")
-  .option("-s, --strict", "Fail on parse errors")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.csv | flatdata csv2record")
   .example("European CSV", "flatdata csv2record -d ';' -i euro.csv -o data.rec")
-  .action(async ({ separator, columns, strict, input, output }) => {
+  .action(async ({ separator, input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await delimitedToRecord(stream, write, separator!.charCodeAt(0), strict ?? false, columns);
+    await delimitedToRecord(stream, write, separator!.charCodeAt(0));
     close();
   });
 
 const csv2lazyrow = new Command()
   .description("Convert CSV to lazyrow format (same as record, row-at-a-time)")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
-  .option("-c, --columns <n:number>", "Expected column count (fail if mismatch)")
-  .option("-s, --strict", "Fail on parse errors")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ separator, columns, strict, input, output }) => {
+  .action(async ({ separator, input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await delimitedToRecord(stream, write, separator!.charCodeAt(0), strict ?? false, columns);
+    await delimitedToRecord(stream, write, separator!.charCodeAt(0));
     close();
   });
 
 // TSV input commands
 const tsv2record = new Command()
   .description("Convert TSV to record format (\\x1F/\\x1E delimited)")
-  .option("-c, --columns <n:number>", "Expected column count (fail if mismatch)")
-  .option("-s, --strict", "Fail on parse errors")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.tsv | flatdata tsv2record")
-  .action(async ({ columns, strict, input, output }) => {
+  .action(async ({ input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await delimitedToRecord(stream, write, 9, strict ?? false, columns);
+    await delimitedToRecord(stream, write, 9);
     close();
   });
 
 const tsv2lazyrow = new Command()
   .description("Convert TSV to lazyrow format (same as record, row-at-a-time)")
-  .option("-c, --columns <n:number>", "Expected column count (fail if mismatch)")
-  .option("-s, --strict", "Fail on parse errors")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ columns, strict, input, output }) => {
+  .action(async ({ input, output }) => {
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await delimitedToRecord(stream, write, 9, strict ?? false, columns);
+    await delimitedToRecord(stream, write, 9);
     close();
   });
 

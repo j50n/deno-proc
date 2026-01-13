@@ -75,3 +75,41 @@ Deno.test("roundtrip tsv -> record -> tsv", async () => {
   const back = await run(["record2tsv"], record);
   assertEquals(back, tsv);
 });
+
+// Test for carry buffer bug fix - records spanning chunk boundaries
+Deno.test("csv2record - large input with chunk boundaries", async () => {
+  // Generate input larger than 64KB chunk size to test carry buffer handling
+  const rows: string[] = [];
+  for (let i = 0; i < 2000; i++) {
+    rows.push(`field${i},value${i},"description for row ${i}"`);
+  }
+  const csv = rows.join("\n") + "\n";
+
+  const out = await run(["csv2record"], csv);
+
+  // Verify correct number of record separators
+  const recordCount = out.split("\x1E").length - 1;
+  assertEquals(recordCount, 2000);
+
+  // Verify first and last records are correct
+  const records = out.split("\x1E").filter((r) => r.length > 0);
+  assertEquals(records[0], "field0\x1Fvalue0\x1Fdescription for row 0");
+  assertEquals(
+    records[1999],
+    "field1999\x1Fvalue1999\x1Fdescription for row 1999",
+  );
+});
+
+Deno.test("roundtrip - large input preserves data", async () => {
+  // Generate CSV larger than chunk size
+  const rows: string[] = [];
+  for (let i = 0; i < 2000; i++) {
+    rows.push(`item${i},${i * 1.5},desc${i}`);
+  }
+  const csv = rows.join("\n") + "\n";
+
+  const record = await run(["csv2record"], csv);
+  const back = await run(["record2csv"], record);
+
+  assertEquals(back, csv);
+});

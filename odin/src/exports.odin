@@ -346,7 +346,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     
     // Carry incomplete record to next call
     if record_start < out_len {
-        for j := record_start - carry_len; j < out_len; j += 1 {
+        for j := record_start; j < out_len; j += 1 {
             append(&p.carry, out[j])
         }
         out_len = record_start
@@ -365,15 +365,18 @@ finish_direct :: proc "c" (id: i32) -> i32 {
     
     out := ([^]u8)(output_buffer)
     out_len := 0
+    out_cap := output_capacity
     
     // Flush carry buffer
     for b in p.carry {
-        out[out_len] = b
-        out_len += 1
+        if out_len < out_cap {
+            out[out_len] = b
+            out_len += 1
+        }
     }
     
     // Add final record separator if there's data
-    if p.row_started && out_len > 0 {
+    if p.row_started && out_len > 0 && out_len < out_cap {
         out[out_len] = csv.RECORD_SEP
         out_len += 1
     }
