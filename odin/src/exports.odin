@@ -164,6 +164,225 @@ get_delimited_error :: proc "c" (id: i32) -> i64 {
 }
 
 // =============================================================================
+// Direct Buffer Parser (zero-copy output)
+// =============================================================================
+
+// Streaming parser state for direct buffer output
+DirectParser :: struct {
+    state: csv.CsvState,
+    row: u32,
+    fields_in_row: u32,
+    opts: csv.CsvOptions,
+    error: csv.CsvError,
+    row_started: bool,
+    // Carry buffer for incomplete records
+    carry: [dynamic]u8,
+}
+
+direct_parsers: map[i32]^DirectParser
+
+@(export)
+create_direct_parser :: proc "c" (separator: i32, strict: i32) -> i32 {
+    context = runtime.default_context()
+    
+    p := new(DirectParser)
+    p.opts = csv.CsvOptions{
+        separator = u8(separator) if separator > 0 else ',',
+        strict = strict != 0,
+    }
+    p.state = .FieldStart
+    p.carry = make([dynamic]u8)
+    
+    id := next_id
+    next_id += 1
+    direct_parsers[id] = p
+    return id
+}
+
+@(export)
+destroy_direct_parser :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if p, ok := direct_parsers[id]; ok {
+        delete(p.carry)
+        free(p)
+        delete_key(&direct_parsers, id)
+    }
+}
+
+// Parse input and write directly to output buffer
+// Returns: bytes written to output (complete records only)
+// Incomplete record data is carried to next call
+@(export)
+parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    p, ok := direct_parsers[id]
+    if !ok do return 0
+    if p.error.kind != .None do return 0
+    
+    input := slice.from_ptr(cast(^u8)input_buffer, int(input_len))
+    out := ([^]u8)(output_buffer)
+    out_len := 0
+    out_cap := output_capacity
+    
+    sep := p.opts.separator
+    
+    // First, flush any carried data
+    for b in p.carry {
+        if out_len < out_cap {
+            out[out_len] = b
+            out_len += 1
+        }
+    }
+    carry_len := len(p.carry)
+    clear(&p.carry)
+    
+    record_start := 0  // Start of current record in output
+    
+    for i := 0; i < len(input); i += 1 {
+        c := input[i]
+        
+        switch p.state {
+        case .FieldStart:
+            if c == '"' {
+                if p.row_started && out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                p.row_started = true
+                p.state = .Quoted
+            } else if c == sep {
+                if p.row_started && out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                p.row_started = true
+                p.fields_in_row += 1
+            } else if c == '\r' {
+                if p.row_started {
+                    if out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                    p.fields_in_row += 1
+                }
+                p.state = .RecordEnd
+            } else if c == '\n' {
+                if p.row_started {
+                    if out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                    p.fields_in_row += 1
+                    if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                }
+                p.row += 1
+                p.fields_in_row = 0
+                p.row_started = false
+                record_start = out_len
+            } else {
+                if p.row_started && out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                p.row_started = true
+                if out_len < out_cap { out[out_len] = c; out_len += 1 }
+                p.state = .Unquoted
+            }
+            
+        case .Unquoted:
+            if c == sep {
+                p.fields_in_row += 1
+                p.state = .FieldStart
+            } else if c == '\r' {
+                p.fields_in_row += 1
+                p.state = .RecordEnd
+            } else if c == '\n' {
+                p.fields_in_row += 1
+                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                p.row += 1
+                p.fields_in_row = 0
+                p.row_started = false
+                p.state = .FieldStart
+                record_start = out_len
+            } else {
+                if out_len < out_cap { out[out_len] = c; out_len += 1 }
+            }
+            
+        case .Quoted:
+            if c == '"' {
+                p.state = .QuoteInQuoted
+            } else {
+                if out_len < out_cap { out[out_len] = c; out_len += 1 }
+            }
+            
+        case .QuoteInQuoted:
+            if c == '"' {
+                if out_len < out_cap { out[out_len] = '"'; out_len += 1 }
+                p.state = .Quoted
+            } else if c == sep {
+                p.fields_in_row += 1
+                p.state = .FieldStart
+            } else if c == '\r' {
+                p.fields_in_row += 1
+                p.state = .RecordEnd
+            } else if c == '\n' {
+                p.fields_in_row += 1
+                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                p.row += 1
+                p.fields_in_row = 0
+                p.row_started = false
+                p.state = .FieldStart
+                record_start = out_len
+            } else {
+                p.error = csv.CsvError{.InvalidCharAfterQuote, p.row, 0}
+                return 0
+            }
+            
+        case .RecordEnd:
+            if c == '\n' {
+                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                p.row += 1
+                p.fields_in_row = 0
+                p.row_started = false
+                p.state = .FieldStart
+                record_start = out_len
+            } else {
+                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                p.row += 1
+                p.fields_in_row = 0
+                p.row_started = false
+                p.state = .FieldStart
+                record_start = out_len
+                i -= 1
+            }
+        }
+    }
+    
+    // Carry incomplete record to next call
+    if record_start < out_len {
+        for j := record_start - carry_len; j < out_len; j += 1 {
+            append(&p.carry, out[j])
+        }
+        out_len = record_start
+    }
+    
+    return i32(out_len)
+}
+
+// Finish parsing - flush any remaining data
+@(export)
+finish_direct :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    p, ok := direct_parsers[id]
+    if !ok do return 0
+    
+    out := ([^]u8)(output_buffer)
+    out_len := 0
+    
+    // Flush carry buffer
+    for b in p.carry {
+        out[out_len] = b
+        out_len += 1
+    }
+    
+    // Add final record separator if there's data
+    if p.row_started && out_len > 0 {
+        out[out_len] = csv.RECORD_SEP
+        out_len += 1
+    }
+    
+    clear(&p.carry)
+    return i32(out_len)
+}
+
+// =============================================================================
 // Span Parser (outputs offset tuples)
 // =============================================================================
 

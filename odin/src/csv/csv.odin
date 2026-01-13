@@ -1,5 +1,7 @@
 package csv
 
+import "base:runtime"
+
 // RFC 4180 compliant CSV push parser
 // Two implementations: DelimitedParser (copies output) and SpanParser (zero-copy offsets)
 
@@ -51,7 +53,6 @@ DelimitedParser :: struct {
     opts: CsvOptions,
     error: CsvError,
     output: [dynamic]u8,
-    carry: [dynamic]u8,
     row_started: bool,
     complete_output_len: int,  // length of output containing only complete records
 }
@@ -63,13 +64,11 @@ delimited_init :: proc(opts := CsvOptions{}) -> DelimitedParser {
         state = .FieldStart,
         opts = o,
         output = make([dynamic]u8),
-        carry = make([dynamic]u8),
     }
 }
 
 delimited_destroy :: proc(p: ^DelimitedParser) {
     delete(p.output)
-    delete(p.carry)
 }
 
 delimited_reset_output :: proc(p: ^DelimitedParser) {
@@ -95,152 +94,159 @@ delimited_parse :: proc(p: ^DelimitedParser, input: []u8) -> (rows: u32, ok: boo
     
     sep := p.opts.separator
     rows = 0
-    i := 0
     n := len(input)
     
-    for i < n {
+    // Pre-reserve to avoid reallocations during raw writes
+    start_len := len(p.output)
+    reserve(&p.output, start_len + n + n/10)
+    // Get data pointer from dynamic array struct
+    raw := (^runtime.Raw_Dynamic_Array)(&p.output)
+    out_ptr := ([^]u8)(raw.data)
+    out_len := start_len
+    
+    for i := 0; i < n; i += 1 {
         c := input[i]
         
         switch p.state {
         case .FieldStart:
             if c == '"' {
+                if p.row_started { out_ptr[out_len] = FIELD_SEP; out_len += 1 }
+                p.row_started = true
                 p.state = .Quoted
-                p.col += 1
             } else if c == sep {
-                // Empty field
-                if p.row_started do append(&p.output, FIELD_SEP)
+                if p.row_started { out_ptr[out_len] = FIELD_SEP; out_len += 1 }
                 p.row_started = true
                 p.fields_in_row += 1
-                p.col += 1
             } else if c == '\r' {
-                // Empty field before CR
                 if p.row_started {
-                    append(&p.output, FIELD_SEP)
+                    out_ptr[out_len] = FIELD_SEP; out_len += 1
                     p.fields_in_row += 1
                 }
                 p.state = .RecordEnd
             } else if c == '\n' {
-                // Empty field before LF
                 if p.row_started {
-                    append(&p.output, FIELD_SEP)
+                    out_ptr[out_len] = FIELD_SEP; out_len += 1
                     p.fields_in_row += 1
                 }
+                raw.len = out_len
                 rows += delimited_emit_record(p)
+                out_len = raw.len  // emit_record may have appended
+                out_ptr = ([^]u8)(raw.data)  // refresh pointer
                 if p.error.kind != .None do return rows, false
             } else {
-                // Start unquoted field
-                append(&p.carry, c)
+                if p.row_started { out_ptr[out_len] = FIELD_SEP; out_len += 1 }
+                p.row_started = true
+                out_ptr[out_len] = c; out_len += 1
                 p.state = .Unquoted
-                p.col += 1
             }
             
         case .Unquoted:
             if c == sep {
-                delimited_emit_field(p)
+                p.fields_in_row += 1
                 p.state = .FieldStart
-                p.col += 1
             } else if c == '\r' {
-                delimited_emit_field(p)
+                p.fields_in_row += 1
                 p.state = .RecordEnd
             } else if c == '\n' {
-                delimited_emit_field(p)
+                p.fields_in_row += 1
+                raw.len = out_len
                 rows += delimited_emit_record(p)
+                out_len = raw.len
+                out_ptr = ([^]u8)(raw.data)
                 if p.error.kind != .None do return rows, false
                 p.state = .FieldStart
             } else if c == '"' && p.opts.strict {
+                raw.len = out_len
                 p.error = CsvError{.BareQuote, p.row, p.col}
                 return rows, false
             } else {
-                append(&p.carry, c)
-                p.col += 1
+                out_ptr[out_len] = c; out_len += 1
             }
             
         case .Quoted:
             if c == '"' {
                 p.state = .QuoteInQuoted
             } else {
-                append(&p.carry, c)
-                if c == '\n' {
-                    p.col = 0
-                } else {
-                    p.col += 1
-                }
+                out_ptr[out_len] = c; out_len += 1
             }
             
         case .QuoteInQuoted:
             if c == '"' {
-                // Escaped quote
-                append(&p.carry, '"')
+                out_ptr[out_len] = '"'; out_len += 1
                 p.state = .Quoted
-                p.col += 1
             } else if c == sep {
-                delimited_emit_field(p)
+                p.fields_in_row += 1
                 p.state = .FieldStart
-                p.col += 1
             } else if c == '\r' {
-                delimited_emit_field(p)
+                p.fields_in_row += 1
                 p.state = .RecordEnd
             } else if c == '\n' {
-                delimited_emit_field(p)
+                p.fields_in_row += 1
+                raw.len = out_len
                 rows += delimited_emit_record(p)
+                out_len = raw.len
+                out_ptr = ([^]u8)(raw.data)
                 if p.error.kind != .None do return rows, false
                 p.state = .FieldStart
             } else {
+                raw.len = out_len
                 p.error = CsvError{.InvalidCharAfterQuote, p.row, p.col}
                 return rows, false
             }
             
         case .RecordEnd:
             if c == '\n' {
+                raw.len = out_len
                 rows += delimited_emit_record(p)
+                out_len = raw.len
+                out_ptr = ([^]u8)(raw.data)
                 if p.error.kind != .None do return rows, false
                 p.state = .FieldStart
             } else if p.opts.strict {
+                raw.len = out_len
                 p.error = CsvError{.BareCR, p.row, p.col}
                 return rows, false
             } else {
-                // Lenient: treat bare CR as line ending
+                raw.len = out_len
                 rows += delimited_emit_record(p)
+                out_len = raw.len
+                out_ptr = ([^]u8)(raw.data)
                 if p.error.kind != .None do return rows, false
                 p.state = .FieldStart
-                // Re-process this character
-                continue
+                i -= 1  // Re-process
             }
         }
-        i += 1
+        p.col += 1
     }
     
+    raw.len = out_len
     return rows, true
 }
-
 delimited_finish :: proc(p: ^DelimitedParser) -> (rows: u32, ok: bool) {
     if p.error.kind != .None do return 0, false
     
-    // Handle unterminated states
     switch p.state {
     case .Quoted:
         if p.opts.strict {
             p.error = CsvError{.UnclosedQuote, p.row, p.col}
             return 0, false
         }
-        // Lenient: close the quote
-        delimited_emit_field(p)
+        p.fields_in_row += 1
         return delimited_emit_record(p), true
         
     case .QuoteInQuoted:
-        delimited_emit_field(p)
+        p.fields_in_row += 1
         return delimited_emit_record(p), true
         
     case .Unquoted:
-        delimited_emit_field(p)
+        p.fields_in_row += 1
         return delimited_emit_record(p), true
         
     case .RecordEnd:
         return delimited_emit_record(p), true
         
     case .FieldStart:
-        // Only emit if we have pending content
-        if p.row_started || len(p.carry) > 0 {
+        if p.row_started {
             return delimited_emit_record(p), true
         }
     }
@@ -249,19 +255,7 @@ delimited_finish :: proc(p: ^DelimitedParser) -> (rows: u32, ok: bool) {
 }
 
 @(private)
-delimited_emit_field :: proc(p: ^DelimitedParser) {
-    if p.row_started {
-        append(&p.output, FIELD_SEP)
-    }
-    p.row_started = true
-    append(&p.output, ..p.carry[:])
-    clear(&p.carry)
-    p.fields_in_row += 1
-}
-
-@(private)
 delimited_emit_record :: proc(p: ^DelimitedParser) -> u32 {
-    // Check field count if strict
     if p.opts.expected_fields > 0 && p.fields_in_row != p.opts.expected_fields {
         if p.opts.strict {
             p.error = CsvError{.FieldCountMismatch, p.row, 0}
@@ -269,13 +263,12 @@ delimited_emit_record :: proc(p: ^DelimitedParser) -> u32 {
         }
     }
     
-    // Don't emit empty rows
     if !p.row_started && p.fields_in_row == 0 {
         return 0
     }
     
     append(&p.output, RECORD_SEP)
-    p.complete_output_len = len(p.output)  // mark complete record boundary
+    p.complete_output_len = len(p.output)
     p.row += 1
     p.col = 0
     p.fields_in_row = 0

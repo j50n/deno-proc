@@ -18,24 +18,28 @@ The mdbook documentation is organized into 8 sections:
 All mdbook pages should be:
 
 ### Warm and Human
+
 - Conversational tone, not academic
 - Use "you" and "we"
 - Explain why, not just what
 - Show empathy for common struggles
 
 ### Compelling
+
 - Start with the problem
 - Show the solution
 - Demonstrate the benefit
 - Use real-world examples
 
 ### Practical
+
 - Copy-paste ready code
 - Complete, working examples
 - Common patterns and recipes
 - Real use cases
 
 ### Progressive
+
 - Simple examples first
 - Build complexity gradually
 - Link to related topics
@@ -56,23 +60,17 @@ Explain the pain point this solves.
 
 Simple, minimal example:
 
-\`\`\`typescript
-// Clear, working code
-\`\`\`
+\`\`\`typescript // Clear, working code \`\`\`
 
 ## Common Patterns
 
 ### Pattern 1
 
-\`\`\`typescript
-// Example
-\`\`\`
+\`\`\`typescript // Example \`\`\`
 
 ### Pattern 2
 
-\`\`\`typescript
-// Example
-\`\`\`
+\`\`\`typescript // Example \`\`\`
 
 ## Real-World Examples
 
@@ -88,10 +86,7 @@ Practical, complete examples.
 
 ### Mistake 1
 
-\`\`\`typescript
-// ❌ Wrong
-// ✅ Correct
-\`\`\`
+\`\`\`typescript // ❌ Wrong // ✅ Correct \`\`\`
 
 ## Next Steps
 
@@ -104,6 +99,7 @@ Practical, complete examples.
 ### 1. Error Handling First
 
 Error handling is the PRIMARY selling point. Mention it:
+
 - In the introduction
 - In examples
 - In comparisons
@@ -113,15 +109,13 @@ Error handling is the PRIMARY selling point. Mention it:
 
 ```markdown
 <!-- ❌ Don't just explain -->
+
 The map function transforms items.
 
 <!-- ✅ Show it working -->
-Transform numbers to strings:
-\`\`\`typescript
-const strings = await enumerate([1, 2, 3])
-  .map(n => n.toString())
-  .collect();
-// ["1", "2", "3"]
+
+Transform numbers to strings: \`\`\`typescript const strings = await
+enumerate([1, 2, 3]) .map(n => n.toString()) .collect(); // ["1", "2", "3"]
 \`\`\`
 ```
 
@@ -130,10 +124,8 @@ const strings = await enumerate([1, 2, 3])
 Always clarify:
 
 ```markdown
-\`\`\`typescript
-.lines    // Property (no parentheses)
-.collect() // Method (with parentheses)
-\`\`\`
+\`\`\`typescript .lines // Property (no parentheses) .collect() // Method (with
+parentheses) \`\`\`
 ```
 
 ### 4. Complete Examples
@@ -142,18 +134,14 @@ Examples should be copy-paste ready:
 
 ```markdown
 <!-- ❌ Incomplete -->
-\`\`\`typescript
-enumerate(data).map(...)
-\`\`\`
+
+\`\`\`typescript enumerate(data).map(...) \`\`\`
 
 <!-- ✅ Complete -->
-\`\`\`typescript
-import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
-const result = await enumerate([1, 2, 3])
-  .map(n => n * 2)
-  .collect();
-\`\`\`
+\`\`\`typescript import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
+
+const result = await enumerate([1, 2, 3]) .map(n => n * 2) .collect(); \`\`\`
 ```
 
 ### 5. Real-World Focus
@@ -162,18 +150,13 @@ Use realistic examples:
 
 ```markdown
 <!-- ❌ Toy example -->
-\`\`\`typescript
-enumerate([1, 2, 3])
-\`\`\`
+
+\`\`\`typescript enumerate([1, 2, 3]) \`\`\`
 
 <!-- ✅ Real-world -->
-\`\`\`typescript
-// Process log files
-await read("app.log")
-  .lines
-  .filter(line => line.includes("ERROR"))
-  .forEach(console.log);
-\`\`\`
+
+\`\`\`typescript // Process log files await read("app.log") .lines .filter(line
+=> line.includes("ERROR")) .forEach(console.log); \`\`\`
 ```
 
 ## Section Guidelines
@@ -222,11 +205,13 @@ await read("app.log")
 
 ### API Reference
 
-The API Reference is **auto-generated** from source code using Deno's documentation tool.
+The API Reference is **auto-generated** from source code using Deno's
+documentation tool.
 
 **Do not manually create API reference pages.** Instead:
 
-1. The API docs are generated during build: `deno doc --html --name="proc" --output=./site/src/api-docs ./mod.ts`
+1. The API docs are generated during build:
+   `deno doc --html --name="proc" --output=./site/src/api-docs ./mod.ts`
 2. A single page (`api-reference.md`) links to the generated docs
 3. The generated docs open in a new window
 4. Users can search, browse types, and view source
@@ -234,10 +219,12 @@ The API Reference is **auto-generated** from source code using Deno's documentat
 **To reference API docs in your pages:**
 
 ```markdown
-See the [run() API documentation](./api-docs/~/run.html){:target="_blank"} for details.
+See the [run() API documentation](./api-docs/~/run.html){:target="_blank"} for
+details.
 ```
 
 **Benefits:**
+
 - Always in sync with code
 - Complete type information
 - Searchable
@@ -271,15 +258,11 @@ All code examples should be tested:
 ```markdown
 ### Traditional Approach
 
-\`\`\`typescript
-// Verbose, error-prone
-\`\`\`
+\`\`\`typescript // Verbose, error-prone \`\`\`
 
 ### proc Approach
 
-\`\`\`typescript
-// Clean, simple
-\`\`\`
+\`\`\`typescript // Clean, simple \`\`\`
 ```
 
 ### Performance Tips
@@ -287,28 +270,18 @@ All code examples should be tested:
 ```markdown
 ### Stream Don't Collect
 
-\`\`\`typescript
-// ❌ Loads everything into memory
-const all = await enumerate(huge).collect();
+\`\`\`typescript // ❌ Loads everything into memory const all = await
+enumerate(huge).collect();
 
-// ✅ Processes one at a time
-for await (const item of enumerate(huge)) {
-  process(item);
-}
-\`\`\`
+// ✅ Processes one at a time for await (const item of enumerate(huge)) {
+process(item); } \`\`\`
 ```
 
 ### Error Handling
 
 ```markdown
-\`\`\`typescript
-try {
-  await pipeline();
-} catch (error) {
-  // All errors caught here
-  console.error(error.message);
-}
-\`\`\`
+\`\`\`typescript try { await pipeline(); } catch (error) { // All errors caught
+here console.error(error.message); } \`\`\`
 ```
 
 ## Maintenance
@@ -353,21 +326,21 @@ try {
 
 ### Don't
 
-❌ Use academic language  
-❌ Write incomplete examples  
-❌ Forget error handling  
-❌ Skip the "why"  
-❌ Use toy examples  
-❌ Assume knowledge  
+❌ Use academic language\
+❌ Write incomplete examples\
+❌ Forget error handling\
+❌ Skip the "why"\
+❌ Use toy examples\
+❌ Assume knowledge
 
 ### Do
 
-✅ Write conversationally  
-✅ Provide complete examples  
-✅ Show error handling  
-✅ Explain the "why"  
-✅ Use real-world examples  
-✅ Explain concepts  
+✅ Write conversationally\
+✅ Provide complete examples\
+✅ Show error handling\
+✅ Explain the "why"\
+✅ Use real-world examples\
+✅ Explain concepts
 
 ## Resources
 
@@ -377,13 +350,14 @@ try {
 
 ## Current Status
 
-**Complete Pages**: 32 (ALL COMPLETE!)  
-**API Documentation**: Auto-generated (149 files)  
+**Complete Pages**: 32 (ALL COMPLETE!)\
+**API Documentation**: Auto-generated (149 files)\
 **Total Documentation**: 32 user guide pages + 149 API reference files
 
 **Status**: ✅ Ready for 1.0 release
 
 All sections complete:
+
 - ✅ Getting Started (3 pages)
 - ✅ Core Features (6 pages)
 - ✅ Async Iterables (5 pages)

@@ -6,13 +6,15 @@
 
 **Location:** `shuffle()` function, line ~280
 
-**Issue:** The shuffle implementation is incorrect. It doesn't properly implement Fisher-Yates algorithm.
+**Issue:** The shuffle implementation is incorrect. It doesn't properly
+implement Fisher-Yates algorithm.
 
 **Current code:**
+
 ```typescript
 export function shuffle<T>(items: T[]) {
   for (let i = 0; i < items.length; i++) {
-    const j = Math.floor(Math.random() * items.length);  // ❌ WRONG
+    const j = Math.floor(Math.random() * items.length); // ❌ WRONG
     const tmp = items[i];
     items[i] = items[j];
     items[j] = tmp;
@@ -20,13 +22,15 @@ export function shuffle<T>(items: T[]) {
 }
 ```
 
-**Problem:** This can select already-shuffled elements, leading to biased shuffling.
+**Problem:** This can select already-shuffled elements, leading to biased
+shuffling.
 
 **Fix:**
+
 ```typescript
 export function shuffle<T>(items: T[]) {
   for (let i = 0; i < items.length; i++) {
-    const j = Math.floor(Math.random() * (items.length - i)) + i;  // ✅ CORRECT
+    const j = Math.floor(Math.random() * (items.length - i)) + i; // ✅ CORRECT
     const tmp = items[i];
     items[i] = items[j];
     items[j] = tmp;
@@ -46,12 +50,14 @@ export function shuffle<T>(items: T[]) {
 **Issue:** If `step` is 0, the function will create an infinite loop.
 
 **Current code:**
+
 ```typescript
 const s = options.step ?? 1;
 // No validation that s !== 0
 ```
 
 **Fix:**
+
 ```typescript
 const s = options.step ?? 1;
 if (s === 0) {
@@ -59,8 +65,8 @@ if (s === 0) {
 }
 ```
 
-**Impact:** MEDIUM - Can cause infinite loops and hang the program
-**Test coverage:** PARTIAL - Tests exist but don't cover step=0 edge case
+**Impact:** MEDIUM - Can cause infinite loops and hang the program **Test
+coverage:** PARTIAL - Tests exist but don't cover step=0 edge case
 
 ---
 
@@ -76,6 +82,7 @@ if (s === 0) {
 ### Test Coverage Gaps
 
 The following functions lack tests:
+
 - `shuffle()` - No tests at all
 - `concatLines()` - Not directly tested
 - `sleep()` - Not tested (though it's simple)
@@ -84,12 +91,14 @@ The following functions lack tests:
 ### Code Quality Notes
 
 **Excellent:**
+
 - `concurrent.ts` - Clever and correct implementation
 - `writable-iterable.ts` - Sound queue-based design
 - `helpers.ts` - Good error handling
 - Error handling throughout is generally good
 
 **Good:**
+
 - Most functions have proper edge case handling
 - Type safety is well maintained
 - Documentation is comprehensive
@@ -97,14 +106,15 @@ The following functions lack tests:
 ## Test Quality Assessment
 
 ### Documentation Tests (tests/docs/)
-✅ **Good:** All examples are tested
-✅ **Good:** Tests verify expected behavior
+
+✅ **Good:** All examples are tested ✅ **Good:** Tests verify expected behavior
 ✅ **Good:** Tests are clear and focused
 
 ### Existing Tests
-✅ **Good:** Good coverage of main functionality
-⚠️ **Gap:** Missing edge case tests (step=0, empty arrays, etc.)
-⚠️ **Gap:** No tests for utility functions like shuffle()
+
+✅ **Good:** Good coverage of main functionality ⚠️ **Gap:** Missing edge case
+tests (step=0, empty arrays, etc.) ⚠️ **Gap:** No tests for utility functions
+like shuffle()
 
 ### Suggested Additional Tests
 

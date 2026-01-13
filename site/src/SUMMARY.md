@@ -52,6 +52,7 @@
 - [Zip and Enumerate](./utilities/zip-enumerate.md)
 - [WritableIterable](./utilities/writable-iterable.md)
 - [Sleep](./utilities/sleep.md)
+- [flatdata CLI](./utilities/flatdata.md)
 
 # Recipes
 
@@ -72,6 +73,12 @@
 - [Documentation Guidelines](./contributor/documentation.md)
 - [Testing Strategy](./contributor/testing.md)
 - [Build Process](./contributor/build-process.md)
+
+---
+
+# Appendix
+
+- [CSV Parser Specification](./appendix/csv-parser.md)
 
 ---
 

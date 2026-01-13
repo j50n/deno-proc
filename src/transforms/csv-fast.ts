@@ -58,12 +58,10 @@ class OdinRuntime {
       abs: Math.abs, sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh,
       ldexp: (x: number, exp: number) => x * Math.pow(2, exp),
       fmuladd: (x: number, y: number, z: number) => x * y + z,
-      write: this.write.bind(this),
+      write: () => 0,
       trap: () => { throw new Error("WASM trap"); },
       abort: () => { throw new Error("WASM abort"); },
-      alert: (ptr: number, len: number) => {
-        console.warn(new TextDecoder().decode(new Uint8Array(this.memory.buffer, ptr, len)));
-      },
+      alert: () => {},
       evaluate: () => { throw new Error("eval disabled"); },
       time_now: () => BigInt(Date.now()) * 1000000n,
       tick_now: () => performance.now(),
@@ -72,12 +70,6 @@ class OdinRuntime {
         crypto.getRandomValues(new Uint8Array(this.memory.buffer, addr, len));
       },
     };
-  }
-
-  write(fd: number, ptr: number, len: number): number {
-    const text = new TextDecoder().decode(new Uint8Array(this.memory.buffer, ptr, len));
-    fd === 1 ? console.log(text) : console.error(text);
-    return len;
   }
 }
 
@@ -107,7 +99,7 @@ let wasmModule: WebAssembly.Module | null = null;
 async function loadWasmModule(): Promise<WebAssembly.Module> {
   if (wasmModule) return wasmModule;
   
-  const wasmPath = new URL("../../wasm/csv.wasm", import.meta.url);
+  const wasmPath = new URL("../../wasm/flatdata.wasm", import.meta.url);
   const wasmBytes = await Deno.readFile(wasmPath);
   wasmModule = await WebAssembly.compile(wasmBytes);
   return wasmModule;

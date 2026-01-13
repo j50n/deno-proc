@@ -3,10 +3,12 @@
 ## Critical API Distinctions
 
 **Properties vs Methods:**
+
 - Properties (no parentheses): `.lines`, `.status`, `.first`, `.last`
 - Methods (with parentheses): `.collect()`, `.map()`, `.filter()`, `.count()`
 
 **Common Mistakes:**
+
 - ❌ `.lines()` → ✅ `.lines`
 - ❌ `.status()` → ✅ `.status`
 - ❌ `.toArray()` → ✅ `.collect()`
@@ -17,12 +19,15 @@
 
 **Key Principle:** Errors propagate through pipelines naturally like data.
 
-- Processes that exit with non-zero codes throw `ExitCodeError` when output is consumed
+- Processes that exit with non-zero codes throw `ExitCodeError` when output is
+  consumed
 - Handle errors once at the end with try-catch, not at each transformation step
 - No separate error channels or callbacks needed
-- This is a PRIMARY selling point - "JavaScript streaming is fast, but error handling shouldn't break your brain"
+- This is a PRIMARY selling point - "JavaScript streaming is fast, but error
+  handling shouldn't break your brain"
 
 **Example:**
+
 ```typescript
 try {
   await run("command")
@@ -51,9 +56,10 @@ try {
 - `.enum()` - adds `[item, index]` tuples
 
 **Example:**
+
 ```typescript
 const result = await enumerate(["a", "b", "c"])
-  .enum()  // This adds the indices!
+  .enum() // This adds the indices!
   .map(([item, i]) => `${i}: ${item}`)
   .collect();
 // ["0: a", "1: b", "2: c"]
@@ -65,9 +71,10 @@ const result = await enumerate(["a", "b", "c"])
 - Each `.run()` pipes the previous output to the next process's stdin
 
 **Example:**
+
 ```typescript
 await run("echo", "HELLO")
-  .run("tr", "A-Z", "a-z")  // Pipes output
+  .run("tr", "A-Z", "a-z") // Pipes output
   .lines.first;
 ```
 
@@ -77,6 +84,7 @@ await run("echo", "HELLO")
 - Works with Web Streams API (e.g., DecompressionStream)
 
 **Example:**
+
 ```typescript
 await read("file.gz")
   .transform(new DecompressionStream("gzip"))

@@ -5,6 +5,7 @@
 **Project**: High-performance CSV transforms using Odin WASM for proc library
 
 **Key Files**:
+
 - `odin/SPEC.md` - This specification
 - `odin/` - Production Odin source (to be created)
 - `wasm/` - Built WASM artifacts (to be created)
@@ -13,12 +14,15 @@
 - `labs/wasm/AI_GUIDE.md` - Essential WASM patterns for AI assistants
 
 **API Functions**:
+
 - `fromCsvToRowsFast()` → `AsyncIterable<string[][]>`
 - `fromCsvToLazyRowsFast()` → `AsyncIterable<LazyRow[]>`
 - `toCsvFast()` → `AsyncIterable<Uint8Array>`
 
 **Key Design Decisions**:
-1. Uses Odin `core:encoding/csv` with `reuse_record = true` and `reuse_record_buffer = true`
+
+1. Uses Odin `core:encoding/csv` with `reuse_record = true` and
+   `reuse_record_buffer = true`
 2. ASCII separators (\x1E record, \x1F field) for fast JS serialization
 3. Grow-only buffers, disposed per transform
 4. Stateful parser/generator instances
@@ -30,29 +34,38 @@
 ## AI Assistant Notes
 
 **Before implementing, review these files:**
+
 - `labs/wasm/AI_GUIDE.md` - Complete WASM/Odin/Deno patterns (~200 lines)
 - `labs/wasm/examples/foundation/` - Working reference implementation
 - `src/transforms/csv.ts` - Existing CSV transforms to match behavior
 - `src/transforms/lazy-row.ts` - LazyRow binary format details
 
 **Odin WASM gotchas:**
+
 - Always set `context = runtime.default_context()` in exported procs
 - Use `proc "c"` calling convention for exports
 - Build with `js_wasm32` target and `--import-memory`
 - Memory.buffer invalidates after WASM calls that allocate
-- **AVOID returning structs from hot-path functions** - use out parameters instead. Struct returns cause expensive copies in WASM. Example: `parse_field(...) -> FieldResult` was 25% slower than `parse_field_out(..., out_end: ^int, out_start: ^int, ...) -> bool`
+- **AVOID returning structs from hot-path functions** - use out parameters
+  instead. Struct returns cause expensive copies in WASM. Example:
+  `parse_field(...) -> FieldResult` was 25% slower than
+  `parse_field_out(..., out_end: ^int, out_start: ^int, ...) -> bool`
 
 **⚠️ CRITICAL: Chunk Boundary Handling:**
 
-CSV data arrives in arbitrary chunks with NO guaranteed boundaries. A chunk can split:
-- In the middle of a UTF-8 code point (multibyte characters like emoji, CJK, etc.)
+CSV data arrives in arbitrary chunks with NO guaranteed boundaries. A chunk can
+split:
+
+- In the middle of a UTF-8 code point (multibyte characters like emoji, CJK,
+  etc.)
 - In the middle of a field: `"hel` | `lo"`
-- In the middle of a quoted field: `"hello` | ` world"`
+- In the middle of a quoted field: `"hello` | `world"`
 - In the middle of an escape sequence: `"say ""` | `hello"""`
 - In the middle of a newline (CRLF): `field\r` | `\nfield`
 - Across multiple lines in a multiline quoted field
 
 **The WASM module MUST:**
+
 1. Buffer incomplete data internally between `process_csv_chunk` calls
 2. Only output complete, fully-parsed rows
 3. Handle incomplete UTF-8 sequences at chunk boundaries
@@ -60,6 +73,7 @@ CSV data arrives in arbitrary chunks with NO guaranteed boundaries. A chunk can 
 5. Handle `flush_csv_parser` to process final partial data at stream end
 
 **Required test cases:**
+
 - UTF-8 multibyte character split (e.g., emoji 🎉 = 4 bytes, split at byte 2)
 - Field split mid-word
 - Quoted field split mid-content
@@ -73,6 +87,7 @@ CSV data arrives in arbitrary chunks with NO guaranteed boundaries. A chunk can 
 This is NOT optional - real-world CSV streams will hit all these cases.
 
 **Performance testing:**
+
 - Compare against existing `fromCsvToRows()` with large files
 - Test with `dev/warandpeace.txt.gz` or similar large dataset
 - Measure both throughput and memory usage
@@ -81,14 +96,19 @@ This is NOT optional - real-world CSV streams will hit all these cases.
 
 ## Overview
 
-High-performance CSV processing module built with Odin, compiled to WebAssembly, for use with Deno's proc library streaming pipeline. Provides drop-in replacement for existing CSV transforms with identical API but WASM-powered performance.
+High-performance CSV processing module built with Odin, compiled to WebAssembly,
+for use with Deno's proc library streaming pipeline. Provides drop-in
+replacement for existing CSV transforms with identical API but WASM-powered
+performance.
 
 ## Goals
 
-- **API Compatibility**: Identical interface to existing `src/transforms/csv.ts` functions
+- **API Compatibility**: Identical interface to existing `src/transforms/csv.ts`
+  functions
 - **Performance**: Leverage WASM for CPU-intensive parsing and transformation
 - **Streaming**: Handle large CSV files without loading entire file into memory
-- **Coexistence**: Work alongside existing Deno std/csv implementation without conflicts
+- **Coexistence**: Work alongside existing Deno std/csv implementation without
+  conflicts
 
 ## API Design
 
@@ -119,7 +139,9 @@ export interface CsvStringifyOptionsFast extends CsvStringifyOptions {
  * Drop-in replacement for fromCsvToRows() with identical behavior.
  */
 export function fromCsvToRowsFast(parseOptions?: CsvParseOptionsFast) {
-  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<string[][]> {
+  return async function* (
+    bytes: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<string[][]> {
     // Fast implementation
   };
 }
@@ -129,7 +151,9 @@ export function fromCsvToRowsFast(parseOptions?: CsvParseOptionsFast) {
  * Drop-in replacement for fromCsvToLazyRows() with identical behavior.
  */
 export function fromCsvToLazyRowsFast(parseOptions?: CsvParseOptionsFast) {
-  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<LazyRow[]> {
+  return async function* (
+    bytes: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<LazyRow[]> {
     // Fast implementation
   };
 }
@@ -139,7 +163,9 @@ export function fromCsvToLazyRowsFast(parseOptions?: CsvParseOptionsFast) {
  * Drop-in replacement for toCsv() with identical behavior.
  */
 export function toCsvFast(stringifyOptions?: CsvStringifyOptionsFast) {
-  return async function* (data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>): AsyncIterable<Uint8Array> {
+  return async function* (
+    data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
+  ): AsyncIterable<Uint8Array> {
     // Fast implementation
   };
 }
@@ -404,6 +430,7 @@ StringifyOptions :: struct {
 ### Tabular Data Format (string[][])
 
 **Fastest approach using ASCII separators:**
+
 ```
 Record Separator: \x1E (ASCII Record Separator, 0x1E)
 Field Separator:  \x1F (ASCII Unit Separator, 0x1F)
@@ -413,10 +440,11 @@ Example:
 ```
 
 **JavaScript Implementation:**
+
 ```typescript
 // Pack: string[][] → Uint8Array
 function packTabularData(rows: string[][]): Uint8Array {
-  const text = rows.map(row => row.join('\x1F')).join('\x1E');
+  const text = rows.map((row) => row.join("\x1F")).join("\x1E");
   return new TextEncoder().encode(text);
 }
 
@@ -424,11 +452,12 @@ function packTabularData(rows: string[][]): Uint8Array {
 function unpackTabularData(data: Uint8Array): string[][] {
   const text = new TextDecoder().decode(data);
   if (!text) return [];
-  return text.split('\x1E').map(row => row.split('\x1F'));
+  return text.split("\x1E").map((row) => row.split("\x1F"));
 }
 ```
 
 **Performance Benefits:**
+
 - Single TextEncoder/TextDecoder allocation
 - Native `.split()` optimization in V8
 - No escaping/quoting overhead
@@ -437,29 +466,30 @@ function unpackTabularData(data: Uint8Array): string[][] {
 ### LazyRow Data Format
 
 **Reuse existing binary format:**
+
 ```typescript
 // Pack: LazyRow[] → Uint8Array
 function packLazyRows(rows: LazyRow[]): Uint8Array {
   const chunks: Uint8Array[] = [];
   let totalSize = 4; // row count header
-  
+
   for (const row of rows) {
     const binary = row.toBinary();
     chunks.push(binary);
     totalSize += 4 + binary.length; // length prefix + data
   }
-  
+
   const result = new Uint8Array(totalSize);
   const view = new DataView(result.buffer);
   view.setUint32(0, rows.length, true);
-  
+
   let offset = 4;
   for (const chunk of chunks) {
     view.setUint32(offset, chunk.length, true);
     result.set(chunk, offset + 4);
     offset += 4 + chunk.length;
   }
-  
+
   return result;
 }
 
@@ -468,7 +498,7 @@ function unpackLazyRows(data: Uint8Array): LazyRow[] {
   const view = new DataView(data.buffer, data.byteOffset);
   const rowCount = view.getUint32(0, true);
   const rows: LazyRow[] = [];
-  
+
   let offset = 4;
   for (let i = 0; i < rowCount; i++) {
     const length = view.getUint32(offset, true);
@@ -476,7 +506,7 @@ function unpackLazyRows(data: Uint8Array): LazyRow[] {
     rows.push(LazyRow.fromBinary(rowData));
     offset += 4 + length;
   }
-  
+
   return rows;
 }
 ```
@@ -508,7 +538,7 @@ StringifyOptions (16 bytes):
 const processor = await CsvProcessorFast.create();
 try {
   // Process data...
-  yield* processor.parseChunks(bytes, options);
+  yield * processor.parseChunks(bytes, options);
 } finally {
   processor.dispose(); // Frees all buffers and parser state
 }
@@ -525,7 +555,8 @@ try {
 
 - **Initial sizes**: Start with reasonable defaults (64KB input, 256KB output)
 - **Growth triggers**: Reallocate when current buffer too small
-- **Size calculation**: Use WASM `get_recommended_output_size()` for output buffers
+- **Size calculation**: Use WASM `get_recommended_output_size()` for output
+  buffers
 - **Pathological data**: Large allocations cleaned up at transform completion
 
 ## TypeScript Wrapper Implementation
@@ -549,11 +580,11 @@ class CsvProcessorFast {
   }
 
   async *parseChunks(
-    bytes: AsyncIterable<Uint8Array>, 
-    options?: CsvParseOptionsFast
+    bytes: AsyncIterable<Uint8Array>,
+    options?: CsvParseOptionsFast,
   ): AsyncIterable<string[][]> {
     this.parserId = this.createCsvParser(options);
-    
+
     try {
       for await (const chunk of bytes) {
         this.ensureInputBuffer(chunk.length);
@@ -565,8 +596,11 @@ class CsvProcessorFast {
 
         // Process chunk
         const result = this.processCsvChunk(
-          this.parserId, this.inputBuffer, chunk.length,
-          this.outputBuffer, this.outputCapacity
+          this.parserId,
+          this.inputBuffer,
+          chunk.length,
+          this.outputBuffer,
+          this.outputCapacity,
         );
 
         const rowsParsed = Number(result >> 32n);
@@ -574,7 +608,9 @@ class CsvProcessorFast {
 
         if (rowsParsed > 0) {
           const outputData = new Uint8Array(
-            this.memory.buffer, this.outputBuffer, bytesWritten
+            this.memory.buffer,
+            this.outputBuffer,
+            bytesWritten,
           );
           yield this.unpackTabularData(outputData);
         }
@@ -583,12 +619,16 @@ class CsvProcessorFast {
       // Flush any remaining partial data
       if (this.parserHasOverflow(this.parserId)) {
         const result = this.flushCsvParser(
-          this.parserId, this.outputBuffer, this.outputCapacity
+          this.parserId,
+          this.outputBuffer,
+          this.outputCapacity,
         );
-        
+
         if (Number(result >> 32n) > 0) {
           const outputData = new Uint8Array(
-            this.memory.buffer, this.outputBuffer, Number(result & 0xFFFFFFFFn)
+            this.memory.buffer,
+            this.outputBuffer,
+            Number(result & 0xFFFFFFFFn),
           );
           yield this.unpackTabularData(outputData);
         }
@@ -600,15 +640,15 @@ class CsvProcessorFast {
 
   async *generateChunks(
     rows: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
-    options?: CsvStringifyOptionsFast
+    options?: CsvStringifyOptionsFast,
   ): AsyncIterable<Uint8Array> {
     this.generatorId = this.createCsvGenerator(options);
-    
+
     try {
       for await (const item of rows) {
         // Determine data type and pack accordingly
         let packedData: Uint8Array;
-        
+
         if (Array.isArray(item)) {
           if (item.length > 0 && Array.isArray(item[0])) {
             // string[][]
@@ -629,7 +669,9 @@ class CsvProcessorFast {
         }
 
         this.ensureInputBuffer(packedData.length);
-        const recommendedOutput = this.getRecommendedOutputSize(packedData.length);
+        const recommendedOutput = this.getRecommendedOutputSize(
+          packedData.length,
+        );
         this.ensureOutputBuffer(recommendedOutput);
 
         // Copy packed data to WASM memory
@@ -637,14 +679,20 @@ class CsvProcessorFast {
 
         // Generate CSV
         const result = this.generateCsvChunk(
-          this.generatorId, this.inputBuffer, packedData.length,
-          this.outputBuffer, this.outputCapacity
+          this.generatorId,
+          this.inputBuffer,
+          packedData.length,
+          this.outputBuffer,
+          this.outputCapacity,
         );
 
         const bytesWritten = Number(result & 0xFFFFFFFFn);
         if (bytesWritten > 0) {
           yield new Uint8Array(
-            this.memory.buffer.slice(this.outputBuffer, this.outputBuffer + bytesWritten)
+            this.memory.buffer.slice(
+              this.outputBuffer,
+              this.outputBuffer + bytesWritten,
+            ),
           );
         }
       }
@@ -677,103 +725,137 @@ class CsvProcessorFast {
   }
 
   // WASM function wrappers (implementation details)
-  private allocInputBuffer(size: number): number { 
+  private allocInputBuffer(size: number): number {
     return (this.wasmInstance.exports.alloc_input_buffer as Function)(size);
   }
-  
-  private allocOutputBuffer(size: number): number { 
+
+  private allocOutputBuffer(size: number): number {
     return (this.wasmInstance.exports.alloc_output_buffer as Function)(size);
   }
-  
-  private freeBuffer(ptr: number): void { 
+
+  private freeBuffer(ptr: number): void {
     (this.wasmInstance.exports.free_buffer as Function)(ptr);
   }
-  
-  private createCsvParser(options?: CsvParseOptionsFast): number { 
+
+  private createCsvParser(options?: CsvParseOptionsFast): number {
     const optionsPtr = this.packParseOptions(options);
     try {
-      return (this.wasmInstance.exports.create_csv_parser as Function)(optionsPtr);
+      return (this.wasmInstance.exports.create_csv_parser as Function)(
+        optionsPtr,
+      );
     } finally {
       if (optionsPtr) this.freeBuffer(optionsPtr);
     }
   }
-  
-  private createCsvGenerator(options?: CsvStringifyOptionsFast): number { 
+
+  private createCsvGenerator(options?: CsvStringifyOptionsFast): number {
     const optionsPtr = this.packStringifyOptions(options);
     try {
-      return (this.wasmInstance.exports.create_csv_generator as Function)(optionsPtr);
+      return (this.wasmInstance.exports.create_csv_generator as Function)(
+        optionsPtr,
+      );
     } finally {
       if (optionsPtr) this.freeBuffer(optionsPtr);
     }
   }
-  
-  private destroyCsvParser(parserId: number): void { 
+
+  private destroyCsvParser(parserId: number): void {
     (this.wasmInstance.exports.destroy_csv_parser as Function)(parserId);
   }
-  
-  private destroyCsvGenerator(generatorId: number): void { 
+
+  private destroyCsvGenerator(generatorId: number): void {
     (this.wasmInstance.exports.destroy_csv_generator as Function)(generatorId);
   }
-  
-  private processCsvChunk(parserId: number, inputPtr: number, inputLen: number, outputPtr: number, outputCapacity: number): bigint { 
+
+  private processCsvChunk(
+    parserId: number,
+    inputPtr: number,
+    inputLen: number,
+    outputPtr: number,
+    outputCapacity: number,
+  ): bigint {
     return (this.wasmInstance.exports.process_csv_chunk as Function)(
-      parserId, inputPtr, inputLen, outputPtr, outputCapacity
+      parserId,
+      inputPtr,
+      inputLen,
+      outputPtr,
+      outputCapacity,
     );
   }
-  
-  private generateCsvChunk(generatorId: number, inputPtr: number, inputLen: number, outputPtr: number, outputCapacity: number): bigint { 
+
+  private generateCsvChunk(
+    generatorId: number,
+    inputPtr: number,
+    inputLen: number,
+    outputPtr: number,
+    outputCapacity: number,
+  ): bigint {
     return (this.wasmInstance.exports.generate_csv_chunk as Function)(
-      generatorId, inputPtr, inputLen, outputPtr, outputCapacity
+      generatorId,
+      inputPtr,
+      inputLen,
+      outputPtr,
+      outputCapacity,
     );
   }
-  
-  private flushCsvParser(parserId: number, outputPtr: number, outputCapacity: number): bigint { 
+
+  private flushCsvParser(
+    parserId: number,
+    outputPtr: number,
+    outputCapacity: number,
+  ): bigint {
     return (this.wasmInstance.exports.flush_csv_parser as Function)(
-      parserId, outputPtr, outputCapacity
+      parserId,
+      outputPtr,
+      outputCapacity,
     );
   }
-  
-  private parserHasOverflow(parserId: number): boolean { 
-    return (this.wasmInstance.exports.parser_has_overflow as Function)(parserId);
+
+  private parserHasOverflow(parserId: number): boolean {
+    return (this.wasmInstance.exports.parser_has_overflow as Function)(
+      parserId,
+    );
   }
-  
-  private getRecommendedOutputSize(inputSize: number): number { 
-    return (this.wasmInstance.exports.get_recommended_output_size as Function)(inputSize);
+
+  private getRecommendedOutputSize(inputSize: number): number {
+    return (this.wasmInstance.exports.get_recommended_output_size as Function)(
+      inputSize,
+    );
   }
 
   // Data packing/unpacking methods
   private packTabularData(rows: string[][]): Uint8Array {
-    const text = rows.map(row => row.join('\x1F')).join('\x1E');
+    const text = rows.map((row) => row.join("\x1F")).join("\x1E");
     return new TextEncoder().encode(text);
   }
 
   private unpackTabularData(data: Uint8Array): string[][] {
     const text = new TextDecoder().decode(data);
     if (!text) return [];
-    return text.split('\x1E').map(row => row.split('\x1F'));
+    return text.split("\x1E").map((row) => row.split("\x1F"));
   }
 
   private packLazyRows(rows: LazyRow[]): Uint8Array {
     const chunks: Uint8Array[] = [];
     let totalSize = 4; // row count header
-    
+
     for (const row of rows) {
       const binary = row.toBinary();
       chunks.push(binary);
       totalSize += 4 + binary.length; // length prefix + data
     }
-    
+
     const result = new Uint8Array(totalSize);
     const view = new DataView(result.buffer);
     view.setUint32(0, rows.length, true);
-    
+
     let offset = 4;
     for (const chunk of chunks) {
       view.setUint32(offset, chunk.length, true);
       result.set(chunk, offset + 4);
       offset += 4 + chunk.length;
     }
-    
+
     return result;
   }
 
@@ -781,7 +863,7 @@ class CsvProcessorFast {
     const view = new DataView(data.buffer, data.byteOffset);
     const rowCount = view.getUint32(0, true);
     const rows: LazyRow[] = [];
-    
+
     let offset = 4;
     for (let i = 0; i < rowCount; i++) {
       const length = view.getUint32(offset, true);
@@ -789,35 +871,35 @@ class CsvProcessorFast {
       rows.push(LazyRow.fromBinary(rowData));
       offset += 4 + length;
     }
-    
+
     return rows;
   }
 
   private packParseOptions(options?: CsvParseOptionsFast): number {
     if (!options) return 0;
-    
+
     const buffer = this.allocInputBuffer(32);
     const view = new DataView(this.memory.buffer, buffer, 32);
-    
+
     view.setUint8(0, options.separator?.charCodeAt(0) ?? 44); // ','
     view.setUint8(1, options.comment?.charCodeAt(0) ?? 0);
     view.setUint8(2, options.trimLeadingSpace ? 1 : 0);
     view.setUint8(3, options.lazyQuotes ? 1 : 0);
     view.setUint8(4, 1); // multiline_fields = true (for compatibility)
     view.setInt32(5, options.fieldsPerRecord ?? -1, true);
-    
+
     return buffer;
   }
 
   private packStringifyOptions(options?: CsvStringifyOptionsFast): number {
     if (!options) return 0;
-    
+
     const buffer = this.allocInputBuffer(16);
     const view = new DataView(this.memory.buffer, buffer, 16);
-    
+
     view.setUint8(0, options.separator?.charCodeAt(0) ?? 44); // ','
     view.setUint8(1, options.crlf ? 1 : 0);
-    
+
     return buffer;
   }
 }
@@ -827,7 +909,9 @@ class CsvProcessorFast {
 
 ```typescript
 export function fromCsvToRowsFast(parseOptions?: CsvParseOptionsFast) {
-  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<string[][]> {
+  return async function* (
+    bytes: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<string[][]> {
     const processor = await CsvProcessorFast.create();
     try {
       yield* processor.parseChunks(bytes, parseOptions);
@@ -838,11 +922,13 @@ export function fromCsvToRowsFast(parseOptions?: CsvParseOptionsFast) {
 }
 
 export function fromCsvToLazyRowsFast(parseOptions?: CsvParseOptionsFast) {
-  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<LazyRow[]> {
+  return async function* (
+    bytes: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<LazyRow[]> {
     const processor = await CsvProcessorFast.create();
     try {
       for await (const batch of processor.parseChunks(bytes, parseOptions)) {
-        yield batch.map(row => LazyRow.fromStringArray(row));
+        yield batch.map((row) => LazyRow.fromStringArray(row));
       }
     } finally {
       processor.dispose();
@@ -852,7 +938,7 @@ export function fromCsvToLazyRowsFast(parseOptions?: CsvParseOptionsFast) {
 
 export function toCsvFast(stringifyOptions?: CsvStringifyOptionsFast) {
   return async function* (
-    data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>
+    data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
     const processor = await CsvProcessorFast.create();
     try {
@@ -874,21 +960,25 @@ export function toCsvFast(stringifyOptions?: CsvStringifyOptionsFast) {
 ## Implementation Plan
 
 ### Phase 1: Basic Parsing
+
 - Implement `parse_csv_chunk` in Odin
 - Handle quoted fields, escaping, basic RFC 4180 compliance
 - TypeScript wrapper for `fromCsvToRowsFast()`
 
 ### Phase 2: LazyRow Integration
+
 - Extend parser to output binary format compatible with LazyRow
 - Implement `fromCsvToLazyRowsFast()`
 - Performance benchmarking vs std/csv
 
 ### Phase 3: CSV Generation
+
 - Implement `generate_csv_chunk` in Odin
 - TypeScript wrapper for `toCsvFast()`
 - Round-trip testing (parse → generate → parse)
 
 ### Phase 4: Advanced Features
+
 - Custom separators, comments, trim options
 - Performance optimization and profiling
 - Integration testing with existing proc pipelines
@@ -917,19 +1007,23 @@ src/transforms/
 └── csv-fast.bench.ts      # Performance benchmarks
 
 wasm/
-└── csv.wasm               # Built WASM module
+└── flatdata.wasm               # Built WASM module
 ```
 
 ## Testing Strategy
 
 ### Odin Unit Tests
-- **Core Function Tests**: Test individual parsing utilities (field extraction, quote handling, escape sequences)
+
+- **Core Function Tests**: Test individual parsing utilities (field extraction,
+  quote handling, escape sequences)
 - **State Machine Tests**: Test parser state transitions with edge cases
 - **Memory Management Tests**: Verify no leaks in buffer allocation/deallocation
 - **UTF-8 Boundary Tests**: Test chunk splitting across multibyte characters
-- **Performance Tests**: Verify allocation-free inner loops with `@(no_instrumentation)`
+- **Performance Tests**: Verify allocation-free inner loops with
+  `@(no_instrumentation)`
 
 ### TypeScript Integration Tests
+
 - **Compatibility Tests**: Identical behavior to std/csv on same inputs
 - **Memory Leak Detection**: Track WASM memory growth over multiple operations
 - **Performance Tests**: Throughput comparison with existing transforms
@@ -937,13 +1031,22 @@ wasm/
 - **Integration Tests**: Full pipeline testing with proc library
 
 ### Memory Requirements
-- **Allocation-Free Inner Loops**: Core parsing loops must not allocate during field processing
-- **Grow-Only Buffers**: Buffers grow as needed but never shrink during processing
-- **Leak Detection**: All allocated memory must be freed when transform completes
+
+- **Allocation-Free Inner Loops**: Core parsing loops must not allocate during
+  field processing
+- **Grow-Only Buffers**: Buffers grow as needed but never shrink during
+  processing
+- **Leak Detection**: All allocated memory must be freed when transform
+  completes
 - **Memory Profiling**: Track peak memory usage and allocation patterns
 
 ### Code Quality Requirements
-- **DRY Principle**: Reusable functions for common operations (quote handling, field parsing)
-- **Single Responsibility**: Each function has one clear purpose for better testability
-- **Inline Optimization**: Use `@(inline)` for hot path functions to eliminate call overhead
-- **Test Coverage**: Unit tests for all public functions and critical internal utilities
+
+- **DRY Principle**: Reusable functions for common operations (quote handling,
+  field parsing)
+- **Single Responsibility**: Each function has one clear purpose for better
+  testability
+- **Inline Optimization**: Use `@(inline)` for hot path functions to eliminate
+  call overhead
+- **Test Coverage**: Unit tests for all public functions and critical internal
+  utilities

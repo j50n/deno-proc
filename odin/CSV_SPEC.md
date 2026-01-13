@@ -12,10 +12,13 @@ odin/src/csv/       # Standalone package, importable as "csv"
 
 ## Architecture
 
-- **Push-based**: Caller feeds chunks via `parse(chunk)`. Parser emits fields/records as found.
-- **Streaming**: Handles arbitrary chunk boundaries, including mid-field and mid-quote splits.
+- **Push-based**: Caller feeds chunks via `parse(chunk)`. Parser emits
+  fields/records as found.
+- **Streaming**: Handles arbitrary chunk boundaries, including mid-field and
+  mid-quote splits.
 - **Two implementations**: Optimized separately for different output needs.
-- **No header handling**: All rows are data rows. Caller interprets first row as header if needed.
+- **No header handling**: All rows are data rows. Caller interprets first row as
+  header if needed.
 
 ## RFC 4180 Grammar
 
@@ -48,35 +51,37 @@ CsvState :: enum u8 {
 
 ## State Transitions
 
-| State | Input | Action | Next State |
-|-------|-------|--------|------------|
-| FieldStart | `"` | mark field start | Quoted |
-| FieldStart | `,` | emit empty field | FieldStart |
-| FieldStart | CR | emit empty field | RecordEnd |
-| FieldStart | LF | emit empty field, emit record | FieldStart |
-| FieldStart | other | mark field start | Unquoted |
-| Unquoted | `,` | emit field | FieldStart |
-| Unquoted | CR | emit field | RecordEnd |
-| Unquoted | LF | emit field, emit record | FieldStart |
-| Unquoted | `"` | ERROR or include (mode) | Unquoted |
-| Unquoted | other | continue | Unquoted |
-| Quoted | `"` | — | QuoteInQuoted |
-| Quoted | other | continue | Quoted |
-| QuoteInQuoted | `"` | append quote to field | Quoted |
-| QuoteInQuoted | `,` | emit field | FieldStart |
-| QuoteInQuoted | CR | emit field | RecordEnd |
-| QuoteInQuoted | LF | emit field, emit record | FieldStart |
-| QuoteInQuoted | other | ERROR (always) | — |
-| RecordEnd | LF | emit record | FieldStart |
-| RecordEnd | other | ERROR or emit record (mode) | FieldStart |
+| State         | Input | Action                        | Next State    |
+| ------------- | ----- | ----------------------------- | ------------- |
+| FieldStart    | `"`   | mark field start              | Quoted        |
+| FieldStart    | `,`   | emit empty field              | FieldStart    |
+| FieldStart    | CR    | emit empty field              | RecordEnd     |
+| FieldStart    | LF    | emit empty field, emit record | FieldStart    |
+| FieldStart    | other | mark field start              | Unquoted      |
+| Unquoted      | `,`   | emit field                    | FieldStart    |
+| Unquoted      | CR    | emit field                    | RecordEnd     |
+| Unquoted      | LF    | emit field, emit record       | FieldStart    |
+| Unquoted      | `"`   | ERROR or include (mode)       | Unquoted      |
+| Unquoted      | other | continue                      | Unquoted      |
+| Quoted        | `"`   | —                             | QuoteInQuoted |
+| Quoted        | other | continue                      | Quoted        |
+| QuoteInQuoted | `"`   | append quote to field         | Quoted        |
+| QuoteInQuoted | `,`   | emit field                    | FieldStart    |
+| QuoteInQuoted | CR    | emit field                    | RecordEnd     |
+| QuoteInQuoted | LF    | emit field, emit record       | FieldStart    |
+| QuoteInQuoted | other | ERROR (always)                | —             |
+| RecordEnd     | LF    | emit record                   | FieldStart    |
+| RecordEnd     | other | ERROR or emit record (mode)   | FieldStart    |
 
 ## Implementations
 
 ### 1. DelimitedParser
 
-Copies field content to output buffer with ASCII delimiters. Unescapes `""` → `"` inline.
+Copies field content to output buffer with ASCII delimiters. Unescapes `""` →
+`"` inline.
 
-**Output format**: `field1\x1Ffield2\x1Ffield3\x1E` (fields separated by `\x1F`, records by `\x1E`)
+**Output format**: `field1\x1Ffield2\x1Ffield3\x1E` (fields separated by `\x1F`,
+records by `\x1E`)
 
 **Use case**: JS unpacks via `text.split('\x1E').map(row => row.split('\x1F'))`
 
@@ -96,7 +101,8 @@ DelimitedParser :: struct {
 
 ### 2. SpanParser
 
-Zero-copy. Emits `(start, end, flags)` tuples referencing input buffer. Caller unescapes quoted fields.
+Zero-copy. Emits `(start, end, flags)` tuples referencing input buffer. Caller
+unescapes quoted fields.
 
 **Output format**: Array of `FieldSpan` structs + `row_ends` indices
 
@@ -137,7 +143,8 @@ CsvOptions :: struct {
 ## Field Count Validation
 
 - **Lenient (default)**: Accept any field count per row
-- **Strict**: Set `expected_fields > 0`, returns `FieldCountMismatch` error on mismatch
+- **Strict**: Set `expected_fields > 0`, returns `FieldCountMismatch` error on
+  mismatch
 
 ## Error Handling
 
@@ -162,33 +169,34 @@ CsvError :: struct {
 
 ### Strict vs Lenient
 
-| Condition | Strict | Lenient |
-|-----------|--------|---------|
-| Quote in unquoted field | `BareQuote` error | Include quote in field |
-| EOF inside quoted field | `UnclosedQuote` error | Close field at EOF |
+| Condition                | Strict                        | Lenient                       |
+| ------------------------ | ----------------------------- | ----------------------------- |
+| Quote in unquoted field  | `BareQuote` error             | Include quote in field        |
+| EOF inside quoted field  | `UnclosedQuote` error         | Close field at EOF            |
 | Char after closing quote | `InvalidCharAfterQuote` error | `InvalidCharAfterQuote` error |
-| CR not followed by LF | `BareCR` error | Treat CR as line ending |
-| Field count mismatch | `FieldCountMismatch` error | Accept row |
+| CR not followed by LF    | `BareCR` error                | Treat CR as line ending       |
+| Field count mismatch     | `FieldCountMismatch` error    | Accept row                    |
 
 ### JavaScript Error Classes
 
 ```typescript
 class CsvParseError extends Error {
-    constructor(
-        public kind: string,
-        public row: number,
-        public col: number,
-        message?: string
-    ) {
-        super(message ?? `CSV parse error: ${kind} at row ${row}, col ${col}`);
-        this.name = kind;
-    }
+  constructor(
+    public kind: string,
+    public row: number,
+    public col: number,
+    message?: string,
+  ) {
+    super(message ?? `CSV parse error: ${kind} at row ${row}, col ${col}`);
+    this.name = kind;
+  }
 }
 ```
 
 ### WASM → JS Error Protocol
 
 Error written to fixed memory location after `parse()`:
+
 ```
 offset 0:   error_kind (u8)
 offset 1:   reserved (u8)
@@ -217,6 +225,7 @@ span_finish          :: proc(p: ^SpanParser, input_len: u32) -> (rows: u32, ok: 
 ## Test Cases
 
 ### Basic Parsing
+
 ```
 a,b,c         → ["a", "b", "c"]
 a,b,c\n       → ["a", "b", "c"]
@@ -224,6 +233,7 @@ a,b,c\r\n     → ["a", "b", "c"]
 ```
 
 ### Empty Fields
+
 ```
 ,b,c          → ["", "b", "c"]
 a,,c          → ["a", "", "c"]
@@ -231,6 +241,7 @@ a,b,          → ["a", "b", ""]
 ```
 
 ### Quoted Fields
+
 ```
 "a",b,c       → ["a", "b", "c"]
 "a,b",c       → ["a,b", "c"]
@@ -241,11 +252,13 @@ a,b,          → ["a", "b", ""]
 ```
 
 ### Multi-row
+
 ```
 a,b\nc,d      → [["a","b"], ["c","d"]]
 ```
 
 ### Streaming Chunk Splits
+
 ```
 chunk1: "abc"    chunk2: "def,g\n"   → ["abcdef", "g"]
 chunk1: "\"abc"  chunk2: "def\",g\n" → ["abcdef", "g"]
@@ -254,6 +267,7 @@ chunk1: "a,b\r"  chunk2: "\nc,d\n"   → [["a","b"], ["c","d"]]
 ```
 
 ### Error Cases
+
 ```
 # InvalidCharAfterQuote (always fatal)
 "a"b,c        → InvalidCharAfterQuote(row=0, col=3)
@@ -330,6 +344,7 @@ LineEnding :: enum u8 {
 ## Quoting Rules
 
 Fields are quoted when they contain:
+
 - The separator character
 - Double quote (`"`)
 - Newline (`\n` or `\r`)
@@ -369,12 +384,14 @@ StringifyErrorKind :: enum u8 {
 ## Stringifier Test Cases
 
 ### Basic Output
+
 ```
 ["a", "b", "c"]           → a,b,c\n
 [["a","b"], ["c","d"]]    → a,b\nc,d\n
 ```
 
 ### Quoting
+
 ```
 ["a,b", "c"]              → "a,b",c\n
 ["a\"b", "c"]             → "a""b",c\n
@@ -383,23 +400,27 @@ StringifyErrorKind :: enum u8 {
 ```
 
 ### Empty Fields
+
 ```
 ["", "b", ""]             → ,b,\n
 [""]                      → ""\n  (or just \n?)
 ```
 
 ### Line Endings
+
 ```
 ["a","b"] (LF)            → a,b\n
 ["a","b"] (CRLF)          → a,b\r\n
 ```
 
 ### Custom Separator
+
 ```
 ["a","b","c"] (sep=\t)    → a\tb\tc\n
 ```
 
 ### Round-trip Tests
+
 ```
 # Parse then stringify should preserve data
 "a,b,c\n"                 → parse → stringify → "a,b,c\n"
@@ -408,6 +429,7 @@ StringifyErrorKind :: enum u8 {
 ```
 
 ### Error Cases
+
 ```
 # FieldCountMismatch (expected_fields=3)
 ["a","b"]                 → FieldCountMismatch(row=0)
@@ -423,6 +445,7 @@ StringifyErrorKind :: enum u8 {
 ## Parser Tests
 
 ### DelimitedParser
+
 - [ ] Basic: single row, multiple fields
 - [ ] Basic: multiple rows
 - [ ] Basic: no trailing newline (finish flushes)
@@ -460,6 +483,7 @@ StringifyErrorKind :: enum u8 {
 - [ ] Error: error position (row, col) accuracy
 
 ### SpanParser
+
 - [ ] All above tests adapted for span output
 - [ ] Span: correct start/end offsets
 - [ ] Span: quoted flag set correctly
@@ -469,6 +493,7 @@ StringifyErrorKind :: enum u8 {
 ## Stringifier Tests
 
 ### DelimitedStringifier
+
 - [ ] Basic: single row
 - [ ] Basic: multiple rows
 - [ ] Basic: empty fields
@@ -484,11 +509,13 @@ StringifyErrorKind :: enum u8 {
 - [ ] Error: invalid delimited input
 
 ### SpanStringifier
+
 - [ ] All above tests adapted for span input
 - [ ] Span: handles quoted flag (unescapes `""`)
 - [ ] Span: handles unquoted spans
 
 ## Round-trip Tests
+
 - [ ] Parse (delimited) → Stringify → equals original
 - [ ] Parse (span) → Stringify → equals original
 - [ ] Various edge cases preserved through round-trip

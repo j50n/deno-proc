@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "Running Odin tests..."
-odin test tests -out:test_runner
+cd "$(dirname "$0")"
 
-echo "Building CSV WASM module..."
-odin build src -out:../wasm/csv.wasm -target:js_wasm32 -o:speed \
+echo "Running Odin tests..."
+odin test src/csv -out:/tmp/csv_test
+
+echo "Building flatdata WASM module..."
+odin build src -out:../wasm/flatdata.wasm -target:js_wasm32 -o:speed \
     -extra-linker-flags:"--import-memory --strip-all"
 
 echo "Build and tests completed successfully!"
-ls -la ../wasm/csv.wasm
+ls -la ../wasm/flatdata.wasm
