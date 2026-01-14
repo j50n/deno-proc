@@ -184,14 +184,13 @@ const record2tsv = new Command()
 const lazyrow2csv = new Command()
   .description("Convert binary lazyrow format to CSV")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
-  .option("-q, --quote-all", "Quote all fields, not just those requiring it")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ separator, quoteAll, input, output }) => {
+  .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await processor.lazyRowBinaryToCsv(stream, write, separator!.charCodeAt(0), quoteAll ?? false);
+    await processor.lazyRowBinaryToDelimited(stream, write, separator!.charCodeAt(0));
     close();
   });
 
@@ -203,7 +202,7 @@ const lazyrow2tsv = new Command()
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await processor.lazyRowBinaryToCsv(stream, write, 9, false);
+    await processor.lazyRowBinaryToDelimited(stream, write, 9);
     close();
   });
 
