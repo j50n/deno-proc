@@ -3,3 +3,4 @@ output.txt
 
 # Benchmark data files (generated, not tracked)
 benchmarks/data/
+.idea/
