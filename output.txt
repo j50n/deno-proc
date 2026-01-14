@@ -1,5 +1,0 @@
-line1
-ERROR: test
-line3
-ERROR: another
-test data

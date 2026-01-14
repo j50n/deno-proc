@@ -12,6 +12,9 @@ cargo install mdbook
 HERE="$(realpath "$(dirname "$0")")"
 
 cd "$HERE" && (
+    # Build WASM module
+    ./odin/build.sh
+
     # Update Deno
     deno update --latest
 
@@ -26,10 +29,10 @@ cd "$HERE" && (
     deno lint **/*.ts
     deno check **/*.ts
 
-    deno test --reload --allow-read --allow-write=/tmp/ --allow-run=gzip,grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head,echo,sh,false ./tests
+    deno test --reload --allow-read --allow-write=/tmp/ --allow-run=cat,deno,echo,false,grep,gunzip,gzip,ls,printf,sh,sort,tr,uniq,wc ./tests
 
     # Run performance benchmarks
     echo "Running performance benchmarks..."
-    deno bench --allow-read --allow-write=/tmp/ --allow-run=gzip,grep,sort,uniq,gunzip,ls,deno,cat,bash,wc,tr,head,echo,sh,false ./tests/comprehensive_benchmarks.test.ts
+    deno bench --allow-read --allow-write=/tmp/ --allow-run=cat,echo,false,grep,gunzip,gzip,ls,printf,sh,sort,tr,uniq,wc ./tests/comprehensive_benchmarks.test.ts
 )
 

@@ -16,17 +16,9 @@ Deno.test({
           }
         },
       },
-      "bash",
+      "sh",
       "-c",
-      `
-        set -e
-
-        echo "excelsior" 1>&2
-        
-        echo "A"
-        echo "B"
-        echo "C"
-     `,
+      "echo excelsior >&2; printf 'A\nB\nC\n'",
     ).lines
       .collect();
 
@@ -50,18 +42,9 @@ Deno.test({
           }
         },
       },
-      "bash",
+      "sh",
       "-c",
-      `
-        set -e
-
-        echo "excelsior" 1>&2
-        echo "A"
-        echo "upward and onward" 1>&2
-        echo "B"
-        echo "to greater glory" 1>&2
-        echo "C"
-     `,
+      "echo excelsior >&2; echo A; echo 'upward and onward' >&2; echo B; echo 'to greater glory' >&2; echo C",
     ).lines
       .collect();
 
@@ -112,19 +95,9 @@ Deno.test({
             }
           },
         },
-        "bash",
+        "sh",
         "-c",
-        `
-        set -e
-
-        echo "excelsior" 1>&2
-        
-        echo "A"
-        echo "B"
-        echo "C"
-
-        exit 7
-     `,
+        "echo excelsior >&2; printf 'A\nB\nC\n'; exit 7",
       ).lines;
 
       for await (const line of output) {

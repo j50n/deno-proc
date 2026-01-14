@@ -1,0 +1,488 @@
+<!DOCTYPE HTML>
+<html lang="en" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>flatdata CLI - proc</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Run child processes and work with async iterables in Deno—with the fluent Array API you already know.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/custom-318e1af4.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-7a896ede.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-c66c9043.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">proc</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/j50n/deno-proc" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="flatdata-cli"><a class="header" href="#flatdata-cli">flatdata CLI</a></h1>
+<p><strong>flatdata</strong> is a high-performance command-line utility for converting between tabular data formats. It’s distributed as part of proc and uses WebAssembly for near-native parsing speed.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<pre><code class="language-bash"># Install globally with required permissions
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
+</code></pre>
+<p>This installs <code>flatdata</code> globally, making it available from any terminal.</p>
+<p>For pipeline-only use (stdin/stdout), you can install without file permissions:</p>
+<pre><code class="language-bash">deno install -g -n flatdata jsr:@j50n/proc/flatdata
+</code></pre>
+<p>This restricts flatdata to streaming mode—no direct file reading or writing.</p>
+<p>To verify the installation:</p>
+<pre><code class="language-bash">flatdata --help
+flatdata --version
+</code></pre>
+<h2 id="why-flatdata"><a class="header" href="#why-flatdata">Why flatdata?</a></h2>
+<p>CSV parsing is CPU-intensive. When processing large files, the parsing step can become a bottleneck. flatdata solves this by:</p>
+<ol>
+<li><strong>Offloading parsing to a separate process</strong> - Your main application stays responsive</li>
+<li><strong>Using WASM for speed</strong> - ~7x faster than pure JavaScript, about half native speed</li>
+<li><strong>Streaming design</strong> - Handles files of any size with constant memory</li>
+</ol>
+<p>The key insight: by converting CSV to a simple binary format (record), downstream processing becomes trivial string splits instead of complex CSV parsing.</p>
+<h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Implementation</th><th>Throughput</th></tr>
+</thead>
+<tbody>
+<tr><td>Native (Odin)</td><td>~550 MB/s</td></tr>
+<tr><td>flatdata (WASM)</td><td>~330 MB/s</td></tr>
+<tr><td>Pure JavaScript</td><td>~20 MB/s</td></tr>
+</tbody>
+</table>
+</div>
+<p>For a 1GB CSV file:</p>
+<ul>
+<li>WASM: ~7 seconds</li>
+<li>Pure JS: ~50 seconds</li>
+</ul>
+<h2 id="formats"><a class="header" href="#formats">Formats</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Format</th><th>Description</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>csv</strong></td><td>RFC 4180 comma-separated values</td><td>Standard interchange</td></tr>
+<tr><td><strong>tsv</strong></td><td>Tab-separated values</td><td>Simple data, no quoting</td></tr>
+<tr><td><strong>record</strong></td><td>Binary: <code>\x1F</code> field, <code>\x1E</code> record</td><td>Fast processing</td></tr>
+<tr><td><strong>lazyrow</strong></td><td>Binary with length-prefixed fields</td><td>Efficient random field access</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <strong>record</strong> format is the key to performance. It uses ASCII control characters that never appear in text data:</p>
+<ul>
+<li><code>\x1F</code> (Unit Separator) between fields</li>
+<li><code>\x1E</code> (Record Separator) between rows</li>
+</ul>
+<p>This makes parsing trivial: <code>row.split('\x1F')</code> gives you fields instantly.</p>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<pre><code class="language-bash"># Convert CSV to record format
+cat data.csv | flatdata csv2record &gt; data.rec
+
+# Convert back to CSV
+flatdata record2csv &lt; data.rec &gt; output.csv
+
+# Full pipeline
+cat huge.csv | flatdata csv2record | ./process | flatdata record2csv &gt; results.csv
+</code></pre>
+<h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
+<h3 id="csvtsv-input"><a class="header" href="#csvtsv-input">CSV/TSV Input</a></h3>
+<pre><code class="language-bash">flatdata csv2record [options]    # CSV → record
+flatdata csv2lazyrow [options]   # CSV → lazyrow
+flatdata tsv2record [options]    # TSV → record
+flatdata tsv2lazyrow [options]   # TSV → lazyrow
+</code></pre>
+<p>Options:</p>
+<ul>
+<li><code>-d, --separator &lt;char&gt;</code> - Field separator (CSV only, default: <code>,</code>)</li>
+<li><code>-c, --columns &lt;n&gt;</code> - Expected column count (fail if mismatch)</li>
+<li><code>-s, --strict</code> - Fail on parse errors</li>
+<li><code>-i, --input &lt;file&gt;</code> - Input file (default: stdin)</li>
+<li><code>-o, --output &lt;file&gt;</code> - Output file (default: stdout)</li>
+</ul>
+<h3 id="recordlazyrow-output"><a class="header" href="#recordlazyrow-output">Record/Lazyrow Output</a></h3>
+<pre><code class="language-bash">flatdata record2csv [options]    # record → CSV
+flatdata record2tsv [options]    # record → TSV
+flatdata lazyrow2csv [options]   # lazyrow → CSV
+flatdata lazyrow2tsv [options]   # lazyrow → TSV
+</code></pre>
+<p>Options:</p>
+<ul>
+<li><code>-d, --separator &lt;char&gt;</code> - Field separator (CSV only, default: <code>,</code>)</li>
+<li><code>-q, --quote-all</code> - Quote all fields</li>
+<li><code>-i, --input &lt;file&gt;</code> - Input file (default: stdin)</li>
+<li><code>-o, --output &lt;file&gt;</code> - Output file (default: stdout)</li>
+</ul>
+<h3 id="record--lazyrow-conversion"><a class="header" href="#record--lazyrow-conversion">Record ↔ Lazyrow Conversion</a></h3>
+<pre><code class="language-bash">flatdata record2lazyrow [options]  # record → lazyrow
+flatdata lazyrow2record [options]  # lazyrow → record
+</code></pre>
+<p>Options:</p>
+<ul>
+<li><code>-i, --input &lt;file&gt;</code> - Input file (default: stdin)</li>
+<li><code>-o, --output &lt;file&gt;</code> - Output file (default: stdout)</li>
+</ul>
+<h2 id="using-with-proc"><a class="header" href="#using-with-proc">Using with proc</a></h2>
+<p>The real power comes from combining flatdata with proc’s pipeline capabilities.</p>
+<h3 id="basic-pipeline"><a class="header" href="#basic-pipeline">Basic Pipeline</a></h3>
+<pre><code class="language-typescript">import { run, enumerate } from "jsr:@j50n/proc";
+
+// Parse CSV in a subprocess, process records in JS
+const results = await run("flatdata", "csv2record")
+  .writeToStdin(csvData)
+  .lines
+  .map(record =&gt; record.split('\x1F'))  // Split into fields
+  .filter(fields =&gt; fields[2] === 'active')
+  .map(fields =&gt; ({ id: fields[0], name: fields[1] }))
+  .collect();
+</code></pre>
+<h3 id="processing-large-files"><a class="header" href="#processing-large-files">Processing Large Files</a></h3>
+<pre><code class="language-typescript">import { read, run } from "jsr:@j50n/proc";
+
+// Stream a large CSV through flatdata
+await read("huge.csv")
+  .run("flatdata", "csv2record")
+  .lines
+  .map(record =&gt; {
+    const fields = record.split('\x1F');
+    return processRow(fields);
+  })
+  .forEach(result =&gt; console.log(result));
+</code></pre>
+<h3 id="with-enumerate-for-indexing"><a class="header" href="#with-enumerate-for-indexing">With enumerate for Indexing</a></h3>
+<pre><code class="language-typescript">import { run, enumerate } from "jsr:@j50n/proc";
+
+// Number each row
+await run("cat", "data.csv")
+  .run("flatdata", "csv2record")
+  .lines
+  .enum()
+  .map(([record, index]) =&gt; {
+    const fields = record.split('\x1F');
+    return `${index + 1}: ${fields[0]}`;
+  })
+  .toStdout();
+</code></pre>
+<h3 id="bidirectional-pipeline"><a class="header" href="#bidirectional-pipeline">Bidirectional Pipeline</a></h3>
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
+
+// CSV → process → CSV
+const output = await run("flatdata", "csv2record", "-i", "input.csv")
+  .lines
+  .map(record =&gt; {
+    const fields = record.split('\x1F');
+    fields[1] = fields[1].toUpperCase();  // Transform field
+    return fields.join('\x1F');
+  })
+  .run("flatdata", "record2csv")
+  .lines
+  .collect();
+</code></pre>
+<h2 id="transforms-for-record-format"><a class="header" href="#transforms-for-record-format">Transforms for Record Format</a></h2>
+<p>proc provides transforms to convert between the binary record format and JavaScript objects.</p>
+<h3 id="fromrecordtorows"><a class="header" href="#fromrecordtorows">fromRecordToRows</a></h3>
+<p>Convert record-delimited bytes to string arrays:</p>
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
+import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
+
+await run("flatdata", "csv2record", "-i", "data.csv")
+  .transform(fromRecordToRows())
+  .flatten()
+  .filter(row =&gt; row[2] === "active")
+  .forEach(row =&gt; console.log(row[0], row[1]));
+</code></pre>
+<h3 id="fromrecordtolazyrows"><a class="header" href="#fromrecordtolazyrows">fromRecordToLazyRows</a></h3>
+<p>Convert record-delimited bytes to LazyRow objects (more efficient for wide rows):</p>
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
+import { fromRecordToLazyRows } from "jsr:@j50n/proc/transforms";
+
+await run("flatdata", "csv2record", "-i", "wide.csv")
+  .transform(fromRecordToLazyRows())
+  .flatten()
+  .filter(row =&gt; row.getField(0) === "active")
+  .forEach(row =&gt; console.log(row.getField(1), row.getField(5)));
+</code></pre>
+<h3 id="fromlazyrowbinary"><a class="header" href="#fromlazyrowbinary">fromLazyRowBinary</a></h3>
+<p>Convert binary lazyrow format (from <code>csv2lazyrow</code>) to LazyRow objects:</p>
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
+import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
+
+await run("flatdata", "csv2lazyrow", "-i", "wide.csv")
+  .transform(fromLazyRowBinary())
+  .flatten()
+  .filter(row =&gt; row.getField(2) === "error")
+  .forEach(row =&gt; console.log(`${row.getField(0)}: ${row.getField(3)}`));
+</code></pre>
+<h3 id="torecord"><a class="header" href="#torecord">toRecord</a></h3>
+<p>Convert row data to record format for piping to flatdata:</p>
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
+import { fromRecordToRows, toRecord } from "jsr:@j50n/proc/transforms";
+
+// Transform CSV: uppercase the second field
+await run("flatdata", "csv2record", "-i", "input.csv")
+  .transform(fromRecordToRows())
+  .flatten()
+  .map(row =&gt; [row[0], row[1].toUpperCase(), row[2]])
+  .transform(toRecord())
+  .run("flatdata", "record2csv")
+  .toStdout();
+</code></pre>
+<h2 id="lazyrow-for-memory-efficiency"><a class="header" href="#lazyrow-for-memory-efficiency">LazyRow for Memory Efficiency</a></h2>
+<p>LazyRow defers field parsing until accessed - ideal when you only need a few fields from wide rows:</p>
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
+import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
+
+await run("flatdata", "csv2lazyrow", "-i", "huge.csv")
+  .transform(fromLazyRowBinary())
+  .flatten()
+  .filter(row =&gt; row.columnCount &gt; 5)  // O(1) column count
+  .map(row =&gt; row.getField(0))          // Only parse field 0
+  .take(100)
+  .toStdout();
+</code></pre>
+<p>LazyRow methods:</p>
+<ul>
+<li><code>columnCount</code> - Number of fields (O(1), no parsing)</li>
+<li><code>getField(n)</code> - Get nth field as string (parses on demand)</li>
+<li><code>toArray()</code> - Get all fields as string[]</li>
+</ul>
+<h2 id="european-csv-semicolon-delimited"><a class="header" href="#european-csv-semicolon-delimited">European CSV (Semicolon-Delimited)</a></h2>
+<pre><code class="language-bash"># Convert European CSV to US CSV
+flatdata csv2record -d ';' -i euro.csv | flatdata record2csv -o us.csv
+</code></pre>
+<h2 id="validation"><a class="header" href="#validation">Validation</a></h2>
+<pre><code class="language-bash"># Fail if any row doesn't have exactly 10 columns
+flatdata csv2record --columns 10 --strict -i data.csv &gt; /dev/null
+</code></pre>
+<h2 id="tips"><a class="header" href="#tips">Tips</a></h2>
+<ol>
+<li><strong>Pipe through flatdata</strong> to offload CPU work from your main process</li>
+<li><strong>Use record format</strong> for intermediate processing - it’s trivial to parse</li>
+<li><strong>LazyRow</strong> when you only need a few fields from wide rows</li>
+<li><strong>Validate early</strong> with <code>--columns</code> and <code>--strict</code> to catch data issues</li>
+</ol>
+<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
+<p>flatdata uses a <a href="../appendix/csv-parser.html">custom RFC 4180 CSV parser</a> written in Odin and compiled to WebAssembly. We needed a <em>push parser</em>—one that accepts arbitrary chunks of input and tracks state across calls—because WASM modules can’t pull data from JavaScript. Odin’s standard library CSV parser is a pull parser that expects to read from a file or complete buffer.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../utilities/sleep.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../recipes/counting-words.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../utilities/sleep.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../recipes/counting-words.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom-285056d7.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

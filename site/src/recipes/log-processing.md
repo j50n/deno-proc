@@ -1,8 +1,10 @@
 # Processing Log Files
 
-Analyze logs efficiently, even huge ones.
+Log file analysis is a common task that benefits greatly from proc's streaming capabilities, allowing you to analyze even huge log files efficiently without loading them entirely into memory.
 
-## Count Errors
+## Counting Errors
+
+The simplest log analysis task is counting error occurrences. This approach streams through the file, filtering for error lines and counting them:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "log-processing: count errors" -->
 ```typescript
@@ -16,7 +18,9 @@ const errorCount = await read("app.log")
 console.log(`${errorCount} errors found`);
 ```
 
-## Group by Error Type
+## Categorizing Errors by Type
+
+For more detailed analysis, you can group errors by type to understand which kinds of errors are most common:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -38,7 +42,9 @@ Object.entries(errorTypes)
   });
 ```
 
-## Extract Timestamps
+## Extracting Structured Data
+
+When you need to extract specific information from log entries, you can parse timestamps, error messages, and other structured data:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -48,6 +54,13 @@ const errors = await read("app.log")
   .map(line => {
     const timestamp = line.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)?.[0];
     const message = line.split("ERROR:")[1]?.trim();
+    return { timestamp, message };
+  })
+  .filter(error => error.timestamp && error.message)
+  .collect();
+
+console.log(`Found ${errors.length} structured errors`);
+```
     return { timestamp, message };
   })
   .collect();

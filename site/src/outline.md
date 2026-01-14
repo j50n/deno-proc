@@ -43,29 +43,8 @@ Next Up:
 
 I cannot believe I started this in 2021. Where has the time gone?
 
-```graphviz
-digraph finite_state_machine {
-    rankdir=LR;
-    
-    subgraph cluster_shell {
-        style = filled;
-        color = lightgrey;
-
-        node [shape = rectangle, label="gunzip"]; A;
-        node [shape = rectangle, label="head"]; B;
-        node [shape = rectangle, label="grep"]; C;
-    }
-    node [shape = doublecircle ]; in;
-    node [shape = doublecircle]; err;
-    node [shape = doublecircle ]; out;
-
-    A:s -> err:w [color = red];
-    B:s -> err:w [color = red];
-    C:s -> err:w [color = red];
-
-    in -> A;
-    A -> B;
-    B -> C;
-    C -> out;
-}
+```
+in ──→ [gunzip] ──→ [head] ──→ [grep] ──→ out
+           │           │          │
+           └───────────┴──────────┴──→ err
 ```

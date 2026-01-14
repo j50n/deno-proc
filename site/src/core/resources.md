@@ -1,10 +1,10 @@
 # Resource Management
 
-Avoid leaks and manage resources properly.
+Proper resource management ensures your applications don't leak memory or file handles when working with processes and streams.
 
-## The Golden Rule
+## The Fundamental Rule
 
-**Always consume process output.**
+The most important principle in proc is simple: always consume process output. When you start a process, you must consume its output through methods like `.collect()`, `.forEach()`, or by iterating through the results:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -18,20 +18,20 @@ const p = run("ls");
 await run("ls").lines.collect();
 ```
 
-## Why This Matters
+## Understanding Resource Leaks
 
-Unconsumed output keeps the process handle open, preventing cleanup.
+Unconsumed output keeps the process handle open, preventing proper cleanup. This happens because the process continues running and holding resources until its output stream is fully consumed. Even if you don't care about the actual output data, you still need to consume it to signal that the process can be cleaned up.
 
-## Ways to Consume Output
+## Methods for Consuming Output
 
-### collect()
+proc provides several ways to consume process output, each suited to different use cases. Use `.collect()` when you need all output as an array:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 const lines = await run("ls").lines.collect();
 ```
 
-### forEach()
+Use `.forEach()` when you want to process each item without collecting everything in memory:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -40,7 +40,7 @@ await run("ls").lines.forEach(line => {
 });
 ```
 
-### for-await
+Use for-await loops when you need more control over the iteration process:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -49,14 +49,14 @@ for await (const line of run("ls").lines) {
 }
 ```
 
-### toStdout()
+Use `.toStdout()` when you just want to display the output:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
 await run("ls").toStdout();
 ```
 
-### Aggregations
+Aggregation methods like `.count()` and property access like `.first` also consume output:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -100,12 +100,17 @@ for await (const line of run("tail", "-f", "log").lines) {
 }
 ```
 
-## Best Practices
+## Best Practices for Resource Management
 
-1. **Always consume output** - Use collect(), forEach(), or iterate
-2. **Check status after consuming** - Don't check status first
-3. **Let errors propagate** - They clean up automatically
-4. **Use try-finally for cleanup** - If you need custom cleanup
+Following these principles will help you avoid resource leaks and build reliable applications:
+
+Always consume output using methods like `collect()`, `forEach()`, or iteration. This is the most important rule for preventing resource leaks.
+
+When you need to check process status, consume the output first, then check the status. The process must complete its output before status information is reliable.
+
+Let errors propagate naturally through your pipelines. proc's error handling automatically cleans up resources when errors occur, so you don't need to manually manage cleanup in error cases.
+
+For custom cleanup scenarios, use try-finally blocks, but remember that proc handles most cleanup automatically through its error propagation system.
 
 ## Next Steps
 

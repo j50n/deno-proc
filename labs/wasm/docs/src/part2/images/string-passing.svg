@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 280">
+  <defs>
+    <linearGradient id="jsBox" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f7df1e"/>
+      <stop offset="100%" style="stop-color:#e6c700"/>
+    </linearGradient>
+    <linearGradient id="wasmBox" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#654ff0"/>
+      <stop offset="100%" style="stop-color:#5040c0"/>
+    </linearGradient>
+    <linearGradient id="memBox" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00b894"/>
+      <stop offset="100%" style="stop-color:#00a884"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Title -->
+  <text x="325" y="25" text-anchor="middle" font-family="system-ui" font-size="18" font-weight="bold" fill="#2d3436">Passing a String to WASM</text>
+  
+  <!-- Step 1: JS String -->
+  <rect x="20" y="50" width="120" height="60" rx="8" fill="url(#jsBox)" stroke="#c9a800" stroke-width="2"/>
+  <text x="80" y="75" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="bold" fill="#2d3436">JS String</text>
+  <text x="80" y="95" text-anchor="middle" font-family="monospace" font-size="12" fill="#2d3436">"Hello"</text>
+  <circle cx="80" cy="45" r="12" fill="#e74c3c"/>
+  <text x="80" y="49" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="bold" fill="white">1</text>
+  
+  <!-- Arrow 1→2 -->
+  <path d="M 140 80 L 170 80" stroke="#636e72" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Step 2: TextEncoder -->
+  <rect x="180" y="50" width="120" height="60" rx="8" fill="#dfe6e9" stroke="#b2bec3" stroke-width="2"/>
+  <text x="240" y="72" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="bold" fill="#2d3436">TextEncoder</text>
+  <text x="240" y="92" text-anchor="middle" font-family="monospace" font-size="9" fill="#636e72">[72,101,108,108,111]</text>
+  <circle cx="240" cy="45" r="12" fill="#e74c3c"/>
+  <text x="240" y="49" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="bold" fill="white">2</text>
+  
+  <!-- Arrow 2→3 -->
+  <path d="M 300 80 L 330 80" stroke="#636e72" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Step 3: Allocate -->
+  <rect x="340" y="50" width="120" height="60" rx="8" fill="url(#wasmBox)" stroke="#4030a0" stroke-width="2"/>
+  <text x="400" y="72" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="bold" fill="white">alloc_string(5)</text>
+  <text x="400" y="92" text-anchor="middle" font-family="monospace" font-size="11" fill="white">→ ptr: 1024</text>
+  <circle cx="400" cy="45" r="12" fill="#e74c3c"/>
+  <text x="400" y="49" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="bold" fill="white">3</text>
+  
+  <!-- Arrow 3→4 -->
+  <path d="M 460 80 L 490 80" stroke="#636e72" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Step 4: Copy to memory -->
+  <rect x="500" y="50" width="130" height="60" rx="8" fill="url(#memBox)" stroke="#00a884" stroke-width="2"/>
+  <text x="565" y="72" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="bold" fill="white">Copy to Memory</text>
+  <text x="565" y="92" text-anchor="middle" font-family="monospace" font-size="9" fill="white">bytes.set(data, 1024)</text>
+  <circle cx="565" cy="45" r="12" fill="#e74c3c"/>
+  <text x="565" y="49" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="bold" fill="white">4</text>
+  
+  <!-- Memory visualization -->
+  <rect x="100" y="150" width="450" height="50" rx="6" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  <text x="325" y="145" text-anchor="middle" font-family="system-ui" font-size="11" fill="#636e72">Linear Memory</text>
+  
+  <!-- Memory cells -->
+  <rect x="200" y="160" width="30" height="30" fill="#00b894" stroke="#00a884"/>
+  <text x="215" y="180" text-anchor="middle" font-family="monospace" font-size="10" fill="white">H</text>
+  <rect x="230" y="160" width="30" height="30" fill="#00b894" stroke="#00a884"/>
+  <text x="245" y="180" text-anchor="middle" font-family="monospace" font-size="10" fill="white">e</text>
+  <rect x="260" y="160" width="30" height="30" fill="#00b894" stroke="#00a884"/>
+  <text x="275" y="180" text-anchor="middle" font-family="monospace" font-size="10" fill="white">l</text>
+  <rect x="290" y="160" width="30" height="30" fill="#00b894" stroke="#00a884"/>
+  <text x="305" y="180" text-anchor="middle" font-family="monospace" font-size="10" fill="white">l</text>
+  <rect x="320" y="160" width="30" height="30" fill="#00b894" stroke="#00a884"/>
+  <text x="335" y="180" text-anchor="middle" font-family="monospace" font-size="10" fill="white">o</text>
+  
+  <!-- Address label -->
+  <text x="215" y="205" text-anchor="middle" font-family="monospace" font-size="9" fill="#636e72">1024</text>
+  <text x="335" y="205" text-anchor="middle" font-family="monospace" font-size="9" fill="#636e72">1028</text>
+  
+  <!-- Step 5: Call WASM -->
+  <rect x="180" y="220" width="140" height="45" rx="8" fill="url(#wasmBox)" stroke="#4030a0" stroke-width="2"/>
+  <text x="250" y="240" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="bold" fill="white">Call WASM function</text>
+  <text x="250" y="255" text-anchor="middle" font-family="monospace" font-size="9" fill="white">process(1024, 5)</text>
+  <circle cx="250" cy="215" r="12" fill="#e74c3c"/>
+  <text x="250" y="219" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="bold" fill="white">5</text>
+  
+  <!-- Step 6: Free -->
+  <rect x="340" y="220" width="130" height="45" rx="8" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+  <text x="405" y="240" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="bold" fill="white">Free memory</text>
+  <text x="405" y="255" text-anchor="middle" font-family="monospace" font-size="9" fill="white">free_string(1024, 5)</text>
+  <circle cx="405" cy="215" r="12" fill="#e74c3c"/>
+  <text x="405" y="219" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="bold" fill="white">6</text>
+  
+  <!-- Arrow 5→6 -->
+  <path d="M 320 242 L 340 242" stroke="#636e72" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#636e72"/>
+    </marker>
+  </defs>
+</svg>

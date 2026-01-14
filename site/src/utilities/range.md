@@ -1,8 +1,10 @@
 # Range and Iteration
 
-Generate sequences of numbers lazily.
+Generate sequences of numbers lazily, providing a powerful foundation for data generation and iteration patterns.
 
-## Basic Range
+## Creating Basic Ranges
+
+The simplest range generates numbers from 0 up to (but not including) a specified limit:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "range: basic range" -->
 ```typescript
@@ -12,9 +14,9 @@ const numbers = await range({ to: 5 }).collect();
 // [0, 1, 2, 3, 4]
 ```
 
-## Exclusive vs Inclusive
+## Understanding Exclusive vs Inclusive Bounds
 
-### to (exclusive)
+Range provides two ways to specify the upper bound. The `to` parameter is exclusive, stopping before the specified number:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -22,7 +24,7 @@ const nums = await range({ to: 3 }).collect();
 // [0, 1, 2]
 ```
 
-### until (inclusive)
+The `until` parameter is inclusive, including the specified number in the result:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -30,7 +32,9 @@ const nums = await range({ until: 3 }).collect();
 // [0, 1, 2, 3]
 ```
 
-## Custom Start
+## Customizing Start Points
+
+You can specify where the range begins using the `from` parameter:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -38,7 +42,9 @@ const nums = await range({ from: 5, to: 10 }).collect();
 // [5, 6, 7, 8, 9]
 ```
 
-## Custom Step
+## Working with Step Values
+
+The `step` parameter controls the increment between numbers, allowing you to create sequences like even numbers, multiples, or any regular interval:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "range: with step" -->
 ```typescript

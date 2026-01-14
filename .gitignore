@@ -1,0 +1,5 @@
+# Temp files from running doc examples
+output.txt
+
+# Benchmark data files (generated, not tracked)
+benchmarks/data/

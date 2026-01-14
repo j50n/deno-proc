@@ -1,8 +1,56 @@
 # Error Handling
 
-Error handling is proc's primary design goal. **Errors flow through pipelines naturally, just like data.**
+Error handling is proc's primary design goal. Rather than requiring complex coordination between producers and consumers, proc makes errors flow through pipelines naturally, just like data.
 
-## The Problem
+## Solving the Backpressure and Error Problem
+
+Traditional streams create two problems: complex backpressure coordination AND complex error handling. proc solves both:
+
+### Traditional Streams - Complex Backpressure + Error Handling
+<!-- NOT TESTED: Illustrative example -->
+```typescript
+// Node.js streams - backpressure AND error handling complexity
+const stream1 = createReadStream('input.txt');
+const transform1 = new Transform({ /* options */ });
+const transform2 = new Transform({ /* options */ });
+const output = createWriteStream('output.txt');
+
+// Backpressure handling
+stream1.pipe(transform1, { end: false });
+transform1.pipe(transform2, { end: false });
+transform2.pipe(output);
+
+// Error handling at each stage
+stream1.on('error', handleError);
+transform1.on('error', handleError);
+transform2.on('error', handleError);
+output.on('error', handleError);
+
+// Plus drain events, pause/resume, etc.
+```
+
+### proc - No Backpressure, Simple Errors
+<!-- NOT TESTED: Illustrative example -->
+```typescript
+// proc - pull-based flow eliminates both problems
+try {
+  await read('input.txt')
+    .lines
+    .map(transform1)
+    .map(transform2)
+    .writeTo('output.txt');
+} catch (error) {
+  // All errors caught here - no backpressure coordination needed
+  console.error(`Pipeline failed: ${error.message}`);
+}
+```
+
+**Why this works:**
+- **Pull-based flow**: Consumer controls pace, no backpressure needed
+- **Error propagation**: Errors flow with data through the same path
+- **One catch block**: Handle all errors in one place
+
+## The Traditional Problem
 
 Traditional stream error handling requires managing errors at multiple points:
 
@@ -37,9 +85,9 @@ stream2.on('error', handleError);
 stream3.on('error', handleError);
 ```
 
-## The proc Solution
+## How proc Changes Everything
 
-Errors flow through pipelines like data. Handle them once, at the end:
+proc treats errors as first-class data that flows through your pipeline alongside the actual results. When you build a pipeline with multiple operations—running processes, transforming data, filtering results—any error that occurs anywhere in the chain automatically propagates to your final catch block:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -61,9 +109,9 @@ try {
 }
 ```
 
-**One try-catch. No edge cases. No separate error channels.**
+This approach eliminates the need for error handling at each step. Whether a process exits with a non-zero code, a transformation throws an exception, or a filter encounters invalid data, the error flows downstream and gets caught in one place.
 
-## How It Works
+## How Error Propagation Works
 
 When something goes wrong anywhere in the pipeline:
 
@@ -73,13 +121,11 @@ When something goes wrong anywhere in the pipeline:
 
 It's functional programming—errors are just another type of data flowing through.
 
-## Error Types
+## Understanding Error Types
 
-proc throws specific error types so you can handle them differently:
+proc throws specific error types that help you handle different failure scenarios appropriately. Each error type carries relevant context about what went wrong, making debugging and error recovery more straightforward.
 
-### ExitCodeError
-
-Thrown when a process exits with a non-zero code:
+**ExitCodeError** occurs when a process exits with a non-zero code:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -95,9 +141,7 @@ try {
 }
 ```
 
-### SignalError
-
-Thrown when a process is killed by a signal:
+**SignalError** happens when a process is terminated by a signal, such as when you interrupt it with Ctrl+C:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -113,9 +157,7 @@ try {
 }
 ```
 
-### UpstreamError
-
-Thrown when an error comes from upstream in a pipeline:
+**UpstreamError** wraps errors that come from earlier stages in a pipeline:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -134,20 +176,9 @@ try {
 
 ## Checking Exit Status Without Throwing
 
-Sometimes you want to check the exit code without throwing:
+Sometimes you want to inspect a process's exit status without triggering an exception. proc supports this pattern by letting you consume the process output first, then check the status afterward. This approach is useful when non-zero exit codes are expected or when you want to implement custom error handling logic.
 
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-const p = run("some-command");
-await p.lines.collect();  // Consume output
-const status = await p.status;  // Check status
-
-if (status.code !== 0) {
-  console.error(`Command failed with code ${status.code}`);
-}
-```
-
-**Important:** Consume the output first, then check status. Otherwise you'll leak resources.
+Remember to always consume the output before checking the status—otherwise you'll create resource leaks. The pattern is straightforward: run your process, consume its output with methods like `.lines.collect()`, then access the `.status` property to inspect the exit code and make decisions based on the result.
 
 ## Handling Specific Exit Codes
 
@@ -193,119 +224,17 @@ try {
 
 ## Custom Error Handling
 
-You can customize how errors are handled per process using the `fnError` option:
+While proc's default error handling works well for most cases, you can customize how errors are handled using the `fnError` option. This function receives the error and any stderr data, giving you the opportunity to suppress specific errors, transform them, or add additional context.
 
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-await run(
-  {
-    fnError: (error, stderrData) => {
-      // Custom error handling
-      if (error?.code === 1) {
-        // Suppress or transform specific errors
-        console.warn("Command returned 1, continuing anyway");
-        return;
-      }
-      // Re-throw other errors
-      throw error;
-    }
-  },
-  "command"
-).lines.collect();
-```
-
-### Suppress All Errors
-
-Sometimes you want to ignore failures:
-
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-// Ignore all errors from this command
-await run(
-  { fnError: () => {} },
-  "command"
-).lines.collect();
-```
-
-### Transform Errors
-
-Add context or change error types:
-
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-await run(
-  {
-    fnError: (error) => {
-      throw new Error(`Database backup failed: ${error.message}`);
-    }
-  },
-  "pg_dump", "mydb"
-).lines.collect();
-```
+For example, some commands like `grep` return exit code 1 when no matches are found, which isn't really an error in many contexts. You can use a custom error handler to treat this as normal behavior while still catching genuine failures. Similarly, you might want to add context to errors to make debugging easier, or suppress errors entirely for commands where failure is acceptable.
 
 ## Working with Stderr
 
-By default, stderr is passed through to `Deno.stderr`. You can capture and process it:
+By default, proc passes stderr through to `Deno.stderr`, which means error messages from child processes appear in your terminal as expected. However, you can capture and process stderr using the `fnStderr` option, which gives you an async iterable of stderr lines.
 
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-await run(
-  {
-    fnStderr: async (stderr) => {
-      for await (const line of stderr.lines) {
-        console.error(`[STDERR] ${line}`);
-      }
-    }
-  },
-  "command"
-).lines.collect();
-```
+This capability is useful when you need to analyze error output, combine stdout and stderr streams, or implement custom logging. You can collect stderr lines into an array for later analysis, process them in real-time, or merge them with stdout to create a unified output stream. The stderr handler runs concurrently with your main pipeline, so it doesn't block the processing of stdout.
 
-### Collect Stderr
-
-Capture stderr for analysis:
-
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-const stderrLines: string[] = [];
-
-await run(
-  {
-    fnStderr: async (stderr) => {
-      for await (const line of stderr.lines) {
-        stderrLines.push(line);
-      }
-    }
-  },
-  "command"
-).lines.collect();
-
-console.log("Stderr output:", stderrLines);
-```
-
-### Combine Stdout and Stderr
-
-Process both streams together:
-
-<!-- NOT TESTED: Illustrative example -->
-```typescript
-const allOutput: string[] = [];
-
-await run(
-  {
-    fnStderr: async (stderr) => {
-      for await (const line of stderr.lines) {
-        allOutput.push(`[ERR] ${line}`);
-      }
-    }
-  },
-  "command"
-).lines.forEach(line => {
-  allOutput.push(`[OUT] ${line}`);
-});
-```
-
-## Best Practices
+## Best Practices for Error Handling
 
 ### 1. Catch at the End
 
@@ -375,7 +304,7 @@ try {
 
 Only customize error handling when you have a specific need. The default behavior works well for most cases.
 
-## Why This Matters
+## Why This Approach Matters
 
 Error handling is the **primary reason** proc exists. If you've ever:
 

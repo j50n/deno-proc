@@ -9,8 +9,8 @@ Deno.test({
 
     const process = new Process(
       { stdout: "piped" },
-      "bash",
-      ["-c", "set -e\necho 'A'\necho 'B'\necho 'C'"],
+      "printf",
+      ["A\nB\nC\n"],
     );
 
     try {
@@ -40,8 +40,8 @@ Deno.test({
       async () => {
         const process = new Process(
           { stdout: "piped" },
-          "bash",
-          ["-c", "set -e\necho 'A'\necho 'B'\necho 'C'\necho 'D'\nexit 42"],
+          "sh",
+          ["-c", "printf 'A\nB\nC\nD\n'; exit 42"],
         );
 
         try {

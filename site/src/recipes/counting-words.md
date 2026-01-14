@@ -1,10 +1,10 @@
 # Counting Words
 
-A classic example that shows the power of process pipelines.
+Word counting demonstrates the elegance of process pipelines, showing how complex text analysis can be built from simple Unix tools chained together.
 
-## Simple Word Count
+## Basic Word Counting
 
-Count total words in a file:
+The simplest approach uses the `wc` command to count total words in a file:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -14,9 +14,9 @@ const wordCount = await run("wc", "-w", "book.txt").lines.first;
 console.log(`Total words: ${wordCount}`);
 ```
 
-## Unique Words
+## Finding Unique Words
 
-Count unique words:
+To count unique words, you need to extract individual words, normalize their case, and eliminate duplicates. This pipeline breaks text into words, converts everything to lowercase, sorts the results, and removes duplicates:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -31,9 +31,9 @@ const uniqueWords = await run("cat", "book.txt")
 console.log(`Unique words: ${uniqueWords}`);
 ```
 
-## Word Frequency
+## Analyzing Word Frequency
 
-Find most common words:
+For more sophisticated analysis, you can find the most frequently used words by adding frequency counting and sorting by occurrence:
 
 <!-- NOT TESTED: Illustrative example -->
 ```typescript
@@ -48,6 +48,8 @@ const topWords = await run("cat", "book.txt")
   .collect();
 
 console.log("Top 10 words:");
+topWords.forEach(line => console.log(line));
+```
 topWords.forEach(line => console.log(line));
 ```
 

@@ -472,7 +472,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     everyFn: (element: T) => boolean | Promise<boolean>,
   ): Promise<boolean> {
     for await (const element of this.iter) {
-      if (!everyFn(element)) {
+      if (!(await everyFn(element))) {
         return false;
       }
     }
@@ -498,7 +498,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     someFn: (element: T) => boolean | Promise<boolean>,
   ): Promise<boolean> {
     for await (const element of this.iter) {
-      if (someFn(element)) {
+      if (await someFn(element)) {
         return true;
       }
     }
@@ -522,7 +522,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     } else {
       let count = 0;
       for await (const item of this.iter) {
-        if (filterFn(item)) {
+        if (await filterFn(item)) {
           count++;
         }
       }
@@ -638,6 +638,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       await p;
       p = forEachFn(item);
     }
+    await p;
   }
 
   /**
@@ -662,6 +663,26 @@ export class Enumerable<T> implements AsyncIterable<T> {
       result.push(item);
     }
     return result;
+  }
+
+  /**
+   * Collect all items from this async iterable into an array.
+   *
+   * This is an alias for {@link collect} - both methods do exactly the same thing.
+   * Use whichever name feels more natural in your code.
+   *
+   * @example Basic usage
+   * ```typescript
+   * import { enumerate } from "jsr:@j50n/proc";
+   *
+   * const result = await enumerate([1, 2, 3]).toArray();
+   * // [1, 2, 3]
+   * ```
+   *
+   * @returns A Promise resolving to an array of all items.
+   */
+  async toArray(): Promise<T[]> {
+    return await this.collect();
   }
 
   /**
@@ -926,16 +947,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
             }
           } finally {
             await Promise.all([
-              async () => {
+              (async () => {
                 for await (const _a of iterA) {
                   break;
                 }
-              },
-              async () => {
+              })(),
+              (async () => {
                 for await (const _b of iterB) {
                   break;
                 }
-              },
+              })(),
             ]);
           }
         },

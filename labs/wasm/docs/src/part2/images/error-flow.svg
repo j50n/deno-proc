@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 260">
+  <defs>
+    <linearGradient id="compileGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="linkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a78bfa"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="runGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#34d399"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="errGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fca5a5"/>
+      <stop offset="100%" style="stop-color:#ef4444"/>
+    </linearGradient>
+    <marker id="arrG" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="300" y="25" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">WASM Error Types &amp; When They Occur</text>
+  
+  <!-- Phase boxes -->
+  <rect x="40" y="50" width="140" height="50" rx="6" fill="url(#compileGrad)"/>
+  <text x="110" y="75" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="white">Compile</text>
+  <text x="110" y="90" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.85)">WebAssembly.compile()</text>
+  
+  <rect x="230" y="50" width="140" height="50" rx="6" fill="url(#linkGrad)"/>
+  <text x="300" y="75" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="white">Instantiate</text>
+  <text x="300" y="90" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.85)">WebAssembly.instantiate()</text>
+  
+  <rect x="420" y="50" width="140" height="50" rx="6" fill="url(#runGrad)"/>
+  <text x="490" y="75" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="white">Execute</text>
+  <text x="490" y="90" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.85)">exports.func()</text>
+  
+  <!-- Arrows between phases -->
+  <path d="M180 75 L230 75" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrG)"/>
+  <path d="M370 75 L420 75" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrG)"/>
+  
+  <!-- Error boxes -->
+  <rect x="40" y="130" width="140" height="55" rx="6" fill="url(#errGrad)"/>
+  <text x="110" y="152" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="white">CompileError</text>
+  <text x="110" y="168" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="rgba(255,255,255,0.9)">Invalid WASM binary</text>
+  <text x="110" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="rgba(255,255,255,0.9)">Malformed module</text>
+  
+  <rect x="230" y="130" width="140" height="55" rx="6" fill="url(#errGrad)"/>
+  <text x="300" y="152" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="white">LinkError</text>
+  <text x="300" y="168" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="rgba(255,255,255,0.9)">Missing import</text>
+  <text x="300" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="rgba(255,255,255,0.9)">Type mismatch</text>
+  
+  <rect x="420" y="130" width="140" height="55" rx="6" fill="url(#errGrad)"/>
+  <text x="490" y="152" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="white">RuntimeError</text>
+  <text x="490" y="168" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="rgba(255,255,255,0.9)">Trap / unreachable</text>
+  <text x="490" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="rgba(255,255,255,0.9)">Out of bounds</text>
+  
+  <!-- Arrows from phases to errors -->
+  <path d="M110 100 L110 130" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,2" fill="none"/>
+  <path d="M300 100 L300 130" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,2" fill="none"/>
+  <path d="M490 100 L490 130" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,2" fill="none"/>
+  
+  <!-- Tips -->
+  <text x="110" y="210" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#64748b">Check .wasm file</text>
+  <text x="300" y="210" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#64748b">Check imports object</text>
+  <text x="490" y="210" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#64748b">Check Odin logic</text>
+  
+  <!-- Recovery note -->
+  <text x="300" y="245" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#475569">RuntimeError may corrupt state → consider recreating instance</text>
+</svg>

@@ -95,7 +95,7 @@ const doubled = await enumerate([1, 2, 3])
 
 proc is **lazy** and **streaming** by default. Nothing happens until you consume the output.
 
-<!-- TESTED: tests/mdbook_examples.test.ts - "key-concepts: streaming" -->
+<!-- NOT TESTED: Illustrative example -->
 ```typescript
 // This doesn't run anything yet
 const pipeline = run("cat", "huge-file.txt")

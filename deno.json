@@ -1,17 +1,24 @@
 {
   "name": "@j50n/proc",
-  "version": "0.23.4",
+  "version": "0.24.0",
   "publish": { 
     "exclude": [
       "**/warandpeace.txt.gz",
       "dev/",
-      "tools/",
       "site/",
-      "docs/"
+      "docs/",
+      "labs/",
+      "benchmarks/",
+      "coverage/",
+      "tests/",
+      "**/*.test.ts",
+      "build.sh",
+      "build-site.sh"
     ]
   },
   "exports": {
-    ".": "./mod.ts"
+    ".": "./mod.ts",
+    "./flatdata": "./scripts/flatdata/flatdata.ts"
   },
   "imports": {
     "@std/async/retry": "jsr:@std/async@1.0.16/retry",
@@ -19,6 +26,7 @@
     "@std/io/types": "jsr:@std/io@0.225.2/types",
     "@std/async/tee": "jsr:@std/async@1.0.16/tee",
     "@std/assert": "jsr:@std/assert@1.0.16",
-    "@std/path": "jsr:@std/path@1.1.4"
+    "@std/path": "jsr:@std/path@1.1.4",
+    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8"
   } 
 }

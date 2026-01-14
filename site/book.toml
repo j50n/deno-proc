@@ -1,7 +1,6 @@
 [book]
 authors = ["j50n"]
 language = "en"
-multilingual = false
 src = "src"
 title = "proc"
 description = "Run child processes and work with async iterables in Deno—with the fluent Array API you already know."
@@ -13,7 +12,6 @@ create-missing = false
 default-theme = "navy"
 preferred-dark-theme = "navy"
 git-repository-url = "https://github.com/j50n/deno-proc"
-git-repository-icon = "fa-github"
 additional-css = ["theme/custom.css"]
 additional-js = ["theme/custom.js"]
 
@@ -33,10 +31,6 @@ command = """deno run \
   ../tools/mdbook-deno-script-preprocessor.ts \
   process \
   --concurrently """
-output-to-file = false
-
-[preprocessor.graphviz]
-command = "mdbook-graphviz"
 output-to-file = false
 
 [preprocessor.gitv]

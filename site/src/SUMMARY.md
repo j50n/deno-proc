@@ -29,6 +29,16 @@
 - [Aggregations](./iterables/aggregations.md)
 - [Slicing and Sampling](./iterables/slicing.md)
 
+# Data Transforms
+
+- [Overview](./data-transforms/README.md)
+- [CSV Transforms](./data-transforms/csv.md)
+- [TSV Transforms](./data-transforms/tsv.md)
+- [JSON Transforms](./data-transforms/json.md)
+- [Record Format](./data-transforms/record.md)
+- [LazyRow Guide](./data-transforms/lazyrow.md)
+- [Performance Guide](./data-transforms/performance.md)
+
 # Advanced Topics
 
 - [Concurrent Processing](./advanced/concurrent.md)
@@ -42,6 +52,7 @@
 - [Zip and Enumerate](./utilities/zip-enumerate.md)
 - [WritableIterable](./utilities/writable-iterable.md)
 - [Sleep](./utilities/sleep.md)
+- [flatdata CLI](./utilities/flatdata.md)
 
 # Recipes
 
@@ -62,6 +73,12 @@
 - [Documentation Guidelines](./contributor/documentation.md)
 - [Testing Strategy](./contributor/testing.md)
 - [Build Process](./contributor/build-process.md)
+
+---
+
+# Appendix
+
+- [CSV Parser Specification](./appendix/csv-parser.md)
 
 ---
 
