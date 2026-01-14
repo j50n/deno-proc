@@ -2,6 +2,8 @@
 
 Transform structured data between formats with streaming support and high performance.
 
+> ⚠️ **Experimental API (v0.24.0+)**: Data transforms are new and under active development. While tests pass and performance is reasonable, expect API changes and edge cases as we improve correctness and streaming performance. Production use should include thorough testing of your specific data patterns.
+
 ## Choosing Your Approach
 
 proc offers several ways to process data. Here's how to choose:

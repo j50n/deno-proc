@@ -1,3 +1,13 @@
+/**
+ * Data transform functions for format conversion.
+ * 
+ * @experimental This module is under active development (v0.24.0+).
+ * API may change as we improve correctness and streaming performance.
+ * Test thoroughly with your data patterns before production use.
+ * 
+ * @module
+ */
+
 // Transform functions for data format conversion
 export { LazyRow } from "./lazy-row.ts";
 export { BATCH_SIZE_BYTES, RECORD_SEPARATOR, FIELD_SEPARATOR } from "./common.ts";

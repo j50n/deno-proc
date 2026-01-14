@@ -2,6 +2,8 @@
 
 Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance and LazyRow optimization.
 
+> ⚠️ **Experimental (v0.24.0+)**: CSV transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+
 > **⚡ Need more speed?** Use `fromCsvToRowsFast()` for ~10x better performance. It uses the same WASM parser as flatdata CLI. See [Fast CSV Parsing](#fast-csv-parsing-wasm) below.
 
 ## Overview

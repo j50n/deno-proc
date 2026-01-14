@@ -2,6 +2,8 @@
 
 Fast, simple tab-separated value processing with excellent performance characteristics.
 
+> ⚠️ **Experimental (v0.24.0+)**: TSV transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+
 ## Overview
 
 TSV (Tab-Separated Values) provides a good balance between human readability and processing speed. With no complex quoting rules like CSV, TSV parsing is significantly faster while remaining easy to read and edit.

@@ -102,6 +102,8 @@ import { run, enumerate, read } from "jsr:@j50n/proc";
 
 Data transforms are in a separate module to keep the core library lightweight:
 
+> ⚠️ **Experimental (v0.24.0+)**: Data transforms are under active development. API may change as we improve correctness and streaming performance.
+
 ```typescript
 // Core library - process management and async iterables
 import { run, enumerate, read } from "jsr:@j50n/proc";

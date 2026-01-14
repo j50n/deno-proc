@@ -2,6 +2,8 @@
 
 High-performance binary-safe format using ASCII control characters for maximum throughput.
 
+> ⚠️ **Experimental (v0.24.0+)**: Record format transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+
 ## Overview
 
 Record format is designed for **maximum performance** in data processing pipelines. It uses ASCII control characters (Record Separator and Field Separator) to achieve reliable parsing while supporting any UTF-8 content in field values, including tabs and newlines.

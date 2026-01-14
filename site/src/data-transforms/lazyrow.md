@@ -2,6 +2,8 @@
 
 Optimized read-only data access with lazy evaluation and caching for maximum performance.
 
+> ⚠️ **Experimental (v0.24.0+)**: LazyRow is under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+
 ## Overview
 
 LazyRow is a high-performance data structure designed for efficient field access in tabular data. It uses **lazy evaluation** and **caching** to minimize parsing overhead while providing a clean, simple API.

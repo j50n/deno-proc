@@ -2,6 +2,8 @@
 
 Process JSON Lines (JSONL) format with full object structure support and optional schema validation.
 
+> ⚠️ **Experimental (v0.24.0+)**: JSON transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+
 ## Overview
 
 JSON transforms handle **JSON Lines** format - one complete JSON value per line. Unlike other formats, JSON preserves full object structure including nested objects, arrays, and all JSON data types. This makes it ideal for APIs, configuration data, and complex structured information.

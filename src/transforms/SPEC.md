@@ -1,5 +1,7 @@
 # Transform Functions Specification
 
+> ⚠️ **Experimental (v0.24.0+)**: Data transforms are under active development. API may change as we improve correctness and streaming performance.
+
 ## Transformer Concept
 
 A **transformer** in this project is a function that converts `AsyncIterable<T>` to `AsyncIterable<U>`, enabling data transformation in streaming pipelines. The standard signature is:

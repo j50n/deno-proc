@@ -2,6 +2,8 @@
 
 Comprehensive benchmarks, optimization strategies, and format selection guidance for data transforms.
 
+> ⚠️ **Experimental (v0.24.0+)**: Data transforms are under active development. Performance numbers reflect current implementation but may change. API stability is not guaranteed as we improve correctness and streaming performance.
+
 ## Performance Overview
 
 All performance data is based on comprehensive benchmarks across multiple dataset sizes and configurations. Tests include realistic data with special characters (café, naïve, 🚀, 東京, москва) to ensure real-world applicability.
