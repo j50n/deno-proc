@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7606117d.js";
+            window.path_to_searchindex_js = "searchindex-7a896ede.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-c66c9043.js"></script>
@@ -204,6 +204,11 @@ love this.</p>
 <p><strong>🚀 Need speed?</strong> Check out <a href="#flatdata-cli">flatdata</a>—a
 WASM-powered CLI for CSV/TSV processing at ~330 MB/s (7x faster than pure JS).</p>
 </blockquote>
+<blockquote>
+<p><strong>📦 Optional Features</strong>: The <a href="data-transforms/README.html">data transforms</a>
+module (CSV, TSV, JSON, Record) is separate from the core library. Import it
+with <code>/transforms</code> when needed to keep your bundle lightweight.</p>
+</blockquote>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
 <p>Count lines in a compressed file—streaming, no temp files:</p>
 <!-- NOT TESTED: Illustrative example -->
@@ -319,6 +324,22 @@ the <a href="#quick-start">Quick Start</a>.</p>
 <pre><code class="language-typescript">import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
 </code></pre>
 <p>That’s it! No installation step, no package.json, no node_modules.</p>
+<h2 id="data-transforms-optional"><a class="header" href="#data-transforms-optional">Data Transforms (Optional)</a></h2>
+<p>The data transforms module is <strong>separate from the core library</strong> to keep the main import lightweight. Import it when you need CSV, TSV, JSON, or Record format conversions:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Core library - process management and async iterables
+import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+
+// Data transforms - CSV, TSV, JSON, Record conversions
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+</code></pre>
+<p><strong>Why separate?</strong></p>
+<ul>
+<li><strong>Smaller bundles</strong>: Users who only need process management don’t import transform code</li>
+<li><strong>Clear separation</strong>: Core library vs specialized data format conversions</li>
+<li><strong>Optional feature</strong>: Transforms are powerful but not required for basic usage</li>
+</ul>
+<p>See the <a href="data-transforms/README.html">Data Transforms</a> guide for details.</p>
 <h2 id="permissions"><a class="header" href="#permissions">Permissions</a></h2>
 <p>proc needs permissions to run child processes and access files. When you run your script, Deno will prompt you, or you can grant them upfront:</p>
 <pre><code class="language-bash">deno run --allow-run --allow-read your-script.ts
@@ -436,6 +457,19 @@ const commits = await run("git", "log", "--oneline")
 commits.forEach(commit =&gt; console.log(commit));
 </code></pre>
 <p>This chains multiple operations, all streaming, using minimal memory. For more complex examples, see <a href="#counting-words">Recipes</a>.</p>
+<h2 id="data-transforms-optional-1"><a class="header" href="#data-transforms-optional-1">Data Transforms (Optional)</a></h2>
+<p>Need to work with CSV, TSV, JSON, or Record formats? Import the transforms module:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+// Convert CSV to TSV
+await read("data.csv")
+  .transform(fromCsvToRows())
+  .transform(toTsv())
+  .writeTo("data.tsv");
+</code></pre>
+<p>The transforms module is <strong>separate from the core library</strong> to keep your bundle lightweight. See <a href="data-transforms/README.html">Data Transforms</a> for details.</p>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next?</a></h2>
 <p>Now that you’ve got the basics, learn about:</p>
 <ul>
@@ -3179,8 +3213,32 @@ const matches = await enumerate(data)
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>The data transforms module provides powerful functions to convert between common data formats like CSV, TSV, JSON, and Record format. All transforms are designed for <strong>streaming large datasets</strong> without loading everything into memory.</p>
 <blockquote>
+<p><strong>📦 Separate Import</strong>: Data transforms are in a separate module from the core library. Import with <code>jsr:@j50n/proc@{{gitv}}/transforms</code> to keep your main bundle lightweight.</p>
+</blockquote>
+<blockquote>
 <p><strong>💡 For maximum performance</strong>, use the <a href="#flatdata-cli">flatdata CLI</a> to offload CSV parsing to a WASM-powered subprocess. This achieves ~330 MB/s throughput—about 7x faster than pure JavaScript transforms.</p>
 </blockquote>
+<h2 id="import"><a class="header" href="#import">Import</a></h2>
+<p>Data transforms are <strong>not included in the main <code>@j50n/proc</code> import</strong>. This keeps the core library lightweight for users who only need process management.</p>
+<pre><code class="language-typescript">// Core library - process management and async iterables
+import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+
+// Data transforms - CSV, TSV, JSON, Record conversions
+import { 
+  fromCsvToRows, 
+  fromTsvToRows,
+  fromJsonToRows,
+  toRecord,
+  toTsv,
+  toJson
+} from "jsr:@j50n/proc@{{gitv}}/transforms";
+</code></pre>
+<p><strong>Why separate?</strong></p>
+<ul>
+<li><strong>Smaller bundles</strong>: Core library users don’t import unused transform code</li>
+<li><strong>Clear separation</strong>: Process management vs data format conversions</li>
+<li><strong>Optional feature</strong>: Powerful but not required for basic usage</li>
+</ul>
 <h2 id="quick-start-1"><a class="header" href="#quick-start-1">Quick Start</a></h2>
 <pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
 import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
@@ -9296,6 +9354,16 @@ data, with error handling that actually makes sense.</p>
 <li>Process pipelines that feel like shell pipes</li>
 <li>Streaming by default</li>
 </ul>
+<h3 id="how-do-i-import-data-transforms-csv-tsv-json"><a class="header" href="#how-do-i-import-data-transforms-csv-tsv-json">How do I import data transforms (CSV, TSV, JSON)?</a></h3>
+<p>Data transforms are in a <strong>separate module</strong> from the core library:</p>
+<pre><code class="language-typescript">// Core library
+import { enumerate, read, run } from "jsr:@j50n/proc@{{gitv}}";
+
+// Data transforms (separate import)
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+</code></pre>
+<p>This keeps the core library lightweight. See
+<a href="data-transforms/README.html">Data Transforms</a> for details.</p>
 <h3 id="is-proc-production-ready"><a class="header" href="#is-proc-production-ready">Is proc production-ready?</a></h3>
 <p>Yes! proc is stable, actively maintained, and used in production. The API is
 mature and unlikely to have breaking changes.</p>

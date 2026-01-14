@@ -18,6 +18,21 @@ Deno.Command is low-level and requires manual stream handling. proc gives you:
 - Process pipelines that feel like shell pipes
 - Streaming by default
 
+### How do I import data transforms (CSV, TSV, JSON)?
+
+Data transforms are in a **separate module** from the core library:
+
+```typescript
+// Core library
+import { enumerate, read, run } from "jsr:@j50n/proc@{{gitv}}";
+
+// Data transforms (separate import)
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+```
+
+This keeps the core library lightweight. See
+[Data Transforms](./data-transforms/README.md) for details.
+
 ### Is proc production-ready?
 
 Yes! proc is stable, actively maintained, and used in production. The API is

@@ -116,6 +116,24 @@ commits.forEach(commit => console.log(commit));
 
 This chains multiple operations, all streaming, using minimal memory. For more complex examples, see [Recipes](../recipes/counting-words.md).
 
+## Data Transforms (Optional)
+
+Need to work with CSV, TSV, JSON, or Record formats? Import the transforms module:
+
+<!-- NOT TESTED: Illustrative example -->
+```typescript
+import { read } from "jsr:@j50n/proc@{{gitv}}";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+// Convert CSV to TSV
+await read("data.csv")
+  .transform(fromCsvToRows())
+  .transform(toTsv())
+  .writeTo("data.tsv");
+```
+
+The transforms module is **separate from the core library** to keep your bundle lightweight. See [Data Transforms](../data-transforms/README.md) for details.
+
 ## What's Next?
 
 Now that you've got the basics, learn about:

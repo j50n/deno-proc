@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7606117d.js";
+            window.path_to_searchindex_js = "searchindex-7a896ede.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-c66c9043.js"></script>
@@ -193,6 +193,16 @@ data, with error handling that actually makes sense.</p>
 <li>Process pipelines that feel like shell pipes</li>
 <li>Streaming by default</li>
 </ul>
+<h3 id="how-do-i-import-data-transforms-csv-tsv-json"><a class="header" href="#how-do-i-import-data-transforms-csv-tsv-json">How do I import data transforms (CSV, TSV, JSON)?</a></h3>
+<p>Data transforms are in a <strong>separate module</strong> from the core library:</p>
+<pre><code class="language-typescript">// Core library
+import { enumerate, read, run } from "jsr:@j50n/proc@{{gitv}}";
+
+// Data transforms (separate import)
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+</code></pre>
+<p>This keeps the core library lightweight. See
+<a href="./data-transforms/README.html">Data Transforms</a> for details.</p>
 <h3 id="is-proc-production-ready"><a class="header" href="#is-proc-production-ready">Is proc production-ready?</a></h3>
 <p>Yes! proc is stable, actively maintained, and used in production. The API is
 mature and unlikely to have breaking changes.</p>

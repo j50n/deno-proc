@@ -24,6 +24,10 @@ callbacks. One try-catch at the end handles everything.
 > **🚀 Need speed?** Check out [flatdata](./utilities/flatdata.md)—a
 > WASM-powered CLI for CSV/TSV processing at ~330 MB/s (7x faster than pure JS).
 
+> **📦 Optional Features**: The [data transforms](./data-transforms/README.md)
+> module (CSV, TSV, JSON, Record) is separate from the core library. Import it
+> with `/transforms` when needed to keep your bundle lightweight.
+
 ## A Taste of proc
 
 Count lines in a compressed file—streaming, no temp files:

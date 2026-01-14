@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7606117d.js";
+            window.path_to_searchindex_js = "../searchindex-7a896ede.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-c66c9043.js"></script>
@@ -265,6 +265,19 @@ const commits = await run("git", "log", "--oneline")
 commits.forEach(commit =&gt; console.log(commit));
 </code></pre>
 <p>This chains multiple operations, all streaming, using minimal memory. For more complex examples, see <a href="../recipes/counting-words.html">Recipes</a>.</p>
+<h2 id="data-transforms-optional"><a class="header" href="#data-transforms-optional">Data Transforms (Optional)</a></h2>
+<p>Need to work with CSV, TSV, JSON, or Record formats? Import the transforms module:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+// Convert CSV to TSV
+await read("data.csv")
+  .transform(fromCsvToRows())
+  .transform(toTsv())
+  .writeTo("data.tsv");
+</code></pre>
+<p>The transforms module is <strong>separate from the core library</strong> to keep your bundle lightweight. See <a href="../data-transforms/README.html">Data Transforms</a> for details.</p>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next?</a></h2>
 <p>Now that you’ve got the basics, learn about:</p>
 <ul>

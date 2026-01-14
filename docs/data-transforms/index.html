@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7606117d.js";
+            window.path_to_searchindex_js = "../searchindex-7a896ede.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-c66c9043.js"></script>
@@ -183,8 +183,32 @@
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>The data transforms module provides powerful functions to convert between common data formats like CSV, TSV, JSON, and Record format. All transforms are designed for <strong>streaming large datasets</strong> without loading everything into memory.</p>
 <blockquote>
+<p><strong>📦 Separate Import</strong>: Data transforms are in a separate module from the core library. Import with <code>jsr:@j50n/proc@{{gitv}}/transforms</code> to keep your main bundle lightweight.</p>
+</blockquote>
+<blockquote>
 <p><strong>💡 For maximum performance</strong>, use the <a href="../utilities/flatdata.html">flatdata CLI</a> to offload CSV parsing to a WASM-powered subprocess. This achieves ~330 MB/s throughput—about 7x faster than pure JavaScript transforms.</p>
 </blockquote>
+<h2 id="import"><a class="header" href="#import">Import</a></h2>
+<p>Data transforms are <strong>not included in the main <code>@j50n/proc</code> import</strong>. This keeps the core library lightweight for users who only need process management.</p>
+<pre><code class="language-typescript">// Core library - process management and async iterables
+import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+
+// Data transforms - CSV, TSV, JSON, Record conversions
+import { 
+  fromCsvToRows, 
+  fromTsvToRows,
+  fromJsonToRows,
+  toRecord,
+  toTsv,
+  toJson
+} from "jsr:@j50n/proc@{{gitv}}/transforms";
+</code></pre>
+<p><strong>Why separate?</strong></p>
+<ul>
+<li><strong>Smaller bundles</strong>: Core library users don’t import unused transform code</li>
+<li><strong>Clear separation</strong>: Process management vs data format conversions</li>
+<li><strong>Optional feature</strong>: Powerful but not required for basic usage</li>
+</ul>
 <h2 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h2>
 <pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
 import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7606117d.js";
+            window.path_to_searchindex_js = "../searchindex-7a896ede.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-c66c9043.js"></script>
@@ -190,6 +190,22 @@
 <pre><code class="language-typescript">import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
 </code></pre>
 <p>That’s it! No installation step, no package.json, no node_modules.</p>
+<h2 id="data-transforms-optional"><a class="header" href="#data-transforms-optional">Data Transforms (Optional)</a></h2>
+<p>The data transforms module is <strong>separate from the core library</strong> to keep the main import lightweight. Import it when you need CSV, TSV, JSON, or Record format conversions:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Core library - process management and async iterables
+import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+
+// Data transforms - CSV, TSV, JSON, Record conversions
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+</code></pre>
+<p><strong>Why separate?</strong></p>
+<ul>
+<li><strong>Smaller bundles</strong>: Users who only need process management don’t import transform code</li>
+<li><strong>Clear separation</strong>: Core library vs specialized data format conversions</li>
+<li><strong>Optional feature</strong>: Transforms are powerful but not required for basic usage</li>
+</ul>
+<p>See the <a href="../data-transforms/README.html">Data Transforms</a> guide for details.</p>
 <h2 id="permissions"><a class="header" href="#permissions">Permissions</a></h2>
 <p>proc needs permissions to run child processes and access files. When you run your script, Deno will prompt you, or you can grant them upfront:</p>
 <pre><code class="language-bash">deno run --allow-run --allow-read your-script.ts
