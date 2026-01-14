@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
+            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -180,6 +180,9 @@
                     <main>
                         <h1 id="record-format"><a class="header" href="#record-format">Record Format</a></h1>
 <p>High-performance binary-safe format using ASCII control characters for maximum throughput.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: Record format transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+</blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>Record format is designed for <strong>maximum performance</strong> in data processing pipelines. It uses ASCII control characters (Record Separator and Field Separator) to achieve reliable parsing while supporting any UTF-8 content in field values, including tabs and newlines.</p>
 <h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>

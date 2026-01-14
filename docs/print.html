@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5e8f8e62.js";
+            window.path_to_searchindex_js = "searchindex-0b2c0953.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9208c6f.js"></script>
@@ -2891,6 +2891,9 @@ const matches = await enumerate(data)
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="data-transforms"><a class="header" href="#data-transforms">Data Transforms</a></h1>
 <p>Transform structured data between formats with streaming support and high performance.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental API (v0.24.0+)</strong>: Data transforms are new and under active development. While tests pass and performance is reasonable, expect API changes and edge cases as we improve correctness and streaming performance. Production use should include thorough testing of your specific data patterns.</p>
+</blockquote>
 <h2 id="choosing-your-approach"><a class="header" href="#choosing-your-approach">Choosing Your Approach</a></h2>
 <p>proc offers several ways to process data. Here’s how to choose:</p>
 <div class="table-wrapper">
@@ -3118,6 +3121,9 @@ const allRows = await read("huge-dataset.csv")
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="csv-transforms"><a class="header" href="#csv-transforms">CSV Transforms</a></h1>
 <p>Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance and LazyRow optimization.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: CSV transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+</blockquote>
 <blockquote>
 <p><strong>⚡ Need more speed?</strong> Use <code>fromCsvToRowsFast()</code> for ~10x better performance. It uses the same WASM parser as flatdata CLI. See <a href="#fast-csv-parsing-wasm">Fast CSV Parsing</a> below.</p>
 </blockquote>
@@ -3495,6 +3501,9 @@ const lazyRows = await read("large-file.csv")
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="tsv-transforms"><a class="header" href="#tsv-transforms">TSV Transforms</a></h1>
 <p>Fast, simple tab-separated value processing with excellent performance characteristics.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: TSV transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+</blockquote>
 <h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
 <p>TSV (Tab-Separated Values) provides a good balance between human readability and processing speed. With no complex quoting rules like CSV, TSV parsing is significantly faster while remaining easy to read and edit.</p>
 <h2 id="performance-characteristics-2"><a class="header" href="#performance-characteristics-2">Performance Characteristics</a></h2>
@@ -3882,6 +3891,9 @@ if (errors.length &gt; 0) {
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="json-transforms"><a class="header" href="#json-transforms">JSON Transforms</a></h1>
 <p>Process JSON Lines (JSONL) format with full object structure support and optional schema validation.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: JSON transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+</blockquote>
 <h2 id="overview-3"><a class="header" href="#overview-3">Overview</a></h2>
 <p>JSON transforms handle <strong>JSON Lines</strong> format - one complete JSON value per line. Unlike other formats, JSON preserves full object structure including nested objects, arrays, and all JSON data types. This makes it ideal for APIs, configuration data, and complex structured information.</p>
 <h2 id="performance-characteristics-3"><a class="header" href="#performance-characteristics-3">Performance Characteristics</a></h2>
@@ -4355,6 +4367,9 @@ await read("users.jsonl")
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="record-format"><a class="header" href="#record-format">Record Format</a></h1>
 <p>High-performance binary-safe format using ASCII control characters for maximum throughput.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: Record format transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+</blockquote>
 <h2 id="overview-4"><a class="header" href="#overview-4">Overview</a></h2>
 <p>Record format is designed for <strong>maximum performance</strong> in data processing pipelines. It uses ASCII control characters (Record Separator and Field Separator) to achieve reliable parsing while supporting any UTF-8 content in field values, including tabs and newlines.</p>
 <h2 id="performance-characteristics-4"><a class="header" href="#performance-characteristics-4">Performance Characteristics</a></h2>
@@ -4830,6 +4845,9 @@ if (errors.length &gt; 0) {
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="lazyrow-guide"><a class="header" href="#lazyrow-guide">LazyRow Guide</a></h1>
 <p>Optimized read-only data access with lazy evaluation and caching for maximum performance.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: LazyRow is under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+</blockquote>
 <h2 id="overview-5"><a class="header" href="#overview-5">Overview</a></h2>
 <p>LazyRow is a high-performance data structure designed for efficient field access in tabular data. It uses <strong>lazy evaluation</strong> and <strong>caching</strong> to minimize parsing overhead while providing a clean, simple API.</p>
 <h2 id="key-benefits-1"><a class="header" href="#key-benefits-1">Key Benefits</a></h2>
@@ -5221,6 +5239,9 @@ await read("users.csv")
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="performance-guide"><a class="header" href="#performance-guide">Performance Guide</a></h1>
 <p>Comprehensive benchmarks, optimization strategies, and format selection guidance for data transforms.</p>
+<blockquote>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: Data transforms are under active development. Performance numbers reflect current implementation but may change. API stability is not guaranteed as we improve correctness and streaming performance.</p>
+</blockquote>
 <h2 id="performance-overview"><a class="header" href="#performance-overview">Performance Overview</a></h2>
 <p>All performance data is based on comprehensive benchmarks across multiple dataset sizes and configurations. Tests include realistic data with special characters (café, naïve, 🚀, 東京, москва) to ensure real-world applicability.</p>
 <h2 id="format-performance-comparison"><a class="header" href="#format-performance-comparison">Format Performance Comparison</a></h2>
