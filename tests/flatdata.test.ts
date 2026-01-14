@@ -565,3 +565,171 @@ Deno.test("large input: tsv2record preserves all data", async () => {
   const back = await run(["record2tsv"], record);
   assertEquals(back, tsv);
 });
+
+// =============================================================================
+// Pathological Data Tests (1MB+ fields)
+// =============================================================================
+
+import { enumerate } from "../mod.ts";
+
+/** Generate random alphanumeric string of given length */
+function randomString(len: number): string {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const result = new Array<string>(len);
+  const chunkSize = 65536;
+  let pos = 0;
+  while (pos < len) {
+    const size = Math.min(chunkSize, len - pos);
+    const arr = new Uint8Array(size);
+    crypto.getRandomValues(arr);
+    for (let j = 0; j < size; j++) {
+      result[pos++] = chars[arr[j] % chars.length];
+    }
+  }
+  return result.join("");
+}
+
+const HUGE_FIELD = randomString(1_000_000);
+
+// Helper to collect raw bytes from a stream
+async function collectBytes(
+  stream: AsyncIterable<Uint8Array>,
+): Promise<string> {
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  const total = chunks.reduce((a, b) => a + b.length, 0);
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return new TextDecoder().decode(result);
+}
+
+Deno.test("pathological: csv2record with 1MB field", async () => {
+  const csv = `small,${HUGE_FIELD},end\n`;
+  const result = await collectBytes(
+    enumerate([new TextEncoder().encode(csv)])
+      .run("deno", "run", "--allow-read", FLATDATA, "csv2record"),
+  );
+  assertEquals(result, `small\x1F${HUGE_FIELD}\x1Fend\x1E`);
+});
+
+Deno.test("pathological: csv2tsv with 1MB field", async () => {
+  const csv = `small,${HUGE_FIELD},end\n`;
+  const lines = await enumerate([new TextEncoder().encode(csv)])
+    .run("deno", "run", "--allow-read", FLATDATA, "csv2tsv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", `small\t${HUGE_FIELD}\tend\n`);
+});
+
+Deno.test("pathological: csv2lazyrow round-trip with 1MB field", async () => {
+  const csv = `small,${HUGE_FIELD},end\n`;
+  const lines = await enumerate([new TextEncoder().encode(csv)])
+    .run("deno", "run", "--allow-read", FLATDATA, "csv2lazyrow")
+    .run("deno", "run", "--allow-read", FLATDATA, "lazyrow2csv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", csv);
+});
+
+Deno.test("pathological: tsv2record with 1MB field", async () => {
+  const tsv = `small\t${HUGE_FIELD}\tend\n`;
+  const result = await collectBytes(
+    enumerate([new TextEncoder().encode(tsv)])
+      .run("deno", "run", "--allow-read", FLATDATA, "tsv2record"),
+  );
+  assertEquals(result, `small\x1F${HUGE_FIELD}\x1Fend\x1E`);
+});
+
+Deno.test("pathological: tsv2csv with 1MB field", async () => {
+  const tsv = `small\t${HUGE_FIELD}\tend\n`;
+  const lines = await enumerate([new TextEncoder().encode(tsv)])
+    .run("deno", "run", "--allow-read", FLATDATA, "tsv2csv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", `small,${HUGE_FIELD},end\n`);
+});
+
+Deno.test("pathological: tsv2lazyrow round-trip with 1MB field", async () => {
+  const tsv = `small\t${HUGE_FIELD}\tend\n`;
+  const lines = await enumerate([new TextEncoder().encode(tsv)])
+    .run("deno", "run", "--allow-read", FLATDATA, "tsv2lazyrow")
+    .run("deno", "run", "--allow-read", FLATDATA, "lazyrow2tsv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", tsv);
+});
+
+Deno.test("pathological: record2csv with 1MB field", async () => {
+  const record = `small\x1F${HUGE_FIELD}\x1Fend\x1E`;
+  const lines = await enumerate([new TextEncoder().encode(record)])
+    .run("deno", "run", "--allow-read", FLATDATA, "record2csv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", `small,${HUGE_FIELD},end\n`);
+});
+
+Deno.test("pathological: record2tsv with 1MB field", async () => {
+  const record = `small\x1F${HUGE_FIELD}\x1Fend\x1E`;
+  const lines = await enumerate([new TextEncoder().encode(record)])
+    .run("deno", "run", "--allow-read", FLATDATA, "record2tsv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", `small\t${HUGE_FIELD}\tend\n`);
+});
+
+Deno.test("pathological: record2lazyrow round-trip with 1MB field", async () => {
+  const record = `small\x1F${HUGE_FIELD}\x1Fend\x1E`;
+  const result = await collectBytes(
+    enumerate([new TextEncoder().encode(record)])
+      .run("deno", "run", "--allow-read", FLATDATA, "record2lazyrow")
+      .run("deno", "run", "--allow-read", FLATDATA, "lazyrow2record"),
+  );
+  assertEquals(result, record);
+});
+
+Deno.test("pathological: lazyrow2csv with 1MB field", async () => {
+  const csv = `small,${HUGE_FIELD},end\n`;
+  const lines = await enumerate([new TextEncoder().encode(csv)])
+    .run("deno", "run", "--allow-read", FLATDATA, "csv2lazyrow")
+    .run("deno", "run", "--allow-read", FLATDATA, "lazyrow2csv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", csv);
+});
+
+Deno.test("pathological: lazyrow2tsv with 1MB field", async () => {
+  const tsv = `small\t${HUGE_FIELD}\tend\n`;
+  const lines = await enumerate([new TextEncoder().encode(tsv)])
+    .run("deno", "run", "--allow-read", FLATDATA, "tsv2lazyrow")
+    .run("deno", "run", "--allow-read", FLATDATA, "lazyrow2tsv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", tsv);
+});
+
+Deno.test("pathological: lazyrow2record with 1MB field", async () => {
+  const record = `small\x1F${HUGE_FIELD}\x1Fend\x1E`;
+  const result = await collectBytes(
+    enumerate([new TextEncoder().encode(record)])
+      .run("deno", "run", "--allow-read", FLATDATA, "record2lazyrow")
+      .run("deno", "run", "--allow-read", FLATDATA, "lazyrow2record"),
+  );
+  assertEquals(result, record);
+});
+
+Deno.test("pathological: multiple 1MB fields in one row", async () => {
+  const huge1 = randomString(1_000_000);
+  const huge2 = randomString(1_000_000);
+  const csv = `${huge1},${huge2}\n`;
+  const result = await collectBytes(
+    enumerate([new TextEncoder().encode(csv)])
+      .run("deno", "run", "--allow-read", FLATDATA, "csv2record"),
+  );
+  assertEquals(result, `${huge1}\x1F${huge2}\x1E`);
+});
+
+Deno.test("pathological: 1MB field with normal rows before and after", async () => {
+  const csv = `a,b,c\n${HUGE_FIELD},small,end\nx,y,z\n`;
+  const lines = await enumerate([new TextEncoder().encode(csv)])
+    .run("deno", "run", "--allow-read", FLATDATA, "csv2record")
+    .run("deno", "run", "--allow-read", FLATDATA, "record2csv")
+    .lines.collect();
+  assertEquals(lines.join("\n") + "\n", csv);
+});

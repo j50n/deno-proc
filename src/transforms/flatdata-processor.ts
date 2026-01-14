@@ -91,6 +91,9 @@ interface WasmExports {
   /** Allocate output buffer for data transfer from WASM */
   alloc_output_buffer: (size: number) => number;
   
+  /** Get current output buffer pointer (may change after auto-grow) */
+  get_output_buffer: () => number;
+  
   /** Create a direct parser instance (outputs directly to buffer) */
   create_direct_parser: (separator: number, strict: number) => number;
   
@@ -159,6 +162,9 @@ interface WasmExports {
   
   /** Encode record format directly to lazyrow binary */
   record_to_lazyrow: (len: number) => number;
+  
+  /** Check if last operation was truncated due to buffer size */
+  was_truncated: () => number;
 }
 
 /**
@@ -252,19 +258,19 @@ function createOdinRuntime(memory: WebAssembly.Memory): WebAssembly.Imports {
  * ```
  */
 export class FlatdataProcessor {
-  /** Input buffer size: 64KB for reading CSV chunks */
-  private static readonly INPUT_BUFFER_SIZE = 64 * 1024;
+  /** Input buffer size (also used as chunk size) */
+  private static readonly DEFAULT_INPUT_SIZE = 64 * 1024;
   
-  /** Output buffer size: 128KB for parsed output (2x input for worst case) */
-  private static readonly OUTPUT_BUFFER_SIZE = 128 * 1024;
+  /** Initial output buffer size (grows automatically) */
+  private static readonly DEFAULT_OUTPUT_SIZE = 128 * 1024;
   
-  /** Chunk size for processing: matches input buffer */
+  /** Chunk size for processing */
   private static readonly CHUNK_SIZE = 64 * 1024;
 
   private exports: WasmExports;
   private memory: WebAssembly.Memory;
   private inputPtr = 0;
-  private outputPtr = 0;
+  private inputSize = FlatdataProcessor.DEFAULT_INPUT_SIZE;
 
   private constructor(exports: WasmExports, memory: WebAssembly.Memory) {
     this.exports = exports;
@@ -303,8 +309,25 @@ export class FlatdataProcessor {
    * Called automatically during initialization.
    */
   private allocateBuffers(): void {
-    this.inputPtr = this.exports.alloc_input_buffer(FlatdataProcessor.INPUT_BUFFER_SIZE);
-    this.outputPtr = this.exports.alloc_output_buffer(FlatdataProcessor.OUTPUT_BUFFER_SIZE);
+    this.inputPtr = this.exports.alloc_input_buffer(this.inputSize);
+    this.exports.alloc_output_buffer(FlatdataProcessor.DEFAULT_OUTPUT_SIZE);
+  }
+
+  /**
+   * Get current output buffer pointer (may change after WASM auto-grows it).
+   */
+  private getOutputPtr(): number {
+    return this.exports.get_output_buffer();
+  }
+
+  /**
+   * Ensure input buffer is large enough for the given size.
+   */
+  private ensureInputBuffer(size: number): void {
+    if (size > this.inputSize) {
+      this.inputSize = size;
+      this.inputPtr = this.exports.alloc_input_buffer(size);
+    }
   }
 
   // =============================================================================
@@ -361,15 +384,17 @@ export class FlatdataProcessor {
           new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
 
           const outLen = this.exports.parse_direct(parserId, slice.length);
+          if (outLen < 0) throw new Error("WASM memory allocation failed");
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen));
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen));
           }
         }
       }
 
       const finalLen = this.exports.finish_direct(parserId);
+      if (finalLen < 0) throw new Error("WASM memory allocation failed");
       if (finalLen > 0) {
-        await write(new Uint8Array(this.memory.buffer, this.outputPtr, finalLen));
+        await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen));
       }
     } finally {
       this.exports.destroy_direct_parser(parserId);
@@ -407,14 +432,14 @@ export class FlatdataProcessor {
 
           const outLen = this.exports.parse_direct(parserId, slice.length);
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen));
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen));
           }
         }
       }
 
       const finalLen = this.exports.finish_direct(parserId);
       if (finalLen > 0) {
-        await write(new Uint8Array(this.memory.buffer, this.outputPtr, finalLen));
+        await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen));
       }
     } finally {
       this.exports.destroy_direct_parser(parserId);
@@ -452,14 +477,14 @@ export class FlatdataProcessor {
 
           const outLen = this.exports.parse_direct(parserId, slice.length);
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen));
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen));
           }
         }
       }
 
       const finalLen = this.exports.finish_direct(parserId);
       if (finalLen > 0) {
-        await write(new Uint8Array(this.memory.buffer, this.outputPtr, finalLen));
+        await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen));
       }
     } finally {
       this.exports.destroy_direct_parser(parserId);
@@ -559,7 +584,7 @@ export class FlatdataProcessor {
 
           const outLen = this.exports.get_stringify_output(stringifierId);
           if (outLen > 0) {
-            const output = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
+            const output = new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen);
             await write(output.slice());
             this.exports.clear_stringify_output(stringifierId);
           }
@@ -568,7 +593,7 @@ export class FlatdataProcessor {
 
       const outLen = this.exports.get_stringify_output(stringifierId);
       if (outLen > 0) {
-        const output = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
+        const output = new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen);
         await write(output.slice());
       }
     } finally {
@@ -635,14 +660,14 @@ export class FlatdataProcessor {
 
           const outLen = this.exports.parse_to_lazyrow(parserId, slice.length);
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
           }
         }
       }
 
       const finalLen = this.exports.finish_lazyrow_direct(parserId);
       if (finalLen > 0) {
-        await write(new Uint8Array(this.memory.buffer, this.outputPtr, finalLen).slice());
+        await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen).slice());
       }
     } finally {
       this.exports.destroy_lazyrow_direct_parser(parserId);
@@ -680,7 +705,26 @@ export class FlatdataProcessor {
     const stringifierId = this.exports.create_delimited_stringifier(separator, 0, quoteAll ? 1 : 0, 0);
     const reader = input.getReader();
     let buffer = new Uint8Array(0);
-    const MAX_BUFFER = 200000; // Stay under 262144 input buffer size
+
+    const processRows = async (data: Uint8Array): Promise<void> => {
+      this.ensureInputBuffer(data.length);
+      new Uint8Array(this.memory.buffer, this.inputPtr, data.length).set(data);
+      const recordLen = this.exports.lazyrow_decode(decoderId, data.length);
+      
+      if (recordLen > 0) {
+        this.ensureInputBuffer(recordLen);
+        const recordData = new Uint8Array(this.memory.buffer, this.getOutputPtr(), recordLen);
+        new Uint8Array(this.memory.buffer, this.inputPtr, recordLen).set(recordData);
+        
+        this.exports.stringify_delimited(stringifierId, recordLen);
+        
+        const outLen = this.exports.get_stringify_output(stringifierId);
+        if (outLen > 0) {
+          await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
+          this.exports.clear_stringify_output(stringifierId);
+        }
+      }
+    };
 
     try {
       while (true) {
@@ -693,81 +737,35 @@ export class FlatdataProcessor {
         newBuf.set(value, buffer.length);
         buffer = newBuf;
 
-        // Process when we have enough data or need to avoid overflow
-        while (buffer.length >= MAX_BUFFER) {
-          // Find how many complete rows we can process
-          let processLen = 0;
-          let i = 0;
-          while (i + 4 <= buffer.length && processLen < MAX_BUFFER) {
-            const view = new DataView(buffer.buffer, buffer.byteOffset + i);
-            const rowLength = view.getUint32(0, true);
-            if (i + 4 + rowLength > buffer.length) break;
-            processLen = i + 4 + rowLength;
-            i = processLen;
-          }
+        // Process complete rows
+        while (buffer.length >= 4) {
+          const view = new DataView(buffer.buffer, buffer.byteOffset);
+          const rowLength = view.getUint32(0, true);
+          const totalRowSize = 4 + rowLength;
           
-          if (processLen === 0) break; // No complete rows
+          if (totalRowSize > buffer.length) break; // Incomplete row
           
-          // Process batch of rows
-          const batchData = buffer.subarray(0, processLen);
-          new Uint8Array(this.memory.buffer, this.inputPtr, batchData.length).set(batchData);
-          const recordLen = this.exports.lazyrow_decode(decoderId, batchData.length);
-          
-          if (recordLen > 0) {
-            // Copy decoder output to input buffer for stringifier
-            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, recordLen);
-            new Uint8Array(this.memory.buffer, this.inputPtr, recordLen).set(recordData);
-            
-            // Stringify record format to CSV
-            this.exports.stringify_delimited(stringifierId, recordLen);
-            
-            const outLen = this.exports.get_stringify_output(stringifierId);
-            if (outLen > 0) {
-              await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
-              this.exports.clear_stringify_output(stringifierId);
-            }
-          }
-          
-          buffer = buffer.subarray(processLen);
+          await processRows(buffer.subarray(0, totalRowSize));
+          buffer = buffer.subarray(totalRowSize);
         }
       }
       
       // Process remaining complete rows
-      if (buffer.length >= 4) {
-        let processLen = 0;
-        let i = 0;
-        while (i + 4 <= buffer.length) {
-          const view = new DataView(buffer.buffer, buffer.byteOffset + i);
-          const rowLength = view.getUint32(0, true);
-          if (i + 4 + rowLength > buffer.length) break;
-          processLen = i + 4 + rowLength;
-          i = processLen;
-        }
+      while (buffer.length >= 4) {
+        const view = new DataView(buffer.buffer, buffer.byteOffset);
+        const rowLength = view.getUint32(0, true);
+        const totalRowSize = 4 + rowLength;
         
-        if (processLen > 0) {
-          const batchData = buffer.subarray(0, processLen);
-          new Uint8Array(this.memory.buffer, this.inputPtr, batchData.length).set(batchData);
-          const recordLen = this.exports.lazyrow_decode(decoderId, batchData.length);
-          
-          if (recordLen > 0) {
-            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, recordLen);
-            new Uint8Array(this.memory.buffer, this.inputPtr, recordLen).set(recordData);
-            
-            this.exports.stringify_delimited(stringifierId, recordLen);
-            
-            const outLen = this.exports.get_stringify_output(stringifierId);
-            if (outLen > 0) {
-              await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
-              this.exports.clear_stringify_output(stringifierId);
-            }
-          }
-        }
+        if (totalRowSize > buffer.length) break;
+        
+        await processRows(buffer.subarray(0, totalRowSize));
+        buffer = buffer.subarray(totalRowSize);
       }
 
       // Flush any remaining output
       const outLen = this.exports.get_stringify_output(stringifierId);
       if (outLen > 0) {
-        await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+        await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
       }
     } finally {
       this.exports.destroy_lazyrow_decoder(decoderId);
@@ -805,19 +803,61 @@ export class FlatdataProcessor {
     write: Writer,
   ): Promise<void> {
     const reader = input.getReader();
+    let buffer = new Uint8Array(0);
+    const RECORD_SEP = 0x1E;
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        for (let off = 0; off < value.length; off += FlatdataProcessor.CHUNK_SIZE) {
-          const slice = value.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length));
-          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+        // Accumulate data
+        const newBuf = new Uint8Array(buffer.length + value.length);
+        newBuf.set(buffer);
+        newBuf.set(value, buffer.length);
+        buffer = newBuf;
 
-          const outLen = this.exports.record_to_lazyrow(slice.length);
+        // Find last complete record (ends with \x1E)
+        let lastRecordEnd = -1;
+        for (let i = buffer.length - 1; i >= 0; i--) {
+          if (buffer[i] === RECORD_SEP) {
+            lastRecordEnd = i;
+            break;
+          }
+        }
+
+        if (lastRecordEnd >= 0) {
+          const completeData = buffer.subarray(0, lastRecordEnd + 1);
+          this.ensureInputBuffer(completeData.length);
+          new Uint8Array(this.memory.buffer, this.inputPtr, completeData.length).set(completeData);
+
+          const outLen = this.exports.record_to_lazyrow(completeData.length);
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
+          }
+
+          buffer = buffer.subarray(lastRecordEnd + 1);
+        }
+      }
+
+      // Process any remaining complete records
+      if (buffer.length > 0) {
+        let lastRecordEnd = -1;
+        for (let i = buffer.length - 1; i >= 0; i--) {
+          if (buffer[i] === RECORD_SEP) {
+            lastRecordEnd = i;
+            break;
+          }
+        }
+
+        if (lastRecordEnd >= 0) {
+          const completeData = buffer.subarray(0, lastRecordEnd + 1);
+          this.ensureInputBuffer(completeData.length);
+          new Uint8Array(this.memory.buffer, this.inputPtr, completeData.length).set(completeData);
+
+          const outLen = this.exports.record_to_lazyrow(completeData.length);
+          if (outLen > 0) {
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
           }
         }
       }
@@ -841,46 +881,56 @@ export class FlatdataProcessor {
   ): Promise<void> {
     const decoderId = this.exports.create_lazyrow_decoder();
     const reader = input.getReader();
-    let leftover = new Uint8Array(0);
+    let buffer = new Uint8Array(0);
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Prepend any leftover from previous chunk
-        let data: Uint8Array;
-        if (leftover.length > 0) {
-          data = new Uint8Array(leftover.length + value.length);
-          data.set(leftover);
-          data.set(value, leftover.length);
-          leftover = new Uint8Array(0);
-        } else {
-          data = value;
-        }
+        // Accumulate data
+        const newBuf = new Uint8Array(buffer.length + value.length);
+        newBuf.set(buffer);
+        newBuf.set(value, buffer.length);
+        buffer = newBuf;
 
-        // Process in chunks
-        let off = 0;
-        while (off < data.length) {
-          const remaining = data.length - off;
-          const chunkSize = Math.min(remaining, FlatdataProcessor.CHUNK_SIZE);
-          const slice = data.subarray(off, off + chunkSize);
+        // Process complete rows
+        while (buffer.length >= 4) {
+          const view = new DataView(buffer.buffer, buffer.byteOffset);
+          const rowLength = view.getUint32(0, true);
+          const totalRowSize = 4 + rowLength;
           
-          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
-          const outLen = this.exports.lazyrow_decode(decoderId, slice.length);
+          if (totalRowSize > buffer.length) break; // Incomplete row
+          
+          this.ensureInputBuffer(totalRowSize);
+          new Uint8Array(this.memory.buffer, this.inputPtr, totalRowSize).set(buffer.subarray(0, totalRowSize));
+          const outLen = this.exports.lazyrow_decode(decoderId, totalRowSize);
           
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
           }
           
-          const consumed = this.exports.lazyrow_get_consumed(decoderId);
-          if (consumed < slice.length) {
-            // Partial row at end - save for next iteration
-            leftover = slice.subarray(consumed).slice();
-            break;
-          }
-          off += chunkSize;
+          buffer = buffer.subarray(totalRowSize);
         }
+      }
+      
+      // Process remaining complete rows
+      while (buffer.length >= 4) {
+        const view = new DataView(buffer.buffer, buffer.byteOffset);
+        const rowLength = view.getUint32(0, true);
+        const totalRowSize = 4 + rowLength;
+        
+        if (totalRowSize > buffer.length) break;
+        
+        this.ensureInputBuffer(totalRowSize);
+        new Uint8Array(this.memory.buffer, this.inputPtr, totalRowSize).set(buffer.subarray(0, totalRowSize));
+        const outLen = this.exports.lazyrow_decode(decoderId, totalRowSize);
+        
+        if (outLen > 0) {
+          await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
+        }
+        
+        buffer = buffer.subarray(totalRowSize);
       }
     } finally {
       this.exports.destroy_lazyrow_decoder(decoderId);
@@ -904,46 +954,56 @@ export class FlatdataProcessor {
   ): Promise<void> {
     const decoderId = this.exports.create_lazyrow_decoder();
     const reader = input.getReader();
-    let leftover = new Uint8Array(0);
+    let buffer = new Uint8Array(0);
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Prepend any leftover from previous chunk
-        let data: Uint8Array;
-        if (leftover.length > 0) {
-          data = new Uint8Array(leftover.length + value.length);
-          data.set(leftover);
-          data.set(value, leftover.length);
-          leftover = new Uint8Array(0);
-        } else {
-          data = value;
-        }
+        // Accumulate data
+        const newBuf = new Uint8Array(buffer.length + value.length);
+        newBuf.set(buffer);
+        newBuf.set(value, buffer.length);
+        buffer = newBuf;
 
-        // Process in chunks
-        let off = 0;
-        while (off < data.length) {
-          const remaining = data.length - off;
-          const chunkSize = Math.min(remaining, FlatdataProcessor.CHUNK_SIZE);
-          const slice = data.subarray(off, off + chunkSize);
+        // Process complete rows
+        while (buffer.length >= 4) {
+          const view = new DataView(buffer.buffer, buffer.byteOffset);
+          const rowLength = view.getUint32(0, true);
+          const totalRowSize = 4 + rowLength;
           
-          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
-          const outLen = this.exports.lazyrow_decode_delimited(decoderId, slice.length, separator, 0x0A);
+          if (totalRowSize > buffer.length) break; // Incomplete row
+          
+          this.ensureInputBuffer(totalRowSize);
+          new Uint8Array(this.memory.buffer, this.inputPtr, totalRowSize).set(buffer.subarray(0, totalRowSize));
+          const outLen = this.exports.lazyrow_decode_delimited(decoderId, totalRowSize, separator, 0x0A);
           
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+            await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
           }
           
-          const consumed = this.exports.lazyrow_get_consumed(decoderId);
-          if (consumed < slice.length) {
-            // Partial row at end - save for next iteration
-            leftover = slice.subarray(consumed).slice();
-            break;
-          }
-          off += chunkSize;
+          buffer = buffer.subarray(totalRowSize);
         }
+      }
+      
+      // Process remaining complete rows
+      while (buffer.length >= 4) {
+        const view = new DataView(buffer.buffer, buffer.byteOffset);
+        const rowLength = view.getUint32(0, true);
+        const totalRowSize = 4 + rowLength;
+        
+        if (totalRowSize > buffer.length) break;
+        
+        this.ensureInputBuffer(totalRowSize);
+        new Uint8Array(this.memory.buffer, this.inputPtr, totalRowSize).set(buffer.subarray(0, totalRowSize));
+        const outLen = this.exports.lazyrow_decode_delimited(decoderId, totalRowSize, separator, 0x0A);
+        
+        if (outLen > 0) {
+          await write(new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice());
+        }
+        
+        buffer = buffer.subarray(totalRowSize);
       }
     } finally {
       this.exports.destroy_lazyrow_decoder(decoderId);
