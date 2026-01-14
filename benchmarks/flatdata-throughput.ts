@@ -84,7 +84,7 @@ async function generateTestData() {
 
 // Benchmark a single conversion
 async function benchmarkConversion(
-  name: string,
+  _name: string,
   command: string,
   inputFile: string,
 ): Promise<{ throughput: number; time: number; size: number }> {
