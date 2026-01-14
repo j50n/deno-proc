@@ -986,3 +986,39 @@ lazyrow_decode :: proc "c" (id: i32, input_len: i32) -> i32 {
     
     return i32(out_len)
 }
+
+// Decode binary lazyrow format directly to delimited output.
+// Input: binary lazyrow in input buffer
+// Output: delimited text in output buffer (with custom separators)
+// Returns: number of bytes written to output buffer
+@(export)
+lazyrow_decode_delimited :: proc "c" (id: i32, input_len: i32, field_sep: i32, record_sep: i32) -> i32 {
+    context = runtime.default_context()
+    
+    d, ok := lazyrow_decoders[id]
+    if !ok do return 0
+    
+    input := slice.from_ptr(cast(^u8)input_buffer, int(input_len))
+    csv.lazyrow_decoder_reset(d)
+    csv.lazyrow_decode_delimited(d, input, u8(field_sep), u8(record_sep))
+    
+    // Copy to output buffer
+    out_len := min(len(d.output), output_capacity)
+    if out_len > 0 {
+        out := slice.from_ptr(cast(^u8)output_buffer, out_len)
+        copy(out, d.output[:out_len])
+    }
+    
+    return i32(out_len)
+}
+
+// Get how many input bytes were consumed by the last decode call
+@(export)
+lazyrow_get_consumed :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    d, ok := lazyrow_decoders[id]
+    if !ok do return 0
+    
+    return i32(d.consumed)
+}

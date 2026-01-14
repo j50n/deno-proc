@@ -138,6 +138,12 @@ interface WasmExports {
   
   /** Decode binary lazyrow to record format */
   lazyrow_decode: (id: number, len: number) => number;
+  
+  /** Decode binary lazyrow directly to delimited output */
+  lazyrow_decode_delimited: (id: number, len: number, fieldSep: number, recordSep: number) => number;
+  
+  /** Get how many input bytes were consumed by last decode */
+  lazyrow_get_consumed: (id: number) => number;
 }
 
 /**
@@ -825,18 +831,8 @@ export class FlatdataProcessor {
    * Reads binary lazyrow format and converts to record format (\x1F/\x1E delimited).
    * Handles partial rows across chunk boundaries.
    * 
-   * **Use case**: When you need to process binary lazyrow with tools expecting record format.
-   * 
-   * **Performance**: ~150-200 MB/s (pure format conversion)
-   * 
    * @param input - Readable stream of binary lazyrow bytes
    * @param write - Writer function for output chunks
-   * 
-   * @example
-   * ```ts
-   * const processor = await FlatdataProcessor.create();
-   * await processor.lazyRowBinaryToRecord(stream, write);
-   * ```
    */
   async lazyRowBinaryToRecord(
     input: ReadableStream<Uint8Array>,
@@ -844,68 +840,45 @@ export class FlatdataProcessor {
   ): Promise<void> {
     const decoderId = this.exports.create_lazyrow_decoder();
     const reader = input.getReader();
-    let buffer = new Uint8Array(0);
-    const MAX_BUFFER = 200000; // Stay under 262144 input buffer size
+    let leftover = new Uint8Array(0);
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Accumulate data
-        const newBuf = new Uint8Array(buffer.length + value.length);
-        newBuf.set(buffer);
-        newBuf.set(value, buffer.length);
-        buffer = newBuf;
+        // Prepend any leftover from previous chunk
+        let data: Uint8Array;
+        if (leftover.length > 0) {
+          data = new Uint8Array(leftover.length + value.length);
+          data.set(leftover);
+          data.set(value, leftover.length);
+          leftover = new Uint8Array(0);
+        } else {
+          data = value;
+        }
 
-        // Process when we have enough data or need to avoid overflow
-        while (buffer.length >= MAX_BUFFER) {
-          // Find how many complete rows we can process
-          let processLen = 0;
-          let i = 0;
-          while (i + 4 <= buffer.length && processLen < MAX_BUFFER) {
-            const view = new DataView(buffer.buffer, buffer.byteOffset + i);
-            const rowLength = view.getUint32(0, true);
-            if (i + 4 + rowLength > buffer.length) break;
-            processLen = i + 4 + rowLength;
-            i = processLen;
-          }
+        // Process in chunks
+        let off = 0;
+        while (off < data.length) {
+          const remaining = data.length - off;
+          const chunkSize = Math.min(remaining, FlatdataProcessor.CHUNK_SIZE);
+          const slice = data.subarray(off, off + chunkSize);
           
-          if (processLen === 0) break; // No complete rows
-          
-          // Process batch of rows
-          const batchData = buffer.subarray(0, processLen);
-          new Uint8Array(this.memory.buffer, this.inputPtr, batchData.length).set(batchData);
-          const outLen = this.exports.lazyrow_decode(decoderId, batchData.length);
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+          const outLen = this.exports.lazyrow_decode(decoderId, slice.length);
           
           if (outLen > 0) {
             await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
           }
           
-          buffer = buffer.subarray(processLen);
-        }
-      }
-      
-      // Process remaining complete rows
-      if (buffer.length >= 4) {
-        let processLen = 0;
-        let i = 0;
-        while (i + 4 <= buffer.length) {
-          const view = new DataView(buffer.buffer, buffer.byteOffset + i);
-          const rowLength = view.getUint32(0, true);
-          if (i + 4 + rowLength > buffer.length) break;
-          processLen = i + 4 + rowLength;
-          i = processLen;
-        }
-        
-        if (processLen > 0) {
-          const batchData = buffer.subarray(0, processLen);
-          new Uint8Array(this.memory.buffer, this.inputPtr, batchData.length).set(batchData);
-          const outLen = this.exports.lazyrow_decode(decoderId, batchData.length);
-          
-          if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+          const consumed = this.exports.lazyrow_get_consumed(decoderId);
+          if (consumed < slice.length) {
+            // Partial row at end - save for next iteration
+            leftover = slice.subarray(consumed).slice();
+            break;
           }
+          off += chunkSize;
         }
       }
     } finally {
@@ -915,10 +888,9 @@ export class FlatdataProcessor {
   }
 
   /**
-   * Convert binary lazyrow format to CSV/TSV (fast byte replacement).
+   * Convert binary lazyrow format to CSV/TSV.
    * 
-   * Decodes lazyrow to record format, then replaces delimiters.
-   * Much faster than using stringifier (no CSV quoting overhead).
+   * Direct WASM conversion - decodes lazyrow and outputs with target delimiters.
    * 
    * @param input - Readable stream of binary lazyrow bytes
    * @param write - Writer function for output chunks
@@ -931,91 +903,45 @@ export class FlatdataProcessor {
   ): Promise<void> {
     const decoderId = this.exports.create_lazyrow_decoder();
     const reader = input.getReader();
-    let buffer = new Uint8Array(0);
-    const MAX_BUFFER = 200000; // Stay under 262144 input buffer size
+    let leftover = new Uint8Array(0);
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Accumulate data
-        const newBuf = new Uint8Array(buffer.length + value.length);
-        newBuf.set(buffer);
-        newBuf.set(value, buffer.length);
-        buffer = newBuf;
+        // Prepend any leftover from previous chunk
+        let data: Uint8Array;
+        if (leftover.length > 0) {
+          data = new Uint8Array(leftover.length + value.length);
+          data.set(leftover);
+          data.set(value, leftover.length);
+          leftover = new Uint8Array(0);
+        } else {
+          data = value;
+        }
 
-        // Process when we have enough data or need to avoid overflow
-        while (buffer.length >= MAX_BUFFER) {
-          // Find how many complete rows we can process
-          let processLen = 0;
-          let i = 0;
-          while (i + 4 <= buffer.length && processLen < MAX_BUFFER) {
-            const view = new DataView(buffer.buffer, buffer.byteOffset + i);
-            const rowLength = view.getUint32(0, true);
-            if (i + 4 + rowLength > buffer.length) break;
-            processLen = i + 4 + rowLength;
-            i = processLen;
-          }
+        // Process in chunks
+        let off = 0;
+        while (off < data.length) {
+          const remaining = data.length - off;
+          const chunkSize = Math.min(remaining, FlatdataProcessor.CHUNK_SIZE);
+          const slice = data.subarray(off, off + chunkSize);
           
-          if (processLen === 0) break; // No complete rows
-          
-          // Process batch of rows
-          const batchData = buffer.subarray(0, processLen);
-          new Uint8Array(this.memory.buffer, this.inputPtr, batchData.length).set(batchData);
-          const outLen = this.exports.lazyrow_decode(decoderId, batchData.length);
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+          const outLen = this.exports.lazyrow_decode_delimited(decoderId, slice.length, separator, 0x0A);
           
           if (outLen > 0) {
-            // Replace delimiters: \x1F→separator, \x1E→\n
-            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
-            const output = new Uint8Array(outLen);
-            for (let i = 0; i < outLen; i++) {
-              if (recordData[i] === 0x1F) {
-                output[i] = separator;
-              } else if (recordData[i] === 0x1E) {
-                output[i] = 0x0A;
-              } else {
-                output[i] = recordData[i];
-              }
-            }
-            await write(output);
+            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
           }
           
-          buffer = buffer.subarray(processLen);
-        }
-      }
-      
-      // Process remaining complete rows
-      if (buffer.length >= 4) {
-        let processLen = 0;
-        let i = 0;
-        while (i + 4 <= buffer.length) {
-          const view = new DataView(buffer.buffer, buffer.byteOffset + i);
-          const rowLength = view.getUint32(0, true);
-          if (i + 4 + rowLength > buffer.length) break;
-          processLen = i + 4 + rowLength;
-          i = processLen;
-        }
-        
-        if (processLen > 0) {
-          const batchData = buffer.subarray(0, processLen);
-          new Uint8Array(this.memory.buffer, this.inputPtr, batchData.length).set(batchData);
-          const outLen = this.exports.lazyrow_decode(decoderId, batchData.length);
-          
-          if (outLen > 0) {
-            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
-            const output = new Uint8Array(outLen);
-            for (let i = 0; i < outLen; i++) {
-              if (recordData[i] === 0x1F) {
-                output[i] = separator;
-              } else if (recordData[i] === 0x1E) {
-                output[i] = 0x0A;
-              } else {
-                output[i] = recordData[i];
-              }
-            }
-            await write(output);
+          const consumed = this.exports.lazyrow_get_consumed(decoderId);
+          if (consumed < slice.length) {
+            // Partial row at end - save for next iteration
+            leftover = slice.subarray(consumed).slice();
+            break;
           }
+          off += chunkSize;
         }
       }
     } finally {
