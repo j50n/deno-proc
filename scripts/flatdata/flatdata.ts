@@ -155,16 +155,15 @@ const tsv2csv = new Command()
 const record2csv = new Command()
   .description("Convert record format to CSV")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
-  .option("-q, --quote-all", "Quote all fields, not just those requiring it")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "flatdata record2csv < data.rec > data.csv")
   .example("Pipeline", "cat huge.csv | flatdata csv2record | process | flatdata record2csv")
-  .action(async ({ separator, quoteAll, input, output }) => {
+  .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await processor.recordToCsv(stream, write, separator!.charCodeAt(0), quoteAll ?? false);
+    await processor.recordToDelimited(stream, write, separator!.charCodeAt(0));
     close();
   });
 
@@ -177,7 +176,7 @@ const record2tsv = new Command()
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await processor.recordToCsv(stream, write, 9, false);
+    await processor.recordToDelimited(stream, write, 9);
     close();
   });
 
