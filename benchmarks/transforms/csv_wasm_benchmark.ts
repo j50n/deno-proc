@@ -1,21 +1,31 @@
 import { enumerate } from "../../src/enumerable.ts";
-import { fromCsvToRows, fromCsvToLazyRows } from "../../src/transforms/csv.ts";
-import { fromCsvToRowsFast, fromCsvToLazyRowsFast } from "../../src/transforms/csv-fast.ts";
+import { fromCsvToLazyRows, fromCsvToRows } from "../../src/transforms/csv.ts";
+import {
+  fromCsvToLazyRowsFast,
+  fromCsvToRowsFast,
+} from "../../src/transforms/csv-fast.ts";
 
 function generateCsvData(rows: number): Uint8Array {
   const lines = ["id,name,email,age,city"];
   for (let i = 0; i < rows; i++) {
-    lines.push(`${i},User${i},user${i}@example.com,${25 + (i % 40)},City${i % 100}`);
+    lines.push(
+      `${i},User${i},user${i}@example.com,${25 + (i % 40)},City${i % 100}`,
+    );
   }
-  return new TextEncoder().encode(lines.join('\n') + '\n');
+  return new TextEncoder().encode(lines.join("\n") + "\n");
 }
 
-async function benchmark(name: string, fn: () => Promise<number>, iterations = 5, warmup = 2): Promise<number> {
+async function benchmark(
+  name: string,
+  fn: () => Promise<number>,
+  iterations = 5,
+  warmup = 2,
+): Promise<number> {
   // Warmup runs
   for (let i = 0; i < warmup; i++) {
     await fn();
   }
-  
+
   // Measured runs
   const times: number[] = [];
   for (let i = 0; i < iterations; i++) {
@@ -28,7 +38,10 @@ async function benchmark(name: string, fn: () => Promise<number>, iterations = 5
 }
 
 // Simulate streaming by yielding chunks
-async function* chunkedStream(data: Uint8Array, chunkSize = 65536): AsyncIterable<Uint8Array> {
+async function* chunkedStream(
+  data: Uint8Array,
+  chunkSize = 65536,
+): AsyncIterable<Uint8Array> {
   for (let i = 0; i < data.length; i += chunkSize) {
     yield data.subarray(i, Math.min(i + chunkSize, data.length));
   }
@@ -41,8 +54,10 @@ async function runBenchmarks() {
   for (const rowCount of [1000, 10000, 100000, 500000, 2000000]) {
     const data = generateCsvData(rowCount);
     const sizeMB = data.length / 1024 / 1024;
-    
-    console.log(`\n--- ${rowCount.toLocaleString()} rows (${sizeMB.toFixed(2)} MB) ---`);
+
+    console.log(
+      `\n--- ${rowCount.toLocaleString()} rows (${sizeMB.toFixed(2)} MB) ---`,
+    );
 
     // Standard implementation - streamed in 64KB chunks
     const stdTime = await benchmark("std", async () => {
@@ -66,8 +81,14 @@ async function runBenchmarks() {
     const wasmThroughput = sizeMB / (wasmTime / 1000);
     const speedup = stdTime / wasmTime;
 
-    console.log(`Standard:  ${stdTime.toFixed(1)}ms  (${stdThroughput.toFixed(1)} MB/s)`);
-    console.log(`WASM:      ${wasmTime.toFixed(1)}ms  (${wasmThroughput.toFixed(1)} MB/s)`);
+    console.log(
+      `Standard:  ${stdTime.toFixed(1)}ms  (${stdThroughput.toFixed(1)} MB/s)`,
+    );
+    console.log(
+      `WASM:      ${wasmTime.toFixed(1)}ms  (${
+        wasmThroughput.toFixed(1)
+      } MB/s)`,
+    );
     console.log(`Speedup:   ${speedup.toFixed(2)}x`);
   }
 }

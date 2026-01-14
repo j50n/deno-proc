@@ -2,7 +2,7 @@
 
 A complete example showing Odin + WASM + Deno integration:
 
-- **TypeScript wrapper** for WASM instantiation  
+- **TypeScript wrapper** for WASM instantiation
 - **OdinRuntime** providing all `odin_env` imports
 - **Memory management** with `--import-memory`
 - **String handling** (UTF-8 encoding/decoding)
@@ -41,12 +41,14 @@ Demo.create() → WebAssembly.instantiate()
 ## Key Patterns
 
 **Imported memory** - JavaScript creates and owns memory:
+
 ```typescript
 const memory = new WebAssembly.Memory({ initial: 17, maximum: 256 });
 const runtime = new OdinRuntime(memory);
 ```
 
 **String passing** - Allocate → write → call → free:
+
 ```typescript
 const ptr = exports.alloc_string(bytes.length);
 new Uint8Array(memory.buffer).set(bytes, ptr);

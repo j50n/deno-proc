@@ -1,26 +1,32 @@
 # CSV Parser Specification
 
-This appendix documents the RFC 4180 compliant CSV parser used by proc's data transforms and the flatdata CLI. The parser is implemented in Odin and compiled to WebAssembly for high-performance parsing in JavaScript/TypeScript environments.
+This appendix documents the RFC 4180 compliant CSV parser used by proc's data
+transforms and the flatdata CLI. The parser is implemented in Odin and compiled
+to WebAssembly for high-performance parsing in JavaScript/TypeScript
+environments.
 
 ## Standards Compliance
 
-The parser implements [RFC 4180](https://datatracker.ietf.org/doc/html/rfc4180) - Common Format and MIME Type for Comma-Separated Values (CSV) Files.
+The parser implements
+[RFC 4180](https://datatracker.ietf.org/doc/html/rfc4180) - Common Format and
+MIME Type for Comma-Separated Values (CSV) Files.
 
 ### RFC 4180 Requirements
 
-| Requirement | Status | Notes |
-|-------------|--------|-------|
-| Records separated by line breaks | ✓ | Supports LF and CRLF |
-| Optional header line | ✓ | Parser treats all rows uniformly |
-| Fields separated by commas | ✓ | Configurable separator |
-| Fields may be quoted | ✓ | Double-quote character |
-| Quotes escaped by doubling | ✓ | `""` becomes `"` |
-| Newlines in quoted fields | ✓ | Preserved in output |
-| Commas in quoted fields | ✓ | Preserved in output |
+| Requirement                      | Status | Notes                            |
+| -------------------------------- | ------ | -------------------------------- |
+| Records separated by line breaks | ✓      | Supports LF and CRLF             |
+| Optional header line             | ✓      | Parser treats all rows uniformly |
+| Fields separated by commas       | ✓      | Configurable separator           |
+| Fields may be quoted             | ✓      | Double-quote character           |
+| Quotes escaped by doubling       | ✓      | `""` becomes `"`                 |
+| Newlines in quoted fields        | ✓      | Preserved in output              |
+| Commas in quoted fields          | ✓      | Preserved in output              |
 
 ### Extensions Beyond RFC 4180
 
-- **Configurable separator**: Supports any single-byte delimiter (comma, semicolon, tab, etc.)
+- **Configurable separator**: Supports any single-byte delimiter (comma,
+  semicolon, tab, etc.)
 - **Lenient mode**: Accepts bare quotes in unquoted fields (non-strict)
 - **Strict mode**: Rejects malformed input with detailed error reporting
 - **Streaming**: Processes input in chunks without loading entire file
@@ -29,9 +35,11 @@ The parser implements [RFC 4180](https://datatracker.ietf.org/doc/html/rfc4180) 
 
 ### Strict Mode
 
-In strict mode, the parser rejects malformed CSV and reports errors with row and column positions.
+In strict mode, the parser rejects malformed CSV and reports errors with row and
+column positions.
 
 Error conditions:
+
 - `BareQuote`: Unescaped quote in unquoted field
 - `InvalidCharAfterQuote`: Non-separator/newline after closing quote
 - `UnclosedQuote`: EOF reached inside quoted field
@@ -41,6 +49,7 @@ Error conditions:
 ### Lenient Mode (Default)
 
 In lenient mode, the parser accepts common malformations:
+
 - Bare quotes in unquoted fields are preserved literally
 - Bare CR characters start a new record
 - Field count mismatches are allowed
@@ -50,14 +59,17 @@ In lenient mode, the parser accepts common malformations:
 ### Record Format
 
 The primary output format uses ASCII control characters:
+
 - `\x1F` (Unit Separator) between fields
 - `\x1E` (Record Separator) between rows
 
-This format enables trivial downstream parsing: `row.split('\x1F')` yields fields.
+This format enables trivial downstream parsing: `row.split('\x1F')` yields
+fields.
 
 ### Span Format
 
-For zero-copy parsing, the span format returns byte offsets into the original input rather than copying field data.
+For zero-copy parsing, the span format returns byte offsets into the original
+input rather than copying field data.
 
 ## API Reference
 
@@ -68,6 +80,7 @@ delimited_init(options: CsvOptions) -> DelimitedParser
 ```
 
 Options:
+
 - `separator`: Field delimiter (default: `,`)
 - `strict`: Enable strict mode (default: `false`)
 - `expected_fields`: Expected field count per row, 0 to disable (default: `0`)
@@ -78,13 +91,15 @@ Options:
 delimited_parse(parser, input: []u8) -> (rows: u32, ok: bool)
 ```
 
-Parses a chunk of input. May be called multiple times for streaming. Returns the number of complete rows parsed and success status.
+Parses a chunk of input. May be called multiple times for streaming. Returns the
+number of complete rows parsed and success status.
 
 ```
 delimited_finish(parser) -> (rows: u32, ok: bool)
 ```
 
-Finalizes parsing after all input has been provided. Handles any remaining partial record.
+Finalizes parsing after all input has been provided. Handles any remaining
+partial record.
 
 ### Output Retrieval
 
@@ -92,7 +107,8 @@ Finalizes parsing after all input has been provided. Handles any remaining parti
 delimited_get_complete_output(parser) -> []u8
 ```
 
-Returns output bytes for complete records only. Partial records (those without a trailing record separator) are retained for the next chunk.
+Returns output bytes for complete records only. Partial records (those without a
+trailing record separator) are retained for the next chunk.
 
 ```
 delimited_reset_output(parser)
@@ -119,9 +135,11 @@ delimited_stringify_init(options: StringifyOptions) -> DelimitedStringifier
 ```
 
 Options:
+
 - `separator`: Output field delimiter (default: `,`)
 - `line_ending`: `.LF` or `.CRLF` (default: `.LF`)
-- `always_quote`: Quote all fields, not just those requiring it (default: `false`)
+- `always_quote`: Quote all fields, not just those requiring it (default:
+  `false`)
 - `expected_fields`: Expected field count, 0 to disable (default: `0`)
 
 ### Stringifying
@@ -135,6 +153,7 @@ Converts record-format input to CSV. Returns success status.
 ### Quoting Rules
 
 Fields are quoted when they contain:
+
 - The separator character
 - Double quotes (which are escaped by doubling)
 - Newline characters (LF or CR)
@@ -143,12 +162,12 @@ With `always_quote` enabled, all fields are quoted regardless of content.
 
 ## Performance Characteristics
 
-| Metric | Value |
-|--------|-------|
-| Native throughput | ~550 MB/s |
-| WASM throughput | ~330 MB/s |
-| Memory overhead | ~10% of input size |
-| Streaming chunk size | 64 KB recommended |
+| Metric               | Value              |
+| -------------------- | ------------------ |
+| Native throughput    | ~550 MB/s          |
+| WASM throughput      | ~330 MB/s          |
+| Memory overhead      | ~10% of input size |
+| Streaming chunk size | 64 KB recommended  |
 
 Performance measured on 10-column CSV with average field length of 15 bytes.
 
@@ -163,10 +182,12 @@ The parser is compiled to WebAssembly with the following characteristics:
 ### WASM Exports
 
 Buffer management:
+
 - `alloc_input_buffer(size) -> ptr`
 - `alloc_output_buffer(size) -> ptr`
 
 Parser lifecycle:
+
 - `create_delimited_parser(separator, strict, expected_fields) -> id`
 - `parse_delimited(id, input_len) -> result`
 - `finish_delimited(id) -> result`
@@ -175,6 +196,7 @@ Parser lifecycle:
 - `destroy_delimited_parser(id)`
 
 Stringifier lifecycle:
+
 - `create_delimited_stringifier(separator, crlf, always_quote, expected_fields) -> id`
 - `stringify_delimited(id, input_len) -> ok`
 - `get_stringify_output(id) -> len`
@@ -186,6 +208,7 @@ Stringifier lifecycle:
 ### State Machine
 
 The parser uses a 5-state machine:
+
 1. `FieldStart`: Beginning of a field
 2. `Unquoted`: Inside an unquoted field
 3. `Quoted`: Inside a quoted field
@@ -200,4 +223,6 @@ The parser uses a 5-state machine:
 
 ### UTF-8 Handling
 
-The parser operates on raw bytes and is UTF-8 transparent. Multi-byte UTF-8 sequences pass through unchanged. The separator and control characters are all single-byte ASCII, ensuring correct handling of UTF-8 text.
+The parser operates on raw bytes and is UTF-8 transparent. Multi-byte UTF-8
+sequences pass through unchanged. The separator and control characters are all
+single-byte ASCII, ensuring correct handling of UTF-8 text.

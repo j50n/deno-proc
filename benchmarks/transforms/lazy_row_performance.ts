@@ -4,7 +4,7 @@ import { LazyRow } from "../../src/transforms/mod.ts";
 // Generate test data for LazyRow benchmarks
 function generateTestData(fieldCount: number, rowCount: number): string[][] {
   const data: string[][] = [];
-  
+
   for (let i = 0; i < rowCount; i++) {
     const row: string[] = [];
     for (let j = 0; j < fieldCount; j++) {
@@ -12,43 +12,54 @@ function generateTestData(fieldCount: number, rowCount: number): string[][] {
     }
     data.push(row);
   }
-  
+
   return data;
 }
 
-async function benchmarkLazyRowCreation(name: string, data: string[][], iterations = 5) {
+async function benchmarkLazyRowCreation(
+  name: string,
+  data: string[][],
+  iterations = 5,
+) {
   console.log(`\n=== ${name} - LazyRow Creation ===`);
   console.log(`Rows: ${data.length}, Fields per row: ${data[0]?.length || 0}`);
-  
+
   const times: number[] = [];
-  
+
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    const lazyRows = data.map(row => LazyRow.fromStringArray(row));
+    const lazyRows = data.map((row) => LazyRow.fromStringArray(row));
     const end = performance.now();
     times.push(end - start);
-    
+
     if (i === 0) {
       const totalFields = data.length * (data[0]?.length || 0);
       console.log(`Total fields: ${totalFields.toLocaleString()}`);
     }
   }
-  
+
   const avgTime = times.reduce((a, b) => a + b) / times.length;
   const totalFields = data.length * (data[0]?.length || 0);
   console.log(`Creation time: ${avgTime.toFixed(2)}ms`);
-  console.log(`Fields/sec: ${(totalFields / (avgTime / 1000)).toLocaleString()}`);
+  console.log(
+    `Fields/sec: ${(totalFields / (avgTime / 1000)).toLocaleString()}`,
+  );
 }
 
-async function benchmarkFieldAccess(name: string, lazyRows: LazyRow[], accessPattern: "sequential" | "random" | "selective", iterations = 3) {
+async function benchmarkFieldAccess(
+  name: string,
+  lazyRows: LazyRow[],
+  accessPattern: "sequential" | "random" | "selective",
+  iterations = 3,
+) {
   console.log(`\n=== ${name} - ${accessPattern} Field Access ===`);
-  
+
   const times: number[] = [];
   let accessCount = 0;
-  
+
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    
+
     if (accessPattern === "sequential") {
       // Access all fields in all rows
       for (const row of lazyRows) {
@@ -72,31 +83,41 @@ async function benchmarkFieldAccess(name: string, lazyRows: LazyRow[], accessPat
         accessCount++;
       }
     }
-    
+
     const end = performance.now();
     times.push(end - start);
   }
-  
+
   const avgTime = times.reduce((a, b) => a + b) / times.length;
   console.log(`Access time: ${avgTime.toFixed(2)}ms`);
-  console.log(`Accesses/sec: ${(accessCount / iterations / (avgTime / 1000)).toLocaleString()}`);
+  console.log(
+    `Accesses/sec: ${
+      (accessCount / iterations / (avgTime / 1000)).toLocaleString()
+    }`,
+  );
 }
 
-async function benchmarkConversion(name: string, lazyRows: LazyRow[], iterations = 3) {
+async function benchmarkConversion(
+  name: string,
+  lazyRows: LazyRow[],
+  iterations = 3,
+) {
   console.log(`\n=== ${name} - Conversion ===`);
-  
+
   const toArrayTimes: number[] = [];
-  
+
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    lazyRows.forEach(row => row.toStringArray());
+    lazyRows.forEach((row) => row.toStringArray());
     const end = performance.now();
     toArrayTimes.push(end - start);
   }
-  
+
   const avgTime = toArrayTimes.reduce((a, b) => a + b) / toArrayTimes.length;
   console.log(`toStringArray time: ${avgTime.toFixed(2)}ms`);
-  console.log(`Rows/sec: ${(lazyRows.length / (avgTime / 1000)).toLocaleString()}`);
+  console.log(
+    `Rows/sec: ${(lazyRows.length / (avgTime / 1000)).toLocaleString()}`,
+  );
 }
 
 // Run benchmarks
@@ -104,9 +125,9 @@ console.log("LazyRow Performance Benchmarks");
 console.log("==============================");
 
 // Test different data sizes
-const smallData = generateTestData(5, 1000);    // 5K fields
-const mediumData = generateTestData(10, 5000);  // 50K fields  
-const largeData = generateTestData(20, 10000);  // 200K fields
+const smallData = generateTestData(5, 1000); // 5K fields
+const mediumData = generateTestData(10, 5000); // 50K fields
+const largeData = generateTestData(20, 10000); // 200K fields
 
 // Creation benchmarks
 await benchmarkLazyRowCreation("Small Dataset", smallData);
@@ -114,7 +135,7 @@ await benchmarkLazyRowCreation("Medium Dataset", mediumData);
 await benchmarkLazyRowCreation("Large Dataset", largeData);
 
 // Access pattern benchmarks (use medium dataset)
-const mediumLazyRows = mediumData.map(row => LazyRow.fromStringArray(row));
+const mediumLazyRows = mediumData.map((row) => LazyRow.fromStringArray(row));
 
 await benchmarkFieldAccess("Medium Dataset", mediumLazyRows, "sequential");
 await benchmarkFieldAccess("Medium Dataset", mediumLazyRows, "selective");
@@ -128,21 +149,29 @@ const testData = generateTestData(10, 1000);
 
 // LazyRow creation + selective access
 const lazyStart = performance.now();
-const lazyRows = testData.map(row => LazyRow.fromStringArray(row));
-lazyRows.forEach(row => {
-  row.getField(0);  // Only access first field
+const lazyRows = testData.map((row) => LazyRow.fromStringArray(row));
+lazyRows.forEach((row) => {
+  row.getField(0); // Only access first field
   row.getField(row.columnCount - 1); // And last field
 });
 const lazyEnd = performance.now();
 
 // Direct string array access
 const arrayStart = performance.now();
-testData.forEach(row => {
-  row[0];  // Access first field
+testData.forEach((row) => {
+  row[0]; // Access first field
   row[row.length - 1]; // Access last field
 });
 const arrayEnd = performance.now();
 
-console.log(`LazyRow (creation + selective access): ${(lazyEnd - lazyStart).toFixed(2)}ms`);
-console.log(`String Array (direct access): ${(arrayEnd - arrayStart).toFixed(2)}ms`);
-console.log(`Overhead: ${((lazyEnd - lazyStart) / (arrayEnd - arrayStart)).toFixed(2)}x`);
+console.log(
+  `LazyRow (creation + selective access): ${
+    (lazyEnd - lazyStart).toFixed(2)
+  }ms`,
+);
+console.log(
+  `String Array (direct access): ${(arrayEnd - arrayStart).toFixed(2)}ms`,
+);
+console.log(
+  `Overhead: ${((lazyEnd - lazyStart) / (arrayEnd - arrayStart)).toFixed(2)}x`,
+);

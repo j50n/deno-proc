@@ -36,6 +36,7 @@ const module = await WebAssembly.compile(wasmBytes);
 ```
 
 Set appropriate headers:
+
 ```
 Content-Type: application/wasm
 Cache-Control: public, max-age=31536000, immutable
@@ -60,6 +61,7 @@ export { Demo } from "./demo.ts";
 ```
 
 Users install and use:
+
 ```typescript
 import { Demo } from "@yourname/demo";
 const demo = await Demo.create();
@@ -76,7 +78,8 @@ const response = await fetch(wasmUrl);
 const module = await WebAssembly.compileStreaming(response);
 ```
 
-This starts compilation before the download completes—faster than waiting for the full file.
+This starts compilation before the download completes—faster than waiting for
+the full file.
 
 ### Caching Compiled Modules
 
@@ -85,12 +88,12 @@ Compilation is expensive. Cache the result:
 ```typescript
 class ModuleCache {
   private static cache = new Map<string, WebAssembly.Module>();
-  
+
   static async get(url: string): Promise<WebAssembly.Module> {
     if (this.cache.has(url)) {
       return this.cache.get(url)!;
     }
-    
+
     const response = await fetch(url);
     const module = await WebAssembly.compileStreaming(response);
     this.cache.set(url, module);
@@ -108,15 +111,15 @@ async function getCachedModule(url: string): Promise<WebAssembly.Module> {
       db.createObjectStore("modules");
     },
   });
-  
+
   let module = await db.get("modules", url);
-  
+
   if (!module) {
     const response = await fetch(url);
     module = await WebAssembly.compileStreaming(response);
     await db.put("modules", module, url);
   }
-  
+
   return module;
 }
 ```
@@ -174,20 +177,25 @@ calculateCircle(radius: number): number {
 Ensure pointers stay within bounds:
 
 ```typescript
-function safeRead(memory: WebAssembly.Memory, ptr: number, len: number): Uint8Array {
+function safeRead(
+  memory: WebAssembly.Memory,
+  ptr: number,
+  len: number,
+): Uint8Array {
   const maxAddr = memory.buffer.byteLength;
-  
+
   if (ptr < 0 || len < 0 || ptr + len > maxAddr) {
     throw new Error(`Out of bounds: ptr=${ptr}, len=${len}, max=${maxAddr}`);
   }
-  
+
   return new Uint8Array(memory.buffer, ptr, len);
 }
 ```
 
 ### Sandboxing
 
-WASM is sandboxed by design—it can only access what you provide. Keep imports minimal:
+WASM is sandboxed by design—it can only access what you provide. Keep imports
+minimal:
 
 ```typescript
 // Only provide what's necessary
@@ -196,7 +204,6 @@ const imports = {
     // Math functions - safe
     sin: Math.sin,
     cos: Math.cos,
-    
     // Don't expose file system, network, etc.
   },
 };
@@ -212,12 +219,12 @@ class WasmError extends Error {
     message: string,
     public readonly wasmFunction: string,
     public readonly inputs: unknown[],
-    public readonly cause?: Error
+    public readonly cause?: Error,
   ) {
     super(message);
     this.name = "WasmError";
   }
-  
+
   toJSON() {
     return {
       name: this.name,
@@ -241,7 +248,7 @@ function wrapWasmCall<T>(
       `WASM call failed: ${name}`,
       name,
       args,
-      e instanceof Error ? e : undefined
+      e instanceof Error ? e : undefined,
     );
   }
 }
@@ -257,7 +264,7 @@ class WasmLogger {
     message: string;
     data?: unknown;
   }> = [];
-  
+
   log(level: string, message: string, data?: unknown): void {
     this.logs.push({
       timestamp: Date.now(),
@@ -265,18 +272,18 @@ class WasmLogger {
       message,
       data,
     });
-    
+
     // Also send to monitoring service
     if (level === "error") {
       this.reportError(message, data);
     }
   }
-  
+
   private reportError(message: string, data?: unknown): void {
     // Send to your error tracking service
     // e.g., Sentry, DataDog, etc.
   }
-  
+
   getLogs(): typeof this.logs {
     return [...this.logs];
   }
@@ -296,11 +303,11 @@ class HealthCheck {
       if (Math.abs(result - Math.PI) > 0.0001) {
         throw new Error("Calculation mismatch");
       }
-      
+
       // Test memory operations
       const testData = new Uint8Array([1, 2, 3, 4]);
       // ... verify memory read/write
-      
+
       return true;
     } catch (e) {
       console.error("Health check failed:", e);
@@ -323,7 +330,7 @@ Have a fallback when WASM fails:
 ```typescript
 class MathService {
   private wasmDemo: Demo | null = null;
-  
+
   async initialize(): Promise<void> {
     try {
       this.wasmDemo = await Demo.create();
@@ -331,7 +338,7 @@ class MathService {
       console.warn("WASM unavailable, using JS fallback:", e);
     }
   }
-  
+
   calculateCircle(radius: number): number {
     if (this.wasmDemo) {
       return this.wasmDemo.calculateCircle(radius);

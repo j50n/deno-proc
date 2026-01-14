@@ -1,24 +1,34 @@
 # CSV Transforms
 
-Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance and LazyRow optimization.
+Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance
+and LazyRow optimization.
 
-> ⚠️ **Experimental (v0.24.0+)**: CSV transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+> ⚠️ **Experimental (v0.24.0+)**: CSV transforms are under active development.
+> API may change as we improve correctness and streaming performance. Test
+> thoroughly with your data patterns.
 
-> **⚡ Need more speed?** Use `fromCsvToRowsFast()` for ~10x better performance. It uses the same WASM parser as flatdata CLI. See [Fast CSV Parsing](#fast-csv-parsing-wasm) below.
+> **⚡ Need more speed?** Use `fromCsvToRowsFast()` for ~10x better performance.
+> It uses the same WASM parser as flatdata CLI. See
+> [Fast CSV Parsing](#fast-csv-parsing-wasm) below.
 
 ## Overview
 
-CSV transforms provide robust parsing and generation of CSV files with proper handling of quoted fields, escaping, and edge cases. While CSV is the slowest format for parsing, LazyRow optimization provides significant performance improvements.
+CSV transforms provide robust parsing and generation of CSV files with proper
+handling of quoted fields, escaping, and edge cases. While CSV is the slowest
+format for parsing, LazyRow optimization provides significant performance
+improvements.
 
 ## Performance Characteristics
 
 | Dataset Size | Regular Parsing | LazyRow Parsing | Improvement |
-|--------------|----------------|-----------------|-------------|
-| Small (1K)   | 9.82 MB/s      | 14.81 MB/s      | **1.51x** |
-| Medium (10K) | 17.09 MB/s     | 19.14 MB/s      | **1.12x** |
-| Large (50K)  | 27.29 MB/s     | 29.29 MB/s      | **1.07x** |
+| ------------ | --------------- | --------------- | ----------- |
+| Small (1K)   | 9.82 MB/s       | 14.81 MB/s      | **1.51x**   |
+| Medium (10K) | 17.09 MB/s      | 19.14 MB/s      | **1.12x**   |
+| Large (50K)  | 27.29 MB/s      | 29.29 MB/s      | **1.07x**   |
 
-> **💡 Recommendation**: Always use LazyRow for CSV processing — it's consistently faster with no downsides. For files over 100MB, consider [flatdata](../utilities/flatdata.md) instead.
+> **💡 Recommendation**: Always use LazyRow for CSV processing — it's
+> consistently faster with no downsides. For files over 100MB, consider
+> [flatdata](../utilities/flatdata.md) instead.
 
 ## Basic Usage
 
@@ -53,7 +63,7 @@ for (const row of lazyRows) {
   const name = row.getField(0);
   const age = parseInt(row.getField(1));
   const city = row.getField(2);
-  
+
   if (age >= 18) {
     console.log(`${name} from ${city} is an adult`);
   }
@@ -69,7 +79,7 @@ import { toCsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
 const data = [
   ["Name", "Age", "City"],
   ["Alice", "30", "New York"],
-  ["Bob", "25", "London"]
+  ["Bob", "25", "London"],
 ];
 
 await enumerate(data)
@@ -110,11 +120,11 @@ const rows = await read("irregular.csv")
 
 ```typescript
 interface CsvParseOptions {
-  separator?: string;        // Field separator (default: ",")
-  comment?: string;          // Comment character to ignore lines
+  separator?: string; // Field separator (default: ",")
+  comment?: string; // Comment character to ignore lines
   trimLeadingSpace?: boolean; // Trim leading whitespace
-  lazyQuotes?: boolean;      // Allow lazy quotes
-  fieldsPerRecord?: number;  // Expected fields per record (-1 for variable)
+  lazyQuotes?: boolean; // Allow lazy quotes
+  fieldsPerRecord?: number; // Expected fields per record (-1 for variable)
 }
 
 const rows = await read("complex.csv")
@@ -123,7 +133,7 @@ const rows = await read("complex.csv")
     comment: "#",
     trimLeadingSpace: true,
     lazyQuotes: false,
-    fieldsPerRecord: 5
+    fieldsPerRecord: 5,
   }))
   .collect();
 ```
@@ -134,17 +144,17 @@ const rows = await read("complex.csv")
 
 ```typescript
 interface CsvStringifyOptions {
-  separator?: string;        // Field separator (default: ",")
-  crlf?: boolean;           // Use CRLF line endings (default: true)
-  quote?: string;           // Quote character (default: '"')
-  quotedFields?: boolean;   // Quote all fields (default: false)
+  separator?: string; // Field separator (default: ",")
+  crlf?: boolean; // Use CRLF line endings (default: true)
+  quote?: string; // Quote character (default: '"')
+  quotedFields?: boolean; // Quote all fields (default: false)
 }
 
 await enumerate(data)
   .transform(toCsv({
     separator: ";",
-    crlf: false,           // Use LF only
-    quotedFields: true     // Quote all fields
+    crlf: false, // Use LF only
+    quotedFields: true, // Quote all fields
   }))
   .writeTo("european.csv");
 ```
@@ -155,8 +165,8 @@ await enumerate(data)
 // Data with commas, quotes, and newlines
 const complexData = [
   ["Product", "Description", "Price"],
-  ["Widget A", "A \"premium\" widget, very nice", "$19.99"],
-  ["Widget B", "Contains commas, and\nnewlines", "$29.99"]
+  ["Widget A", 'A "premium" widget, very nice', "$19.99"],
+  ["Widget B", "Contains commas, and\nnewlines", "$29.99"],
 ];
 
 // Automatically handles quoting and escaping
@@ -179,14 +189,14 @@ await enumerate(complexData)
 // Clean and validate CSV data
 await read("messy-data.csv")
   .transform(fromCsvToLazyRows())
-  .drop(1)  // Skip header
-  .filter(row => row.columnCount >= 3)  // Ensure minimum columns
-  .map(row => [
-    row.getField(0).trim(),                    // Clean name
-    row.getField(1).replace(/[^\d]/g, ""),     // Extract digits only
-    row.getField(2).toLowerCase()              // Normalize city
+  .drop(1) // Skip header
+  .filter((row) => row.columnCount >= 3) // Ensure minimum columns
+  .map((row) => [
+    row.getField(0).trim(), // Clean name
+    row.getField(1).replace(/[^\d]/g, ""), // Extract digits only
+    row.getField(2).toLowerCase(), // Normalize city
   ])
-  .filter(row => row[1].length > 0)  // Remove invalid ages
+  .filter((row) => row[1].length > 0) // Remove invalid ages
   .transform(toCsv())
   .writeTo("cleaned-data.csv");
 ```
@@ -205,7 +215,7 @@ const headers = csvData[0].toStringArray();
 const dataRows = csvData.slice(1);
 
 await enumerate(dataRows)
-  .map(row => {
+  .map((row) => {
     const obj: Record<string, string> = {};
     for (let i = 0; i < headers.length; i++) {
       obj[headers[i]] = row.getField(i);
@@ -224,21 +234,21 @@ let processedCount = 0;
 
 await read("huge-dataset.csv")
   .transform(fromCsvToLazyRows())
-  .drop(1)  // Skip header
-  .filter(row => {
+  .drop(1) // Skip header
+  .filter((row) => {
     const status = row.getField(3);
     return status === "active";
   })
-  .map(row => {
+  .map((row) => {
     processedCount++;
     if (processedCount % 100000 === 0) {
       console.log(`Processed ${processedCount} rows`);
     }
-    
+
     return [
-      row.getField(0),  // ID
-      row.getField(1),  // Name
-      new Date().toISOString()  // Processing timestamp
+      row.getField(0), // ID
+      row.getField(1), // Name
+      new Date().toISOString(), // Processing timestamp
     ];
   })
   .transform(toCsv())
@@ -252,13 +262,13 @@ await read("huge-dataset.csv")
 const salesData = [
   ["Date", "Product", "Amount", "Currency"],
   ["2024-01-15", "Widget A", "1,234.56", "USD"],
-  ["2024-01-16", "Widget B", "2,345.67", "EUR"]
+  ["2024-01-16", "Widget B", "2,345.67", "EUR"],
 ];
 
 await enumerate(salesData)
   .transform(toCsv({
-    crlf: true,        // Windows line endings
-    quotedFields: true // Quote all fields for safety
+    crlf: true, // Windows line endings
+    quotedFields: true, // Quote all fields for safety
   }))
   .writeTo("sales-report.csv");
 ```
@@ -289,17 +299,19 @@ try {
 // Validate data during parsing
 await read("data.csv")
   .transform(fromCsvToLazyRows())
-  .drop(1)  // Skip header
+  .drop(1) // Skip header
   .map((row, index) => {
     if (row.columnCount !== 3) {
-      throw new Error(`Row ${index + 2} has ${row.columnCount} fields, expected 3`);
+      throw new Error(
+        `Row ${index + 2} has ${row.columnCount} fields, expected 3`,
+      );
     }
-    
+
     const age = parseInt(row.getField(1));
     if (isNaN(age) || age < 0 || age > 150) {
       throw new Error(`Row ${index + 2} has invalid age: ${row.getField(1)}`);
     }
-    
+
     return row.toStringArray();
   })
   .transform(toCsv())
@@ -314,13 +326,13 @@ await read("data.csv")
 // ✅ Efficient - only parse fields you need
 await read("large.csv")
   .transform(fromCsvToLazyRows())
-  .filter(row => row.getField(0).startsWith("A"))  // Only parse field 0
+  .filter((row) => row.getField(0).startsWith("A")) // Only parse field 0
   .collect();
 
 // ❌ Less efficient - parses all fields upfront
 await read("large.csv")
   .transform(fromCsvToRows())
-  .filter(row => row[0].startsWith("A"))
+  .filter((row) => row[0].startsWith("A"))
   .collect();
 ```
 
@@ -335,7 +347,7 @@ await read("huge.csv")
   .transform(fromCsvToRows())
   .forEach(async (row) => {
     batch.push(row);
-    
+
     if (batch.length >= batchSize) {
       await processBatch(batch);
       batch = [];
@@ -360,7 +372,7 @@ await read("data.csv")
 // Later processing is 3-10x faster
 await read("data.record")
   .transform(fromRecordToRows())
-  .filter(row => row[1] === "target")
+  .filter((row) => row[1] === "target")
   .collect();
 ```
 
@@ -390,11 +402,13 @@ await read("data.csv")
 
 ## Best Practices
 
-1. **Use `fromCsvToRowsFast()` for large files** — 10x faster than the standard parser
+1. **Use `fromCsvToRowsFast()` for large files** — 10x faster than the standard
+   parser
 2. **Use LazyRow** for CSV processing when you don't need all fields
 3. **Handle headers explicitly** — they're treated as regular data rows
 4. **Validate field counts** if your data requires consistent structure
-5. **Use streaming processing** for large files to maintain constant memory usage
+5. **Use streaming processing** for large files to maintain constant memory
+   usage
 6. **Convert to faster formats** for repeated processing of the same data
 
 ## Fast CSV Parsing (WASM)
@@ -403,33 +417,37 @@ For maximum in-process performance, use the WASM-powered transforms:
 
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
-import { fromCsvToRowsFast, fromCsvToLazyRowsFast } from "jsr:@j50n/proc@{{gitv}}/transforms";
+import {
+  fromCsvToLazyRowsFast,
+  fromCsvToRowsFast,
+} from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 // ~10x faster than fromCsvToRows()
 const rows = await read("large-file.csv")
   .transform(fromCsvToRowsFast())
-  .flatMap(batch => batch)  // Flatten batches
+  .flatMap((batch) => batch) // Flatten batches
   .collect();
 
 // Or with LazyRow
 const lazyRows = await read("large-file.csv")
   .transform(fromCsvToLazyRowsFast())
-  .flatMap(batch => batch)
+  .flatMap((batch) => batch)
   .collect();
 ```
 
 **Key differences from standard parser:**
+
 - Returns batches of rows (`string[][]`) instead of individual rows
 - Uses the same WASM engine as flatdata CLI
 - Same RFC 4180 compliance and options
 
 **When to use which:**
 
-| Parser | Throughput | Use Case |
-|--------|------------|----------|
-| `fromCsvToRows()` | 10-30 MB/s | Small files, simple scripts |
-| `fromCsvToRowsFast()` | ~100-200 MB/s | Large files, performance-critical |
-| `flatdata` CLI | ~330 MB/s | Maximum throughput, batch pipelines |
+| Parser                | Throughput    | Use Case                            |
+| --------------------- | ------------- | ----------------------------------- |
+| `fromCsvToRows()`     | 10-30 MB/s    | Small files, simple scripts         |
+| `fromCsvToRowsFast()` | ~100-200 MB/s | Large files, performance-critical   |
+| `flatdata` CLI        | ~330 MB/s     | Maximum throughput, batch pipelines |
 
 ## See Also
 

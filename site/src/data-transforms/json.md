@@ -1,22 +1,30 @@
 # JSON Transforms
 
-Process JSON Lines (JSONL) format with full object structure support and optional schema validation.
+Process JSON Lines (JSONL) format with full object structure support and
+optional schema validation.
 
-> ⚠️ **Experimental (v0.24.0+)**: JSON transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+> ⚠️ **Experimental (v0.24.0+)**: JSON transforms are under active development.
+> API may change as we improve correctness and streaming performance. Test
+> thoroughly with your data patterns.
 
 ## Overview
 
-JSON transforms handle **JSON Lines** format - one complete JSON value per line. Unlike other formats, JSON preserves full object structure including nested objects, arrays, and all JSON data types. This makes it ideal for APIs, configuration data, and complex structured information.
+JSON transforms handle **JSON Lines** format - one complete JSON value per line.
+Unlike other formats, JSON preserves full object structure including nested
+objects, arrays, and all JSON data types. This makes it ideal for APIs,
+configuration data, and complex structured information.
 
 ## Performance Characteristics
 
-| Dataset Size | Parsing Speed | Best Use Case |
-|--------------|---------------|---------------|
-| Small (1K)   | 98.20 MB/s    | **Fastest for small data** |
-| Medium (10K) | 80.68 MB/s    | Good for structured data |
+| Dataset Size | Parsing Speed | Best Use Case                  |
+| ------------ | ------------- | ------------------------------ |
+| Small (1K)   | 98.20 MB/s    | **Fastest for small data**     |
+| Medium (10K) | 80.68 MB/s    | Good for structured data       |
 | Large (50K)  | 70.31 MB/s    | Performance degrades with size |
 
-> **Performance Note**: JSON is fastest for small datasets but performance decreases with larger files. Use for rich object structures rather than simple tabular data.
+> **Performance Note**: JSON is fastest for small datasets but performance
+> decreases with larger files. Use for rich object structures rather than simple
+> tabular data.
 
 ## Basic Usage
 
@@ -44,7 +52,7 @@ import { toJson } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // From objects
 const events = [
   { id: "evt_123", type: "click", timestamp: "2024-01-15T10:30:00Z" },
-  { id: "evt_124", type: "view", user: { id: 456, name: "Bob" } }
+  { id: "evt_124", type: "view", user: { id: 456, name: "Bob" } },
 ];
 
 await enumerate(events)
@@ -66,17 +74,17 @@ const EventSchema = z.object({
   timestamp: z.string().datetime(),
   user: z.object({
     id: z.number(),
-    name: z.string()
+    name: z.string(),
   }).optional(),
-  metadata: z.record(z.unknown()).optional()
+  metadata: z.record(z.unknown()).optional(),
 });
 
 type Event = z.infer<typeof EventSchema>;
 
 // Parse with validation
 const validEvents = await read("events.jsonl")
-  .transform(fromJsonToRows<Event>({ 
-    schema: EventSchema 
+  .transform(fromJsonToRows<Event>({
+    schema: EventSchema,
   }))
   .collect();
 ```
@@ -86,9 +94,9 @@ const validEvents = await read("events.jsonl")
 ```typescript
 // Validate only first 1000 rows for performance
 const events = await read("large-events.jsonl")
-  .transform(fromJsonToRows<Event>({ 
+  .transform(fromJsonToRows<Event>({
     schema: EventSchema,
-    sampleSize: 1000  // Only validate first 1000 rows
+    sampleSize: 1000, // Only validate first 1000 rows
   }))
   .collect();
 ```
@@ -98,10 +106,10 @@ const events = await read("large-events.jsonl")
 ```typescript
 // Custom validation logic
 const validateEvent = (obj: unknown): obj is Event => {
-  return typeof obj === 'object' && 
-         obj !== null && 
-         'id' in obj && 
-         'type' in obj;
+  return typeof obj === "object" &&
+    obj !== null &&
+    "id" in obj &&
+    "type" in obj;
 };
 
 const events = await read("events.jsonl")
@@ -131,12 +139,12 @@ interface WebhookEvent {
 
 await read("webhook-events.jsonl")
   .transform(fromJsonToRows<WebhookEvent>())
-  .filter(event => event.type === "user.created")
-  .map(event => ({
+  .filter((event) => event.type === "user.created")
+  .map((event) => ({
     userId: event.data.id as string,
     email: event.data.email as string,
     createdAt: new Date(event.timestamp),
-    source: "webhook"
+    source: "webhook",
   }))
   .transform(toJson())
   .writeTo("new-users.jsonl");
@@ -163,14 +171,14 @@ interface AppConfig {
 
 const configs = await read("app-configs.jsonl")
   .transform(fromJsonToRows<AppConfig>())
-  .filter(config => config.version.startsWith("2."))  // Version 2.x only
-  .map(config => ({
+  .filter((config) => config.version.startsWith("2.")) // Version 2.x only
+  .map((config) => ({
     ...config,
-    features: config.features.filter(f => f !== "deprecated-feature"),
+    features: config.features.filter((f) => f !== "deprecated-feature"),
     database: {
       ...config.database,
-      ssl: true  // Force SSL for all configs
-    }
+      ssl: true, // Force SSL for all configs
+    },
   }))
   .collect();
 
@@ -202,15 +210,15 @@ const errorPatterns = new Map<string, number>();
 
 await read("app-logs.jsonl")
   .transform(fromJsonToRows<LogEntry>())
-  .filter(log => log.level === "error" && log.error)
-  .forEach(log => {
+  .filter((log) => log.level === "error" && log.error)
+  .forEach((log) => {
     const errorType = log.error!.name;
     errorPatterns.set(errorType, (errorPatterns.get(errorType) || 0) + 1);
   });
 
 // Output error summary
 const sortedErrors = Array.from(errorPatterns.entries())
-  .sort(([,a], [,b]) => b - a);
+  .sort(([, a], [, b]) => b - a);
 
 console.log("Top error types:");
 sortedErrors.slice(0, 10).forEach(([type, count]) => {
@@ -257,14 +265,15 @@ await read("raw-orders.jsonl")
     id: order.orderId,
     customerId: order.customer.id,
     customerEmail: order.customer.email,
-    totalAmount: order.items.reduce((sum, item) => 
-      sum + (item.quantity * item.price), 0
+    totalAmount: order.items.reduce(
+      (sum, item) => sum + (item.quantity * item.price),
+      0,
     ),
     itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
     shippingCost: order.shipping.cost,
-    processedAt: new Date().toISOString()
+    processedAt: new Date().toISOString(),
   }))
-  .filter(order => order.totalAmount > 100)  // High-value orders only
+  .filter((order) => order.totalAmount > 100) // High-value orders only
   .transform(toJson())
   .writeTo("processed-orders.jsonl");
 ```
@@ -284,11 +293,11 @@ await read("huge-logs.jsonl")
   .forEach(async (log) => {
     batch.push(log);
     processedCount++;
-    
+
     if (batch.length >= batchSize) {
       await processBatch(batch);
       batch = [];
-      
+
       if (processedCount % 10000 === 0) {
         console.log(`Processed ${processedCount} log entries`);
       }
@@ -323,14 +332,14 @@ interface NestedData {
 
 await read("nested-data.jsonl")
   .transform(fromJsonToRows<NestedData>())
-  .map(data => ({
+  .map((data) => ({
     // Flatten nested structure
     userName: data.user.profile.personal.name,
     userAge: data.user.profile.personal.age,
     theme: data.user.profile.preferences.theme,
     notifications: data.user.profile.preferences.notifications,
     // Preserve metadata as-is
-    metadata: data.metadata
+    metadata: data.metadata,
   }))
   .transform(toJson())
   .writeTo("flattened-data.jsonl");
@@ -352,12 +361,12 @@ interface EventBatch {
 // Flatten event batches into individual events
 await read("event-batches.jsonl")
   .transform(fromJsonToRows<EventBatch>())
-  .flatMap(batch => 
-    batch.events.map(event => ({
+  .flatMap((batch) =>
+    batch.events.map((event) => ({
       batchId: batch.batchId,
       batchTimestamp: batch.timestamp,
       eventType: event.type,
-      eventData: event.data
+      eventData: event.data,
     }))
   )
   .transform(toJson())
@@ -393,7 +402,7 @@ try {
   if (error.name === "ZodError") {
     console.error("Schema validation failed:");
     error.errors.forEach((err: any) => {
-      console.error(`  ${err.path.join('.')}: ${err.message}`);
+      console.error(`  ${err.path.join(".")}: ${err.message}`);
     });
   }
 }
@@ -403,7 +412,7 @@ try {
 
 ```typescript
 // Continue processing despite individual JSON errors
-const errors: Array<{line: number, error: string}> = [];
+const errors: Array<{ line: number; error: string }> = [];
 let successCount = 0;
 
 await read("mixed-quality.jsonl")
@@ -416,7 +425,7 @@ await read("mixed-quality.jsonl")
     } catch (error) {
       errors.push({
         line: index + 1,
-        error: error.message
+        error: error.message,
       });
     }
   });
@@ -435,8 +444,8 @@ if (errors.length > 0) {
 // Only parse objects that match criteria
 await read("events.jsonl")
   .lines
-  .filter(line => line.includes('"type":"error"'))  // Quick string check
-  .map(line => JSON.parse(line))  // Parse only matching lines
+  .filter((line) => line.includes('"type":"error"')) // Quick string check
+  .map((line) => JSON.parse(line)) // Parse only matching lines
   .transform(toJson())
   .writeTo("error-events.jsonl");
 ```
@@ -447,14 +456,14 @@ await read("events.jsonl")
 // ✅ Streaming - constant memory usage
 await read("large-data.jsonl")
   .transform(fromJsonToRows())
-  .filter(obj => obj.status === "active")
+  .filter((obj) => obj.status === "active")
   .transform(toJson())
   .writeTo("active-data.jsonl");
 
 // ❌ Batch - loads everything into memory
 const allData = await read("large-data.jsonl")
   .transform(fromJsonToRows())
-  .collect();  // Memory explosion!
+  .collect(); // Memory explosion!
 ```
 
 ## Integration Examples
@@ -478,8 +487,8 @@ await read("users.jsonl")
         id: user.id,
         name: user.name,
         email: user.email,
-        metadata: JSON.stringify(user.metadata)
-      }
+        metadata: JSON.stringify(user.metadata),
+      },
     });
   }, { concurrency: 10 })
   .forEach(() => {}); // Consume the stream
@@ -491,11 +500,11 @@ await read("users.jsonl")
 // Convert JSON to CSV (flatten objects)
 await read("users.jsonl")
   .transform(fromJsonToRows<User>())
-  .map(user => [
+  .map((user) => [
     user.id,
     user.name,
     user.email,
-    JSON.stringify(user.metadata)  // Serialize complex data
+    JSON.stringify(user.metadata), // Serialize complex data
   ])
   .transform(toCsv())
   .writeTo("users.csv");
@@ -510,17 +519,20 @@ await read("users.jsonl")
 5. **Stream large files** - avoid loading everything into memory
 6. **Consider flattening** complex nested structures for simpler processing
 7. **Use selective parsing** when you only need specific object types
-8. **Preserve object structure** when possible rather than flattening unnecessarily
+8. **Preserve object structure** when possible rather than flattening
+   unnecessarily
 
 ## Comparison with Other Formats
 
 ### JSON vs CSV/TSV
+
 - **Structure**: JSON supports nested objects, CSV/TSV are flat
 - **Types**: JSON preserves data types, CSV/TSV are all strings
 - **Size**: JSON is larger due to field names and structure
 - **Speed**: CSV/TSV are faster for simple tabular data
 
 ### JSON vs Record
+
 - **Readability**: JSON is human-readable, Record is binary
 - **Flexibility**: JSON supports any structure, Record is tabular
 - **Performance**: Record is faster for large datasets
@@ -530,5 +542,7 @@ await read("users.jsonl")
 
 - [Record Format](./record.md) - For maximum performance with structured data
 - [CSV Transforms](./csv.md) - When you need tabular compatibility
-- [LazyRow Guide](./lazyrow.md) - Not applicable to JSON (preserves object structure)
-- [Performance Guide](./performance.md) - Optimization strategies for all formats
+- [LazyRow Guide](./lazyrow.md) - Not applicable to JSON (preserves object
+  structure)
+- [Performance Guide](./performance.md) - Optimization strategies for all
+  formats

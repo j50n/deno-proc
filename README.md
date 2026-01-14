@@ -1,13 +1,19 @@
 # proc
 
-**The complete toolkit for process management, async iterables, and high-performance data transforms in Deno.**
+**The complete toolkit for process management, async iterables, and
+high-performance data transforms in Deno.**
 
-Run child processes with a fluent API. Transform data between formats at 330 MB/s. Work with async iterables using the Array methods you already know. All with error handling that actually makes sense.
+Run child processes with a fluent API. Transform data between formats at 330
+MB/s. Work with async iterables using the Array methods you already know. All
+with error handling that actually makes sense.
 
-📚 **[Full Documentation](https://j50n.github.io/deno-proc/)** | 🚀 **[Quick Start](https://j50n.github.io/deno-proc/getting-started/quick-start.html)** | 📊 **[Performance Guide](https://j50n.github.io/deno-proc/data-transforms/performance.html)**
+📚 **[Full Documentation](https://j50n.github.io/deno-proc/)** | 🚀
+**[Quick Start](https://j50n.github.io/deno-proc/getting-started/quick-start.html)**
+| 📊
+**[Performance Guide](https://j50n.github.io/deno-proc/data-transforms/performance.html)**
 
 ```typescript
-import { run, read, enumerate } from "jsr:@j50n/proc";
+import { enumerate, read, run } from "jsr:@j50n/proc";
 import { fromCsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
 
 // Run processes and capture output
@@ -22,15 +28,15 @@ const result = await run("cat", "data.txt")
 // Transform data between formats at high speed
 await read("sales.csv")
   .transform(fromCsvToRows())
-  .filter(row => parseFloat(row[3]) > 1000)
+  .filter((row) => parseFloat(row[3]) > 1000)
   .transform(toTsv())
   .writeTo("high-value.tsv");
 
 // Work with async iterables using familiar Array methods
 const commits = await run("git", "log", "--oneline")
   .lines
-  .map(line => line.trim())
-  .filter(line => line.includes("fix"))
+  .map((line) => line.trim())
+  .filter((line) => line.includes("fix"))
   .take(5)
   .collect();
 
@@ -38,7 +44,7 @@ const commits = await run("git", "log", "--oneline")
 try {
   await run("npm", "test")
     .lines
-    .filter(line => line.includes("FAIL"))
+    .filter((line) => line.includes("FAIL"))
     .toStdout();
 } catch (error) {
   console.error(`Tests failed: ${error.code}`);
@@ -47,39 +53,56 @@ try {
 
 ## Why proc?
 
-**Solves backpressure by design** — Traditional streams require complex coordination between producers and consumers. proc uses async iterators (pull-based) instead of streams (push-based), eliminating backpressure entirely. No buffering, no coordination, no memory pressure.
+**Solves backpressure by design** — Traditional streams require complex
+coordination between producers and consumers. proc uses async iterators
+(pull-based) instead of streams (push-based), eliminating backpressure entirely.
+No buffering, no coordination, no memory pressure.
 
-**Errors that just work** — Errors propagate through pipelines naturally, just like data. No edge cases, no separate error channels, no callbacks. One try-catch at the end handles everything.
+**Errors that just work** — Errors propagate through pipelines naturally, just
+like data. No edge cases, no separate error channels, no callbacks. One
+try-catch at the end handles everything.
 
-**Async iterables that feel like Arrays** — Use `map`, `filter`, `reduce`, `flatMap`, `take`, `drop`, and more on any async iterable. No more wrestling with streams.
+**Async iterables that feel like Arrays** — Use `map`, `filter`, `reduce`,
+`flatMap`, `take`, `drop`, and more on any async iterable. No more wrestling
+with streams.
 
-**Powerful process management** — Run commands, pipe between processes, capture output, and control execution with a clean, composable API.
+**Powerful process management** — Run commands, pipe between processes, capture
+output, and control execution with a clean, composable API.
 
-**High-performance data transforms** — Convert between CSV, TSV, JSON, and Record formats with streaming support. Or use the WASM-powered flatdata CLI for 330 MB/s throughput (7x faster than pure JavaScript).
+**High-performance data transforms** — Convert between CSV, TSV, JSON, and
+Record formats with streaming support. Or use the WASM-powered flatdata CLI for
+330 MB/s throughput (7x faster than pure JavaScript).
 
-**Type-safe and ergonomic** — Full TypeScript support with intuitive APIs that guide you toward correct usage.
+**Type-safe and ergonomic** — Full TypeScript support with intuitive APIs that
+guide you toward correct usage.
 
 ## Features at a Glance
 
 ### 🚀 Process Management
+
 - **Run commands** — `run()`, `pipe()`, `result()`, `toStdout()`
 - **Chain processes** — Shell-like pipelines with `.run()`
 - **Capture output** — Lines, bytes, or full output
 - **Error handling** — Natural propagation through pipelines
 
 ### 🔄 Async Iterables
-- **Array-like methods** — `map`, `filter`, `reduce`, `flatMap`, `forEach`, `some`, `every`, `find`
+
+- **Array-like methods** — `map`, `filter`, `reduce`, `flatMap`, `forEach`,
+  `some`, `every`, `find`
 - **Slicing & sampling** — `take`, `drop`, `slice`, `first`, `last`, `nth`
-- **Concurrent operations** — `concurrentMap`, `concurrentUnorderedMap` with concurrency control
+- **Concurrent operations** — `concurrentMap`, `concurrentUnorderedMap` with
+  concurrency control
 - **Utilities** — `enumerate`, `zip`, `range`, `cache()`
 
 ### 📊 Data Transforms
+
 - **Format conversion** — CSV ↔ TSV ↔ JSON ↔ Record
 - **Streaming processing** — Constant memory usage for any file size
 - **LazyRow optimization** — Up to 1.7x faster parsing
 - **flatdata CLI** — WASM-powered tool for 330 MB/s throughput
 
 ### ⚡ Performance
+
 - **flatdata CLI**: ~330 MB/s (WASM subprocess)
 - **Record format**: 60-93 MB/s (in-process)
 - **JSON transforms**: 70-98 MB/s
@@ -95,34 +118,42 @@ import * as proc from "jsr:@j50n/proc";
 Or import specific functions:
 
 ```typescript
-import { run, enumerate, read } from "jsr:@j50n/proc";
+import { enumerate, read, run } from "jsr:@j50n/proc";
 ```
 
 ### Data Transforms (Optional)
 
 Data transforms are in a separate module to keep the core library lightweight:
 
-> ⚠️ **Experimental (v0.24.0+)**: Data transforms are under active development. API may change as we improve correctness and streaming performance.
+> ⚠️ **Experimental (v0.24.0+)**: Data transforms are under active development.
+> API may change as we improve correctness and streaming performance.
 
 ```typescript
 // Core library - process management and async iterables
-import { run, enumerate, read } from "jsr:@j50n/proc";
+import { enumerate, read, run } from "jsr:@j50n/proc";
 
 // Data transforms - CSV, TSV, JSON, Record conversions
 import { fromCsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
 ```
 
-See the [Data Transforms Guide](https://j50n.github.io/deno-proc/data-transforms/) for details.
+See the
+[Data Transforms Guide](https://j50n.github.io/deno-proc/data-transforms/) for
+details.
 
 ## Key Concepts
 
-**Properties vs Methods**: Some APIs are properties (`.lines`, `.status`, `.first`) and some are methods (`.collect()`, `.map()`, `.filter()`). Properties don't use parentheses.
+**Properties vs Methods**: Some APIs are properties (`.lines`, `.status`,
+`.first`) and some are methods (`.collect()`, `.map()`, `.filter()`). Properties
+don't use parentheses.
 
-**Resource Management**: Always consume process output via `.lines.collect()`, `.lines.forEach()`, or similar. Unconsumed output causes resource leaks.
+**Resource Management**: Always consume process output via `.lines.collect()`,
+`.lines.forEach()`, or similar. Unconsumed output causes resource leaks.
 
-**Error Handling**: Processes that exit with non-zero codes throw `ExitCodeError` when you consume their output. Use try-catch to handle failures.
+**Error Handling**: Processes that exit with non-zero codes throw
+`ExitCodeError` when you consume their output. Use try-catch to handle failures.
 
-**Enumeration**: `enumerate()` wraps iterables but doesn't add indices. Call `.enum()` on the result to get `[item, index]` tuples.
+**Enumeration**: `enumerate()` wraps iterables but doesn't add indices. Call
+`.enum()` on the result to get `[item, index]` tuples.
 
 ## Quick Examples
 
@@ -149,11 +180,11 @@ import { fromCsvToRows, toJson } from "jsr:@j50n/proc/transforms";
 // Convert CSV to JSON Lines with filtering
 await read("sales.csv")
   .transform(fromCsvToRows())
-  .filter(row => parseFloat(row[3]) > 1000)
-  .map(row => ({
+  .filter((row) => parseFloat(row[3]) > 1000)
+  .map((row) => ({
     id: row[0],
     customer: row[1],
-    amount: parseFloat(row[3])
+    amount: parseFloat(row[3]),
   }))
   .transform(toJson())
   .writeTo("high-value.jsonl");
@@ -178,8 +209,8 @@ try {
   // No need for error handling at each step
   await run("npm", "test")
     .lines
-    .map(line => line.toUpperCase())
-    .filter(line => line.includes("FAIL"))
+    .map((line) => line.toUpperCase())
+    .filter((line) => line.includes("FAIL"))
     .toStdout();
 } catch (error) {
   // Handle all errors in one place
@@ -211,7 +242,7 @@ import { read } from "jsr:@j50n/proc";
 
 const errorCount = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
+  .filter((line) => line.includes("ERROR"))
   .reduce((count) => count + 1, 0);
 
 console.log(`Found ${errorCount} errors`);
@@ -222,22 +253,24 @@ console.log(`Found ${errorCount} errors`);
 ```typescript
 import { enumerate } from "jsr:@j50n/proc";
 
-const urls = ["url1", "url2", "url3", /* ... */];
+const urls = ["url1", "url2", "url3" /* ... */];
 
 await enumerate(urls)
   .concurrentMap(async (url) => {
     const response = await fetch(url);
     return { url, status: response.status };
   }, { concurrency: 5 })
-  .forEach(result => console.log(result));
+  .forEach((result) => console.log(result));
 ```
 
 ## Features
 
 - **Process execution** — `run()`, `pipe()`, `result()`, `toStdout()`
-- **Array-like methods** — `map`, `filter`, `reduce`, `flatMap`, `forEach`, `some`, `every`, `find`
+- **Array-like methods** — `map`, `filter`, `reduce`, `flatMap`, `forEach`,
+  `some`, `every`, `find`
 - **Slicing & sampling** — `take`, `drop`, `slice`, `first`, `last`, `nth`
-- **Concurrent operations** — `concurrentMap`, `concurrentUnorderedMap` with concurrency control
+- **Concurrent operations** — `concurrentMap`, `concurrentUnorderedMap` with
+  concurrency control
 - **Data transforms** — CSV, TSV, JSON, Record format conversions with streaming
 - **Utilities** — `enumerate`, `zip`, `range`, `read` (for files)
 - **Caching** — `cache()` to replay iterables
@@ -245,17 +278,27 @@ await enumerate(urls)
 
 ## Documentation
 
-- **[Getting Started](https://j50n.github.io/deno-proc/getting-started/quick-start.html)** — Your first proc script in 5 minutes
-- **[Process Management](https://j50n.github.io/deno-proc/core/running-processes.html)** — Run commands, chain pipelines, handle errors
-- **[Async Iterables](https://j50n.github.io/deno-proc/iterables/array-methods.html)** — Array-like methods for streaming data
-- **[Data Transforms](https://j50n.github.io/deno-proc/data-transforms/)** — CSV, TSV, JSON, Record conversions
-- **[Performance Guide](https://j50n.github.io/deno-proc/data-transforms/performance.html)** — Benchmarks and optimization tips
-- **[Recipes](https://j50n.github.io/deno-proc/recipes/counting-words.html)** — Copy-paste solutions for common tasks
-- **[API Reference](https://j50n.github.io/deno-proc/api-reference.html)** — Complete API documentation
+- **[Getting Started](https://j50n.github.io/deno-proc/getting-started/quick-start.html)**
+  — Your first proc script in 5 minutes
+- **[Process Management](https://j50n.github.io/deno-proc/core/running-processes.html)**
+  — Run commands, chain pipelines, handle errors
+- **[Async Iterables](https://j50n.github.io/deno-proc/iterables/array-methods.html)**
+  — Array-like methods for streaming data
+- **[Data Transforms](https://j50n.github.io/deno-proc/data-transforms/)** —
+  CSV, TSV, JSON, Record conversions
+- **[Performance Guide](https://j50n.github.io/deno-proc/data-transforms/performance.html)**
+  — Benchmarks and optimization tips
+- **[Recipes](https://j50n.github.io/deno-proc/recipes/counting-words.html)** —
+  Copy-paste solutions for common tasks
+- **[API Reference](https://j50n.github.io/deno-proc/api-reference.html)** —
+  Complete API documentation
 
 ## Contributing
 
-Contributions are welcome! See the [contributor guide](https://j50n.github.io/deno-proc/contributor/) for details on:
+Contributions are welcome! See the
+[contributor guide](https://j50n.github.io/deno-proc/contributor/) for details
+on:
+
 - Project architecture
 - Coding standards
 - Testing strategy
@@ -289,6 +332,7 @@ sudo apt install pandoc weasyprint ghostscript imagemagick
 ```
 
 Outputs:
+
 - `labs/wasm/docs/book/` — HTML
 - `labs/wasm/docs/book/book.epub` — EPUB with cover
 - `labs/wasm/docs/book/book.pdf` — PDF with cover

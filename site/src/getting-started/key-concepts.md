@@ -20,7 +20,8 @@ Some APIs are properties (no parentheses), some are methods (with parentheses):
 .count()
 ```
 
-Properties return new objects or promises. Methods are functions you call. Your IDE will guide you.
+Properties return new objects or promises. Methods are functions you call. Your
+IDE will guide you.
 
 ## Error Propagation
 
@@ -50,19 +51,20 @@ await run("ls").lines.collect();
 await run("ls").lines.forEach(console.log);
 
 // ❌ Bad - resource leak
-const p = run("ls");  // Output never consumed
+const p = run("ls"); // Output never consumed
 ```
 
 ## The enumerate() Pattern
 
-`enumerate()` wraps an iterable to add Array-like methods. Call `.enum()` to add indices:
+`enumerate()` wraps an iterable to add Array-like methods. Call `.enum()` to add
+indices:
 
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
 // Without indices
 const doubled = await enumerate([1, 2, 3])
-  .map(n => n * 2)
+  .map((n) => n * 2)
   .collect();
 // [2, 4, 6]
 
@@ -83,7 +85,7 @@ Pipelines are lazy. Nothing executes until you consume the output:
 const pipeline = run("cat", "huge-file.txt")
   .run("grep", "error")
   .lines
-  .map(line => line.toUpperCase());
+  .map((line) => line.toUpperCase());
 
 // Now it runs, one line at a time
 for await (const line of pipeline) {
@@ -91,7 +93,8 @@ for await (const line of pipeline) {
 }
 ```
 
-This enables processing files larger than memory—data flows through without loading everything at once.
+This enables processing files larger than memory—data flows through without
+loading everything at once.
 
 ## Type Safety
 
@@ -106,6 +109,9 @@ Type errors usually mean you're using the API incorrectly.
 
 ## See Also
 
-- [Running Processes](../core/running-processes.md) — Execute commands and capture output
-- [Error Handling](../core/error-handling.md) — How errors propagate through pipelines
-- [Understanding Enumerable](../iterables/enumerable.md) — Deep dive into async iterables
+- [Running Processes](../core/running-processes.md) — Execute commands and
+  capture output
+- [Error Handling](../core/error-handling.md) — How errors propagate through
+  pipelines
+- [Understanding Enumerable](../iterables/enumerable.md) — Deep dive into async
+  iterables

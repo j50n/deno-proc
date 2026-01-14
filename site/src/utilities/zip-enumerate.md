@@ -7,11 +7,12 @@ Combine and index iterables.
 Wrap any iterable for Array-like methods:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
 const result = await enumerate([1, 2, 3])
-  .map(n => n * 2)
+  .map((n) => n * 2)
   .collect();
 // [2, 4, 6]
 ```
@@ -21,6 +22,7 @@ const result = await enumerate([1, 2, 3])
 Add indices to items:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "zip-enumerate: enum" -->
+
 ```typescript
 const indexed = await enumerate(["a", "b", "c"])
   .enum()
@@ -31,6 +33,7 @@ const indexed = await enumerate(["a", "b", "c"])
 ### Format with Indices
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const numbered = await enumerate(["apple", "banana", "cherry"])
   .enum()
@@ -44,6 +47,7 @@ const numbered = await enumerate(["apple", "banana", "cherry"])
 Combine two iterables:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { zip } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -59,6 +63,7 @@ const people = await zip(names, ages)
 ### Multiple Iterables
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const combined = await zip(iter1, iter2)
   .map(([a, b]) => a + b)
@@ -70,6 +75,7 @@ const combined = await zip(iter1, iter2)
 ### Number Lines
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const numbered = await read("file.txt")
   .lines
@@ -81,10 +87,11 @@ const numbered = await read("file.txt")
 ### Combine Data Sources
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const merged = await zip(
   read("names.txt").lines,
-  read("emails.txt").lines
+  read("emails.txt").lines,
 )
   .map(([name, email]) => ({ name, email }))
   .collect();
@@ -93,6 +100,7 @@ const merged = await zip(
 ### Track Progress
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const items = [...]; // Large array
 

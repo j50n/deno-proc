@@ -1,4 +1,4 @@
-const decoder = new TextDecoder('utf-8', { fatal: true });
+const decoder = new TextDecoder("utf-8", { fatal: true });
 const encoder = new TextEncoder();
 
 /**
@@ -110,14 +110,18 @@ class StringArrayLazyRow extends LazyRow {
 
   getField(index: number): string {
     if (index < 0 || index >= this.fields.length) {
-      throw new RangeError(`Field index ${index} out of range [0, ${this.fields.length})`);
+      throw new RangeError(
+        `Field index ${index} out of range [0, ${this.fields.length})`,
+      );
     }
     return this.fields[index];
   }
 
   setField(index: number, value: string): void {
     if (index < 0 || index >= this.fields.length) {
-      throw new RangeError(`Field index ${index} out of range [0, ${this.fields.length})`);
+      throw new RangeError(
+        `Field index ${index} out of range [0, ${this.fields.length})`,
+      );
     }
     this.fields[index] = value;
     this.binaryCache = undefined;
@@ -133,16 +137,19 @@ class StringArrayLazyRow extends LazyRow {
     }
 
     // Create binary format: field_count + field_lengths + field_data
-    const fieldBytes = this.fields.map(field => encoder.encode(field));
-    const totalDataSize = fieldBytes.reduce((sum, bytes) => sum + bytes.length, 0);
+    const fieldBytes = this.fields.map((field) => encoder.encode(field));
+    const totalDataSize = fieldBytes.reduce(
+      (sum, bytes) => sum + bytes.length,
+      0,
+    );
     const headerSize = 4 + (this.fields.length * 4); // field_count + field_lengths
-    
+
     const buffer = new Uint8Array(headerSize + totalDataSize);
     const view = new DataView(buffer.buffer);
-    
+
     // Write field count
     view.setUint32(0, this.fields.length, true);
-    
+
     // Write field lengths and data
     let offset = 4 + (this.fields.length * 4);
     for (let i = 0; i < this.fields.length; i++) {
@@ -177,14 +184,14 @@ class BinaryLazyRow extends LazyRow {
     const view = new DataView(this.data.buffer, this.data.byteOffset);
     const fieldCount = view.getUint32(0, true);
     const boundaries: number[] = [];
-    
+
     let offset = 4 + (fieldCount * 4);
     for (let i = 0; i < fieldCount; i++) {
       const fieldLength = view.getUint32(4 + (i * 4), true);
       boundaries.push(offset);
       offset += fieldLength;
     }
-    
+
     return boundaries;
   }
 
@@ -194,7 +201,9 @@ class BinaryLazyRow extends LazyRow {
 
   getField(index: number): string {
     if (index < 0 || index >= this.fieldBoundaries.length) {
-      throw new RangeError(`Field index ${index} out of range [0, ${this.fieldBoundaries.length})`);
+      throw new RangeError(
+        `Field index ${index} out of range [0, ${this.fieldBoundaries.length})`,
+      );
     }
 
     if (this.modifications?.has(index)) {
@@ -206,20 +215,22 @@ class BinaryLazyRow extends LazyRow {
     }
 
     const start = this.fieldBoundaries[index];
-    const end = index < this.fieldBoundaries.length - 1 
-      ? this.fieldBoundaries[index + 1] 
+    const end = index < this.fieldBoundaries.length - 1
+      ? this.fieldBoundaries[index + 1]
       : this.data.length;
-    
+
     const fieldData = this.data.slice(start, end);
     const field = decoder.decode(fieldData);
     this.fieldCache.set(index, field);
-    
+
     return field;
   }
 
   setField(index: number, value: string): void {
     if (index < 0 || index >= this.fieldBoundaries.length) {
-      throw new RangeError(`Field index ${index} out of range [0, ${this.fieldBoundaries.length})`);
+      throw new RangeError(
+        `Field index ${index} out of range [0, ${this.fieldBoundaries.length})`,
+      );
     }
     if (!this.modifications) {
       this.modifications = new Map();
@@ -253,15 +264,18 @@ class BinaryLazyRow extends LazyRow {
       fields.push(this.getField(i));
     }
 
-    const fieldBytes = fields.map(field => encoder.encode(field));
-    const totalDataSize = fieldBytes.reduce((sum, bytes) => sum + bytes.length, 0);
+    const fieldBytes = fields.map((field) => encoder.encode(field));
+    const totalDataSize = fieldBytes.reduce(
+      (sum, bytes) => sum + bytes.length,
+      0,
+    );
     const headerSize = 4 + (fields.length * 4);
-    
+
     const buffer = new Uint8Array(headerSize + totalDataSize);
     const view = new DataView(buffer.buffer);
-    
+
     view.setUint32(0, fields.length, true);
-    
+
     let offset = 4 + (fields.length * 4);
     for (let i = 0; i < fields.length; i++) {
       const fieldData = fieldBytes[i];

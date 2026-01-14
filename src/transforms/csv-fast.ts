@@ -37,7 +37,7 @@ export class CsvParseError extends Error {
     public kind: string,
     public row: number,
     public col: number,
-    message?: string
+    message?: string,
   ) {
     super(message ?? `CSV parse error: ${kind} at row ${row}, col ${col}`);
     this.name = kind;
@@ -50,19 +50,40 @@ class OdinRuntime {
 
   get env(): Record<string, WebAssembly.ImportValue> {
     return {
-      sin: Math.sin, cos: Math.cos, tan: Math.tan,
-      asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2,
-      sqrt: Math.sqrt, pow: Math.pow, exp: Math.exp,
-      ln: Math.log, log10: Math.log10, log2: Math.log2,
-      floor: Math.floor, ceil: Math.ceil, round: Math.round, trunc: Math.trunc,
-      abs: Math.abs, sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh,
+      sin: Math.sin,
+      cos: Math.cos,
+      tan: Math.tan,
+      asin: Math.asin,
+      acos: Math.acos,
+      atan: Math.atan,
+      atan2: Math.atan2,
+      sqrt: Math.sqrt,
+      pow: Math.pow,
+      exp: Math.exp,
+      ln: Math.log,
+      log10: Math.log10,
+      log2: Math.log2,
+      floor: Math.floor,
+      ceil: Math.ceil,
+      round: Math.round,
+      trunc: Math.trunc,
+      abs: Math.abs,
+      sinh: Math.sinh,
+      cosh: Math.cosh,
+      tanh: Math.tanh,
       ldexp: (x: number, exp: number) => x * Math.pow(2, exp),
       fmuladd: (x: number, y: number, z: number) => x * y + z,
       write: () => 0,
-      trap: () => { throw new Error("WASM trap"); },
-      abort: () => { throw new Error("WASM abort"); },
+      trap: () => {
+        throw new Error("WASM trap");
+      },
+      abort: () => {
+        throw new Error("WASM abort");
+      },
       alert: () => {},
-      evaluate: () => { throw new Error("eval disabled"); },
+      evaluate: () => {
+        throw new Error("eval disabled");
+      },
       time_now: () => BigInt(Date.now()) * 1000000n,
       tick_now: () => performance.now(),
       time_sleep: () => {},
@@ -79,7 +100,11 @@ interface WasmExports {
   alloc_output_buffer: (size: number) => number;
   free_buffer: (ptr: number) => void;
   // Delimited parser
-  create_delimited_parser: (sep: number, strict: number, expectedFields: number) => number;
+  create_delimited_parser: (
+    sep: number,
+    strict: number,
+    expectedFields: number,
+  ) => number;
   destroy_delimited_parser: (id: number) => void;
   parse_delimited: (id: number, len: number) => bigint;
   finish_delimited: (id: number) => bigint;
@@ -87,7 +112,12 @@ interface WasmExports {
   clear_delimited_output: (id: number) => void;
   get_delimited_error: (id: number) => bigint;
   // Stringifier
-  create_delimited_stringifier: (sep: number, crlf: number, alwaysQuote: number, expectedFields: number) => number;
+  create_delimited_stringifier: (
+    sep: number,
+    crlf: number,
+    alwaysQuote: number,
+    expectedFields: number,
+  ) => number;
   destroy_delimited_stringifier: (id: number) => void;
   stringify_delimited: (id: number, len: number) => number;
   get_stringify_output: (id: number) => number;
@@ -98,7 +128,7 @@ let wasmModule: WebAssembly.Module | null = null;
 
 async function loadWasmModule(): Promise<WebAssembly.Module> {
   if (wasmModule) return wasmModule;
-  
+
   const wasmPath = new URL("../../wasm/flatdata.wasm", import.meta.url);
   const wasmBytes = await Deno.readFile(wasmPath);
   wasmModule = await WebAssembly.compile(wasmBytes);
@@ -125,40 +155,49 @@ class CsvProcessor {
     const module = await loadWasmModule();
     const memory = new WebAssembly.Memory({ initial: 17, maximum: 256 });
     const runtime = new OdinRuntime(memory);
-    
+
     const instance = await WebAssembly.instantiate(module, {
       env: { memory },
       odin_env: runtime.env,
     });
-    
+
     return new CsvProcessor(instance.exports as unknown as WasmExports, memory);
   }
 
   async *parseChunks(
     bytes: AsyncIterable<Uint8Array>,
-    options?: CsvParseOptions
+    options?: CsvParseOptions,
   ): AsyncIterable<string[][]> {
     const sep = options?.separator?.charCodeAt(0) ?? 44;
     const strict = 0; // lenient by default
     const expectedFields = 0;
-    
-    this.parserId = this.exports.create_delimited_parser(sep, strict, expectedFields);
-    
+
+    this.parserId = this.exports.create_delimited_parser(
+      sep,
+      strict,
+      expectedFields,
+    );
+
     try {
       for await (const chunk of bytes) {
         this.ensureInputBuffer(chunk.length);
         this.ensureOutputBuffer(chunk.length * 2);
-        
-        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
-        
-        const result = this.exports.parse_delimited(this.parserId, chunk.length);
+
+        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(
+          chunk,
+        );
+
+        const result = this.exports.parse_delimited(
+          this.parserId,
+          chunk.length,
+        );
         const rows = Number(result >> 32n);
         const errorKind = Number(result & 0xFFFFFFFFn);
-        
+
         if (errorKind !== 0) {
           this.throwParseError(errorKind);
         }
-        
+
         if (rows > 0) {
           const bytesWritten = this.exports.get_delimited_output(this.parserId);
           if (bytesWritten > 0) {
@@ -167,16 +206,16 @@ class CsvProcessor {
           }
         }
       }
-      
+
       // Flush remaining data
       const result = this.exports.finish_delimited(this.parserId);
       const rows = Number(result >> 32n);
       const errorKind = Number(result & 0xFFFFFFFFn);
-      
+
       if (errorKind !== 0) {
         this.throwParseError(errorKind);
       }
-      
+
       if (rows > 0) {
         const bytesWritten = this.exports.get_delimited_output(this.parserId);
         if (bytesWritten > 0) {
@@ -190,33 +229,49 @@ class CsvProcessor {
 
   async *stringifyChunks(
     data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
-    options?: CsvStringifyOptions
+    options?: CsvStringifyOptions,
   ): AsyncIterable<Uint8Array> {
     const sep = options?.separator?.charCodeAt(0) ?? 44;
     const crlf = 0; // LF by default
     const alwaysQuote = 0;
     const expectedFields = 0;
-    
-    this.stringifierId = this.exports.create_delimited_stringifier(sep, crlf, alwaysQuote, expectedFields);
-    
+
+    this.stringifierId = this.exports.create_delimited_stringifier(
+      sep,
+      crlf,
+      alwaysQuote,
+      expectedFields,
+    );
+
     try {
       for await (const item of data) {
         const rows = this.normalizeRows(item);
         const delimited = this.packRows(rows);
-        
+
         this.ensureInputBuffer(delimited.length);
         this.ensureOutputBuffer(delimited.length * 2);
-        
-        new Uint8Array(this.memory.buffer, this.inputPtr, delimited.length).set(delimited);
-        
-        const success = this.exports.stringify_delimited(this.stringifierId, delimited.length);
+
+        new Uint8Array(this.memory.buffer, this.inputPtr, delimited.length).set(
+          delimited,
+        );
+
+        const success = this.exports.stringify_delimited(
+          this.stringifierId,
+          delimited.length,
+        );
         if (!success) {
           throw new Error("CSV stringify failed");
         }
-        
-        const bytesWritten = this.exports.get_stringify_output(this.stringifierId);
+
+        const bytesWritten = this.exports.get_stringify_output(
+          this.stringifierId,
+        );
         if (bytesWritten > 0) {
-          const output = new Uint8Array(this.memory.buffer, this.outputPtr, bytesWritten);
+          const output = new Uint8Array(
+            this.memory.buffer,
+            this.outputPtr,
+            bytesWritten,
+          );
           yield output.slice(); // Copy since buffer may be reused
           this.exports.clear_stringify_output(this.stringifierId);
         }
@@ -226,13 +281,15 @@ class CsvProcessor {
     }
   }
 
-  private normalizeRows(item: string[] | string[][] | LazyRow | LazyRow[]): string[][] {
+  private normalizeRows(
+    item: string[] | string[][] | LazyRow | LazyRow[],
+  ): string[][] {
     if (item instanceof LazyRow) {
       return [item.toStringArray()];
     }
     if (Array.isArray(item) && item.length > 0) {
       if (item[0] instanceof LazyRow) {
-        return (item as LazyRow[]).map(r => r.toStringArray());
+        return (item as LazyRow[]).map((r) => r.toStringArray());
       }
       if (Array.isArray(item[0])) {
         return item as string[][];
@@ -255,9 +312,16 @@ class CsvProcessor {
     const errInfo = this.exports.get_delimited_error(this.parserId);
     const row = Number(errInfo >> 32n);
     const col = Number(errInfo & 0xFFFFFFFFn);
-    const kindName = Object.entries(CsvErrorKind).find(([_, v]) => v === errorKind)?.[0] ?? "Unknown";
+    const kindName =
+      Object.entries(CsvErrorKind).find(([_, v]) => v === errorKind)?.[0] ??
+        "Unknown";
     const message = ErrorMessages[errorKind] ?? "Unknown error";
-    throw new CsvParseError(kindName, row, col, `${message} at row ${row}, col ${col}`);
+    throw new CsvParseError(
+      kindName,
+      row,
+      col,
+      `${message} at row ${row}, col ${col}`,
+    );
   }
 
   private ensureInputBuffer(size: number): void {
@@ -277,22 +341,26 @@ class CsvProcessor {
   }
 
   private unpackOutput(bytesWritten: number): string[][] {
-    const data = new Uint8Array(this.memory.buffer, this.outputPtr, bytesWritten);
+    const data = new Uint8Array(
+      this.memory.buffer,
+      this.outputPtr,
+      bytesWritten,
+    );
     const text = new TextDecoder().decode(data);
     if (!text) return [];
-    
+
     const rows: string[][] = [];
     // Split on record separator - complete records end with \x1E
     // After split, the last element is empty if text ended with \x1E (complete)
     // or contains partial data if text didn't end with \x1E (incomplete)
     const segments = text.split(String.fromCharCode(RECORD_SEP));
-    
+
     // Process all segments except the last
     for (let i = 0; i < segments.length - 1; i++) {
       const record = segments[i];
       rows.push(record.split(String.fromCharCode(FIELD_SEP)));
     }
-    
+
     // Last segment is empty if all records were complete, ignore it
     // If non-empty, it's an incomplete record - shouldn't happen with correct parser
     return rows;
@@ -333,7 +401,9 @@ class CsvProcessor {
  * RFC 4180 compliant with streaming support.
  */
 export function fromCsvToRowsFast(parseOptions?: CsvParseOptions) {
-  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<string[][]> {
+  return async function* (
+    bytes: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<string[][]> {
     const processor = await CsvProcessor.create();
     yield* processor.parseChunks(bytes, parseOptions);
   };
@@ -344,10 +414,12 @@ export function fromCsvToRowsFast(parseOptions?: CsvParseOptions) {
  * RFC 4180 compliant with streaming support.
  */
 export function fromCsvToLazyRowsFast(parseOptions?: CsvParseOptions) {
-  return async function* (bytes: AsyncIterable<Uint8Array>): AsyncIterable<LazyRow[]> {
+  return async function* (
+    bytes: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<LazyRow[]> {
     const processor = await CsvProcessor.create();
     for await (const batch of processor.parseChunks(bytes, parseOptions)) {
-      yield batch.map(row => LazyRow.fromStringArray(row));
+      yield batch.map((row) => LazyRow.fromStringArray(row));
     }
   };
 }
@@ -358,7 +430,7 @@ export function fromCsvToLazyRowsFast(parseOptions?: CsvParseOptions) {
  */
 export function toCsvFast(stringifyOptions?: CsvStringifyOptions) {
   return async function* (
-    data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>
+    data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
     const processor = await CsvProcessor.create();
     yield* processor.stringifyChunks(data, stringifyOptions);

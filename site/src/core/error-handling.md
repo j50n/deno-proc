@@ -1,19 +1,24 @@
 # Error Handling
 
-Error handling is proc's primary design goal. Rather than requiring complex coordination between producers and consumers, proc makes errors flow through pipelines naturally, just like data.
+Error handling is proc's primary design goal. Rather than requiring complex
+coordination between producers and consumers, proc makes errors flow through
+pipelines naturally, just like data.
 
 ## Solving the Backpressure and Error Problem
 
-Traditional streams create two problems: complex backpressure coordination AND complex error handling. proc solves both:
+Traditional streams create two problems: complex backpressure coordination AND
+complex error handling. proc solves both:
 
 ### Traditional Streams - Complex Backpressure + Error Handling
+
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Node.js streams - backpressure AND error handling complexity
-const stream1 = createReadStream('input.txt');
-const transform1 = new Transform({ /* options */ });
-const transform2 = new Transform({ /* options */ });
-const output = createWriteStream('output.txt');
+const stream1 = createReadStream("input.txt");
+const transform1 = new Transform({/* options */});
+const transform2 = new Transform({/* options */});
+const output = createWriteStream("output.txt");
 
 // Backpressure handling
 stream1.pipe(transform1, { end: false });
@@ -21,24 +26,26 @@ transform1.pipe(transform2, { end: false });
 transform2.pipe(output);
 
 // Error handling at each stage
-stream1.on('error', handleError);
-transform1.on('error', handleError);
-transform2.on('error', handleError);
-output.on('error', handleError);
+stream1.on("error", handleError);
+transform1.on("error", handleError);
+transform2.on("error", handleError);
+output.on("error", handleError);
 
 // Plus drain events, pause/resume, etc.
 ```
 
 ### proc - No Backpressure, Simple Errors
+
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // proc - pull-based flow eliminates both problems
 try {
-  await read('input.txt')
+  await read("input.txt")
     .lines
     .map(transform1)
     .map(transform2)
-    .writeTo('output.txt');
+    .writeTo("output.txt");
 } catch (error) {
   // All errors caught here - no backpressure coordination needed
   console.error(`Pipeline failed: ${error.message}`);
@@ -46,6 +53,7 @@ try {
 ```
 
 **Why this works:**
+
 - **Pull-based flow**: Consumer controls pace, no backpressure needed
 - **Error propagation**: Errors flow with data through the same path
 - **One catch block**: Handle all errors in one place
@@ -55,6 +63,7 @@ try {
 Traditional stream error handling requires managing errors at multiple points:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // With Deno.Command - manual error handling at each step
 const cmd1 = new Deno.Command("cat", { args: ["file.txt"] });
@@ -64,9 +73,9 @@ if (!output1.success) {
   throw new Error(`cat failed: ${output1.code}`);
 }
 
-const cmd2 = new Deno.Command("grep", { 
+const cmd2 = new Deno.Command("grep", {
   args: ["pattern"],
-  stdin: "piped"
+  stdin: "piped",
 });
 const proc2 = cmd2.spawn();
 // ... manually pipe output1 to proc2 stdin ...
@@ -79,17 +88,23 @@ if (!output2.success) {
 With Node.js streams, you need error handlers on each stream:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
-stream1.on('error', handleError);
-stream2.on('error', handleError);
-stream3.on('error', handleError);
+stream1.on("error", handleError);
+stream2.on("error", handleError);
+stream3.on("error", handleError);
 ```
 
 ## How proc Changes Everything
 
-proc treats errors as first-class data that flows through your pipeline alongside the actual results. When you build a pipeline with multiple operations—running processes, transforming data, filtering results—any error that occurs anywhere in the chain automatically propagates to your final catch block:
+proc treats errors as first-class data that flows through your pipeline
+alongside the actual results. When you build a pipeline with multiple
+operations—running processes, transforming data, filtering results—any error
+that occurs anywhere in the chain automatically propagates to your final catch
+block:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 try {
   await run("cat", "file.txt")
@@ -109,7 +124,10 @@ try {
 }
 ```
 
-This approach eliminates the need for error handling at each step. Whether a process exits with a non-zero code, a transformation throws an exception, or a filter encounters invalid data, the error flows downstream and gets caught in one place.
+This approach eliminates the need for error handling at each step. Whether a
+process exits with a non-zero code, a transformation throws an exception, or a
+filter encounters invalid data, the error flows downstream and gets caught in
+one place.
 
 ## How Error Propagation Works
 
@@ -119,15 +137,19 @@ When something goes wrong anywhere in the pipeline:
 2. Downstream operations are skipped
 3. The error propagates to your catch block
 
-It's functional programming—errors are just another type of data flowing through.
+It's functional programming—errors are just another type of data flowing
+through.
 
 ## Understanding Error Types
 
-proc throws specific error types that help you handle different failure scenarios appropriately. Each error type carries relevant context about what went wrong, making debugging and error recovery more straightforward.
+proc throws specific error types that help you handle different failure
+scenarios appropriately. Each error type carries relevant context about what
+went wrong, making debugging and error recovery more straightforward.
 
 **ExitCodeError** occurs when a process exits with a non-zero code:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { ExitCodeError } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -141,9 +163,11 @@ try {
 }
 ```
 
-**SignalError** happens when a process is terminated by a signal, such as when you interrupt it with Ctrl+C:
+**SignalError** happens when a process is terminated by a signal, such as when
+you interrupt it with Ctrl+C:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { SignalError } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -160,12 +184,13 @@ try {
 **UpstreamError** wraps errors that come from earlier stages in a pipeline:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { UpstreamError } from "jsr:@j50n/proc@{{gitv}}";
 
 try {
-  await run("cat", "missing.txt")  // This fails
-    .run("grep", "pattern")         // This gets UpstreamError
+  await run("cat", "missing.txt") // This fails
+    .run("grep", "pattern") // This gets UpstreamError
     .lines.collect();
 } catch (error) {
   if (error instanceof UpstreamError) {
@@ -176,13 +201,22 @@ try {
 
 ## Checking Exit Status Without Throwing
 
-Sometimes you want to inspect a process's exit status without triggering an exception. proc supports this pattern by letting you consume the process output first, then check the status afterward. This approach is useful when non-zero exit codes are expected or when you want to implement custom error handling logic.
+Sometimes you want to inspect a process's exit status without triggering an
+exception. proc supports this pattern by letting you consume the process output
+first, then check the status afterward. This approach is useful when non-zero
+exit codes are expected or when you want to implement custom error handling
+logic.
 
-Remember to always consume the output before checking the status—otherwise you'll create resource leaks. The pattern is straightforward: run your process, consume its output with methods like `.lines.collect()`, then access the `.status` property to inspect the exit code and make decisions based on the result.
+Remember to always consume the output before checking the status—otherwise
+you'll create resource leaks. The pattern is straightforward: run your process,
+consume its output with methods like `.lines.collect()`, then access the
+`.status` property to inspect the exit code and make decisions based on the
+result.
 
 ## Handling Specific Exit Codes
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 try {
   await run("grep", "pattern", "file.txt").lines.collect();
@@ -204,11 +238,12 @@ try {
 Errors in your own code propagate the same way:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 try {
   await run("cat", "numbers.txt")
     .lines
-    .map(line => {
+    .map((line) => {
       const num = parseInt(line);
       if (isNaN(num)) {
         throw new Error(`Invalid number: ${line}`);
@@ -224,23 +259,39 @@ try {
 
 ## Custom Error Handling
 
-While proc's default error handling works well for most cases, you can customize how errors are handled using the `fnError` option. This function receives the error and any stderr data, giving you the opportunity to suppress specific errors, transform them, or add additional context.
+While proc's default error handling works well for most cases, you can customize
+how errors are handled using the `fnError` option. This function receives the
+error and any stderr data, giving you the opportunity to suppress specific
+errors, transform them, or add additional context.
 
-For example, some commands like `grep` return exit code 1 when no matches are found, which isn't really an error in many contexts. You can use a custom error handler to treat this as normal behavior while still catching genuine failures. Similarly, you might want to add context to errors to make debugging easier, or suppress errors entirely for commands where failure is acceptable.
+For example, some commands like `grep` return exit code 1 when no matches are
+found, which isn't really an error in many contexts. You can use a custom error
+handler to treat this as normal behavior while still catching genuine failures.
+Similarly, you might want to add context to errors to make debugging easier, or
+suppress errors entirely for commands where failure is acceptable.
 
 ## Working with Stderr
 
-By default, proc passes stderr through to `Deno.stderr`, which means error messages from child processes appear in your terminal as expected. However, you can capture and process stderr using the `fnStderr` option, which gives you an async iterable of stderr lines.
+By default, proc passes stderr through to `Deno.stderr`, which means error
+messages from child processes appear in your terminal as expected. However, you
+can capture and process stderr using the `fnStderr` option, which gives you an
+async iterable of stderr lines.
 
-This capability is useful when you need to analyze error output, combine stdout and stderr streams, or implement custom logging. You can collect stderr lines into an array for later analysis, process them in real-time, or merge them with stdout to create a unified output stream. The stderr handler runs concurrently with your main pipeline, so it doesn't block the processing of stdout.
+This capability is useful when you need to analyze error output, combine stdout
+and stderr streams, or implement custom logging. You can collect stderr lines
+into an array for later analysis, process them in real-time, or merge them with
+stdout to create a unified output stream. The stderr handler runs concurrently
+with your main pipeline, so it doesn't block the processing of stdout.
 
 ## Best Practices for Error Handling
 
 ### 1. Catch at the End
 
-Don't catch errors in the middle of a pipeline unless you're handling them specifically:
+Don't catch errors in the middle of a pipeline unless you're handling them
+specifically:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Don't do this
 try {
@@ -270,6 +321,7 @@ try {
 Even if you don't care about the output, consume it:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Resource leak
 const p = run("command");
@@ -286,6 +338,7 @@ await run("command").lines.forEach(() => {});
 Handle different errors differently:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 try {
   await pipeline();
@@ -302,13 +355,17 @@ try {
 
 ### 4. Use Custom Handlers Sparingly
 
-Only customize error handling when you have a specific need. The default behavior works well for most cases.
+Only customize error handling when you have a specific need. The default
+behavior works well for most cases.
 
 ## Why This Approach Matters
 
-Error handling is the primary reason proc exists. If you've struggled with stream error events, debugged edge cases in error propagation, or written the same error handling code repeatedly, proc's approach will feel like a relief.
+Error handling is the primary reason proc exists. If you've struggled with
+stream error events, debugged edge cases in error propagation, or written the
+same error handling code repeatedly, proc's approach will feel like a relief.
 
-Errors propagate naturally. One catch block handles everything. The complexity disappears.
+Errors propagate naturally. One catch block handles everything. The complexity
+disappears.
 
 ## See Also
 

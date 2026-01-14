@@ -1,31 +1,42 @@
 # Record Format
 
-High-performance binary-safe format using ASCII control characters for maximum throughput.
+High-performance binary-safe format using ASCII control characters for maximum
+throughput.
 
-> ⚠️ **Experimental (v0.24.0+)**: Record format transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.
+> ⚠️ **Experimental (v0.24.0+)**: Record format transforms are under active
+> development. API may change as we improve correctness and streaming
+> performance. Test thoroughly with your data patterns.
 
 ## Overview
 
-Record format is designed for **maximum performance** in data processing pipelines. It uses ASCII control characters (Record Separator and Field Separator) to achieve reliable parsing while supporting any UTF-8 content in field values, including tabs and newlines.
+Record format is designed for **maximum performance** in data processing
+pipelines. It uses ASCII control characters (Record Separator and Field
+Separator) to achieve reliable parsing while supporting any UTF-8 content in
+field values, including tabs and newlines.
 
 ## Performance Characteristics
 
-| Dataset Size | Parsing Speed | Stringify Speed | Best Use Case |
-|--------------|---------------|-----------------|---------------|
-| Small (1K)   | 59.95 MB/s    | 188.16 MB/s     | Good baseline |
-| Medium (10K) | 86.34 MB/s    | 89.86 MB/s      | Excellent scaling |
+| Dataset Size | Parsing Speed | Stringify Speed | Best Use Case          |
+| ------------ | ------------- | --------------- | ---------------------- |
+| Small (1K)   | 59.95 MB/s    | 188.16 MB/s     | Good baseline          |
+| Medium (10K) | 86.34 MB/s    | 89.86 MB/s      | Excellent scaling      |
 | Large (50K)  | 93.34 MB/s    | 220.38 MB/s     | **Highest throughput** |
 
-> **Performance Leader**: Record format provides the most consistent high performance across all dataset sizes, making it ideal for high-throughput data processing.
+> **Performance Leader**: Record format provides the most consistent high
+> performance across all dataset sizes, making it ideal for high-throughput data
+> processing.
 
 ## Format Specification
 
-Record format uses ASCII control characters for reliable field and record separation:
+Record format uses ASCII control characters for reliable field and record
+separation:
 
 - **Record Separator (RS)**: `\x1E` (ASCII 30) - separates records
 - **Field Separator (FS)**: `\x1F` (ASCII 31) - separates fields within records
 
-These characters are defined in `common.ts` and should not appear in actual data, allowing safe processing of tabs, newlines, and other special characters within field values.
+These characters are defined in `common.ts` and should not appear in actual
+data, allowing safe processing of tabs, newlines, and other special characters
+within field values.
 
 ### Format Example
 
@@ -73,7 +84,7 @@ for (const row of lazyRows) {
   const name = row.getField(0);
   const age = parseInt(row.getField(1));
   const city = row.getField(2);
-  
+
   console.log(`${name} (${age}) from ${city}`);
 }
 ```
@@ -85,9 +96,9 @@ import { toRecord } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 // From string arrays
 const data = [
-  ["Alice", "30", "New\nYork"],  // Newlines are safe
-  ["Bob", "25", "Tab\there"],    // Tabs are safe
-  ["Carol", "35", "Quote\"here"] // Quotes are safe
+  ["Alice", "30", "New\nYork"], // Newlines are safe
+  ["Bob", "25", "Tab\there"], // Tabs are safe
+  ["Carol", "35", 'Quote"here'], // Quotes are safe
 ];
 
 await enumerate(data)
@@ -107,7 +118,7 @@ const complexData = [
   ["Product", "Description", "Notes"],
   ["Widget A", "Contains\ttabs\nand newlines", "Special chars: \"'`"],
   ["Widget B", "Unicode: café naïve 🚀 東京", "Control chars safe"],
-  ["Widget C", "Commas, semicolons; all safe", "No escaping needed"]
+  ["Widget C", "Commas, semicolons; all safe", "No escaping needed"],
 ];
 
 await enumerate(complexData)
@@ -129,7 +140,7 @@ Unlike CSV, Record format needs no complex escaping:
 ```typescript
 // CSV requires complex quoting and escaping
 const csvProblematic = [
-  ["Field with \"quotes\"", "Field with, commas", "Field with\nnewlines"]
+  ['Field with "quotes"', "Field with, commas", "Field with\nnewlines"],
 ];
 
 // Record format handles it naturally
@@ -146,10 +157,10 @@ Record format is optimized for speed:
 // Fastest format for high-throughput processing
 const startTime = Date.now();
 
-await read("large-dataset.record")  // 93 MB/s parsing
+await read("large-dataset.record") // 93 MB/s parsing
   .transform(fromRecordToRows())
-  .filter(row => row[0].startsWith("A"))
-  .transform(toRecord())            // 220 MB/s stringify
+  .filter((row) => row[0].startsWith("A"))
+  .transform(toRecord()) // 220 MB/s stringify
   .writeTo("filtered.record");
 
 const duration = Date.now() - startTime;
@@ -166,16 +177,16 @@ let processedCount = 0;
 
 await read("raw-data.record")
   .transform(fromRecordToLazyRows())
-  .filter(row => {
+  .filter((row) => {
     const status = row.getField(5);
     return status === "active";
   })
-  .map(row => [
-    row.getField(0),                    // ID
-    row.getField(1).toUpperCase(),      // Name (normalized)
-    row.getField(2).toLowerCase(),      // Email (normalized)
-    new Date().toISOString(),           // Processing timestamp
-    "processed"                         // Status
+  .map((row) => [
+    row.getField(0), // ID
+    row.getField(1).toUpperCase(), // Name (normalized)
+    row.getField(2).toLowerCase(), // Email (normalized)
+    new Date().toISOString(), // Processing timestamp
+    "processed", // Status
   ])
   .transform(toRecord())
   .writeTo("processed-data.record");
@@ -197,7 +208,7 @@ console.log("Conversion complete. Subsequent processing will be 3-5x faster.");
 // Later processing benefits from Record format speed
 await read("fast-data.record")
   .transform(fromRecordToRows())
-  .filter(row => row[2] === "target")
+  .filter((row) => row[2] === "target")
   .collect();
 ```
 
@@ -216,39 +227,42 @@ const stats: ProcessingStats = {
   totalRecords: 0,
   validRecords: 0,
   errorRecords: 0,
-  startTime: Date.now()
+  startTime: Date.now(),
 };
 
 await read("streaming-data.record")
   .transform(fromRecordToLazyRows())
-  .forEach(row => {
+  .forEach((row) => {
     stats.totalRecords++;
-    
+
     try {
       // Validate and process record
       const id = row.getField(0);
       const value = parseFloat(row.getField(3));
-      
+
       if (id && !isNaN(value)) {
         stats.validRecords++;
         // Process valid record
       } else {
         stats.errorRecords++;
       }
-      
+
       // Report progress
       if (stats.totalRecords % 100000 === 0) {
         const elapsed = (Date.now() - stats.startTime) / 1000;
         const rate = (stats.totalRecords / elapsed).toFixed(0);
-        console.log(`Processed ${stats.totalRecords} records (${rate} records/sec)`);
+        console.log(
+          `Processed ${stats.totalRecords} records (${rate} records/sec)`,
+        );
       }
-      
     } catch (error) {
       stats.errorRecords++;
     }
   });
 
-console.log(`Final stats: ${stats.validRecords}/${stats.totalRecords} valid records`);
+console.log(
+  `Final stats: ${stats.validRecords}/${stats.totalRecords} valid records`,
+);
 ```
 
 ### Data Archival and Compression
@@ -266,7 +280,7 @@ await read("large-dataset.record")
 await read("archived-data.record.gz")
   .transform(gunzip)
   .transform(fromRecordToRows())
-  .take(1000)  // Sample first 1000 records
+  .take(1000) // Sample first 1000 records
   .collect();
 ```
 
@@ -280,7 +294,7 @@ Record format shows mixed LazyRow performance:
 // ✅ Use LazyRow for selective field access
 await read("wide-data.record")
   .transform(fromRecordToLazyRows())
-  .filter(row => {
+  .filter((row) => {
     // Only parse fields 0 and 10
     const id = row.getField(0);
     const status = row.getField(10);
@@ -291,7 +305,7 @@ await read("wide-data.record")
 // ✅ Use regular parsing for full field processing
 await read("data.record")
   .transform(fromRecordToRows())
-  .map(row => {
+  .map((row) => {
     // Process all fields efficiently
     return processAllFields(row);
   })
@@ -309,7 +323,7 @@ await read("huge-data.record")
   .transform(fromRecordToRows())
   .forEach(async (row) => {
     batch.push(row);
-    
+
     if (batch.length >= batchSize) {
       await processBatch(batch);
       batch = [];
@@ -332,9 +346,9 @@ const results = await Promise.all(
   inputFiles.map(async (file, index) => {
     return await read(file)
       .transform(fromRecordToRows())
-      .filter(row => row[0].startsWith(`BATCH_${index}`))
+      .filter((row) => row[0].startsWith(`BATCH_${index}`))
       .collect();
-  })
+  }),
 );
 
 // Combine results
@@ -354,12 +368,16 @@ await read("data.record")
   .transform(fromRecordToRows())
   .forEach((row, index) => {
     if (row.length !== expectedFields) {
-      errors.push(`Record ${index + 1}: Expected ${expectedFields} fields, got ${row.length}`);
+      errors.push(
+        `Record ${
+          index + 1
+        }: Expected ${expectedFields} fields, got ${row.length}`,
+      );
     }
   });
 
 if (errors.length > 0) {
-  console.error(`Validation failed:\n${errors.join('\n')}`);
+  console.error(`Validation failed:\n${errors.join("\n")}`);
 }
 ```
 
@@ -371,24 +389,26 @@ await read("transactions.record")
   .transform(fromRecordToLazyRows())
   .map((row, index) => {
     const recordNum = index + 1;
-    
+
     // Validate transaction ID format
     const txId = row.getField(0);
     if (!/^TX_\d{8}$/.test(txId)) {
       throw new Error(`Record ${recordNum}: Invalid transaction ID: ${txId}`);
     }
-    
+
     // Validate amount
     const amount = parseFloat(row.getField(3));
     if (isNaN(amount) || amount <= 0) {
-      throw new Error(`Record ${recordNum}: Invalid amount: ${row.getField(3)}`);
+      throw new Error(
+        `Record ${recordNum}: Invalid amount: ${row.getField(3)}`,
+      );
     }
-    
+
     return {
       id: txId,
       amount: amount,
       timestamp: row.getField(1),
-      description: row.getField(2)
+      description: row.getField(2),
     };
   })
   .transform(toJson())
@@ -402,10 +422,10 @@ await read("transactions.record")
 ```typescript
 // Bulk load Record data into database
 const insertBatch = async (rows: string[][]) => {
-  const values = rows.map(row => 
-    `(${row.map(field => `'${field.replace(/'/g, "''")}'`).join(', ')})`
-  ).join(', ');
-  
+  const values = rows.map((row) =>
+    `(${row.map((field) => `'${field.replace(/'/g, "''")}'`).join(", ")})`
+  ).join(", ");
+
   await db.execute(`
     INSERT INTO users (id, name, email, created_at, status) 
     VALUES ${values}
@@ -419,7 +439,7 @@ await read("users.record")
   .transform(fromRecordToRows())
   .forEach(async (row) => {
     batch.push(row);
-    
+
     if (batch.length >= batchSize) {
       await insertBatch(batch);
       batch = [];
@@ -437,27 +457,29 @@ if (batch.length > 0) {
 // Stream Record data to REST API
 await read("events.record")
   .transform(fromRecordToLazyRows())
-  .map(row => ({
+  .map((row) => ({
     eventId: row.getField(0),
     timestamp: row.getField(1),
     userId: row.getField(2),
     action: row.getField(3),
-    metadata: JSON.parse(row.getField(4) || '{}')
+    metadata: JSON.parse(row.getField(4) || "{}"),
   }))
   .concurrentMap(async (event) => {
-    const response = await fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event)
+    const response = await fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
     });
-    
+
     if (!response.ok) {
-      throw new Error(`API error for event ${event.eventId}: ${response.statusText}`);
+      throw new Error(
+        `API error for event ${event.eventId}: ${response.statusText}`,
+      );
     }
-    
+
     return response.json();
-  }, { concurrency: 20 })  // Higher concurrency due to Record format speed
-  .forEach(result => console.log('Processed:', result.id));
+  }, { concurrency: 20 }) // Higher concurrency due to Record format speed
+  .forEach((result) => console.log("Processed:", result.id));
 ```
 
 ## Error Handling
@@ -482,7 +504,7 @@ try {
 
 ```typescript
 // Continue processing despite individual record errors
-const errors: Array<{record: number, error: string}> = [];
+const errors: Array<{ record: number; error: string }> = [];
 let successCount = 0;
 
 await read("data.record")
@@ -494,7 +516,7 @@ await read("data.record")
     } catch (error) {
       errors.push({
         record: index + 1,
-        error: error.message
+        error: error.message,
       });
     }
   });
@@ -502,7 +524,7 @@ await read("data.record")
 console.log(`Successfully processed ${successCount} records`);
 if (errors.length > 0) {
   console.error(`${errors.length} records had errors:`);
-  errors.slice(0, 10).forEach(({record, error}) => {
+  errors.slice(0, 10).forEach(({ record, error }) => {
     console.error(`  Record ${record}: ${error}`);
   });
 }
@@ -522,18 +544,21 @@ if (errors.length > 0) {
 ## Comparison with Other Formats
 
 ### Record vs CSV
+
 - **Speed**: Record is 3-5x faster than CSV
 - **Safety**: No escaping needed for special characters
 - **Readability**: CSV is human-readable, Record is binary
 - **Compatibility**: CSV is universal, Record is specialized
 
 ### Record vs TSV
+
 - **Speed**: Record is consistently faster, especially for large data
 - **Content**: Record handles tabs/newlines safely, TSV cannot
 - **Simplicity**: TSV is simpler and human-readable
 - **Performance**: Record scales better with dataset size
 
 ### Record vs JSON
+
 - **Structure**: JSON supports nested objects, Record is flat tabular
 - **Speed**: Record is faster for large tabular datasets
 - **Flexibility**: JSON is more flexible for complex structures

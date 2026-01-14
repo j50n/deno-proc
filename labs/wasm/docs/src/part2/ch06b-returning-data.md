@@ -1,8 +1,10 @@
 # Returning Dynamic Data
 
-When Odin generates data of unknown size, the caller can't pre-allocate a buffer. Odin must allocate the memory and return it to JavaScript.
+When Odin generates data of unknown size, the caller can't pre-allocate a
+buffer. Odin must allocate the memory and return it to JavaScript.
 
 This chapter covers two cases:
+
 1. **Variable-length data** (strings, arrays) - need pointer AND length
 2. **Fixed-size data** (structs) - just need pointer
 
@@ -12,7 +14,8 @@ This chapter covers two cases:
 
 WASM functions return a single value, but we need two: a pointer and a length.
 
-**Solution:** Pack both into a 64-bit integer. Low 32 bits = pointer, high 32 bits = length.
+**Solution:** Pack both into a 64-bit integer. Low 32 bits = pointer, high 32
+bits = length.
 
 ![Packed i64 bit layout](images/packed-i64.svg)
 
@@ -65,6 +68,7 @@ createGreeting(name: string): string {
 ```
 
 **Why packed i64 works:**
+
 - 32 bits for pointer covers 4GB (WASM max)
 - 32 bits for length covers 4GB (plenty)
 - JavaScript BigInt handles 64-bit cleanly
@@ -73,7 +77,8 @@ createGreeting(name: string): string {
 
 ## Fixed-Size Data (Structs)
 
-Structs have known size, so we only need the pointer. Odin allocates, JavaScript reads the fields and frees.
+Structs have known size, so we only need the pointer. Odin allocates, JavaScript
+reads the fields and frees.
 
 **Odin:**
 
@@ -118,6 +123,7 @@ createPoint(x: number, y: number): { x: number; y: number } {
 ```
 
 **Struct layout:**
+
 - Fields are in declaration order
 - `f64` = 8 bytes, `i32`/`f32` = 4 bytes, `i64` = 8 bytes
 - Odin uses little-endian byte order
@@ -140,8 +146,8 @@ make_point :: proc "c" (x: f64, y: f64) -> Point {
 
 ```typescript
 // Actual WASM call - first arg is out pointer!
-const outPtr = alloc_string(16) as number;  // 16 bytes for Point
-make_point(outPtr, x, y);  // NOT make_point(x, y)
+const outPtr = alloc_string(16) as number; // 16 bytes for Point
+make_point(outPtr, x, y); // NOT make_point(x, y)
 
 const view = new DataView(memory.buffer);
 const point = {
@@ -150,17 +156,18 @@ const point = {
 };
 ```
 
-This is implicit and error-prone. **Use explicit pointers instead** - they match what's actually happening.
+This is implicit and error-prone. **Use explicit pointers instead** - they match
+what's actually happening.
 
 ---
 
 ## Summary
 
-| Data Type | Return Method | JavaScript Handling |
-|-----------|---------------|---------------------|
-| String/Array | Packed i64 (ptr + len) | Unpack with BigInt, decode, free |
-| Struct | Pointer | Read fields with DataView, free |
-| Struct by value | Hidden out-param | Allocate first, pass as arg 1 |
+| Data Type       | Return Method          | JavaScript Handling              |
+| --------------- | ---------------------- | -------------------------------- |
+| String/Array    | Packed i64 (ptr + len) | Unpack with BigInt, decode, free |
+| Struct          | Pointer                | Read fields with DataView, free  |
+| Struct by value | Hidden out-param       | Allocate first, pass as arg 1    |
 
 Always use `try/finally` to ensure cleanup.
 

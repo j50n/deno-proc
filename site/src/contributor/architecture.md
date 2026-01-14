@@ -36,23 +36,28 @@
 ## Design Principles
 
 ### Properties vs Methods
+
 - **Properties** (no parentheses): Return new objects or promises
   - Examples: `.lines`, `.status`, `.first`, `.last`
-- **Methods** (with parentheses): Functions that take parameters or perform actions
+- **Methods** (with parentheses): Functions that take parameters or perform
+  actions
   - Examples: `.collect()`, `.map()`, `.filter()`, `.count()`
 
 ### Resource Management
+
 - Always consume process output to avoid resource leaks
 - Terminal operations: `.collect()`, `.forEach()`, `.count()`, etc.
 - Document resource management requirements clearly
 
 ### Error Propagation
+
 - Errors flow through pipelines naturally
 - No need for error handling at each step
 - One try-catch at the end handles everything
 - This is a key differentiator of the library
 
 ### Type Safety
+
 - Full TypeScript support required
 - Generic types where appropriate: `Enumerable<T>`, `ProcessEnumerable<S>`
 - Type inference should work naturally

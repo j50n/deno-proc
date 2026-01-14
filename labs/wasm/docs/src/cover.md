@@ -5,11 +5,13 @@
 # Table of Contents
 
 **Part I: Getting Started**
+
 - Getting Started
 - Building the Runtime Bridge
 - Testing WASM Integration
 
 **Part II: Core Concepts**
+
 - Working with Numbers
 - The Memory Model
 - String Handling
@@ -17,16 +19,19 @@
 - Error Handling
 
 **Part III: Advanced Patterns**
+
 - Advanced Memory Management
 - Multiple Instances
 - Real-World Applications
 
 **Part IV: Building & Shipping**
+
 - Build Automation
 - Performance Optimization
 - Production Deployment
 
 **Appendices**
+
 - Odin Language Reference
 - Odin WASM Environment Functions
 - Deno WASM API Reference

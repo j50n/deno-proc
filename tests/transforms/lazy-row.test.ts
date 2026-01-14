@@ -1,10 +1,10 @@
 /**
  * Unit tests for LazyRow class.
- * 
+ *
  * LazyRow provides efficient field access for CSV/tabular data with two implementations:
  * - StringArray: Backed by string array (simple, good for small rows)
  * - Binary: Backed by binary format (efficient for large rows, O(1) field access)
- * 
+ *
  * Test coverage:
  * - StringArray implementation (basic functionality, edge cases)
  * - Binary implementation (encoding/decoding, round-trips)
@@ -12,7 +12,7 @@
  * - UTF-8 handling
  * - Bounds checking
  * - Caching behavior
- * 
+ *
  * @module
  */
 
@@ -27,7 +27,7 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("basic functionality", () => {
     const fields = ["hello", "world", "test"];
     const row = LazyRow.fromStringArray(fields);
-    
+
     assertEquals(row.columnCount, 3);
     assertEquals(row.getField(0), "hello");
     assertEquals(row.getField(1), "world");
@@ -38,7 +38,7 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("empty fields", () => {
     const fields = ["", "test", ""];
     const row = LazyRow.fromStringArray(fields);
-    
+
     assertEquals(row.columnCount, 3);
     assertEquals(row.getField(0), "");
     assertEquals(row.getField(1), "test");
@@ -48,7 +48,7 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("single field", () => {
     const fields = ["single"];
     const row = LazyRow.fromStringArray(fields);
-    
+
     assertEquals(row.columnCount, 1);
     assertEquals(row.getField(0), "single");
   });
@@ -56,7 +56,7 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("no fields", () => {
     const fields: string[] = [];
     const row = LazyRow.fromStringArray(fields);
-    
+
     assertEquals(row.columnCount, 0);
     assertEquals(row.toStringArray(), []);
   });
@@ -64,7 +64,7 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("field access bounds checking", () => {
     const fields = ["a", "b"];
     const row = LazyRow.fromStringArray(fields);
-    
+
     assertThrows(() => row.getField(-1), RangeError);
     assertThrows(() => row.getField(2), RangeError);
     assertThrows(() => row.getField(10), RangeError);
@@ -73,7 +73,7 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("UTF-8 handling", () => {
     const fields = ["café", "naïve", "🚀"];
     const row = LazyRow.fromStringArray(fields);
-    
+
     assertEquals(row.getField(0), "café");
     assertEquals(row.getField(1), "naïve");
     assertEquals(row.getField(2), "🚀");
@@ -82,13 +82,13 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("binary conversion and caching", () => {
     const fields = ["a", "bb", "ccc"];
     const row = LazyRow.fromStringArray(fields);
-    
+
     const binary1 = row.toBinary();
     const binary2 = row.toBinary();
-    
+
     // Should return the same cached instance
     assertEquals(binary1, binary2);
-    
+
     // Should be able to recreate from binary
     const row2 = LazyRow.fromBinary(binary1);
     assertEquals(row2.columnCount, 3);
@@ -107,7 +107,7 @@ Deno.test("LazyRow - Binary implementation", async (t) => {
     const originalFields = ["hello", "world", "test", ""];
     const stringRow = LazyRow.fromStringArray(originalFields);
     const binary = stringRow.toBinary();
-    
+
     const binaryRow = LazyRow.fromBinary(binary);
     assertEquals(binaryRow.columnCount, 4);
     assertEquals(binaryRow.getField(0), "hello");
@@ -122,11 +122,11 @@ Deno.test("LazyRow - Binary implementation", async (t) => {
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     // Access only some fields
     assertEquals(binaryRow.getField(1), "b");
     assertEquals(binaryRow.getField(3), "d");
-    
+
     // Full array should still work
     assertEquals(binaryRow.toStringArray(), fields);
   });
@@ -136,11 +136,11 @@ Deno.test("LazyRow - Binary implementation", async (t) => {
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     // First access should parse and cache
     const field1a = binaryRow.getField(1);
     const field1b = binaryRow.getField(1);
-    
+
     assertEquals(field1a, "test2");
     assertEquals(field1b, "test2");
   });
@@ -150,10 +150,10 @@ Deno.test("LazyRow - Binary implementation", async (t) => {
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     const array1 = binaryRow.toStringArray();
     const array2 = binaryRow.toStringArray();
-    
+
     assertEquals(array1, fields);
     assertEquals(array2, fields);
     // Should return different arrays (defensive copy)
@@ -165,7 +165,7 @@ Deno.test("LazyRow - Binary implementation", async (t) => {
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     // toBinary should return the original data
     assertEquals(binaryRow.toBinary(), binary);
   });
@@ -175,7 +175,7 @@ Deno.test("LazyRow - Binary implementation", async (t) => {
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     assertEquals(binaryRow.getField(0), "café");
     assertEquals(binaryRow.getField(1), "🚀");
     assertEquals(binaryRow.getField(2), "naïve");
@@ -186,7 +186,7 @@ Deno.test("LazyRow - Polymorphism", async (t) => {
   await t.step("instanceof works", () => {
     const stringRow = LazyRow.fromStringArray(["a", "b"]);
     const binaryRow = LazyRow.fromBinary(stringRow.toBinary());
-    
+
     assertEquals(stringRow instanceof LazyRow, true);
     assertEquals(binaryRow instanceof LazyRow, true);
   });
@@ -195,10 +195,10 @@ Deno.test("LazyRow - Polymorphism", async (t) => {
     function processRow(row: LazyRow): string {
       return `${row.columnCount} fields: ${row.getField(0)}`;
     }
-    
+
     const stringRow = LazyRow.fromStringArray(["hello", "world"]);
     const binaryRow = LazyRow.fromBinary(stringRow.toBinary());
-    
+
     assertEquals(processRow(stringRow), "2 fields: hello");
     assertEquals(processRow(binaryRow), "2 fields: hello");
   });
@@ -206,9 +206,9 @@ Deno.test("LazyRow - Polymorphism", async (t) => {
   await t.step("array of mixed implementations", () => {
     const stringRow = LazyRow.fromStringArray(["a", "b"]);
     const binaryRow = LazyRow.fromBinary(stringRow.toBinary());
-    
+
     const rows: LazyRow[] = [stringRow, binaryRow];
-    
+
     for (const row of rows) {
       assertEquals(row.columnCount, 2);
       assertEquals(row.getField(0), "a");
@@ -220,27 +220,30 @@ Deno.test("LazyRow - Polymorphism", async (t) => {
 Deno.test("LazyRow - Performance characteristics", async (t) => {
   await t.step("string array - no conversion cost", () => {
     const fields = Array.from({ length: 1000 }, (_, i) => `field_${i}`);
-    
+
     const start = performance.now();
     const row = LazyRow.fromStringArray(fields);
     const end = performance.now();
-    
+
     // Should be very fast (< 1ms for 1000 fields)
     assertEquals(end - start < 1, true);
     assertEquals(row.columnCount, 1000);
   });
 
   await t.step("binary - lazy field access", () => {
-    const fields = Array.from({ length: 100 }, (_, i) => `field_${i}_with_longer_content`);
+    const fields = Array.from(
+      { length: 100 },
+      (_, i) => `field_${i}_with_longer_content`,
+    );
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     // Accessing just one field should be fast
     const start = performance.now();
     const field = binaryRow.getField(50);
     const end = performance.now();
-    
+
     assertEquals(field, "field_50_with_longer_content");
     // Should be faster than parsing all fields
     assertEquals(end - start < 1, true);
@@ -251,7 +254,7 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
   await t.step("basic set operation", () => {
     const row = LazyRow.fromStringArray(["a", "b", "c"]);
     row.setField(1, "modified");
-    
+
     assertEquals(row.getField(0), "a");
     assertEquals(row.getField(1), "modified");
     assertEquals(row.getField(2), "c");
@@ -261,7 +264,7 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
   await t.step("set first field", () => {
     const row = LazyRow.fromStringArray(["a", "b", "c"]);
     row.setField(0, "first");
-    
+
     assertEquals(row.getField(0), "first");
     assertEquals(row.toStringArray(), ["first", "b", "c"]);
   });
@@ -269,7 +272,7 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
   await t.step("set last field", () => {
     const row = LazyRow.fromStringArray(["a", "b", "c"]);
     row.setField(2, "last");
-    
+
     assertEquals(row.getField(2), "last");
     assertEquals(row.toStringArray(), ["a", "b", "last"]);
   });
@@ -277,7 +280,7 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
   await t.step("set to empty string", () => {
     const row = LazyRow.fromStringArray(["a", "b", "c"]);
     row.setField(1, "");
-    
+
     assertEquals(row.getField(1), "");
     assertEquals(row.toStringArray(), ["a", "", "c"]);
   });
@@ -285,7 +288,7 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
   await t.step("set UTF-8 content", () => {
     const row = LazyRow.fromStringArray(["a", "b", "c"]);
     row.setField(1, "café 🚀");
-    
+
     assertEquals(row.getField(1), "café 🚀");
   });
 
@@ -294,7 +297,7 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
     row.setField(0, "w");
     row.setField(2, "y");
     row.setField(3, "z");
-    
+
     assertEquals(row.toStringArray(), ["w", "b", "y", "z"]);
   });
 
@@ -303,13 +306,13 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
     row.setField(1, "first");
     row.setField(1, "second");
     row.setField(1, "third");
-    
+
     assertEquals(row.getField(1), "third");
   });
 
   await t.step("bounds checking", () => {
     const row = LazyRow.fromStringArray(["a", "b"]);
-    
+
     assertThrows(() => row.setField(-1, "x"), RangeError);
     assertThrows(() => row.setField(2, "x"), RangeError);
     assertThrows(() => row.setField(10, "x"), RangeError);
@@ -318,13 +321,13 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
   await t.step("invalidates binary cache", () => {
     const row = LazyRow.fromStringArray(["a", "b", "c"]);
     const binary1 = row.toBinary();
-    
+
     row.setField(1, "modified");
     const binary2 = row.toBinary();
-    
+
     // Should be different binaries
     assertEquals(binary1 === binary2, false);
-    
+
     // New binary should reflect changes
     const row2 = LazyRow.fromBinary(binary2);
     assertEquals(row2.getField(1), "modified");
@@ -333,9 +336,11 @@ Deno.test("LazyRow - setField StringArray", async (t) => {
 
 Deno.test("LazyRow - setField Binary", async (t) => {
   await t.step("basic set operation", () => {
-    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
+    const row = LazyRow.fromBinary(
+      LazyRow.fromStringArray(["a", "b", "c"]).toBinary(),
+    );
     row.setField(1, "modified");
-    
+
     assertEquals(row.getField(0), "a");
     assertEquals(row.getField(1), "modified");
     assertEquals(row.getField(2), "c");
@@ -343,14 +348,16 @@ Deno.test("LazyRow - setField Binary", async (t) => {
   });
 
   await t.step("modifications take precedence over binary", () => {
-    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
-    
+    const row = LazyRow.fromBinary(
+      LazyRow.fromStringArray(["a", "b", "c"]).toBinary(),
+    );
+
     // Access field before modification
     assertEquals(row.getField(1), "b");
-    
+
     // Modify it
     row.setField(1, "new");
-    
+
     // Should return modified value
     assertEquals(row.getField(1), "new");
   });
@@ -358,10 +365,10 @@ Deno.test("LazyRow - setField Binary", async (t) => {
   await t.step("unmodified fields still lazy", () => {
     const fields = Array.from({ length: 100 }, (_, i) => `field_${i}`);
     const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
-    
+
     // Modify one field
     row.setField(50, "modified");
-    
+
     // Other fields should still work
     assertEquals(row.getField(0), "field_0");
     assertEquals(row.getField(50), "modified");
@@ -369,29 +376,33 @@ Deno.test("LazyRow - setField Binary", async (t) => {
   });
 
   await t.step("multiple modifications", () => {
-    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c", "d", "e"]).toBinary());
-    
+    const row = LazyRow.fromBinary(
+      LazyRow.fromStringArray(["a", "b", "c", "d", "e"]).toBinary(),
+    );
+
     row.setField(0, "A");
     row.setField(2, "C");
     row.setField(4, "E");
-    
+
     assertEquals(row.toStringArray(), ["A", "b", "C", "d", "E"]);
   });
 
   await t.step("overwrite same field", () => {
-    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
-    
+    const row = LazyRow.fromBinary(
+      LazyRow.fromStringArray(["a", "b", "c"]).toBinary(),
+    );
+
     row.setField(1, "first");
     row.setField(1, "second");
     row.setField(1, "final");
-    
+
     assertEquals(row.getField(1), "final");
   });
 
   await t.step("toBinary with no modifications returns original", () => {
     const original = LazyRow.fromStringArray(["a", "b", "c"]).toBinary();
     const row = LazyRow.fromBinary(original);
-    
+
     // No modifications - should return same binary
     assertEquals(row.toBinary(), original);
   });
@@ -399,50 +410,56 @@ Deno.test("LazyRow - setField Binary", async (t) => {
   await t.step("toBinary with modifications creates new binary", () => {
     const original = LazyRow.fromStringArray(["a", "b", "c"]).toBinary();
     const row = LazyRow.fromBinary(original);
-    
+
     row.setField(1, "modified");
     const modified = row.toBinary();
-    
+
     // Should be different
     assertEquals(modified === original, false);
-    
+
     // New binary should have modifications
     const row2 = LazyRow.fromBinary(modified);
     assertEquals(row2.getField(1), "modified");
   });
 
   await t.step("invalidates string cache", () => {
-    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
-    
+    const row = LazyRow.fromBinary(
+      LazyRow.fromStringArray(["a", "b", "c"]).toBinary(),
+    );
+
     // Build string cache
     const arr1 = row.toStringArray();
     assertEquals(arr1, ["a", "b", "c"]);
-    
+
     // Modify
     row.setField(1, "new");
-    
+
     // Should reflect changes
     const arr2 = row.toStringArray();
     assertEquals(arr2, ["a", "new", "c"]);
   });
 
   await t.step("bounds checking", () => {
-    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b"]).toBinary());
-    
+    const row = LazyRow.fromBinary(
+      LazyRow.fromStringArray(["a", "b"]).toBinary(),
+    );
+
     assertThrows(() => row.setField(-1, "x"), RangeError);
     assertThrows(() => row.setField(2, "x"), RangeError);
     assertThrows(() => row.setField(10, "x"), RangeError);
   });
 
   await t.step("UTF-8 modifications", () => {
-    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
-    
+    const row = LazyRow.fromBinary(
+      LazyRow.fromStringArray(["a", "b", "c"]).toBinary(),
+    );
+
     row.setField(0, "café");
     row.setField(1, "🚀");
     row.setField(2, "naïve");
-    
+
     assertEquals(row.toStringArray(), ["café", "🚀", "naïve"]);
-    
+
     // Round trip through binary
     const binary = row.toBinary();
     const row2 = LazyRow.fromBinary(binary);
@@ -454,14 +471,14 @@ Deno.test("LazyRow - setField performance", async (t) => {
   await t.step("binary row - read-only performance unaffected", () => {
     const fields = Array.from({ length: 100 }, (_, i) => `field_${i}`);
     const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
-    
+
     // No modifications - getField should be fast
     const start = performance.now();
     for (let i = 0; i < 100; i++) {
       row.getField(i);
     }
     const end = performance.now();
-    
+
     // Should be very fast (< 5ms for 100 fields)
     assertEquals(end - start < 5, true);
   });
@@ -469,17 +486,17 @@ Deno.test("LazyRow - setField performance", async (t) => {
   await t.step("binary row - sparse modifications efficient", () => {
     const fields = Array.from({ length: 10000 }, (_, i) => `field_${i}`);
     const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
-    
+
     // Modify only 10 fields out of 10000
     const start = performance.now();
     for (let i = 0; i < 10; i++) {
       row.setField(i * 1000, "modified");
     }
     const end = performance.now();
-    
+
     // Should be fast (< 1ms for 10 modifications)
     assertEquals(end - start < 1, true);
-    
+
     // Verify modifications
     assertEquals(row.getField(0), "modified");
     assertEquals(row.getField(1000), "modified");
@@ -490,12 +507,12 @@ Deno.test("LazyRow - setField performance", async (t) => {
     const fields = Array.from({ length: 1000 }, (_, i) => `field_${i}`);
     const original = LazyRow.fromStringArray(fields).toBinary();
     const row = LazyRow.fromBinary(original);
-    
+
     // No modifications - toBinary should be instant
     const start = performance.now();
     const binary = row.toBinary();
     const end = performance.now();
-    
+
     assertEquals(binary, original);
     assertEquals(end - start < 0.1, true);
   });
@@ -507,7 +524,8 @@ Deno.test("LazyRow - setField performance", async (t) => {
 
 /** Generate random alphanumeric string of given length */
 function randomString(len: number): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const result = new Array<string>(len);
   for (let i = 0; i < len; i++) {
     result[i] = chars[Math.floor(Math.random() * chars.length)];
@@ -519,7 +537,7 @@ Deno.test("LazyRow pathological - 1MB field", async (t) => {
   await t.step("StringArray with 1MB field", () => {
     const hugeField = randomString(1_000_000);
     const row = LazyRow.fromStringArray(["small", hugeField, "end"]);
-    
+
     assertEquals(row.columnCount, 3);
     assertEquals(row.getField(0), "small");
     assertEquals(row.getField(1), hugeField);
@@ -531,7 +549,7 @@ Deno.test("LazyRow pathological - 1MB field", async (t) => {
     const stringRow = LazyRow.fromStringArray(["small", hugeField, "end"]);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     assertEquals(binaryRow.getField(0), "small");
     assertEquals(binaryRow.getField(1), hugeField);
     assertEquals(binaryRow.getField(2), "end");
@@ -541,9 +559,9 @@ Deno.test("LazyRow pathological - 1MB field", async (t) => {
     const hugeField = randomString(1_000_000);
     const row = LazyRow.fromStringArray(["a", "b", "c"]);
     row.setField(1, hugeField);
-    
+
     assertEquals(row.getField(1), hugeField);
-    
+
     // Verify binary round-trip after modification
     const binary = row.toBinary();
     const row2 = LazyRow.fromBinary(binary);
@@ -555,7 +573,7 @@ Deno.test("LazyRow pathological - many columns (1000 fields)", async (t) => {
   await t.step("StringArray with 1000 fields", () => {
     const fields = Array.from({ length: 1000 }, (_, i) => `field${i}`);
     const row = LazyRow.fromStringArray(fields);
-    
+
     assertEquals(row.columnCount, 1000);
     assertEquals(row.getField(0), "field0");
     assertEquals(row.getField(500), "field500");
@@ -567,7 +585,7 @@ Deno.test("LazyRow pathological - many columns (1000 fields)", async (t) => {
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     assertEquals(binaryRow.columnCount, 1000);
     assertEquals(binaryRow.getField(0), "field0");
     assertEquals(binaryRow.getField(500), "field500");
@@ -579,7 +597,7 @@ Deno.test("LazyRow pathological - many columns (1000 fields)", async (t) => {
     const stringRow = LazyRow.fromStringArray(fields);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     const result = binaryRow.toStringArray();
     assertEquals(result.length, 1000);
     assertEquals(result[0], "field0");
@@ -592,9 +610,9 @@ Deno.test("LazyRow pathological - multiple 1MB fields", async (t) => {
     const huge1 = randomString(1_000_000);
     const huge2 = randomString(1_000_000);
     const huge3 = randomString(1_000_000);
-    
+
     const row = LazyRow.fromStringArray([huge1, huge2, huge3]);
-    
+
     assertEquals(row.getField(0), huge1);
     assertEquals(row.getField(1), huge2);
     assertEquals(row.getField(2), huge3);
@@ -603,11 +621,11 @@ Deno.test("LazyRow pathological - multiple 1MB fields", async (t) => {
   await t.step("binary round-trip with multiple 1MB fields", () => {
     const huge1 = randomString(1_000_000);
     const huge2 = randomString(1_000_000);
-    
+
     const stringRow = LazyRow.fromStringArray([huge1, huge2]);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     assertEquals(binaryRow.getField(0), huge1);
     assertEquals(binaryRow.getField(1), huge2);
   });
@@ -617,17 +635,17 @@ Deno.test("LazyRow pathological - sparse modifications on large row", async (t) 
   await t.step("modify 10 fields out of 1000", () => {
     const fields = Array.from({ length: 1000 }, (_, i) => `original${i}`);
     const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
-    
+
     // Modify every 100th field
     for (let i = 0; i < 10; i++) {
       row.setField(i * 100, `modified${i * 100}`);
     }
-    
+
     // Check modified fields
     assertEquals(row.getField(0), "modified0");
     assertEquals(row.getField(100), "modified100");
     assertEquals(row.getField(900), "modified900");
-    
+
     // Check unmodified fields
     assertEquals(row.getField(1), "original1");
     assertEquals(row.getField(50), "original50");
@@ -640,7 +658,7 @@ Deno.test("LazyRow pathological - UTF-8 stress test", async (t) => {
     // Mix of 1, 2, 3, and 4 byte UTF-8 characters
     const field = "a北🚀é".repeat(10000); // ~40000 characters
     const row = LazyRow.fromStringArray([field]);
-    
+
     assertEquals(row.getField(0), field);
   });
 
@@ -649,7 +667,7 @@ Deno.test("LazyRow pathological - UTF-8 stress test", async (t) => {
     const stringRow = LazyRow.fromStringArray([field, "normal", field]);
     const binary = stringRow.toBinary();
     const binaryRow = LazyRow.fromBinary(binary);
-    
+
     assertEquals(binaryRow.getField(0), field);
     assertEquals(binaryRow.getField(1), "normal");
     assertEquals(binaryRow.getField(2), field);

@@ -1,6 +1,7 @@
 # Error Handling
 
-WASM errors are different from JavaScript errors. When something goes wrong, you need to catch it, understand it, and recover.
+WASM errors are different from JavaScript errors. When something goes wrong, you
+need to catch it, understand it, and recover.
 
 ## Error Types
 
@@ -99,13 +100,13 @@ WASM errors may corrupt instance state. For critical applications:
 ```typescript
 class ResilientWasm {
   private instance: Demo | null = null;
-  
+
   async calculate(radius: number): Promise<number> {
     try {
       if (!this.instance) this.instance = await Demo.create();
       return this.instance.calculateCircle(radius);
     } catch {
-      this.instance = null;  // Allow GC, will recreate on next call
+      this.instance = null; // Allow GC, will recreate on next call
       throw e;
     }
   }
@@ -116,9 +117,9 @@ Recreate the instance after errors to ensure clean state.
 
 ## Common Errors
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `unreachable executed` | Assertion/panic/missing case | Check Odin code logic |
-| `out of bounds memory access` | Bad pointer/index | Verify bounds |
-| `import odin_env::xyz not found` | Missing runtime function | Add to OdinRuntime |
-| `call stack exhausted` | Infinite recursion | Fix recursion base case |
+| Error                            | Cause                        | Fix                     |
+| -------------------------------- | ---------------------------- | ----------------------- |
+| `unreachable executed`           | Assertion/panic/missing case | Check Odin code logic   |
+| `out of bounds memory access`    | Bad pointer/index            | Verify bounds           |
+| `import odin_env::xyz not found` | Missing runtime function     | Add to OdinRuntime      |
+| `call stack exhausted`           | Infinite recursion           | Fix recursion base case |

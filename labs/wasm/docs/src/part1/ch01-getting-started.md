@@ -1,6 +1,7 @@
 # Getting Started
 
-WebAssembly lets you run compiled code in JavaScript environments. You know this. What you need to know is how to actually use it with Deno and Odin.
+WebAssembly lets you run compiled code in JavaScript environments. You know
+this. What you need to know is how to actually use it with Deno and Odin.
 
 ## Why Odin?
 
@@ -25,27 +26,37 @@ If you can read that, you can read Odin.
 
 Odin supports several WebAssembly targets:
 
-| Target | Runtime | Use Case |
-|--------|---------|----------|
-| `js_wasm32` | Full | JavaScript host with `odin_env` imports |
-| `js_wasm64p32` | Full | 64-bit WASM with 32-bit pointers for JS |
-| `wasi_wasm32` | Full | WASI-compatible runtimes (Wasmtime, etc.) |
-| `wasi_wasm64p32` | Full | 64-bit WASI with 32-bit pointers |
-| `freestanding_wasm32` | None | Bare metal, no runtime, tiny output |
-| `freestanding_wasm64p32` | None | 64-bit bare metal |
+| Target                   | Runtime | Use Case                                  |
+| ------------------------ | ------- | ----------------------------------------- |
+| `js_wasm32`              | Full    | JavaScript host with `odin_env` imports   |
+| `js_wasm64p32`           | Full    | 64-bit WASM with 32-bit pointers for JS   |
+| `wasi_wasm32`            | Full    | WASI-compatible runtimes (Wasmtime, etc.) |
+| `wasi_wasm64p32`         | Full    | 64-bit WASI with 32-bit pointers          |
+| `freestanding_wasm32`    | None    | Bare metal, no runtime, tiny output       |
+| `freestanding_wasm64p32` | None    | 64-bit bare metal                         |
 
-**This book uses `js_wasm32` exclusively.** It provides the full standard library (`fmt`, `core:math`, allocators) and targets JavaScript/Deno hosts.
+**This book uses `js_wasm32` exclusively.** It provides the full standard
+library (`fmt`, `core:math`, allocators) and targets JavaScript/Deno hosts.
 
-Why not `freestanding_wasm32`? It produces tiny binaries but lobotomizes Odin—no `fmt`, no allocators, no standard library. You're left reimplementing basics. The ~30KB overhead of `js_wasm32` loads in under 0.1ms (see [Performance](../part4/ch11-performance.md)). You won't notice it, and you get all of Odin.
+Why not `freestanding_wasm32`? It produces tiny binaries but lobotomizes Odin—no
+`fmt`, no allocators, no standard library. You're left reimplementing basics.
+The ~30KB overhead of `js_wasm32` loads in under 0.1ms (see
+[Performance](../part4/ch11-performance.md)). You won't notice it, and you get
+all of Odin.
 
-> ⚠️ **Avoid WASI targets with Deno.** Deno's WASI support is incomplete and poorly documented. The `wasi_wasm32` target looks appealing but leads to hours of frustration. Stick with `js_wasm32`.
+> ⚠️ **Avoid WASI targets with Deno.** Deno's WASI support is incomplete and
+> poorly documented. The `wasi_wasm32` target looks appealing but leads to hours
+> of frustration. Stick with `js_wasm32`.
 
 ```bash
 odin build . -target:js_wasm32 -o:size -out:module.wasm \
     -extra-linker-flags:"--import-memory --strip-all"
 ```
 
-The `-o:size` flag optimizes for smallest binary. Use `-o:speed` if performance matters more than size. Output is typically ~30-40KB for simple modules. The runtime requires `odin_env` imports that your JavaScript host must implement (covered in Part 2).
+The `-o:size` flag optimizes for smallest binary. Use `-o:speed` if performance
+matters more than size. Output is typically ~30-40KB for simple modules. The
+runtime requires `odin_env` imports that your JavaScript host must implement
+(covered in Part 2).
 
 ## Project Structure
 
@@ -78,7 +89,9 @@ echo "✅ Build: demo.wasm ($(du -h demo.wasm | cut -f1))"
 ```
 
 Key flags:
-- `--import-memory`: Let JavaScript create and manage memory (avoids chicken-and-egg problem)
+
+- `--import-memory`: Let JavaScript create and manage memory (avoids
+  chicken-and-egg problem)
 - `--strip-all`: Remove debug symbols for smaller output (~50% size reduction)
 
 ## Deno Configuration

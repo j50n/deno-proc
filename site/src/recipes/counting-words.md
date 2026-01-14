@@ -1,12 +1,14 @@
 # Counting Words
 
-Word counting demonstrates the elegance of process pipelines, showing how complex text analysis can be built from simple Unix tools chained together.
+Word counting demonstrates the elegance of process pipelines, showing how
+complex text analysis can be built from simple Unix tools chained together.
 
 ## Basic Word Counting
 
 The simplest approach uses the `wc` command to count total words in a file:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { run } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -16,15 +18,18 @@ console.log(`Total words: ${wordCount}`);
 
 ## Finding Unique Words
 
-To count unique words, you need to extract individual words, normalize their case, and eliminate duplicates. This pipeline breaks text into words, converts everything to lowercase, sorts the results, and removes duplicates:
+To count unique words, you need to extract individual words, normalize their
+case, and eliminate duplicates. This pipeline breaks text into words, converts
+everything to lowercase, sorts the results, and removes duplicates:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const uniqueWords = await run("cat", "book.txt")
-  .run("tr", "-cs", "A-Za-z", "\n")  // Extract words
-  .run("tr", "A-Z", "a-z")            // Lowercase
-  .run("sort")                         // Sort
-  .run("uniq")                         // Unique
+  .run("tr", "-cs", "A-Za-z", "\n") // Extract words
+  .run("tr", "A-Z", "a-z") // Lowercase
+  .run("sort") // Sort
+  .run("uniq") // Unique
   .lines
   .count();
 
@@ -33,9 +38,11 @@ console.log(`Unique words: ${uniqueWords}`);
 
 ## Analyzing Word Frequency
 
-For more sophisticated analysis, you can find the most frequently used words by adding frequency counting and sorting by occurrence:
+For more sophisticated analysis, you can find the most frequently used words by
+adding frequency counting and sorting by occurrence:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const topWords = await run("cat", "book.txt")
   .run("tr", "-cs", "A-Za-z", "\n")
@@ -48,11 +55,12 @@ const topWords = await run("cat", "book.txt")
   .collect();
 
 console.log("Top 10 words:");
-topWords.forEach(line => console.log(line));
-```
-topWords.forEach(line => console.log(line));
+topWords.forEach((line) => console.log(line));
 ```
 
+topWords.forEach(line => console.log(line));
+
+````
 ## Pure JavaScript Version
 
 Do it all in JavaScript:
@@ -77,18 +85,19 @@ console.log("Top 10 words:");
 topWords.forEach(([word, count]) => {
   console.log(`${count} ${word}`);
 });
-```
+````
 
 ## Compressed Files
 
 Count words in a compressed file:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const wordCount = await read("book.txt.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .flatMap(line => line.match(/\w+/g) || [])
+  .flatMap((line) => line.match(/\w+/g) || [])
   .count();
 
 console.log(`Total words: ${wordCount}`);
@@ -99,6 +108,7 @@ console.log(`Total words: ${wordCount}`);
 Count words across multiple files:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -108,7 +118,7 @@ const results = await enumerate(files)
   .concurrentMap(async (file) => {
     const words = await read(file)
       .lines
-      .flatMap(line => line.match(/\w+/g) || [])
+      .flatMap((line) => line.match(/\w+/g) || [])
       .count();
     return { file, words };
   }, { concurrency: 3 })
@@ -124,15 +134,26 @@ results.forEach(({ file, words }) => {
 Exclude common words:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const stopWords = new Set([
-  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
 ]);
 
 const meaningfulWords = await read("book.txt")
   .lines
-  .flatMap(line => line.toLowerCase().match(/\w+/g) || [])
-  .filter(word => !stopWords.has(word))
+  .flatMap((line) => line.toLowerCase().match(/\w+/g) || [])
+  .filter((word) => !stopWords.has(word))
   .reduce((acc, word) => {
     acc[word] = (acc[word] || 0) + 1;
     return acc;
@@ -144,10 +165,11 @@ const meaningfulWords = await read("book.txt")
 Analyze word lengths:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const lengthDist = await read("book.txt")
   .lines
-  .flatMap(line => line.match(/\w+/g) || [])
+  .flatMap((line) => line.match(/\w+/g) || [])
   .reduce((acc, word) => {
     const len = word.length;
     acc[len] = (acc[len] || 0) + 1;
@@ -167,30 +189,33 @@ Object.entries(lengthDist)
 Analyze Tolstoy's War and Peace:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const [totalWords, uniqueWords] = await Promise.all([
   // Total words
   read("warandpeace.txt.gz")
     .transform(new DecompressionStream("gzip"))
     .lines
-    .flatMap(line => line.match(/\w+/g) || [])
+    .flatMap((line) => line.match(/\w+/g) || [])
     .count(),
-  
+
   // Unique words
   read("warandpeace.txt.gz")
     .transform(new DecompressionStream("gzip"))
     .lines
-    .flatMap(line => line.toLowerCase().match(/\w+/g) || [])
+    .flatMap((line) => line.toLowerCase().match(/\w+/g) || [])
     .reduce((acc, word) => {
       acc.add(word);
       return acc;
     }, new Set())
-    .then(set => set.size)
+    .then((set) => set.size),
 ]);
 
 console.log(`Total words: ${totalWords.toLocaleString()}`);
 console.log(`Unique words: ${uniqueWords.toLocaleString()}`);
-console.log(`Vocabulary richness: ${(uniqueWords / totalWords * 100).toFixed(1)}%`);
+console.log(
+  `Vocabulary richness: ${(uniqueWords / totalWords * 100).toFixed(1)}%`,
+);
 ```
 
 ## Performance Comparison
@@ -198,6 +223,7 @@ console.log(`Vocabulary richness: ${(uniqueWords / totalWords * 100).toFixed(1)}
 ### Shell Pipeline (fast)
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Uses native Unix tools
 const count = await run("cat", "book.txt")
@@ -208,23 +234,25 @@ const count = await run("cat", "book.txt")
 ### JavaScript (flexible)
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // More control, type-safe
 const count = await read("book.txt")
   .lines
-  .flatMap(line => line.match(/\w+/g) || [])
+  .flatMap((line) => line.match(/\w+/g) || [])
   .count();
 ```
 
 ### Hybrid (best of both)
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Use Unix tools for heavy lifting, JavaScript for logic
 const words = await run("cat", "book.txt")
   .run("tr", "-cs", "A-Za-z", "\n")
   .lines
-  .filter(word => word.length > 5)  // JavaScript filter
+  .filter((word) => word.length > 5) // JavaScript filter
   .count();
 ```
 

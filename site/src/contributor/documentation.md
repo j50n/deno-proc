@@ -29,10 +29,12 @@
 ## mdbook Documentation
 
 - All code examples must have test markers:
-  - `<!-- TESTED: tests/mdbook_examples.test.ts - "test-name" -->` for verified examples
+  - `<!-- TESTED: tests/mdbook_examples.test.ts - "test-name" -->` for verified
+    examples
   - `<!-- NOT TESTED: Illustrative example -->` for conceptual examples
 - Use visual callouts with emojis in blockquotes for emphasis
-- Organize into clear sections: Getting Started, Core Features, Advanced Topics, etc.
+- Organize into clear sections: Getting Started, Core Features, Advanced Topics,
+  etc.
 - Include "Key points" explanations after code examples
 
 ## Documentation Structure
@@ -45,8 +47,10 @@
 
 ### Visual Enhancements (mdbook)
 
-- **site/theme/custom.css**: Professional styling with shadows, rounded corners, hover effects
-- **site/theme/custom.js**: Interactive features like copy buttons and smooth scrolling
+- **site/theme/custom.css**: Professional styling with shadows, rounded corners,
+  hover effects
+- **site/theme/custom.js**: Interactive features like copy buttons and smooth
+  scrolling
 - **site/book.toml**: Navy theme, GitHub integration, enhanced search
 
 ## Example Standards
@@ -60,12 +64,15 @@
 ## Test Markers
 
 All code examples in mdbook have HTML comments:
-- `<!-- TESTED: tests/mdbook_examples.test.ts - "test-name" -->` for verified examples
+
+- `<!-- TESTED: tests/mdbook_examples.test.ts - "test-name" -->` for verified
+  examples
 - `<!-- NOT TESTED: Illustrative example -->` for conceptual/comparison examples
 
 ## Maintenance Guidelines
 
 ### When Adding New Features
+
 1. Add JSDoc to the function/class
 2. Add example to mod.ts if it's a common use case
 3. Update README if it's a key feature
@@ -74,6 +81,7 @@ All code examples in mdbook have HTML comments:
 6. Mark examples as TESTED or NOT TESTED
 
 ### When Updating Documentation
+
 1. Keep README, mod.ts JSDoc, and site docs consistent
 2. Use same terminology across all docs
 3. Add test markers to all code examples

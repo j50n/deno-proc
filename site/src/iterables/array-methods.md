@@ -9,9 +9,10 @@ Enumerable gives you the Array methods you know and love, but for async data.
 Transform each item:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const doubled = await enumerate([1, 2, 3])
-  .map(n => n * 2)
+  .map((n) => n * 2)
   .collect();
 // [2, 4, 6]
 ```
@@ -19,6 +20,7 @@ const doubled = await enumerate([1, 2, 3])
 Works with async functions:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const results = await enumerate(urls)
   .map(async (url) => {
@@ -33,9 +35,10 @@ const results = await enumerate(urls)
 Keep only items that match:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const evens = await enumerate([1, 2, 3, 4])
-  .filter(n => n % 2 === 0)
+  .filter((n) => n % 2 === 0)
   .collect();
 // [2, 4]
 ```
@@ -45,9 +48,10 @@ const evens = await enumerate([1, 2, 3, 4])
 Map and flatten in one step:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: flatMap" -->
+
 ```typescript
 const words = await enumerate(["hello world", "foo bar"])
-  .flatMap(line => line.split(" "))
+  .flatMap((line) => line.split(" "))
   .collect();
 // ["hello", "world", "foo", "bar"]
 ```
@@ -59,6 +63,7 @@ const words = await enumerate(["hello world", "foo bar"])
 Combine items into a single value:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const sum = await enumerate([1, 2, 3, 4])
   .reduce((acc, n) => acc + n, 0);
@@ -68,6 +73,7 @@ const sum = await enumerate([1, 2, 3, 4])
 Build complex objects:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const grouped = await enumerate(items)
   .reduce((acc, item) => {
@@ -82,6 +88,7 @@ const grouped = await enumerate(items)
 Count items:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: count" -->
+
 ```typescript
 const total = await enumerate([1, 2, 3]).count();
 // 3
@@ -92,9 +99,10 @@ const total = await enumerate([1, 2, 3]).count();
 Check if any item matches:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: some" -->
+
 ```typescript
 const hasError = await enumerate(lines)
-  .some(line => line.includes("ERROR"));
+  .some((line) => line.includes("ERROR"));
 ```
 
 ### every()
@@ -102,9 +110,10 @@ const hasError = await enumerate(lines)
 Check if all items match:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: every" -->
+
 ```typescript
 const allPositive = await enumerate([1, 2, 3])
-  .every(n => n > 0);
+  .every((n) => n > 0);
 ```
 
 ## Finding Items
@@ -114,9 +123,10 @@ const allPositive = await enumerate([1, 2, 3])
 Find first match:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: find" -->
+
 ```typescript
 const match = await enumerate([1, 2, 3, 4])
-  .find(n => n > 2);
+  .find((n) => n > 2);
 // 3
 ```
 
@@ -125,6 +135,7 @@ const match = await enumerate([1, 2, 3, 4])
 Get first item:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const first = await enumerate([1, 2, 3]).first;
 // 1
@@ -135,6 +146,7 @@ const first = await enumerate([1, 2, 3]).first;
 Get last item:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const last = await enumerate([1, 2, 3]).last;
 // 3
@@ -145,6 +157,7 @@ const last = await enumerate([1, 2, 3]).last;
 Get item at index:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const third = await enumerate([1, 2, 3, 4]).nth(2);
 // 3 (zero-indexed)
@@ -157,6 +170,7 @@ const third = await enumerate([1, 2, 3, 4]).nth(2);
 Take first N items:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const first3 = await enumerate([1, 2, 3, 4, 5])
   .take(3)
@@ -169,6 +183,7 @@ const first3 = await enumerate([1, 2, 3, 4, 5])
 Skip first N items:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const rest = await enumerate([1, 2, 3, 4, 5])
   .drop(2)
@@ -181,6 +196,7 @@ const rest = await enumerate([1, 2, 3, 4, 5])
 Get a range:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const middle = await enumerate([1, 2, 3, 4, 5])
   .slice(1, 4)
@@ -195,8 +211,9 @@ const middle = await enumerate([1, 2, 3, 4, 5])
 Process each item:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
-await enumerate([1, 2, 3]).forEach(n => {
+await enumerate([1, 2, 3]).forEach((n) => {
   console.log(n);
 });
 ```
@@ -206,6 +223,7 @@ await enumerate([1, 2, 3]).forEach(n => {
 Use standard JavaScript iteration:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 for await (const item of enumerate([1, 2, 3])) {
   console.log(item);
@@ -219,6 +237,7 @@ for await (const item of enumerate([1, 2, 3])) {
 Gather all items into an array:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const array = await enumerate([1, 2, 3]).collect();
 // [1, 2, 3]
@@ -229,6 +248,7 @@ const array = await enumerate([1, 2, 3]).collect();
 Alias for collect():
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const array = await enumerate([1, 2, 3]).toArray();
 ```
@@ -240,6 +260,7 @@ const array = await enumerate([1, 2, 3]).toArray();
 Add indices to items:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const indexed = await enumerate(["a", "b", "c"])
   .enum()
@@ -250,6 +271,7 @@ const indexed = await enumerate(["a", "b", "c"])
 Use with map:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const numbered = await enumerate(["a", "b", "c"])
   .enum()
@@ -263,6 +285,7 @@ const numbered = await enumerate(["a", "b", "c"])
 Split into multiple streams:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const [stream1, stream2] = enumerate([1, 2, 3]).tee();
 
@@ -277,6 +300,7 @@ const [sum, product] = await Promise.all([
 Flatten nested iterables:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const flat = await enumerate([[1, 2], [3, 4]])
   .flatten()
@@ -291,6 +315,7 @@ const flat = await enumerate([[1, 2], [3, 4]])
 Map with controlled concurrency:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const results = await enumerate(urls)
   .concurrentMap(async (url) => {
@@ -306,6 +331,7 @@ Results are returned in order.
 Map with maximum concurrency:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const results = await enumerate(urls)
   .concurrentUnorderedMap(async (url) => {
@@ -321,12 +347,13 @@ Results are returned as they complete (faster).
 ### Complex Pipeline
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const result = await enumerate(data)
-  .filter(item => item.active)
-  .map(item => item.value)
-  .filter(value => value > 0)
-  .map(value => value * 2)
+  .filter((item) => item.active)
+  .map((item) => item.value)
+  .filter((value) => value > 0)
+  .map((value) => value * 2)
   .take(10)
   .collect();
 ```
@@ -334,11 +361,12 @@ const result = await enumerate(data)
 ### Real-World Example
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const topErrors = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
-  .map(line => {
+  .filter((line) => line.includes("ERROR"))
+  .map((line) => {
     const match = line.match(/ERROR: (.+)/);
     return match ? match[1] : line;
   })
@@ -355,6 +383,7 @@ const topErrors = await read("app.log")
 Don't collect if you don't need to:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Loads everything
 const items = await enumerate(huge).collect();
@@ -369,6 +398,7 @@ for await (const item of enumerate(huge)) {
 ### Use take() for Limits
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Get first 10 matches
 const matches = await enumerate(data)
@@ -380,6 +410,7 @@ const matches = await enumerate(data)
 ### Use concurrentMap() for I/O
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Process 5 URLs at a time
 const results = await enumerate(urls)
@@ -389,6 +420,7 @@ const results = await enumerate(urls)
 
 ## Next Steps
 
-- [Transformations](./transformations.md) - Deep dive into map, flatMap, transform
+- [Transformations](./transformations.md) - Deep dive into map, flatMap,
+  transform
 - [Aggregations](./aggregations.md) - Deep dive into reduce, count, sum
 - [Slicing and Sampling](./slicing.md) - Deep dive into take, drop, slice

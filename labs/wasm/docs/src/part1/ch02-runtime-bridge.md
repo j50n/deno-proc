@@ -1,6 +1,8 @@
 # Building the Runtime Bridge
 
-When you call a WASM function from JavaScript, something has to translate between the two worlds. That's the runtime bridge—the `env` object you pass during instantiation.
+When you call a WASM function from JavaScript, something has to translate
+between the two worlds. That's the runtime bridge—the `env` object you pass
+during instantiation.
 
 ![Runtime Bridge](images/runtime-bridge.svg)
 
@@ -31,13 +33,15 @@ fibonacci :: proc "c" (n: int) -> int {
 ```
 
 Key points:
+
 - `@(export)` makes functions visible to JavaScript
 - `proc "c"` uses C calling convention (required for WASM exports)
 - `core:math` works because we're targeting `js_wasm32`
 
 ## What Odin Expects
 
-WASM modules compiled with `js_wasm32` expect certain functions in the `env` object. If they're missing, instantiation fails with a `LinkError`.
+WASM modules compiled with `js_wasm32` expect certain functions in the `env`
+object. If they're missing, instantiation fails with a `LinkError`.
 
 Required imports:
 
@@ -85,14 +89,30 @@ class OdinRuntime {
   }
 
   // Math
-  sin(x: number): number { return Math.sin(x); }
-  cos(x: number): number { return Math.cos(x); }
-  sqrt(x: number): number { return Math.sqrt(x); }
-  pow(x: number, y: number): number { return Math.pow(x, y); }
-  ln(x: number): number { return Math.log(x); }
-  exp(x: number): number { return Math.exp(x); }
-  ldexp(x: number, exp: number): number { return x * Math.pow(2, exp); }
-  fmuladd(a: number, b: number, c: number): number { return a * b + c; }
+  sin(x: number): number {
+    return Math.sin(x);
+  }
+  cos(x: number): number {
+    return Math.cos(x);
+  }
+  sqrt(x: number): number {
+    return Math.sqrt(x);
+  }
+  pow(x: number, y: number): number {
+    return Math.pow(x, y);
+  }
+  ln(x: number): number {
+    return Math.log(x);
+  }
+  exp(x: number): number {
+    return Math.exp(x);
+  }
+  ldexp(x: number, exp: number): number {
+    return x * Math.pow(2, exp);
+  }
+  fmuladd(a: number, b: number, c: number): number {
+    return a * b + c;
+  }
 
   // Output
   write(fd: number, ptr: number, len: number): number {
@@ -104,16 +124,22 @@ class OdinRuntime {
   }
 
   // Errors
-  trap(): never { throw new Error("WASM trap"); }
-  abort(): never { throw new Error("WASM abort"); }
+  trap(): never {
+    throw new Error("WASM trap");
+  }
+  abort(): never {
+    throw new Error("WASM abort");
+  }
 }
 ```
 
-The `env` getter returns a plain object with bound methods. The `.bind(this)` is crucial—without it, methods lose their `this` context when called from WASM.
+The `env` getter returns a plain object with bound methods. The `.bind(this)` is
+crucial—without it, methods lose their `this` context when called from WASM.
 
 ## Importing Memory
 
-By default, Odin exports its own memory. This creates a chicken-and-egg problem: you need memory to create the runtime, but memory comes from the instance.
+By default, Odin exports its own memory. This creates a chicken-and-egg problem:
+you need memory to create the runtime, but memory comes from the instance.
 
 The solution is to tell Odin to import memory instead:
 
@@ -163,7 +189,9 @@ export class Demo {
   }
 
   calculateCircle(radius: number): number {
-    return (this.instance.exports.calculate_circle as (r: number) => number)(radius);
+    return (this.instance.exports.calculate_circle as (r: number) => number)(
+      radius,
+    );
   }
 
   fibonacci(n: number): number {
@@ -176,8 +204,8 @@ Usage:
 
 ```typescript
 const demo = await Demo.create();
-console.log(demo.calculateCircle(5));  // 78.53981633974483
-console.log(demo.fibonacci(10));       // 55
+console.log(demo.calculateCircle(5)); // 78.53981633974483
+console.log(demo.fibonacci(10)); // 55
 ```
 
 ## The Import/Export Contract
@@ -185,7 +213,8 @@ console.log(demo.fibonacci(10));       // 55
 This is the fundamental pattern:
 
 - **Exports**: Functions WASM provides to JavaScript (marked with `@(export)`)
-- **Imports**: Functions JavaScript provides to WASM (the `env` and `odin_env` objects)
+- **Imports**: Functions JavaScript provides to WASM (the `env` and `odin_env`
+  objects)
 
 Memory goes in `env`, runtime functions go in `odin_env`.
 
@@ -197,7 +226,7 @@ Add custom functions by extending the runtime:
 class CustomRuntime extends OdinRuntime {
   log(ptr: number, len: number): void {
     const text = new TextDecoder().decode(
-      new Uint8Array(this.memory.buffer, ptr, len)
+      new Uint8Array(this.memory.buffer, ptr, len),
     );
     console.log(`[WASM] ${text}`);
   }
@@ -218,7 +247,9 @@ debug :: proc(msg: string) {
 
 ## Performance Note
 
-Every call across the WASM-JavaScript boundary has overhead—roughly 5-10 nanoseconds per call in V8. That's tiny for individual calls, but adds up in tight loops:
+Every call across the WASM-JavaScript boundary has overhead—roughly 5-10
+nanoseconds per call in V8. That's tiny for individual calls, but adds up in
+tight loops:
 
 ```typescript
 // 1 million boundary crossings ≈ 5-10ms overhead
@@ -230,4 +261,5 @@ for (let i = 0; i < 1000000; i++) {
 result = wasmSumRange(0, 1000000);
 ```
 
-For most applications this overhead is negligible. It only matters when you're calling tiny functions millions of times—keep those hot loops inside WASM.
+For most applications this overhead is negligible. It only matters when you're
+calling tiny functions millions of times—keep those hot loops inside WASM.

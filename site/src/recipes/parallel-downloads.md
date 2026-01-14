@@ -5,6 +5,7 @@ Download multiple files concurrently with controlled concurrency.
 ## Basic Example
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -24,7 +25,7 @@ const results = await enumerate(urls)
     return {
       url,
       data: await response.json(),
-      size: response.headers.get("content-length")
+      size: response.headers.get("content-length"),
     };
   }, { concurrency: 5 })
   .collect();
@@ -37,6 +38,7 @@ console.log(`Downloaded ${results.length} files`);
 Download files and save them to disk:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -65,6 +67,7 @@ console.log("All downloads complete");
 Track download progress:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -75,10 +78,14 @@ const results = await enumerate(urls)
   .concurrentMap(async (url) => {
     const response = await fetch(url);
     const data = await response.json();
-    
+
     completed++;
-    console.log(`Progress: ${completed}/${total} (${Math.round(completed/total*100)}%)`);
-    
+    console.log(
+      `Progress: ${completed}/${total} (${
+        Math.round(completed / total * 100)
+      }%)`,
+    );
+
     return { url, data };
   }, { concurrency: 5 })
   .collect();
@@ -89,6 +96,7 @@ const results = await enumerate(urls)
 Retry failed downloads:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -97,17 +105,19 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
     try {
       const response = await fetch(url);
       if (response.ok) return response;
-      
+
       if (attempt === maxRetries) {
-        throw new Error(`Failed after ${maxRetries} attempts: ${response.status}`);
+        throw new Error(
+          `Failed after ${maxRetries} attempts: ${response.status}`,
+        );
       }
     } catch (error) {
       if (attempt === maxRetries) throw error;
-      
+
       // Exponential backoff
       const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
       console.log(`Retry ${attempt}/${maxRetries} for ${url} after ${delay}ms`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
   throw new Error("Unreachable");
@@ -126,6 +136,7 @@ const results = await enumerate(urls)
 Stream large files to disk without loading into memory:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -138,10 +149,10 @@ await enumerate(largeFiles)
   .concurrentMap(async ({ url, path }) => {
     const response = await fetch(url);
     if (!response.body) throw new Error("No response body");
-    
+
     const file = await Deno.open(path, { write: true, create: true });
     await response.body.pipeTo(file.writable);
-    
+
     console.log(`Downloaded: ${path}`);
     return path;
   }, { concurrency: 2 })
@@ -153,6 +164,7 @@ await enumerate(largeFiles)
 Respect API rate limits:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -167,12 +179,12 @@ await enumerate(apiEndpoints)
   .concurrentMap(async (endpoint) => {
     const response = await fetch(`https://api.example.com${endpoint}`);
     const data = await response.json();
-    
+
     // Wait 100ms between requests (10 requests/second)
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     return data;
-  }, { concurrency: 1 })  // Sequential to respect rate limit
+  }, { concurrency: 1 }) // Sequential to respect rate limit
   .collect();
 ```
 
@@ -181,6 +193,7 @@ await enumerate(apiEndpoints)
 Continue even if some downloads fail:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -195,7 +208,7 @@ const results = await enumerate(urls)
       return null;
     }
   }, { concurrency: 5 })
-  .filter(result => result !== null)
+  .filter((result) => result !== null)
   .collect();
 
 console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
@@ -204,12 +217,14 @@ console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
 ## When to Use
 
 **Use parallel downloads when:**
+
 - You have multiple independent files to fetch
 - Network latency is the bottleneck
 - The server can handle concurrent requests
 - You want to minimize total download time
 
 **Choose concurrency based on:**
+
 - Server rate limits (respect them!)
 - Your network bandwidth
 - Server capacity
@@ -217,6 +232,7 @@ console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
 
 ## Next Steps
 
-- [Concurrent Processing](../advanced/concurrent.md) - Deep dive into concurrency
+- [Concurrent Processing](../advanced/concurrent.md) - Deep dive into
+  concurrency
 - [Error Handling](../core/error-handling.md) - Handle download failures
 - [Streaming Large Files](../advanced/streaming.md) - Work with large downloads

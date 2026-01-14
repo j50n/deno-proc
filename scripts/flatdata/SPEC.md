@@ -1,6 +1,7 @@
 # flatdata - Tabular Data Format Converter
 
-A CLI utility for converting between tabular data formats with both pure Deno and WASM implementations.
+A CLI utility for converting between tabular data formats with both pure Deno
+and WASM implementations.
 
 ## Installation
 
@@ -96,12 +97,12 @@ Options:
 
 ## Formats
 
-| Format | Description | Wire Format |
-|--------|-------------|-------------|
-| csv | RFC 4180 comma-separated values | Text with quoting rules |
-| tsv | Tab-separated values | Text, no quoting |
-| record | Record-delimited text | Fields: `\x1F`, Records: `\x1E` |
-| lazyrow | Binary format | Length-prefixed fields for random access |
+| Format  | Description                     | Wire Format                              |
+| ------- | ------------------------------- | ---------------------------------------- |
+| csv     | RFC 4180 comma-separated values | Text with quoting rules                  |
+| tsv     | Tab-separated values            | Text, no quoting                         |
+| record  | Record-delimited text           | Fields: `\x1F`, Records: `\x1E`          |
+| lazyrow | Binary format                   | Length-prefixed fields for random access |
 
 ## Examples
 
@@ -121,10 +122,10 @@ flatdata tsv2record -i data.tsv | flatdata record2csv -o data.csv
 
 ## Performance
 
-| Implementation | Throughput |
-|----------------|------------|
-| Native Odin | ~550 MB/s |
-| Deno + WASM | ~125-270 MB/s |
-| Deno pure | ~20 MB/s |
+| Implementation | Throughput    |
+| -------------- | ------------- |
+| Native Odin    | ~550 MB/s     |
+| Deno + WASM    | ~125-270 MB/s |
+| Deno pure      | ~20 MB/s      |
 
 Use `-w` flag for large files to get WASM performance.

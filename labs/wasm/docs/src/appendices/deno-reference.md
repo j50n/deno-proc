@@ -25,7 +25,7 @@ const wasmModule = await WebAssembly.compileStreaming(response);
 // Or combined
 const instance = await WebAssembly.instantiateStreaming(
   fetch("module.wasm"),
-  imports
+  imports,
 );
 ```
 
@@ -35,7 +35,7 @@ const instance = await WebAssembly.instantiateStreaming(
 // Compile and instantiate together
 const { module, instance } = await WebAssembly.instantiate(
   wasmBytes,
-  imports
+  imports,
 );
 ```
 
@@ -45,9 +45,9 @@ const { module, instance } = await WebAssembly.instantiate(
 
 ```typescript
 const memory = new WebAssembly.Memory({
-  initial: 1,      // Initial pages (1 page = 64KB)
-  maximum: 256,    // Maximum pages (optional)
-  shared: false,   // Shared memory (optional)
+  initial: 1, // Initial pages (1 page = 64KB)
+  maximum: 256, // Maximum pages (optional)
+  shared: false, // Shared memory (optional)
 });
 ```
 
@@ -67,7 +67,7 @@ const slice = new Uint8Array(memory.buffer, offset, length);
 
 // DataView for mixed types
 const view = new DataView(memory.buffer);
-view.getInt32(offset, true);  // true = little-endian
+view.getInt32(offset, true); // true = little-endian
 view.setFloat64(offset, value, true);
 ```
 
@@ -84,8 +84,8 @@ const oldPages = memory.grow(additionalPages);
 ### Memory Properties
 
 ```typescript
-memory.buffer.byteLength  // Total bytes
-memory.buffer.byteLength / 65536  // Total pages
+memory.buffer.byteLength; // Total bytes
+memory.buffer.byteLength / 65536; // Total pages
 ```
 
 ## WebAssembly.Instance
@@ -102,8 +102,8 @@ const memory = instance.exports.memory as WebAssembly.Memory;
 
 // Globals (if exported)
 const counter = instance.exports.counter as WebAssembly.Global;
-counter.value;  // Read
-counter.value = 42;  // Write (if mutable)
+counter.value; // Read
+counter.value = 42; // Write (if mutable)
 
 // Tables (if exported)
 const table = instance.exports.table as WebAssembly.Table;
@@ -116,14 +116,14 @@ const imports = {
   env: {
     // Functions
     log: (x: number) => console.log(x),
-    
+
     // Memory (if not exported by WASM)
     memory: new WebAssembly.Memory({ initial: 1 }),
-    
+
     // Globals
     globalVar: new WebAssembly.Global({ value: "i32", mutable: true }, 0),
   },
-  
+
   // Additional namespaces
   math: {
     sin: Math.sin,
@@ -138,11 +138,11 @@ const imports = {
 // Create global
 const global = new WebAssembly.Global(
   { value: "i32", mutable: true },
-  initialValue
+  initialValue,
 );
 
 // Access
-global.value;      // Read
+global.value; // Read
 global.value = 42; // Write
 
 // Value types: "i32", "i64", "f32", "f64"
@@ -192,33 +192,33 @@ const isValid = WebAssembly.validate(wasmBytes);
 
 ### JavaScript to WASM
 
-| JavaScript | WASM |
-|------------|------|
-| `number` | `i32`, `f32`, `f64` |
-| `bigint` | `i64` |
-| `boolean` | `i32` (0 or 1) |
+| JavaScript | WASM                |
+| ---------- | ------------------- |
+| `number`   | `i32`, `f32`, `f64` |
+| `bigint`   | `i64`               |
+| `boolean`  | `i32` (0 or 1)      |
 
 ### WASM to JavaScript
 
-| WASM | JavaScript |
-|------|------------|
-| `i32`, `f32`, `f64` | `number` |
-| `i64` | `bigint` |
+| WASM                | JavaScript |
+| ------------------- | ---------- |
+| `i32`, `f32`, `f64` | `number`   |
+| `i64`               | `bigint`   |
 
 ## Typed Array Reference
 
-| TypedArray | Element Size | Use For |
-|------------|--------------|---------|
-| `Uint8Array` | 1 byte | Bytes, strings |
-| `Int8Array` | 1 byte | Signed bytes |
-| `Uint16Array` | 2 bytes | u16 |
-| `Int16Array` | 2 bytes | i16 |
-| `Uint32Array` | 4 bytes | u32 |
-| `Int32Array` | 4 bytes | i32 |
-| `Float32Array` | 4 bytes | f32 |
-| `Float64Array` | 8 bytes | f64 |
-| `BigInt64Array` | 8 bytes | i64 |
-| `BigUint64Array` | 8 bytes | u64 |
+| TypedArray       | Element Size | Use For        |
+| ---------------- | ------------ | -------------- |
+| `Uint8Array`     | 1 byte       | Bytes, strings |
+| `Int8Array`      | 1 byte       | Signed bytes   |
+| `Uint16Array`    | 2 bytes      | u16            |
+| `Int16Array`     | 2 bytes      | i16            |
+| `Uint32Array`    | 4 bytes      | u32            |
+| `Int32Array`     | 4 bytes      | i32            |
+| `Float32Array`   | 4 bytes      | f32            |
+| `Float64Array`   | 8 bytes      | f64            |
+| `BigInt64Array`  | 8 bytes      | i64            |
+| `BigUint64Array` | 8 bytes      | u64            |
 
 ## DataView Methods
 

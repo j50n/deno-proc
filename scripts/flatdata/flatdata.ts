@@ -1,30 +1,30 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 /**
  * flatdata - Tabular data format converter
- * 
+ *
  * A high-performance CLI tool for converting between tabular data formats.
  * Uses WebAssembly (Odin-compiled) for fast CSV/TSV parsing and stringification.
- * 
+ *
  * Supported formats:
  * - CSV: RFC 4180 comma-separated values (configurable separator)
  * - TSV: Tab-separated values
  * - Record: Text format using \x1F (field) and \x1E (record) separators
  * - LazyRow: Binary format with length-prefixed fields for efficient random access
- * 
+ *
  * Performance: ~100+ MB/s for CSV parsing and stringification.
- * 
+ *
  * @example
  * ```bash
  * # Convert CSV to record format
  * cat data.csv | flatdata csv2record > data.rec
- * 
+ *
  * # Pipeline processing
  * flatdata csv2record -i huge.csv | ./process | flatdata record2csv -o results.csv
- * 
+ *
  * # Binary lazyrow format for efficient field access
  * flatdata csv2lazyrow -i data.csv -o data.lazy
  * ```
- * 
+ *
  * @module
  */
 
@@ -56,9 +56,15 @@ async function getInput(file?: string): Promise<ReadableStream<Uint8Array>> {
  * @param file - Optional file path; if omitted, uses stdout
  * @returns Writer object with write and close methods
  */
-async function getWriter(file?: string): Promise<{ write: Writer; close: () => void }> {
+async function getWriter(
+  file?: string,
+): Promise<{ write: Writer; close: () => void }> {
   if (file) {
-    const f = await Deno.open(file, { write: true, create: true, truncate: true });
+    const f = await Deno.open(file, {
+      write: true,
+      create: true,
+      truncate: true,
+    });
     return { write: (d) => f.write(d), close: () => f.close() };
   }
   return { write: (d) => Deno.stdout.write(d), close: () => {} };
@@ -99,7 +105,9 @@ const csv2lazyrow = new Command()
 
 const csv2tsv = new Command()
   .description("Convert CSV to TSV")
-  .option("-d, --separator <char:string>", "CSV field separator", { default: "," })
+  .option("-d, --separator <char:string>", "CSV field separator", {
+    default: ",",
+  })
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.csv | flatdata csv2tsv > data.tsv")
@@ -139,7 +147,9 @@ const tsv2lazyrow = new Command()
 
 const tsv2csv = new Command()
   .description("Convert TSV to CSV")
-  .option("-d, --separator <char:string>", "CSV field separator", { default: "," })
+  .option("-d, --separator <char:string>", "CSV field separator", {
+    default: ",",
+  })
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.tsv | flatdata tsv2csv > data.csv")
@@ -158,7 +168,10 @@ const record2csv = new Command()
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "flatdata record2csv < data.rec > data.csv")
-  .example("Pipeline", "cat huge.csv | flatdata csv2record | process | flatdata record2csv")
+  .example(
+    "Pipeline",
+    "cat huge.csv | flatdata csv2record | process | flatdata record2csv",
+  )
   .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
@@ -190,7 +203,11 @@ const lazyrow2csv = new Command()
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await processor.lazyRowBinaryToDelimited(stream, write, separator!.charCodeAt(0));
+    await processor.lazyRowBinaryToDelimited(
+      stream,
+      write,
+      separator!.charCodeAt(0),
+    );
     close();
   });
 
@@ -244,7 +261,10 @@ Formats:
   lazyrow  Binary format with length-prefixed fields for efficient random access`)
   .example("CSV to record", "cat data.csv | flatdata csv2record | ./process")
   .example("Record to CSV", "flatdata record2csv -d ';' < data.rec > euro.csv")
-  .example("Full pipeline", "flatdata csv2record -i huge.csv | ./analyze | flatdata record2csv -o results.csv")
+  .example(
+    "Full pipeline",
+    "flatdata csv2record -i huge.csv | ./analyze | flatdata record2csv -o results.csv",
+  )
   .command("csv2record", csv2record)
   .command("csv2lazyrow", csv2lazyrow)
   .command("csv2tsv", csv2tsv)

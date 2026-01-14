@@ -1,6 +1,8 @@
 # flatdata CLI
 
-**flatdata** is a high-performance command-line utility for converting between tabular data formats. It's distributed as part of proc and uses WebAssembly for near-native parsing speed.
+**flatdata** is a high-performance command-line utility for converting between
+tabular data formats. It's distributed as part of proc and uses WebAssembly for
+near-native parsing speed.
 
 ## Installation
 
@@ -28,36 +30,44 @@ flatdata --version
 
 ## Why flatdata?
 
-CSV parsing is CPU-intensive. When processing large files, the parsing step can become a bottleneck. flatdata solves this by:
+CSV parsing is CPU-intensive. When processing large files, the parsing step can
+become a bottleneck. flatdata solves this by:
 
-1. **Offloading parsing to a separate process** - Your main application stays responsive
-2. **Using WASM for speed** - ~7x faster than pure JavaScript, about half native speed
+1. **Offloading parsing to a separate process** - Your main application stays
+   responsive
+2. **Using WASM for speed** - ~7x faster than pure JavaScript, about half native
+   speed
 3. **Streaming design** - Handles files of any size with constant memory
 
-The key insight: by converting CSV to a simple binary format (record), downstream processing becomes trivial string splits instead of complex CSV parsing.
+The key insight: by converting CSV to a simple binary format (record),
+downstream processing becomes trivial string splits instead of complex CSV
+parsing.
 
 ## Performance
 
-| Implementation | Throughput |
-|----------------|------------|
-| Native (Odin) | ~550 MB/s |
-| flatdata (WASM) | ~330 MB/s |
-| Pure JavaScript | ~20 MB/s |
+| Implementation  | Throughput |
+| --------------- | ---------- |
+| Native (Odin)   | ~550 MB/s  |
+| flatdata (WASM) | ~330 MB/s  |
+| Pure JavaScript | ~20 MB/s   |
 
 For a 1GB CSV file:
+
 - WASM: ~7 seconds
 - Pure JS: ~50 seconds
 
 ## Formats
 
-| Format | Description | Use Case |
-|--------|-------------|----------|
-| **csv** | RFC 4180 comma-separated values | Standard interchange |
-| **tsv** | Tab-separated values | Simple data, no quoting |
-| **record** | Binary: `\x1F` field, `\x1E` record | Fast processing |
-| **lazyrow** | Binary with length-prefixed fields | Efficient random field access |
+| Format      | Description                         | Use Case                      |
+| ----------- | ----------------------------------- | ----------------------------- |
+| **csv**     | RFC 4180 comma-separated values     | Standard interchange          |
+| **tsv**     | Tab-separated values                | Simple data, no quoting       |
+| **record**  | Binary: `\x1F` field, `\x1E` record | Fast processing               |
+| **lazyrow** | Binary with length-prefixed fields  | Efficient random field access |
 
-The **record** format is the key to performance. It uses ASCII control characters that never appear in text data:
+The **record** format is the key to performance. It uses ASCII control
+characters that never appear in text data:
+
 - `\x1F` (Unit Separator) between fields
 - `\x1E` (Record Separator) between rows
 
@@ -86,6 +96,7 @@ flatdata tsv2csv [options]       # TSV → CSV
 ```
 
 Options:
+
 - `-d, --separator <char>` - CSV field separator (default: `,`)
 - `-q, --quote-all` - Quote all fields in output
 - `-i, --input <file>` - Input file (default: stdin)
@@ -101,6 +112,7 @@ flatdata tsv2lazyrow [options]   # TSV → lazyrow
 ```
 
 Options:
+
 - `-d, --separator <char>` - Field separator (CSV only, default: `,`)
 - `-c, --columns <n>` - Expected column count (fail if mismatch)
 - `-s, --strict` - Fail on parse errors
@@ -117,6 +129,7 @@ flatdata lazyrow2tsv [options]   # lazyrow → TSV
 ```
 
 Options:
+
 - `-d, --separator <char>` - Field separator (CSV only, default: `,`)
 - `-q, --quote-all` - Quote all fields
 - `-i, --input <file>` - Input file (default: stdin)
@@ -130,6 +143,7 @@ flatdata lazyrow2record [options]  # lazyrow → record
 ```
 
 Options:
+
 - `-i, --input <file>` - Input file (default: stdin)
 - `-o, --output <file>` - Output file (default: stdout)
 
@@ -153,15 +167,15 @@ flatdata csv2tsv -d ';' -i euro.csv -o data.tsv
 ### Basic Pipeline
 
 ```typescript
-import { run, enumerate } from "jsr:@j50n/proc";
+import { enumerate, run } from "jsr:@j50n/proc";
 
 // Parse CSV in a subprocess, process records in JS
 const results = await run("flatdata", "csv2record")
   .writeToStdin(csvData)
   .lines
-  .map(record => record.split('\x1F'))  // Split into fields
-  .filter(fields => fields[2] === 'active')
-  .map(fields => ({ id: fields[0], name: fields[1] }))
+  .map((record) => record.split("\x1F")) // Split into fields
+  .filter((fields) => fields[2] === "active")
+  .map((fields) => ({ id: fields[0], name: fields[1] }))
   .collect();
 ```
 
@@ -174,17 +188,17 @@ import { read, run } from "jsr:@j50n/proc";
 await read("huge.csv")
   .run("flatdata", "csv2record")
   .lines
-  .map(record => {
-    const fields = record.split('\x1F');
+  .map((record) => {
+    const fields = record.split("\x1F");
     return processRow(fields);
   })
-  .forEach(result => console.log(result));
+  .forEach((result) => console.log(result));
 ```
 
 ### With enumerate for Indexing
 
 ```typescript
-import { run, enumerate } from "jsr:@j50n/proc";
+import { enumerate, run } from "jsr:@j50n/proc";
 
 // Number each row
 await run("cat", "data.csv")
@@ -192,7 +206,7 @@ await run("cat", "data.csv")
   .lines
   .enum()
   .map(([record, index]) => {
-    const fields = record.split('\x1F');
+    const fields = record.split("\x1F");
     return `${index + 1}: ${fields[0]}`;
   })
   .toStdout();
@@ -206,10 +220,10 @@ import { run } from "jsr:@j50n/proc";
 // CSV → process → CSV
 const output = await run("flatdata", "csv2record", "-i", "input.csv")
   .lines
-  .map(record => {
-    const fields = record.split('\x1F');
-    fields[1] = fields[1].toUpperCase();  // Transform field
-    return fields.join('\x1F');
+  .map((record) => {
+    const fields = record.split("\x1F");
+    fields[1] = fields[1].toUpperCase(); // Transform field
+    return fields.join("\x1F");
   })
   .run("flatdata", "record2csv")
   .lines
@@ -218,7 +232,8 @@ const output = await run("flatdata", "csv2record", "-i", "input.csv")
 
 ## Transforms for Record Format
 
-proc provides transforms to convert between the binary record format and JavaScript objects.
+proc provides transforms to convert between the binary record format and
+JavaScript objects.
 
 ### fromRecordToRows
 
@@ -231,13 +246,14 @@ import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2record", "-i", "data.csv")
   .transform(fromRecordToRows())
   .flatten()
-  .filter(row => row[2] === "active")
-  .forEach(row => console.log(row[0], row[1]));
+  .filter((row) => row[2] === "active")
+  .forEach((row) => console.log(row[0], row[1]));
 ```
 
 ### fromRecordToLazyRows
 
-Convert record-delimited bytes to LazyRow objects (more efficient for wide rows):
+Convert record-delimited bytes to LazyRow objects (more efficient for wide
+rows):
 
 ```typescript
 import { run } from "jsr:@j50n/proc";
@@ -246,8 +262,8 @@ import { fromRecordToLazyRows } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2record", "-i", "wide.csv")
   .transform(fromRecordToLazyRows())
   .flatten()
-  .filter(row => row.getField(0) === "active")
-  .forEach(row => console.log(row.getField(1), row.getField(5)));
+  .filter((row) => row.getField(0) === "active")
+  .forEach((row) => console.log(row.getField(1), row.getField(5)));
 ```
 
 ### fromLazyRowBinary
@@ -261,8 +277,8 @@ import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2lazyrow", "-i", "wide.csv")
   .transform(fromLazyRowBinary())
   .flatten()
-  .filter(row => row.getField(2) === "error")
-  .forEach(row => console.log(`${row.getField(0)}: ${row.getField(3)}`));
+  .filter((row) => row.getField(2) === "error")
+  .forEach((row) => console.log(`${row.getField(0)}: ${row.getField(3)}`));
 ```
 
 ### toRecord
@@ -277,7 +293,7 @@ import { fromRecordToRows, toRecord } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2record", "-i", "input.csv")
   .transform(fromRecordToRows())
   .flatten()
-  .map(row => [row[0], row[1].toUpperCase(), row[2]])
+  .map((row) => [row[0], row[1].toUpperCase(), row[2]])
   .transform(toRecord())
   .run("flatdata", "record2csv")
   .toStdout();
@@ -285,7 +301,8 @@ await run("flatdata", "csv2record", "-i", "input.csv")
 
 ## LazyRow for Memory Efficiency
 
-LazyRow defers field parsing until accessed - ideal when you only need a few fields from wide rows:
+LazyRow defers field parsing until accessed - ideal when you only need a few
+fields from wide rows:
 
 ```typescript
 import { run } from "jsr:@j50n/proc";
@@ -294,13 +311,14 @@ import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2lazyrow", "-i", "huge.csv")
   .transform(fromLazyRowBinary())
   .flatten()
-  .filter(row => row.columnCount > 5)  // O(1) column count
-  .map(row => row.getField(0))          // Only parse field 0
+  .filter((row) => row.columnCount > 5) // O(1) column count
+  .map((row) => row.getField(0)) // Only parse field 0
   .take(100)
   .toStdout();
 ```
 
 LazyRow methods:
+
 - `columnCount` - Number of fields (O(1), no parsing)
 - `getField(n)` - Get nth field as string (parses on demand)
 - `toArray()` - Get all fields as string[]
@@ -328,4 +346,8 @@ flatdata csv2record --columns 10 --strict -i data.csv > /dev/null
 
 ## Architecture
 
-flatdata uses a [custom RFC 4180 CSV parser](../appendix/csv-parser.md) written in Odin and compiled to WebAssembly. We needed a *push parser*—one that accepts arbitrary chunks of input and tracks state across calls—because WASM modules can't pull data from JavaScript. Odin's standard library CSV parser is a pull parser that expects to read from a file or complete buffer.
+flatdata uses a [custom RFC 4180 CSV parser](../appendix/csv-parser.md) written
+in Odin and compiled to WebAssembly. We needed a _push parser_—one that accepts
+arbitrary chunks of input and tracks state across calls—because WASM modules
+can't pull data from JavaScript. Odin's standard library CSV parser is a pull
+parser that expects to read from a file or complete buffer.

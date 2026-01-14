@@ -23,7 +23,7 @@ export function toLazyRowBinary() {
   const encoder = new TextEncoder();
 
   return async function* (
-    data: AsyncIterable<string[][] | LazyRow[]>
+    data: AsyncIterable<string[][] | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const batch of data) {
       if (batch.length === 0) continue;
@@ -31,12 +31,12 @@ export function toLazyRowBinary() {
       const chunks: Uint8Array[] = [];
 
       for (const item of batch) {
-        const fields: Uint8Array[] =
-          item instanceof LazyRow
-            ? Array.from({ length: item.columnCount }, (_, i) =>
-                encoder.encode(item.getField(i))
-              )
-            : (item as string[]).map((f) => encoder.encode(f));
+        const fields: Uint8Array[] = item instanceof LazyRow
+          ? Array.from(
+            { length: item.columnCount },
+            (_, i) => encoder.encode(item.getField(i)),
+          )
+          : (item as string[]).map((f) => encoder.encode(f));
 
         const fieldCount = fields.length;
         const dataSize = fields.reduce((sum, f) => sum + f.length, 0);
@@ -90,7 +90,7 @@ export function toLazyRowBinary() {
  */
 export function fromLazyRowBinary() {
   return async function* (
-    bytes: AsyncIterable<Uint8Array>
+    bytes: AsyncIterable<Uint8Array>,
   ): AsyncIterable<LazyRow[]> {
     const chunks: Uint8Array[] = [];
     let totalLen = 0;
@@ -105,7 +105,10 @@ export function fromLazyRowBinary() {
       let pos = 0;
       let skip = offset;
       for (const chunk of chunks) {
-        if (skip >= chunk.length) { skip -= chunk.length; continue; }
+        if (skip >= chunk.length) {
+          skip -= chunk.length;
+          continue;
+        }
         const src = skip > 0 ? chunk.subarray(skip) : chunk;
         skip = 0;
         buffer.set(src, pos);

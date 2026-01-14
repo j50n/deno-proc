@@ -81,14 +81,14 @@ case:
 
 ### Numeric Types
 
-| Type | Size | Description |
-|------|------|-------------|
-| `i8`, `i16`, `i32`, `i64` | 1-8 bytes | Signed integers |
-| `u8`, `u16`, `u32`, `u64` | 1-8 bytes | Unsigned integers |
-| `int` | Platform-dependent | Signed integer |
-| `uint` | Platform-dependent | Unsigned integer |
-| `f32`, `f64` | 4-8 bytes | Floating point |
-| `bool` | 1 byte | Boolean |
+| Type                      | Size               | Description       |
+| ------------------------- | ------------------ | ----------------- |
+| `i8`, `i16`, `i32`, `i64` | 1-8 bytes          | Signed integers   |
+| `u8`, `u16`, `u32`, `u64` | 1-8 bytes          | Unsigned integers |
+| `int`                     | Platform-dependent | Signed integer    |
+| `uint`                    | Platform-dependent | Unsigned integer  |
+| `f32`, `f64`              | 4-8 bytes          | Floating point    |
+| `bool`                    | 1 byte             | Boolean           |
 
 ### Strings
 

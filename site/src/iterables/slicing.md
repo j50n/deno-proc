@@ -7,6 +7,7 @@ Take portions of your data stream.
 Take first N items:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "slicing: take" -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -21,6 +22,7 @@ const first3 = await enumerate([1, 2, 3, 4, 5])
 Stops reading after N items:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Only reads first 10 lines
 const preview = await read("huge-file.txt")
@@ -32,11 +34,12 @@ const preview = await read("huge-file.txt")
 ### With Filter
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // First 5 errors
 const errors = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
+  .filter((line) => line.includes("ERROR"))
   .take(5)
   .collect();
 ```
@@ -46,6 +49,7 @@ const errors = await read("app.log")
 Skip first N items:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "slicing: drop" -->
+
 ```typescript
 const rest = await enumerate([1, 2, 3, 4, 5])
   .drop(2)
@@ -56,10 +60,11 @@ const rest = await enumerate([1, 2, 3, 4, 5])
 ### Skip Header
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const data = await read("data.csv")
   .lines
-  .drop(1)  // Skip header row
+  .drop(1) // Skip header row
   .collect();
 ```
 
@@ -68,6 +73,7 @@ const data = await read("data.csv")
 Get a range of items by combining drop and take:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "slicing: slice with drop and take" -->
+
 ```typescript
 const middle = await enumerate([1, 2, 3, 4, 5])
   .drop(1)
@@ -79,6 +85,7 @@ const middle = await enumerate([1, 2, 3, 4, 5])
 ### Pagination
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const page = 2;
 const pageSize = 10;
@@ -94,6 +101,7 @@ const items = await enumerate(allItems)
 Get first item:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const first = await enumerate([1, 2, 3]).first;
 // 1
@@ -102,6 +110,7 @@ const first = await enumerate([1, 2, 3]).first;
 ### With Pipeline
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const result = await run("ls", "-la")
   .lines
@@ -113,6 +122,7 @@ const result = await run("ls", "-la")
 Get last item:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const last = await enumerate([1, 2, 3]).last;
 // 3
@@ -125,6 +135,7 @@ const last = await enumerate([1, 2, 3]).last;
 Get item at index:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const third = await enumerate([1, 2, 3, 4, 5]).nth(2);
 // 3 (zero-indexed)
@@ -135,17 +146,19 @@ const third = await enumerate([1, 2, 3, 4, 5]).nth(2);
 ### Preview File
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 console.log("First 10 lines:");
 await read("file.txt")
   .lines
   .take(10)
-  .forEach(line => console.log(line));
+  .forEach((line) => console.log(line));
 ```
 
 ### Skip and Take
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Lines 11-20
 const batch = await read("file.txt")
@@ -158,6 +171,7 @@ const batch = await read("file.txt")
 ### Sample Data
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Every 10th item
 const sample = await enumerate(data)
@@ -168,12 +182,13 @@ const sample = await enumerate(data)
 ### Find Nth Match
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // 5th error
 const fifthError = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
-  .nth(4);  // Zero-indexed
+  .filter((line) => line.includes("ERROR"))
+  .nth(4); // Zero-indexed
 ```
 
 ## Performance Tips
@@ -181,6 +196,7 @@ const fifthError = await read("app.log")
 ### Use take() for Limits
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ✅ Stops early
 const first100 = await enumerate(huge)
@@ -189,12 +205,13 @@ const first100 = await enumerate(huge)
 
 // ❌ Reads everything
 const all = await enumerate(huge).collect();
-const first100 = all.slice(0, 100);  // Array slice, not Enumerable
+const first100 = all.slice(0, 100); // Array slice, not Enumerable
 ```
 
 ### Combine with Filter
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Efficient: stops after 10 matches
 const matches = await enumerate(data)

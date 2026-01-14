@@ -1,6 +1,7 @@
 # Performance Optimization
 
-WASM is fast, but not automatically fast. Understanding where time goes helps you optimize effectively.
+WASM is fast, but not automatically fast. Understanding where time goes helps
+you optimize effectively.
 
 ## Measuring Performance
 
@@ -20,7 +21,7 @@ For more detail:
 function benchmark(name: string, fn: () => void, iterations = 1000): void {
   // Warmup
   for (let i = 0; i < 100; i++) fn();
-  
+
   // Measure
   const times: number[] = [];
   for (let i = 0; i < iterations; i++) {
@@ -28,12 +29,12 @@ function benchmark(name: string, fn: () => void, iterations = 1000): void {
     fn();
     times.push(performance.now() - start);
   }
-  
+
   times.sort((a, b) => a - b);
   const median = times[Math.floor(times.length / 2)];
   const p95 = times[Math.floor(times.length * 0.95)];
   const mean = times.reduce((a, b) => a + b) / times.length;
-  
+
   console.log(`${name}:`);
   console.log(`  median: ${median.toFixed(3)}ms`);
   console.log(`  mean:   ${mean.toFixed(3)}ms`);
@@ -43,7 +44,8 @@ function benchmark(name: string, fn: () => void, iterations = 1000): void {
 
 ## Boundary Crossing Overhead
 
-The biggest performance trap is excessive boundary crossings. Each call from JavaScript to WASM (and back) has overhead.
+The biggest performance trap is excessive boundary crossings. Each call from
+JavaScript to WASM (and back) has overhead.
 
 **Measure it:**
 
@@ -59,11 +61,13 @@ benchmark("empty JS call", () => {
 });
 ```
 
-You'll find WASM calls are 10-100x slower than JS function calls. This overhead is fixed per call, regardless of what the function does.
+You'll find WASM calls are 10-100x slower than JS function calls. This overhead
+is fixed per call, regardless of what the function does.
 
 **Implications:**
 
 Bad:
+
 ```typescript
 // 1 million boundary crossings
 let sum = 0;
@@ -73,16 +77,19 @@ for (let i = 0; i < 1000000; i++) {
 ```
 
 Good:
+
 ```typescript
 // 1 boundary crossing
 const sum = wasmSumRange(0, 1000000);
 ```
 
-Move loops inside WASM. Cross the boundary for setup and results, not for each iteration.
+Move loops inside WASM. Cross the boundary for setup and results, not for each
+iteration.
 
 ## Instance Startup Overhead
 
-You might wonder: how expensive is it to create a new WASM instance? Should you pool instances?
+You might wonder: how expensive is it to create a new WASM instance? Should you
+pool instances?
 
 **Benchmark results** (Chromebook Plus in Crostini VM—modest hardware):
 
@@ -96,7 +103,9 @@ P99:     2.913 ms
 Max:     7.857 ms
 ```
 
-Creating a fresh instance, calling a function, and disposing takes ~0.08ms median. That's fast enough to create ~12,000 instances per second on mediocre hardware.
+Creating a fresh instance, calling a function, and disposing takes ~0.08ms
+median. That's fast enough to create ~12,000 instances per second on mediocre
+hardware.
 
 **Implications:**
 
@@ -110,7 +119,8 @@ Creating a fresh instance, calling a function, and disposing takes ~0.08ms media
 - Creating hundreds of instances per second
 - Memory-constrained environments where you want to reuse allocations
 
-For most applications, just create instances when you need them and let them get garbage collected.
+For most applications, just create instances when you need them and let them get
+garbage collected.
 
 See `examples/startup-bench/` for the benchmark code.
 
@@ -231,15 +241,17 @@ wc -c demo.wasm
 ### Reducing Size
 
 **Strip debug info:**
+
 ```bash
 odin build . -target:js_wasm32 -o:size \
     -extra-linker-flags:"--import-memory --strip-all"
 ```
 
-**Remove unused exports:**
-Only export what you need. Each export adds to the binary.
+**Remove unused exports:** Only export what you need. Each export adds to the
+binary.
 
 **Compress for transfer:**
+
 ```bash
 gzip -9 demo.wasm
 # or
@@ -263,7 +275,7 @@ This generates a V8 profile you can analyze.
 ```typescript
 class Profiler {
   private timings = new Map<string, number[]>();
-  
+
   start(name: string): () => void {
     const start = performance.now();
     return () => {
@@ -273,12 +285,16 @@ class Profiler {
       this.timings.set(name, times);
     };
   }
-  
+
   report(): void {
     for (const [name, times] of this.timings) {
       const total = times.reduce((a, b) => a + b, 0);
       const avg = total / times.length;
-      console.log(`${name}: ${times.length} calls, ${total.toFixed(2)}ms total, ${avg.toFixed(3)}ms avg`);
+      console.log(
+        `${name}: ${times.length} calls, ${total.toFixed(2)}ms total, ${
+          avg.toFixed(3)
+        }ms avg`,
+      );
     }
   }
 }
@@ -316,14 +332,14 @@ const results = readArray(outputPtr, items.length);
 ```typescript
 class CachedDemo {
   private cache = new Map<string, number>();
-  
+
   calculate(input: number): number {
     const key = String(input);
-    
+
     if (this.cache.has(key)) {
       return this.cache.get(key)!;
     }
-    
+
     const result = this.demo.calculate(input);
     this.cache.set(key, result);
     return result;
@@ -336,14 +352,14 @@ class CachedDemo {
 ```typescript
 class LazyDemo {
   private instance: Demo | null = null;
-  
+
   private async ensure(): Promise<Demo> {
     if (!this.instance) {
       this.instance = await Demo.create();
     }
     return this.instance;
   }
-  
+
   async calculate(x: number): Promise<number> {
     const demo = await this.ensure();
     return demo.calculateCircle(x);

@@ -1,6 +1,7 @@
 # Build Process
 
 ## Version Management
+
 - Single source of truth: `deno.json` version field
 - No separate version.json file
 - Update version before release commits
@@ -8,7 +9,9 @@
 ## Build Scripts
 
 ### build.sh
+
 Runs tests, lint, type checking:
+
 - Updates Rust and mdbook
 - Updates Deno
 - Formats markdown and TypeScript
@@ -20,7 +23,9 @@ Runs tests, lint, type checking:
   - All 172 tests must pass
 
 ### build-site.sh
+
 Generates API docs, builds mdbook site:
+
 - Updates Rust and mdbook
 - Generates API docs with `deno doc --html`
 - Formats site source files
@@ -38,12 +43,13 @@ Generates API docs, builds mdbook site:
 
 ## Current Status
 
-**Version:** 0.23.2  
-**Registry:** JSR (jsr.io)  
-**License:** MIT  
+**Version:** 0.23.2\
+**Registry:** JSR (jsr.io)\
+**License:** MIT\
 **Test Coverage:** 172 tests (all passing)
 
 **Recent Improvements:**
+
 - Enhanced documentation for accessibility
 - Added Common Patterns guide
 - Visual enhancements to mdbook site (custom CSS/JS)
@@ -52,9 +58,11 @@ Generates API docs, builds mdbook site:
 
 ## Build Tools
 
-- **tools/mdbook-deno-script-preprocessor.ts**: Processes Deno code blocks in documentation
+- **tools/mdbook-deno-script-preprocessor.ts**: Processes Deno code blocks in
+  documentation
 - **site/gitv.ts**: Git version preprocessor for mdbook
-- **site/theme/**: Custom CSS and JavaScript for enhanced documentation experience
+- **site/theme/**: Custom CSS and JavaScript for enhanced documentation
+  experience
 
 ## Dependencies
 

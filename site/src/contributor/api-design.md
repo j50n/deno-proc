@@ -21,14 +21,14 @@ await enumerate(["line1", "line2"]).toStdout();
 // Process lines - newlines added automatically
 await run("ls")
   .lines
-  .map(line => line.toUpperCase())
+  .map((line) => line.toUpperCase())
   .toStdout();
 
 // Bytes - no automatic newlines
 const encoder = new TextEncoder();
 await enumerate([
   encoder.encode("line1\n"),
-  encoder.encode("line2\n")
+  encoder.encode("line2\n"),
 ]).toStdout();
 // Output: line1\nline2\n (newlines from source data)
 ```
@@ -43,20 +43,22 @@ await enumerate([
 ## Common Patterns
 
 ### Output to stdout
+
 ```typescript
 // Preferred: Use .toStdout() for writing to stdout (idiomatic)
 // toStdout() handles strings, string arrays, Uint8Arrays, and arrays of those
 // Strings automatically have newlines appended
 await run("ls")
   .lines
-  .map(line => line.toUpperCase())
+  .map((line) => line.toUpperCase())
   .toStdout();
 
 // Alternative: forEach with console.log
-await run("ls").lines.forEach(line => console.log(line));
+await run("ls").lines.forEach((line) => console.log(line));
 ```
 
 ### Process Execution
+
 ```typescript
 // Good: Output consumed
 await run("ls").lines.collect();
@@ -66,6 +68,7 @@ const p = run("ls");
 ```
 
 ### Error Handling
+
 ```typescript
 // Good: Single try-catch at end
 try {
@@ -80,11 +83,12 @@ try {
   try {
     const p2 = p1.run("cmd2");
     // ...
-  } catch (e2) { }
-} catch (e1) { }
+  } catch (e2) {}
+} catch (e1) {}
 ```
 
 ### Enumeration
+
 ```typescript
 // Good: enumerate() wraps, .enum() adds indices
 await enumerate(data).enum().map(([item, i]) => ...)

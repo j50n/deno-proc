@@ -1,18 +1,22 @@
 # Processing Log Files
 
-Log file analysis is a common task that benefits greatly from proc's streaming capabilities, allowing you to analyze even huge log files efficiently without loading them entirely into memory.
+Log file analysis is a common task that benefits greatly from proc's streaming
+capabilities, allowing you to analyze even huge log files efficiently without
+loading them entirely into memory.
 
 ## Counting Errors
 
-The simplest log analysis task is counting error occurrences. This approach streams through the file, filtering for error lines and counting them:
+The simplest log analysis task is counting error occurrences. This approach
+streams through the file, filtering for error lines and counting them:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "log-processing: count errors" -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
 const errorCount = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
+  .filter((line) => line.includes("ERROR"))
   .count();
 
 console.log(`${errorCount} errors found`);
@@ -20,13 +24,15 @@ console.log(`${errorCount} errors found`);
 
 ## Categorizing Errors by Type
 
-For more detailed analysis, you can group errors by type to understand which kinds of errors are most common:
+For more detailed analysis, you can group errors by type to understand which
+kinds of errors are most common:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const errorTypes = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
+  .filter((line) => line.includes("ERROR"))
   .reduce((acc, line) => {
     const match = line.match(/ERROR: (\w+)/);
     const type = match ? match[1] : "unknown";
@@ -44,28 +50,31 @@ Object.entries(errorTypes)
 
 ## Extracting Structured Data
 
-When you need to extract specific information from log entries, you can parse timestamps, error messages, and other structured data:
+When you need to extract specific information from log entries, you can parse
+timestamps, error messages, and other structured data:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const errors = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
-  .map(line => {
+  .filter((line) => line.includes("ERROR"))
+  .map((line) => {
     const timestamp = line.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)?.[0];
     const message = line.split("ERROR:")[1]?.trim();
     return { timestamp, message };
   })
-  .filter(error => error.timestamp && error.message)
+  .filter((error) => error.timestamp && error.message)
   .collect();
 
 console.log(`Found ${errors.length} structured errors`);
 ```
-    return { timestamp, message };
-  })
-  .collect();
-```
 
+    return { timestamp, message };
+
+}) .collect();
+
+````
 ## Find Patterns
 
 <!-- NOT TESTED: Illustrative example -->
@@ -91,15 +100,16 @@ Object.entries(suspiciousIPs)
   .forEach(([ip, count]) => {
     console.log(`${ip}: ${count} 404s`);
   });
-```
+````
 
 ## Time-Based Analysis
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const errorsByHour = await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR"))
+  .filter((line) => line.includes("ERROR"))
   .reduce((acc, line) => {
     const hour = line.match(/T(\d{2}):/)?.[1];
     if (hour) {
@@ -119,6 +129,7 @@ Object.entries(errorsByHour)
 ## Multiple Log Files
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -128,7 +139,7 @@ const results = await enumerate(files)
   .concurrentMap(async (file) => {
     const errors = await read(file)
       .lines
-      .filter(line => line.includes("ERROR"))
+      .filter((line) => line.includes("ERROR"))
       .count();
     return { file, errors };
   }, { concurrency: 3 })
@@ -142,11 +153,12 @@ results.forEach(({ file, errors }) => {
 ## Compressed Logs
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const errors = await read("app.log.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .filter(line => line.includes("ERROR"))
+  .filter((line) => line.includes("ERROR"))
   .take(10)
   .collect();
 ```
@@ -154,6 +166,7 @@ const errors = await read("app.log.gz")
 ## Real-Time Monitoring
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Process log as it grows
 for await (const line of read("app.log").lines) {

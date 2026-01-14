@@ -1,21 +1,23 @@
 # Working with Numbers
 
-Numbers are the simplest data to pass between JavaScript and WASM. No memory management, no encoding—just values.
+Numbers are the simplest data to pass between JavaScript and WASM. No memory
+management, no encoding—just values.
 
 ## Type Mapping
 
 ![Type funnel from Odin through WASM to JavaScript](images/type-funnel.svg)
 
-| Odin | WASM | JavaScript |
-|------|------|------------|
-| `i8`, `i16`, `i32`, `int` | `i32` | `number` |
-| `i64` | `i64` | `bigint` |
-| `f32`, `f64` | `f32`, `f64` | `number` |
-| `bool` | `i32` | `number` (0/1) |
+| Odin                      | WASM         | JavaScript     |
+| ------------------------- | ------------ | -------------- |
+| `i8`, `i16`, `i32`, `int` | `i32`        | `number`       |
+| `i64`                     | `i64`        | `bigint`       |
+| `f32`, `f64`              | `f32`, `f64` | `number`       |
+| `bool`                    | `i32`        | `number` (0/1) |
 
 ## The i64 Complication
 
-JavaScript's `number` loses precision above 2^53. WASM returns `i64` as `bigint`:
+JavaScript's `number` loses precision above 2^53. WASM returns `i64` as
+`bigint`:
 
 ```odin
 @(export)
@@ -31,9 +33,11 @@ console.log(bigAdd(9007199254740993n, 1n)); // Note the 'n' suffix
 
 ## Floating-Point Precision
 
-Use `f64` unless you have a specific reason for `f32`. JavaScript numbers are 64-bit floats internally, so `f64` avoids conversion overhead.
+Use `f64` unless you have a specific reason for `f32`. JavaScript numbers are
+64-bit floats internally, so `f64` avoids conversion overhead.
 
-Precision differences between WASM and JavaScript are typically around 10^-15 for `f64`—negligible for most purposes, but use tolerance in tests.
+Precision differences between WASM and JavaScript are typically around 10^-15
+for `f64`—negligible for most purposes, but use tolerance in tests.
 
 ## Booleans
 
@@ -50,6 +54,7 @@ isEven(n: number): boolean {
 WASM functions return one value. Options for multiple results:
 
 **Write to memory** (most flexible):
+
 ```odin
 @(export)
 get_point :: proc "c" (out: ^f64) {
@@ -59,6 +64,7 @@ get_point :: proc "c" (out: ^f64) {
 ```
 
 **Pack into one value** (for small integers):
+
 ```odin
 @(export)
 get_packed :: proc "c" () -> i32 {

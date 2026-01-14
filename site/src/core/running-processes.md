@@ -1,12 +1,15 @@
 # Running Processes
 
-Running child processes with proc is designed to be as simple and intuitive as possible, eliminating the boilerplate typically required for process management.
+Running child processes with proc is designed to be as simple and intuitive as
+possible, eliminating the boilerplate typically required for process management.
 
 ## Getting Started
 
-The most basic usage requires just importing `run` and calling it with your command:
+The most basic usage requires just importing `run` and calling it with your
+command:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: capture output" -->
+
 ```typescript
 import { run } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -14,26 +17,32 @@ import { run } from "jsr:@j50n/proc@{{gitv}}";
 await run("ls", "-la").lines.collect();
 ```
 
-That's all you need. No configuration objects, no callback functions, no complex setup—just run the command and get the results.
+That's all you need. No configuration objects, no callback functions, no complex
+setup—just run the command and get the results.
 
 ## Understanding Command Arguments
 
-The first parameter to `run()` is the command name, and all subsequent parameters are individual arguments. This approach prevents shell injection vulnerabilities and makes argument handling explicit:
+The first parameter to `run()` is the command name, and all subsequent
+parameters are individual arguments. This approach prevents shell injection
+vulnerabilities and makes argument handling explicit:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
-run("command", "arg1", "arg2", "arg3")
+run("command", "arg1", "arg2", "arg3");
 ```
 
-It's important to pass arguments as separate parameters rather than as a single string:
+It's important to pass arguments as separate parameters rather than as a single
+string:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ✅ Correct
-run("ls", "-la", "/home")
+run("ls", "-la", "/home");
 
 // ❌ Wrong - this won't work
-run("ls -la /home")
+run("ls -la /home");
 ```
 
 ## Capturing Output
@@ -41,6 +50,7 @@ run("ls -la /home")
 ### As an Array
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const lines = await run("ls", "-la").lines.collect();
 // lines is string[]
@@ -49,6 +59,7 @@ const lines = await run("ls", "-la").lines.collect();
 ### Line by Line
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 for await (const line of run("ls", "-la").lines) {
   console.log(line);
@@ -58,6 +69,7 @@ for await (const line of run("ls", "-la").lines) {
 ### First or Last Line
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: first line" -->
+
 ```typescript
 const first = await run("ls").lines.first;
 const last = await run("ls").lines.last;
@@ -66,6 +78,7 @@ const last = await run("ls").lines.last;
 ### As Raw Bytes
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const bytes = await run("cat", "file.bin").collect();
 // bytes is Uint8Array[]
@@ -76,6 +89,7 @@ const bytes = await run("cat", "file.bin").collect();
 Send output directly to stdout:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 await run("ls", "-la").toStdout();
 ```
@@ -87,6 +101,7 @@ This is perfect for commands where you just want to see the output.
 Sometimes you need to build a command from variables:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { type Cmd, run } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -103,41 +118,46 @@ if (directory) {
 await run(...cmd).toStdout();
 ```
 
-The `Cmd` type is an array where the first element is the command (string or URL) and the rest are string arguments. Using the `Cmd` type ensures type safety when building commands dynamically.
+The `Cmd` type is an array where the first element is the command (string or
+URL) and the rest are string arguments. Using the `Cmd` type ensures type safety
+when building commands dynamically.
 
 ## Process Options
 
 Customize process behavior with options:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 await run(
   {
-    cwd: "/tmp",           // Working directory
-    env: { FOO: "bar" },   // Environment variables
+    cwd: "/tmp", // Working directory
+    env: { FOO: "bar" }, // Environment variables
   },
   "command",
-  "arg1"
+  "arg1",
 ).lines.collect();
 ```
 
 ### Working Directory
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 await run(
   { cwd: "/var/log" },
-  "ls"
+  "ls",
 ).toStdout();
 ```
 
 ### Environment Variables
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 await run(
   { env: { PATH: "/custom/path" } },
-  "command"
+  "command",
 ).lines.collect();
 ```
 
@@ -146,22 +166,25 @@ await run(
 Get the exit status without throwing:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const p = run("command");
-await p.lines.collect();  // Consume output first
+await p.lines.collect(); // Consume output first
 const status = await p.status;
 
 console.log(`Exit code: ${status.code}`);
 console.log(`Success: ${status.success}`);
 ```
 
-**Remember:** Always consume output before checking status, or you'll leak resources.
+**Remember:** Always consume output before checking status, or you'll leak
+resources.
 
 ## Process ID
 
 Get the process ID:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const p = run("sleep", "10");
 console.log(`PID: ${p.pid}`);
@@ -173,6 +196,7 @@ await p.lines.collect();
 You can use URLs for the command:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const scriptUrl = new URL("./script.sh", import.meta.url);
 await run(scriptUrl).toStdout();
@@ -185,6 +209,7 @@ await run(scriptUrl).toStdout();
 Run a command and ignore output:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 await run("command").lines.forEach(() => {});
 ```
@@ -194,9 +219,10 @@ await run("command").lines.forEach(() => {});
 Capture output while also printing it:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const lines: string[] = [];
-await run("command").lines.forEach(line => {
+await run("command").lines.forEach((line) => {
   console.log(line);
   lines.push(line);
 });
@@ -205,6 +231,7 @@ await run("command").lines.forEach(line => {
 ### Conditional Execution
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 if (needsProcessing) {
   await run("process-data").toStdout();
@@ -216,6 +243,7 @@ if (needsProcessing) {
 By default, non-zero exit codes throw `ExitCodeError`:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 try {
   await run("false").lines.collect();
@@ -233,6 +261,7 @@ See [Error Handling](./error-handling.md) for complete details.
 Process data as it arrives rather than loading everything into memory:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Loads everything into memory
 const lines = await run("cat", "huge-file.txt").lines.collect();
@@ -251,6 +280,7 @@ for await (const line of run("cat", "huge-file.txt").lines) {
 Chain processes instead of collecting intermediate results:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Collects intermediate results
 const lines1 = await run("cat", "file.txt").lines.collect();
@@ -268,6 +298,7 @@ await run("cat", "file.txt")
 Stop processing once you have what you need:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Stops after finding 10 matches
 const first10 = await run("grep", "ERROR", "huge.log")
@@ -281,20 +312,24 @@ const first10 = await run("grep", "ERROR", "huge.log")
 Reduce the amount of data flowing through expensive operations:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ✅ Filter first (fast), then transform (expensive)
 const result = await run("cat", "data.txt")
   .lines
-  .filter(line => line.length > 0)  // Fast filter
-  .map(expensiveTransform)          // Only runs on filtered data
+  .filter((line) => line.length > 0) // Fast filter
+  .map(expensiveTransform) // Only runs on filtered data
   .collect();
 ```
 
-For more performance optimization strategies, see [Concurrent Processing](../advanced/concurrent.md) and [Streaming Large Files](../advanced/streaming.md).
+For more performance optimization strategies, see
+[Concurrent Processing](../advanced/concurrent.md) and
+[Streaming Large Files](../advanced/streaming.md).
 
 ## See Also
 
 - [Working with Output](./output.md) — Transform and process command output
 - [Process Pipelines](./pipelines.md) — Chain multiple commands together
 - [Error Handling](./error-handling.md) — Handle failures gracefully
-- [Shell Script Replacement](../recipes/shell-replacement.md) — Replace bash scripts with proc
+- [Shell Script Replacement](../recipes/shell-replacement.md) — Replace bash
+  scripts with proc

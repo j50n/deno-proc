@@ -1,6 +1,7 @@
 # Build Automation
 
-Manual builds get old fast. A good build script catches errors early, runs tests automatically, and produces consistent output.
+Manual builds get old fast. A good build script catches errors early, runs tests
+automatically, and produces consistent output.
 
 ## A Complete Build Script
 
@@ -43,10 +44,12 @@ odin build odin/ \
 ```
 
 Key flags:
+
 - `--import-memory` — JavaScript creates memory, passes to WASM
 - `--strip-all` — Remove debug symbols (~50% size reduction)
 
 Optimization options:
+
 - `-o:none` — Fast compile, no optimization
 - `-o:size` — Optimize for small output
 - `-o:speed` — Optimize for performance
@@ -101,4 +104,5 @@ case "$1" in
 esac
 ```
 
-Good build automation is invisible when it works and invaluable when something breaks.
+Good build automation is invisible when it works and invaluable when something
+breaks.

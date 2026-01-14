@@ -1,6 +1,7 @@
 # Real-World Applications
 
-This is where WASM earns its keep. Heavy computation that would choke JavaScript runs smoothly in WASM.
+This is where WASM earns its keep. Heavy computation that would choke JavaScript
+runs smoothly in WASM.
 
 ## Computational Workloads
 
@@ -36,16 +37,20 @@ mandelbrot_escape :: proc(cx, cy: f64, max_iter: int) -> int {
 ```
 
 ```typescript
-function renderMandelbrot(demo: Demo, width: number, height: number): Uint8Array {
+function renderMandelbrot(
+  demo: Demo,
+  width: number,
+  height: number,
+): Uint8Array {
   const rowPtr = demo.allocate(width);
   const pixels = new Uint8Array(width * height);
-  
+
   for (let py = 0; py < height; py++) {
     const yVal = -2 + py * 4 / height;
     demo.mandelbrotRow(py, width, -2, 2, yVal, 256, rowPtr);
     pixels.set(new Uint8Array(demo.memory.buffer, rowPtr, width), py * width);
   }
-  
+
   demo.deallocate(rowPtr, width);
   return pixels;
 }
@@ -103,9 +108,9 @@ function processArray(demo: Demo, values: number[]): Float64Array {
   const data = new Float64Array(values);
   const ptr = demo.allocate(data.byteLength);
   new Float64Array(demo.memory.buffer, ptr, data.length).set(data);
-  
+
   demo.processInPlace(ptr, data.length);
-  
+
   const result = new Float64Array(demo.memory.buffer, ptr, data.length).slice();
   demo.deallocate(ptr, data.byteLength);
   return result;
@@ -126,13 +131,20 @@ Point :: struct {
 ```typescript
 const POINT_SIZE = 16;
 
-function writePoint(memory: WebAssembly.Memory, ptr: number, p: {x: number, y: number}) {
+function writePoint(
+  memory: WebAssembly.Memory,
+  ptr: number,
+  p: { x: number; y: number },
+) {
   const view = new DataView(memory.buffer);
   view.setFloat64(ptr, p.x, true);
   view.setFloat64(ptr + 8, p.y, true);
 }
 
-function readPoint(memory: WebAssembly.Memory, ptr: number): {x: number, y: number} {
+function readPoint(
+  memory: WebAssembly.Memory,
+  ptr: number,
+): { x: number; y: number } {
   const view = new DataView(memory.buffer);
   return { x: view.getFloat64(ptr, true), y: view.getFloat64(ptr + 8, true) };
 }
@@ -158,14 +170,14 @@ closest_point :: proc "c" (points: [^]Point, count: int, target: ^Point) -> int 
 function closestPoint(demo: Demo, points: Point[], target: Point): number {
   const arrayPtr = demo.allocate(points.length * POINT_SIZE);
   const targetPtr = demo.allocate(POINT_SIZE);
-  
+
   for (let i = 0; i < points.length; i++) {
     writePoint(demo.memory, arrayPtr + i * POINT_SIZE, points[i]);
   }
   writePoint(demo.memory, targetPtr, target);
-  
+
   const result = demo.closestPoint(arrayPtr, points.length, targetPtr);
-  
+
   demo.deallocate(arrayPtr, points.length * POINT_SIZE);
   demo.deallocate(targetPtr, POINT_SIZE);
   return result;
@@ -175,11 +187,13 @@ function closestPoint(demo: Demo, points: Point[], target: Point): number {
 ## When WASM Wins
 
 WASM excels at:
+
 - Tight loops with numeric computation
 - Large array operations
 - Predictable memory access patterns
 
 WASM doesn't help with:
+
 - I/O-bound operations
 - Small, infrequent calculations
 - Operations dominated by boundary crossing

@@ -1,12 +1,14 @@
 # Concurrent Processing
 
-Process multiple items in parallel with controlled concurrency. It's easier than you think.
+Process multiple items in parallel with controlled concurrency. It's easier than
+you think.
 
 ## The Problem
 
 You have a list of URLs to fetch. Sequential is slow:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Takes 10 seconds for 10 URLs (1 second each)
 for (const url of urls) {
@@ -17,9 +19,10 @@ for (const url of urls) {
 Promise.all is fast but dangerous:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Starts 1000 requests at once - might crash
-await Promise.all(urls.map(url => fetch(url)));
+await Promise.all(urls.map((url) => fetch(url)));
 ```
 
 ## The Solution
@@ -27,6 +30,7 @@ await Promise.all(urls.map(url => fetch(url)));
 proc gives you controlled concurrency:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -49,26 +53,34 @@ Fast, but won't overwhelm your system.
 
 ## Understanding JavaScript Concurrency
 
-**Important:** JavaScript concurrency is not parallelism. You're running on a single thread.
+**Important:** JavaScript concurrency is not parallelism. You're running on a
+single thread.
 
 ### What This Means
 
-When you use `concurrentMap` or `concurrentUnorderedMap`, you're not creating threads or workers. You're managing multiple **async operations** on one thread. The JavaScript event loop switches between them when they're waiting.
+When you use `concurrentMap` or `concurrentUnorderedMap`, you're not creating
+threads or workers. You're managing multiple **async operations** on one thread.
+The JavaScript event loop switches between them when they're waiting.
 
 **This works great for:**
+
 - **Network requests** - While waiting for a response, other operations run
 - **File I/O** - While waiting for disk reads/writes, other operations run
 - **Process execution** - While a child process runs, other operations continue
 - **Database queries** - While waiting for results, other operations run
 
 **This does NOT work for:**
-- **CPU-intensive calculations** - Pure JavaScript math, parsing, etc. blocks everything
+
+- **CPU-intensive calculations** - Pure JavaScript math, parsing, etc. blocks
+  everything
 - **Synchronous operations** - Anything that doesn't `await` blocks the thread
-- **Heavy computation** - You still only have one CPU core's worth of processing power
+- **Heavy computation** - You still only have one CPU core's worth of processing
+  power
 
 ### Example: What Works
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ✅ Good: I/O-bound operations run concurrently
 const results = await enumerate(urls)
@@ -84,6 +96,7 @@ const results = await enumerate(urls)
 ### Example: What Doesn't Work
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Bad: CPU-bound operations don't benefit
 const results = await enumerate(numbers)
@@ -103,45 +116,58 @@ const results = await enumerate(numbers)
 
 Even though it's not true parallelism, concurrency is incredibly useful:
 
-1. **I/O operations dominate** - Most real-world tasks are waiting for network/disk
-2. **Child processes run in parallel** - When you `run()` a command, it uses a separate process
+1. **I/O operations dominate** - Most real-world tasks are waiting for
+   network/disk
+2. **Child processes run in parallel** - When you `run()` a command, it uses a
+   separate process
 3. **Better resource utilization** - Keep the CPU busy while waiting for I/O
-4. **Simpler than threads** - No race conditions, no locks, no shared memory issues
+4. **Simpler than threads** - No race conditions, no locks, no shared memory
+   issues
 
 ### When You Need True Parallelism
 
 If you need to parallelize CPU-intensive JavaScript code, use:
+
 - **Web Workers** (in browsers)
 - **Worker Threads** (in Node.js/Deno)
 - **Child processes** with `run()` - each process gets its own CPU
 
-But for most tasks (fetching URLs, processing files, running commands), JavaScript's concurrency model is perfect.
+But for most tasks (fetching URLs, processing files, running commands),
+JavaScript's concurrency model is perfect.
 
 ## When to Use Concurrent Processing
 
 **Use `concurrentUnorderedMap()` (recommended default) when:**
+
 - Order doesn't matter - you want maximum speed
 - Processing independent tasks where results can arrive in any order
 - You'll sort or aggregate results anyway
-- **This is usually what you want** - it keeps all workers busy and delivers results as they complete
+- **This is usually what you want** - it keeps all workers busy and delivers
+  results as they complete
 - Example: Downloading files, processing logs, fetching data you'll aggregate
 
 **Use `concurrentMap()` when:**
+
 - You **must** have results in the same order as input
 - Be aware: can bottleneck on the slowest item in each batch
 - If work isn't balanced, faster items wait for slower ones
 - Example: Fetching user profiles where display order must match input order
 
 **Use sequential processing when:**
+
 - Tasks depend on each other
 - You must respect strict rate limits
 - Order is critical and tasks are fast
 - Example: Database transactions that must happen in sequence
 
 **Choose concurrency level based on:**
-- **I/O-bound tasks** (network, disk): Start with 5-10, increase if you have bandwidth (see "Understanding JavaScript Concurrency" above)
-- **CPU-bound tasks**: Won't benefit from concurrency - use Worker Threads or child processes instead
-- **Rate-limited APIs**: Match the rate limit (e.g., 10 requests/second = concurrency 1 with 100ms delays)
+
+- **I/O-bound tasks** (network, disk): Start with 5-10, increase if you have
+  bandwidth (see "Understanding JavaScript Concurrency" above)
+- **CPU-bound tasks**: Won't benefit from concurrency - use Worker Threads or
+  child processes instead
+- **Rate-limited APIs**: Match the rate limit (e.g., 10 requests/second =
+  concurrency 1 with 100ms delays)
 - **Memory constraints**: Lower concurrency if processing large data per task
 
 ## concurrentUnorderedMap() - Recommended
@@ -149,6 +175,7 @@ But for most tasks (fetching URLs, processing files, running commands), JavaScri
 Process items concurrently, return results as they complete (fastest):
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Defaults to CPU count
 const results = await enumerate([1, 2, 3, 4, 5])
@@ -160,17 +187,21 @@ const results = await enumerate([1, 2, 3, 4, 5])
 // [6, 2, 10, 4, 8] - order varies, but all workers stay busy
 ```
 
-**Why it's faster:** Results are delivered as soon as they're ready. If item 3 finishes before item 1, you get item 3 immediately. No waiting for slower items.
+**Why it's faster:** Results are delivered as soon as they're ready. If item 3
+finishes before item 1, you get item 3 immediately. No waiting for slower items.
 
-**Use when:** You don't care about order (most cases). Better performance under real-world conditions where work isn't perfectly balanced.
+**Use when:** You don't care about order (most cases). Better performance under
+real-world conditions where work isn't perfectly balanced.
 
-**Concurrency:** Defaults to `navigator.hardwareConcurrency` (CPU count). Override with `{ concurrency: n }` if needed.
+**Concurrency:** Defaults to `navigator.hardwareConcurrency` (CPU count).
+Override with `{ concurrency: n }` if needed.
 
 ## concurrentMap() - Order Preserved
 
 Process items concurrently, return results in input order:
 
 <!-- TESTED: tests/mdbook_examples.test.ts - "concurrent: concurrentMap" -->
+
 ```typescript
 const results = await enumerate([1, 2, 3, 4, 5])
   .concurrentMap(async (n) => {
@@ -181,17 +212,22 @@ const results = await enumerate([1, 2, 3, 4, 5])
 // [2, 4, 6, 8, 10] - always in order
 ```
 
-**Performance caveat:** If item 1 takes 5 seconds and item 2 takes 1 second, item 2 waits for item 1 before being returned. This can create bottlenecks where fast items wait for slow ones.
+**Performance caveat:** If item 1 takes 5 seconds and item 2 takes 1 second,
+item 2 waits for item 1 before being returned. This can create bottlenecks where
+fast items wait for slow ones.
 
-**Use when:** You specifically need results in the same order as input. Only use if order truly matters for your use case.
+**Use when:** You specifically need results in the same order as input. Only use
+if order truly matters for your use case.
 
-**Concurrency:** Defaults to CPU count. Override with `{ concurrency: n }` if needed.
+**Concurrency:** Defaults to CPU count. Override with `{ concurrency: n }` if
+needed.
 
 ## Real-World Examples
 
 ### Fetch Multiple URLs
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const urls = [
   "https://api.example.com/1",
@@ -220,6 +256,7 @@ const data = await enumerate(urls)
 ### Process Files in Parallel
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -229,7 +266,7 @@ const results = await enumerate(files)
   .concurrentMap(async (file) => {
     const errors = await read(file)
       .lines
-      .filter(line => line.includes("ERROR"))
+      .filter((line) => line.includes("ERROR"))
       .count();
     return { file, errors };
   })
@@ -239,6 +276,7 @@ const results = await enumerate(files)
 ### Download and Process
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const downloads = await enumerate(imageUrls)
   .concurrentUnorderedMap(async (url) => {
@@ -251,24 +289,29 @@ const downloads = await enumerate(imageUrls)
 
 ## Choosing Concurrency
 
-**Default behavior:** Both methods default to `navigator.hardwareConcurrency` (CPU count, typically 4-8). This is usually a good starting point.
+**Default behavior:** Both methods default to `navigator.hardwareConcurrency`
+(CPU count, typically 4-8). This is usually a good starting point.
 
 **When to override:**
 
 **For I/O-bound tasks** (network, disk):
+
 - Default is often fine
 - Increase to 10-20 if you have bandwidth and no rate limits
 - Decrease to 1-5 for rate-limited APIs
 
 **For CPU-bound tasks**:
+
 - Default (CPU count) is optimal
 - Don't increase - you'll just add overhead
 
 **For rate-limited APIs**:
+
 - Set to match the rate limit
 - Add delays if needed
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Respect rate limits with low concurrency
 const results = await enumerate(apiCalls)
@@ -285,6 +328,7 @@ const results = await enumerate(apiCalls)
 Errors propagate naturally:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 try {
   const results = await enumerate(urls)
@@ -307,6 +351,7 @@ try {
 Track progress as items complete:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 let completed = 0;
 const total = urls.length;
@@ -326,18 +371,20 @@ const results = await enumerate(urls)
 Chain concurrent operations with other methods:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const results = await enumerate(urls)
   .concurrentMap(fetch, { concurrency: 5 })
-  .filter(response => response.ok)
-  .concurrentMap(response => response.json(), { concurrency: 5 })
-  .filter(data => data.active)
+  .filter((response) => response.ok)
+  .concurrentMap((response) => response.json(), { concurrency: 5 })
+  .filter((data) => data.active)
   .collect();
 ```
 
 ## Performance Comparison
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // Sequential: 10 seconds (one at a time)
 for (const url of urls) {
@@ -357,7 +404,10 @@ await enumerate(urls)
   .collect();
 ```
 
-**Why unordered is faster:** Imagine 5 tasks with times [1s, 1s, 1s, 1s, 5s]. With `concurrentMap`, the 5-second task blocks its batch. With `concurrentUnorderedMap`, the four 1-second tasks complete and return immediately while the 5-second task finishes in the background.
+**Why unordered is faster:** Imagine 5 tasks with times [1s, 1s, 1s, 1s, 5s].
+With `concurrentMap`, the 5-second task blocks its batch. With
+`concurrentUnorderedMap`, the four 1-second tasks complete and return
+immediately while the 5-second task finishes in the background.
 
 ## Advanced Patterns
 
@@ -366,6 +416,7 @@ await enumerate(urls)
 Process in batches:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const batchSize = 10;
 for (let i = 0; i < items.length; i += batchSize) {
@@ -380,6 +431,7 @@ for (let i = 0; i < items.length; i += batchSize) {
 ### Retry Failed Items
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 const results = await enumerate(urls)
   .concurrentMap(async (url) => {
@@ -402,18 +454,19 @@ const results = await enumerate(urls)
 Adjust concurrency based on results:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 let concurrency = 5;
 
 for (const batch of batches) {
   const start = Date.now();
-  
+
   const results = await enumerate(batch)
     .concurrentMap(process, { concurrency })
     .collect();
-  
+
   const duration = Date.now() - start;
-  
+
   // Adjust based on performance
   if (duration < 1000) concurrency = Math.min(concurrency + 1, 20);
   if (duration > 5000) concurrency = Math.max(concurrency - 1, 1);
@@ -422,18 +475,21 @@ for (const batch of batches) {
 
 ## Best Practices
 
-1. **Prefer unordered** - Use `concurrentUnorderedMap` unless you specifically need order
+1. **Prefer unordered** - Use `concurrentUnorderedMap` unless you specifically
+   need order
 2. **Start conservative** - Begin with low concurrency, increase if needed
 3. **Monitor resources** - Watch memory and network usage
 4. **Respect rate limits** - Don't overwhelm external services
 5. **Handle errors** - One error stops everything, handle gracefully
-6. **Understand the bottleneck** - `concurrentMap` can wait on slow items; unordered doesn't
+6. **Understand the bottleneck** - `concurrentMap` can wait on slow items;
+   unordered doesn't
 
 ## Common Mistakes
 
 ### Too Much Concurrency
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Might crash with 10,000 concurrent requests
 await enumerate(hugeList)
@@ -449,6 +505,7 @@ await enumerate(hugeList)
 ### Forgetting to Await
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 // ❌ Returns promises, not results
 const promises = enumerate(urls)
