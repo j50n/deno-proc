@@ -10,13 +10,13 @@ Lessons learned from optimizing the flatdata WASM conversions.
 while (true) {
   const { done, value } = await reader.read();
   if (done) break;
-  
+
   // Copy to WASM input buffer
   new Uint8Array(memory.buffer, inputPtr, value.length).set(value);
-  
+
   // Single WASM call
   const outLen = exports.process(value.length);
-  
+
   // Write output
   if (outLen > 0) {
     await write(new Uint8Array(memory.buffer, outputPtr, outLen).slice());
@@ -61,7 +61,7 @@ Let WASM handle format-specific parsing.
 // BAD: Two WASM calls + buffer copy
 const recordLen = exports.decode(inputLen);
 new Uint8Array(memory.buffer, inputPtr, recordLen).set(
-  new Uint8Array(memory.buffer, outputPtr, recordLen)
+  new Uint8Array(memory.buffer, outputPtr, recordLen),
 );
 const outLen = exports.stringify(recordLen);
 ```
@@ -85,7 +85,9 @@ Only buffer the minimum needed for partial data handling.
 ### 1. Direct format conversion in WASM
 
 Create WASM functions that convert directly between formats:
-- `lazyrow_decode_delimited(id, len, field_sep, record_sep)` - decode AND output with target separators
+
+- `lazyrow_decode_delimited(id, len, field_sep, record_sep)` - decode AND output
+  with target separators
 
 ### 2. Track consumed bytes in WASM
 
@@ -125,13 +127,13 @@ lazyrow_encode_from_output :: proc(id: i32, input_len: i32) -> i32 {
 
 After applying these lessons:
 
-| Conversion | Before | After | Speedup |
-|------------|--------|-------|---------|
-| lazyrow2csv | 8 MB/s | 202 MB/s | 25x |
-| lazyrow2tsv | 8 MB/s | 198 MB/s | 25x |
-| lazyrow2record | 8 MB/s | 231 MB/s | 29x |
-| record2csv | 78 MB/s | 149 MB/s | 1.9x |
-| record2tsv | 68 MB/s | 133 MB/s | 2x |
+| Conversion     | Before  | After    | Speedup |
+| -------------- | ------- | -------- | ------- |
+| lazyrow2csv    | 8 MB/s  | 202 MB/s | 25x     |
+| lazyrow2tsv    | 8 MB/s  | 198 MB/s | 25x     |
+| lazyrow2record | 8 MB/s  | 231 MB/s | 29x     |
+| record2csv     | 78 MB/s | 149 MB/s | 1.9x    |
+| record2tsv     | 68 MB/s | 133 MB/s | 2x      |
 
 ## Summary
 

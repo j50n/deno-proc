@@ -1022,3 +1022,370 @@ lazyrow_get_consumed :: proc "c" (id: i32) -> i32 {
     
     return i32(d.consumed)
 }
+
+/*
+Direct CSV-to-LazyRow Parser
+============================
+Parses CSV and outputs binary lazyrow format directly in one pass.
+Uses fixed-size buffers to avoid dynamic allocations during parsing.
+*/
+
+MAX_FIELDS :: 1024  // Max fields per row
+MAX_ROW_DATA :: 262144  // Max data bytes per row (256KB)
+
+LazyRowDirectParser :: struct {
+    state: csv.CsvState,
+    row: u32,
+    opts: csv.CsvOptions,
+    error: csv.CsvError,
+    row_started: bool,
+    input_record_sep: u8,
+    // Current row being built (fixed-size buffers)
+    field_data: [MAX_ROW_DATA]u8,
+    field_lengths: [MAX_FIELDS]u32,
+    data_len: int,
+    field_count: int,
+    current_field_start: int,
+    // Carry buffer for incomplete rows
+    carry: [dynamic]u8,
+}
+
+lazyrow_direct_parsers: map[i32]^LazyRowDirectParser
+
+// Create a direct CSV-to-lazyrow parser. Returns parser ID.
+@(export)
+create_lazyrow_direct_parser :: proc "c" (separator: i32, input_record_sep: i32) -> i32 {
+    context = runtime.default_context()
+    
+    p := new(LazyRowDirectParser)
+    p.opts = csv.CsvOptions{
+        separator = u8(separator) if separator > 0 else ',',
+    }
+    p.state = .FieldStart
+    p.input_record_sep = u8(input_record_sep) if input_record_sep > 0 else '\n'
+    p.carry = make([dynamic]u8)
+    
+    id := next_id
+    next_id += 1
+    lazyrow_direct_parsers[id] = p
+    return id
+}
+
+// Destroy a direct lazyrow parser
+@(export)
+destroy_lazyrow_direct_parser :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if p, ok := lazyrow_direct_parsers[id]; ok {
+        delete(p.carry)
+        free(p)
+        delete_key(&lazyrow_direct_parsers, id)
+    }
+}
+
+// Reset row state for next row
+@(private)
+lazyrow_direct_reset_row :: proc(p: ^LazyRowDirectParser) {
+    p.data_len = 0
+    p.field_count = 0
+    p.current_field_start = 0
+    p.row_started = false
+    p.row += 1
+}
+
+// Emit current row to output buffer. Returns bytes written, or 0 if buffer full.
+@(private)
+lazyrow_direct_emit :: proc(p: ^LazyRowDirectParser, out: [^]u8, out_len: ^int, out_cap: int) -> bool {
+    // Finalize current field
+    if p.field_count < MAX_FIELDS {
+        p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
+        p.field_count += 1
+    }
+    
+    field_count := u32(p.field_count)
+    header_size := 4 + int(field_count) * 4
+    row_length := u32(header_size + p.data_len)
+    
+    // Check space
+    if out_len^ + int(row_length) + 4 > out_cap do return false
+    
+    // Write row_length
+    out[out_len^] = u8(row_length); out_len^ += 1
+    out[out_len^] = u8(row_length >> 8); out_len^ += 1
+    out[out_len^] = u8(row_length >> 16); out_len^ += 1
+    out[out_len^] = u8(row_length >> 24); out_len^ += 1
+    
+    // Write field_count
+    out[out_len^] = u8(field_count); out_len^ += 1
+    out[out_len^] = u8(field_count >> 8); out_len^ += 1
+    out[out_len^] = u8(field_count >> 16); out_len^ += 1
+    out[out_len^] = u8(field_count >> 24); out_len^ += 1
+    
+    // Write field lengths
+    for i := 0; i < p.field_count; i += 1 {
+        flen := p.field_lengths[i]
+        out[out_len^] = u8(flen); out_len^ += 1
+        out[out_len^] = u8(flen >> 8); out_len^ += 1
+        out[out_len^] = u8(flen >> 16); out_len^ += 1
+        out[out_len^] = u8(flen >> 24); out_len^ += 1
+    }
+    
+    // Write field data
+    for i := 0; i < p.data_len; i += 1 {
+        out[out_len^] = p.field_data[i]; out_len^ += 1
+    }
+    
+    lazyrow_direct_reset_row(p)
+    return true
+}
+
+// Parse CSV from input buffer, output lazyrow binary to output buffer.
+// Returns: number of bytes written to output buffer.
+@(export)
+parse_to_lazyrow :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    p, ok := lazyrow_direct_parsers[id]
+    if !ok do return 0
+    if p.error.kind != .None do return 0
+    
+    input := slice.from_ptr(cast(^u8)input_buffer, int(input_len))
+    out := ([^]u8)(output_buffer)
+    out_len := 0
+    out_cap := output_capacity
+    
+    sep := p.opts.separator
+    rec_sep := p.input_record_sep
+    
+    for i := 0; i < len(input); i += 1 {
+        c := input[i]
+        
+        switch p.state {
+        case .FieldStart:
+            if c == '"' {
+                p.row_started = true
+                p.state = .Quoted
+            } else if c == sep {
+                // End current field, start new one
+                if p.field_count < MAX_FIELDS {
+                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
+                    p.field_count += 1
+                }
+                p.current_field_start = p.data_len
+                p.row_started = true
+            } else if c == '\r' {
+                if p.row_started && p.field_count < MAX_FIELDS {
+                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
+                    p.field_count += 1
+                }
+                p.state = .RecordEnd
+            } else if c == rec_sep {
+                if p.row_started {
+                    if !lazyrow_direct_emit(p, out, &out_len, out_cap) {
+                        append(&p.carry, ..input[i+1:])
+                        return i32(out_len)
+                    }
+                }
+                p.state = .FieldStart
+            } else {
+                if p.data_len < MAX_ROW_DATA {
+                    p.field_data[p.data_len] = c
+                    p.data_len += 1
+                }
+                p.row_started = true
+                p.state = .Unquoted
+            }
+            
+        case .Unquoted:
+            if c == sep {
+                if p.field_count < MAX_FIELDS {
+                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
+                    p.field_count += 1
+                }
+                p.current_field_start = p.data_len
+                p.state = .FieldStart
+            } else if c == '\r' {
+                if p.field_count < MAX_FIELDS {
+                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
+                    p.field_count += 1
+                }
+                p.state = .RecordEnd
+            } else if c == rec_sep {
+                if !lazyrow_direct_emit(p, out, &out_len, out_cap) {
+                    append(&p.carry, ..input[i+1:])
+                    return i32(out_len)
+                }
+                p.state = .FieldStart
+            } else {
+                if p.data_len < MAX_ROW_DATA {
+                    p.field_data[p.data_len] = c
+                    p.data_len += 1
+                }
+            }
+            
+        case .Quoted:
+            if c == '"' {
+                p.state = .QuoteInQuoted
+            } else {
+                if p.data_len < MAX_ROW_DATA {
+                    p.field_data[p.data_len] = c
+                    p.data_len += 1
+                }
+            }
+            
+        case .QuoteInQuoted:
+            if c == '"' {
+                if p.data_len < MAX_ROW_DATA {
+                    p.field_data[p.data_len] = '"'
+                    p.data_len += 1
+                }
+                p.state = .Quoted
+            } else if c == sep {
+                if p.field_count < MAX_FIELDS {
+                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
+                    p.field_count += 1
+                }
+                p.current_field_start = p.data_len
+                p.state = .FieldStart
+            } else if c == '\r' {
+                if p.field_count < MAX_FIELDS {
+                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
+                    p.field_count += 1
+                }
+                p.state = .RecordEnd
+            } else if c == rec_sep {
+                if !lazyrow_direct_emit(p, out, &out_len, out_cap) {
+                    append(&p.carry, ..input[i+1:])
+                    return i32(out_len)
+                }
+                p.state = .FieldStart
+            } else {
+                p.error = csv.CsvError{.InvalidCharAfterQuote, p.row, 0}
+                return 0
+            }
+            
+        case .RecordEnd:
+            if c == rec_sep {
+                if !lazyrow_direct_emit(p, out, &out_len, out_cap) {
+                    append(&p.carry, ..input[i+1:])
+                    return i32(out_len)
+                }
+                p.state = .FieldStart
+            } else {
+                if !lazyrow_direct_emit(p, out, &out_len, out_cap) {
+                    append(&p.carry, ..input[i:])
+                    return i32(out_len)
+                }
+                p.state = .FieldStart
+                i -= 1
+            }
+        }
+    }
+    
+    return i32(out_len)
+}
+
+// Finalize parsing - flush any remaining row.
+@(export)
+finish_lazyrow_direct :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    p, ok := lazyrow_direct_parsers[id]
+    if !ok do return 0
+    
+    out := ([^]u8)(output_buffer)
+    out_len := 0
+    out_cap := output_capacity
+    
+    if p.row_started || p.data_len > 0 || p.field_count > 0 {
+        lazyrow_direct_emit(p, out, &out_len, out_cap)
+    }
+    
+    return i32(out_len)
+}
+
+// Encode record format directly to lazyrow binary (no dynamic allocations).
+// Input: record format in input buffer (\x1F/\x1E delimited)
+// Output: lazyrow binary in output buffer
+// Returns: number of bytes written to output buffer
+@(export)
+record_to_lazyrow :: proc "c" (input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    input := slice.from_ptr(cast(^u8)input_buffer, int(input_len))
+    out := ([^]u8)(output_buffer)
+    out_len := 0
+    out_cap := output_capacity
+    
+    // Fixed-size buffers for current row
+    field_offsets: [MAX_FIELDS]int  // Start offset of each field in input
+    field_lengths: [MAX_FIELDS]int  // Length of each field
+    field_count := 0
+    field_start := 0
+    
+    for i := 0; i < len(input); i += 1 {
+        c := input[i]
+        
+        if c == csv.FIELD_SEP {
+            if field_count < MAX_FIELDS {
+                field_offsets[field_count] = field_start
+                field_lengths[field_count] = i - field_start
+                field_count += 1
+            }
+            field_start = i + 1
+        } else if c == csv.RECORD_SEP {
+            // Add final field
+            if field_count < MAX_FIELDS {
+                field_offsets[field_count] = field_start
+                field_lengths[field_count] = i - field_start
+                field_count += 1
+            }
+            
+            // Calculate row size
+            data_size := 0
+            for j := 0; j < field_count; j += 1 {
+                data_size += field_lengths[j]
+            }
+            header_size := 4 + field_count * 4
+            row_length := u32(header_size + data_size)
+            
+            // Check space
+            if out_len + int(row_length) + 4 > out_cap do break
+            
+            // Write row_length
+            out[out_len] = u8(row_length); out_len += 1
+            out[out_len] = u8(row_length >> 8); out_len += 1
+            out[out_len] = u8(row_length >> 16); out_len += 1
+            out[out_len] = u8(row_length >> 24); out_len += 1
+            
+            // Write field_count
+            fc := u32(field_count)
+            out[out_len] = u8(fc); out_len += 1
+            out[out_len] = u8(fc >> 8); out_len += 1
+            out[out_len] = u8(fc >> 16); out_len += 1
+            out[out_len] = u8(fc >> 24); out_len += 1
+            
+            // Write field lengths
+            for j := 0; j < field_count; j += 1 {
+                flen := u32(field_lengths[j])
+                out[out_len] = u8(flen); out_len += 1
+                out[out_len] = u8(flen >> 8); out_len += 1
+                out[out_len] = u8(flen >> 16); out_len += 1
+                out[out_len] = u8(flen >> 24); out_len += 1
+            }
+            
+            // Write field data
+            for j := 0; j < field_count; j += 1 {
+                for k := 0; k < field_lengths[j]; k += 1 {
+                    out[out_len] = input[field_offsets[j] + k]
+                    out_len += 1
+                }
+            }
+            
+            // Reset for next row
+            field_count = 0
+            field_start = i + 1
+        }
+    }
+    
+    return i32(out_len)
+}

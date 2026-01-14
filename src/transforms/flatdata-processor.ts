@@ -144,6 +144,21 @@ interface WasmExports {
   
   /** Get how many input bytes were consumed by last decode */
   lazyrow_get_consumed: (id: number) => number;
+  
+  /** Create a direct CSV-to-lazyrow parser */
+  create_lazyrow_direct_parser: (separator: number, inputRecordSep: number) => number;
+  
+  /** Destroy a direct lazyrow parser */
+  destroy_lazyrow_direct_parser: (id: number) => void;
+  
+  /** Parse CSV directly to lazyrow binary format */
+  parse_to_lazyrow: (id: number, len: number) => number;
+  
+  /** Finish parsing and flush remaining lazyrow data */
+  finish_lazyrow_direct: (id: number) => number;
+  
+  /** Encode record format directly to lazyrow binary */
+  record_to_lazyrow: (len: number) => number;
 }
 
 /**
@@ -584,7 +599,7 @@ export class FlatdataProcessor {
    * - Larger file size (~20-30% overhead for metadata)
    * - Binary format (not human-readable)
    * 
-   * **Performance**: ~80-120 MB/s (slightly slower due to format conversion)
+   * **Performance**: ~100-150 MB/s (single WASM call per chunk)
    * 
    * @param input - Readable stream of CSV/TSV bytes
    * @param write - Writer function for output chunks
@@ -606,10 +621,7 @@ export class FlatdataProcessor {
     write: Writer,
     separator: number,
   ): Promise<void> {
-    // CSV input: separator for fields, \n for records
-    // Output: \x1F for fields, \x1E for records
-    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E, 0x0A);
-    const encoderId = this.exports.create_lazyrow_encoder();
+    const parserId = this.exports.create_lazyrow_direct_parser(separator, 0x0A);
     const reader = input.getReader();
 
     try {
@@ -621,28 +633,19 @@ export class FlatdataProcessor {
           const slice = value.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length));
           new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
 
-          const outLen = this.exports.parse_direct(parserId, slice.length);
+          const outLen = this.exports.parse_to_lazyrow(parserId, slice.length);
           if (outLen > 0) {
-            // Encode directly from output buffer (no copy needed)
-            const lazyrowLen = this.exports.lazyrow_encode_from_output(encoderId, outLen);
-            if (lazyrowLen > 0) {
-              await write(new Uint8Array(this.memory.buffer, this.inputPtr, lazyrowLen).slice());
-            }
+            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
           }
         }
       }
 
-      const finalLen = this.exports.finish_direct(parserId);
+      const finalLen = this.exports.finish_lazyrow_direct(parserId);
       if (finalLen > 0) {
-        // Encode directly from output buffer (no copy needed)
-        const lazyrowLen = this.exports.lazyrow_encode_from_output(encoderId, finalLen);
-        if (lazyrowLen > 0) {
-          await write(new Uint8Array(this.memory.buffer, this.inputPtr, lazyrowLen).slice());
-        }
+        await write(new Uint8Array(this.memory.buffer, this.outputPtr, finalLen).slice());
       }
     } finally {
-      this.exports.destroy_direct_parser(parserId);
-      this.exports.destroy_lazyrow_encoder(encoderId);
+      this.exports.destroy_lazyrow_direct_parser(parserId);
     }
   }
 
@@ -801,7 +804,6 @@ export class FlatdataProcessor {
     input: ReadableStream<Uint8Array>,
     write: Writer,
   ): Promise<void> {
-    const encoderId = this.exports.create_lazyrow_encoder();
     const reader = input.getReader();
 
     try {
@@ -813,14 +815,13 @@ export class FlatdataProcessor {
           const slice = value.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length));
           new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
 
-          const outLen = this.exports.lazyrow_encode(encoderId, slice.length);
+          const outLen = this.exports.record_to_lazyrow(slice.length);
           if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen));
+            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
           }
         }
       }
     } finally {
-      this.exports.destroy_lazyrow_encoder(encoderId);
       reader.releaseLock();
     }
   }
