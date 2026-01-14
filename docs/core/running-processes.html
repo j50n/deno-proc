@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
 <p>The most basic usage requires just importing <code>run</code> and calling it with your command:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: capture output" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
 
 // Run a command
 await run("ls", "-la").lines.collect();
@@ -233,7 +233,7 @@ const last = await run("ls").lines.last;
 <h2 id="building-commands-dynamically"><a class="header" href="#building-commands-dynamically">Building Commands Dynamically</a></h2>
 <p>Sometimes you need to build a command from variables:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.24.2";
 
 const cmd: Cmd = ["ls"];
 

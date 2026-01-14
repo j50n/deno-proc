@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -215,8 +215,8 @@ Bob\x1F25\x1FLondon\x1E
 </code></pre>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-record-format"><a class="header" href="#parsing-record-format">Parsing Record Format</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.1";
-import { fromRecordToRows } from "jsr:@j50n/proc@0.24.1/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+import { fromRecordToRows } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // Parse Record format into string arrays
 const rows = await read("data.record")
@@ -227,7 +227,7 @@ const rows = await read("data.record")
 // rows[1] = ["Bob", "25", "London"]
 </code></pre>
 <h3 id="parsing-record-to-lazyrow"><a class="header" href="#parsing-record-to-lazyrow">Parsing Record to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@0.24.1/transforms";
+<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // Parse Record format into optimized LazyRow format
 const lazyRows = await read("data.record")
@@ -244,7 +244,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="generating-record-format"><a class="header" href="#generating-record-format">Generating Record Format</a></h3>
-<pre><code class="language-typescript">import { toRecord } from "jsr:@j50n/proc@0.24.1/transforms";
+<pre><code class="language-typescript">import { toRecord } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // From string arrays
 const data = [
@@ -392,7 +392,7 @@ console.log(`Final stats: ${stats.validRecords}/${stats.totalRecords} valid reco
 </code></pre>
 <h3 id="data-archival-and-compression"><a class="header" href="#data-archival-and-compression">Data Archival and Compression</a></h3>
 <pre><code class="language-typescript">// Record format compresses well due to regular structure
-import { gzip } from "jsr:@j50n/proc@0.24.1/transforms";
+import { gzip } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // Archive data with compression
 await read("large-dataset.record")

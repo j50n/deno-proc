@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -213,7 +213,7 @@ Most active day: Tuesday (8 commits)
 <h2 id="step-1-getting-commits"><a class="header" href="#step-1-getting-commits">Step 1: Getting Commits</a></h2>
 <p>Create a file called <code>git-analyzer.ts</code>. We’ll start by fetching the last 100 commits:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: get commits" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
 
 // Get the last 100 commits (one line each)
 const commits = await run("git", "log", "--oneline", "-100")
@@ -236,7 +236,7 @@ console.log("First commit:", commits[0]);
 <h2 id="step-2-filtering-for-bug-fixes"><a class="header" href="#step-2-filtering-for-bug-fixes">Step 2: Filtering for Bug Fixes</a></h2>
 <p>Now let’s find commits that mention “fix” — likely bug fixes:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: filter fixes" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
 
 const fixes = await run("git", "log", "--oneline", "-100")
   .lines
@@ -257,7 +257,7 @@ for (const fix of fixes.slice(0, 5)) {
 <h2 id="step-3-counting-commits-by-author"><a class="header" href="#step-3-counting-commits-by-author">Step 3: Counting Commits by Author</a></h2>
 <p>Let’s see who’s contributing the most. We’ll parse the commit log to extract author names:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: count by author" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
 
 // Get author of each commit
 const authorCounts = await run("git", "log", "--format=%an", "-100")
@@ -287,7 +287,7 @@ for (const [name, count] of topAuthors) {
 <h2 id="step-4-finding-the-most-active-day"><a class="header" href="#step-4-finding-the-most-active-day">Step 4: Finding the Most Active Day</a></h2>
 <p>Which day of the week sees the most commits? We’ll parse commit dates and count them:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: active day" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -316,7 +316,7 @@ console.log(`Most active day: ${busiest[0]} (${busiest[1]} commits)`);
 <h2 id="step-5-handling-errors"><a class="header" href="#step-5-handling-errors">Step 5: Handling Errors</a></h2>
 <p>What happens if someone runs this outside a git repository? Let’s handle that gracefully:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: error handling" -->
-<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@0.24.2";
 
 try {
   const commits = await run("git", "rev-parse", "--git-dir")
@@ -342,7 +342,7 @@ try {
 <h2 id="step-6-the-complete-script"><a class="header" href="#step-6-the-complete-script">Step 6: The Complete Script</a></h2>
 <p>Now let’s put it all together into a polished tool:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: complete script" -->
-<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@0.24.2";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

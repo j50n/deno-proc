@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="understanding-map"><a class="header" href="#understanding-map">Understanding map()</a></h2>
 <p>The <code>map()</code> method transforms each item in your stream, applying a function to every element and returning a new stream with the transformed values:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
 
 const doubled = await enumerate([1, 2, 3])
   .map(n =&gt; n * 2)
@@ -276,7 +276,7 @@ const words = await enumerate(["hello world", "foo bar"])
 <h2 id="using-transform-with-streams"><a class="header" href="#using-transform-with-streams">Using transform() with Streams</a></h2>
 <p>The <code>transform()</code> method lets you apply any TransformStream to your data, which is particularly useful for built-in transformations like compression:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
 
 const decompressed = await read("file.gz")
   .transform(new DecompressionStream("gzip"))

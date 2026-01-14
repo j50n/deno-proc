@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -303,7 +303,7 @@ await read("big-data.record")
 </code></pre>
 <h2 id="lazyrow-optimized-data-access"><a class="header" href="#lazyrow-optimized-data-access">LazyRow: Optimized Data Access</a></h2>
 <p>LazyRow provides a read-only interface optimized for field access without upfront parsing costs:</p>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.1/transforms";
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // Parse CSV into LazyRow format
 const lazyRows = await read("data.csv")

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -200,8 +200,8 @@
 </blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-tsv-to-rows"><a class="header" href="#parsing-tsv-to-rows">Parsing TSV to Rows</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.1";
-import { fromTsvToRows } from "jsr:@j50n/proc@0.24.1/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+import { fromTsvToRows } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // Parse TSV into string arrays
 const rows = await read("data.tsv")
@@ -213,7 +213,7 @@ const rows = await read("data.tsv")
 // rows[2] = ["Bob", "25", "London"]        // Data row
 </code></pre>
 <h3 id="parsing-tsv-to-lazyrow"><a class="header" href="#parsing-tsv-to-lazyrow">Parsing TSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.1/transforms";
+<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // Parse TSV into optimized LazyRow format
 const lazyRows = await read("data.tsv")
@@ -230,7 +230,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="generating-tsv"><a class="header" href="#generating-tsv">Generating TSV</a></h3>
-<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.1/transforms";
+<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.2/transforms";
 
 // From string arrays
 const data = [

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -182,7 +182,7 @@
 <p>The <code>sleep</code> function pauses execution for a specified duration. While it might seem like an outlier in a process management library, it’s surprisingly useful when working with async pipelines, rate limiting, and testing.</p>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { sleep } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { sleep } from "jsr:@j50n/proc@0.24.2";
 
 console.log("Starting...");
 await sleep(2000);  // Pause for 2 seconds
@@ -201,7 +201,7 @@ console.log("Done!");
 <h2 id="common-use-cases"><a class="header" href="#common-use-cases">Common Use Cases</a></h2>
 <h3 id="rate-limiting-api-calls"><a class="header" href="#rate-limiting-api-calls">Rate Limiting API Calls</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, sleep } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { enumerate, sleep } from "jsr:@j50n/proc@0.24.2";
 
 const urls = ["url1", "url2", "url3"];
 
@@ -215,7 +215,7 @@ await enumerate(urls)
 </code></pre>
 <h3 id="retry-with-backoff"><a class="header" href="#retry-with-backoff">Retry with Backoff</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run, sleep } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run, sleep } from "jsr:@j50n/proc@0.24.2";
 
 async function runWithRetry(maxRetries = 3) {
   for (let i = 0; i &lt; maxRetries; i++) {
@@ -233,7 +233,7 @@ async function runWithRetry(maxRetries = 3) {
 </code></pre>
 <h3 id="simulating-slow-data-sources"><a class="header" href="#simulating-slow-data-sources">Simulating Slow Data Sources</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable, sleep } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { WritableIterable, sleep } from "jsr:@j50n/proc@0.24.2";
 
 const slowData = new WritableIterable&lt;number&gt;();
 
@@ -252,7 +252,7 @@ for await (const item of slowData) {
 </code></pre>
 <h3 id="throttling-process-output"><a class="header" href="#throttling-process-output">Throttling Process Output</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run, sleep } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { run, sleep } from "jsr:@j50n/proc@0.24.2";
 
 // Process lines slowly to avoid overwhelming downstream
 await run("cat", "large-file.txt")
@@ -265,7 +265,7 @@ await run("cat", "large-file.txt")
 </code></pre>
 <h3 id="testing-concurrent-operations"><a class="header" href="#testing-concurrent-operations">Testing Concurrent Operations</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, sleep } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { enumerate, sleep } from "jsr:@j50n/proc@0.24.2";
 
 // Verify concurrency limit works correctly
 const startTimes: number[] = [];
@@ -283,7 +283,7 @@ await enumerate([1, 2, 3, 4, 5])
 <h2 id="time-constants"><a class="header" href="#time-constants">Time Constants</a></h2>
 <p>The library also provides time constants for readability:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { sleep, SECONDS, MINUTES } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { sleep, SECONDS, MINUTES } from "jsr:@j50n/proc@0.24.2";
 
 await sleep(5 * SECONDS);   // 5 seconds
 await sleep(2 * MINUTES);   // 2 minutes

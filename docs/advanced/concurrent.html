@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
+            window.path_to_searchindex_js = "../searchindex-5e8f8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -196,7 +196,7 @@ await Promise.all(urls.map(url =&gt; fetch(url)));
 <h2 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h2>
 <p>proc gives you controlled concurrency:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
 
 // Defaults to CPU count (usually 4-8)
 const results = await enumerate(urls)
@@ -360,7 +360,7 @@ const data = await enumerate(urls)
 </code></pre>
 <h3 id="process-files-in-parallel"><a class="header" href="#process-files-in-parallel">Process Files in Parallel</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.1";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
 
 const files = ["log1.txt", "log2.txt", "log3.txt"];
 
