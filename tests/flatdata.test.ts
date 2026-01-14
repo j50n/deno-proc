@@ -1,8 +1,31 @@
+/**
+ * Integration tests for flatdata CLI tool.
+ * 
+ * Tests the flatdata command-line interface for converting between
+ * CSV, TSV, record format, and binary lazyrow format.
+ * 
+ * Test coverage:
+ * - CSV/TSV to record format conversions
+ * - Record format to CSV/TSV conversions
+ * - Custom separators
+ * - RFC 4180 quoting and escaping
+ * - Round-trip conversions (data integrity)
+ * - Large input handling (chunk boundary edge cases)
+ * 
+ * @module
+ */
+
 import { assertEquals } from "@std/assert";
 
 const FLATDATA =
   new URL("../scripts/flatdata/flatdata.ts", import.meta.url).pathname;
 
+/**
+ * Run flatdata CLI with given arguments and input.
+ * @param args - Command-line arguments
+ * @param input - Input data as string
+ * @returns Output from stdout
+ */
 async function run(args: string[], input: string): Promise<string> {
   const cmd = new Deno.Command("deno", {
     args: ["run", "--allow-read", FLATDATA, ...args],
@@ -16,6 +39,10 @@ async function run(args: string[], input: string): Promise<string> {
   const { stdout } = await proc.output();
   return new TextDecoder().decode(stdout);
 }
+
+// =============================================================================
+// CSV to Record Format Tests
+// =============================================================================
 
 Deno.test("csv2record - basic", async () => {
   const out = await run(["csv2record"], "a,b,c\n1,2,3\n");
@@ -36,6 +63,10 @@ Deno.test("csv2record - custom separator", async () => {
   const out = await run(["csv2record", "-d", ";"], "a;b;c\n1;2;3\n");
   assertEquals(out, "a\x1Fb\x1Fc\x1E1\x1F2\x1F3\x1E");
 });
+
+// =============================================================================
+// Record to CSV/TSV Format Tests
+// =============================================================================
 
 Deno.test("record2csv - basic", async () => {
   const out = await run(["record2csv"], "a\x1Fb\x1Fc\x1E1\x1F2\x1F3\x1E");
@@ -62,6 +93,10 @@ Deno.test("tsv2record - basic", async () => {
   assertEquals(out, "a\x1Fb\x1Fc\x1E1\x1F2\x1F3\x1E");
 });
 
+// =============================================================================
+// Round-Trip Conversion Tests (Data Integrity)
+// =============================================================================
+
 Deno.test("roundtrip csv -> record -> csv", async () => {
   const csv = 'name,value\n"hello, world",123\n';
   const record = await run(["csv2record"], csv);
@@ -75,6 +110,10 @@ Deno.test("roundtrip tsv -> record -> tsv", async () => {
   const back = await run(["record2tsv"], record);
   assertEquals(back, tsv);
 });
+
+// =============================================================================
+// Large Input Tests (Chunk Boundary Handling)
+// =============================================================================
 
 // Test for carry buffer bug fix - records spanning chunk boundaries
 Deno.test("csv2record - large input with chunk boundaries", async () => {

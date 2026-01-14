@@ -1,5 +1,27 @@
+/**
+ * Unit tests for LazyRow class.
+ * 
+ * LazyRow provides efficient field access for CSV/tabular data with two implementations:
+ * - StringArray: Backed by string array (simple, good for small rows)
+ * - Binary: Backed by binary format (efficient for large rows, O(1) field access)
+ * 
+ * Test coverage:
+ * - StringArray implementation (basic functionality, edge cases)
+ * - Binary implementation (encoding/decoding, round-trips)
+ * - Field modification (setField with sparse updates)
+ * - UTF-8 handling
+ * - Bounds checking
+ * - Caching behavior
+ * 
+ * @module
+ */
+
 import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { LazyRow } from "../../src/transforms/lazy-row.ts";
+
+// =============================================================================
+// StringArray Implementation Tests
+// =============================================================================
 
 Deno.test("LazyRow - StringArray implementation", async (t) => {
   await t.step("basic functionality", () => {
@@ -75,6 +97,10 @@ Deno.test("LazyRow - StringArray implementation", async (t) => {
     assertEquals(row2.getField(2), "ccc");
   });
 });
+
+// =============================================================================
+// Binary Implementation Tests
+// =============================================================================
 
 Deno.test("LazyRow - Binary implementation", async (t) => {
   await t.step("round trip conversion", () => {
