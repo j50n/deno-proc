@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7e5e0752.js";
+            window.path_to_searchindex_js = "searchindex-9889c580.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-20f24e52.js"></script>
+        <script src="toc-f9208c6f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -438,6 +438,276 @@ await read("data.csv")
 <li><a href="#counting-words">Recipes</a> — Copy-paste solutions for common tasks</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tutorial-building-a-git-analyzer"><a class="header" href="#tutorial-building-a-git-analyzer">Tutorial: Building a Git Analyzer</a></h1>
+<p>In this tutorial, you’ll build a command-line tool that analyzes a git repository’s commit history. Along the way, you’ll learn proc’s core features by using them to solve a real problem.</p>
+<p>By the end, you’ll have a working script that:</p>
+<ul>
+<li>Lists recent commits</li>
+<li>Finds bug fixes</li>
+<li>Counts commits by author</li>
+<li>Identifies the most active day of the week</li>
+<li>Handles errors gracefully</li>
+</ul>
+<p>The final script is about 40 lines of code.</p>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<ul>
+<li>Deno installed</li>
+<li>A git repository to analyze (this tutorial works on any repo)</li>
+<li>Basic TypeScript knowledge</li>
+</ul>
+<h2 id="what-were-building"><a class="header" href="#what-were-building">What We’re Building</a></h2>
+<p>Here’s what the finished analyzer outputs:</p>
+<pre><code>=== Git Repository Analysis ===
+
+Recent commits: 25
+Bug fixes found: 7
+
+Top contributors:
+  alice: 12 commits
+  bob: 8 commits
+  carol: 5 commits
+
+Most active day: Tuesday (8 commits)
+</code></pre>
+<p>Let’s build it step by step.</p>
+<h2 id="step-1-getting-commits"><a class="header" href="#step-1-getting-commits">Step 1: Getting Commits</a></h2>
+<p>Create a file called <code>git-analyzer.ts</code>. We’ll start by fetching the last 100 commits:</p>
+<!-- TESTED: tests/tutorial.test.ts - "tutorial: get commits" -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+
+// Get the last 100 commits (one line each)
+const commits = await run("git", "log", "--oneline", "-100")
+  .lines
+  .collect();
+
+console.log(`Found ${commits.length} commits`);
+console.log("First commit:", commits[0]);
+</code></pre>
+<p>Run it:</p>
+<pre><code class="language-bash">deno run --allow-run git-analyzer.ts
+</code></pre>
+<p><strong>What’s happening:</strong></p>
+<ul>
+<li><code>run()</code> executes the git command</li>
+<li><code>.lines</code> converts the byte output to text lines</li>
+<li><code>.collect()</code> gathers all lines into an array</li>
+</ul>
+<p>Try changing <code>-100</code> to <code>-10</code> to see fewer commits.</p>
+<h2 id="step-2-filtering-for-bug-fixes"><a class="header" href="#step-2-filtering-for-bug-fixes">Step 2: Filtering for Bug Fixes</a></h2>
+<p>Now let’s find commits that mention “fix” — likely bug fixes:</p>
+<!-- TESTED: tests/tutorial.test.ts - "tutorial: filter fixes" -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+
+const fixes = await run("git", "log", "--oneline", "-100")
+  .lines
+  .filter(line =&gt; line.toLowerCase().includes("fix"))
+  .collect();
+
+console.log(`Found ${fixes.length} bug fixes:`);
+for (const fix of fixes.slice(0, 5)) {
+  console.log(`  ${fix}`);
+}
+</code></pre>
+<p><strong>What’s happening:</strong></p>
+<ul>
+<li><code>.filter()</code> keeps only lines containing “fix”</li>
+<li>We use <code>.slice(0, 5)</code> to show just the first 5 matches</li>
+</ul>
+<p>The filtering happens as data streams through — we never load all 100 commits into memory just to filter them.</p>
+<h2 id="step-3-counting-commits-by-author"><a class="header" href="#step-3-counting-commits-by-author">Step 3: Counting Commits by Author</a></h2>
+<p>Let’s see who’s contributing the most. We’ll parse the commit log to extract author names:</p>
+<!-- TESTED: tests/tutorial.test.ts - "tutorial: count by author" -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+
+// Get author of each commit
+const authorCounts = await run("git", "log", "--format=%an", "-100")
+  .lines
+  .filter(name =&gt; name.trim() !== "")
+  .reduce((counts, name) =&gt; {
+    counts[name] = (counts[name] || 0) + 1;
+    return counts;
+  }, {} as Record&lt;string, number&gt;);
+
+// Sort by count and take top 5
+const topAuthors = Object.entries(authorCounts)
+  .sort((a, b) =&gt; b[1] - a[1])
+  .slice(0, 5);
+
+console.log("Top contributors:");
+for (const [name, count] of topAuthors) {
+  console.log(`  ${name}: ${count} commits`);
+}
+</code></pre>
+<p><strong>What’s happening:</strong></p>
+<ul>
+<li><code>--format=%an</code> outputs just the author name for each commit</li>
+<li><code>.reduce()</code> accumulates counts into an object</li>
+<li>We sort and slice to get the top 5</li>
+</ul>
+<h2 id="step-4-finding-the-most-active-day"><a class="header" href="#step-4-finding-the-most-active-day">Step 4: Finding the Most Active Day</a></h2>
+<p>Which day of the week sees the most commits? We’ll parse commit dates and count them:</p>
+<!-- TESTED: tests/tutorial.test.ts - "tutorial: active day" -->
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+
+const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Get commit dates
+const dayCounts = await run("git", "log", "--format=%ad", "--date=format:%u", "-100")
+  .lines
+  .filter(line =&gt; line.trim() !== "")
+  .reduce((counts, dayNum) =&gt; {
+    const day = days[parseInt(dayNum) % 7];
+    counts[day] = (counts[day] || 0) + 1;
+    return counts;
+  }, {} as Record&lt;string, number&gt;);
+
+// Find the busiest day
+const busiest = Object.entries(dayCounts)
+  .sort((a, b) =&gt; b[1] - a[1])[0];
+
+console.log(`Most active day: ${busiest[0]} (${busiest[1]} commits)`);
+</code></pre>
+<p><strong>What’s happening:</strong></p>
+<ul>
+<li><code>--format=%ad --date=format:%u</code> outputs just the day of week (1-7)</li>
+<li><code>.reduce()</code> accumulates counts into an object</li>
+<li>We sort to find the maximum</li>
+</ul>
+<h2 id="step-5-handling-errors"><a class="header" href="#step-5-handling-errors">Step 5: Handling Errors</a></h2>
+<p>What happens if someone runs this outside a git repository? Let’s handle that gracefully:</p>
+<!-- TESTED: tests/tutorial.test.ts - "tutorial: error handling" -->
+<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@{{gitv}}";
+
+try {
+  const commits = await run("git", "rev-parse", "--git-dir")
+    .lines
+    .collect();
+  
+  console.log("This is a git repository");
+} catch (error) {
+  if (error instanceof ExitCodeError) {
+    console.error("Error: Not a git repository");
+    console.error("Please run this command from within a git repository.");
+    Deno.exit(1);
+  }
+  throw error;
+}
+</code></pre>
+<p><strong>What’s happening:</strong></p>
+<ul>
+<li><code>git rev-parse --git-dir</code> fails with exit code 128 if not in a repo</li>
+<li>proc throws <code>ExitCodeError</code> for non-zero exit codes</li>
+<li>We catch it and show a friendly message</li>
+</ul>
+<h2 id="step-6-the-complete-script"><a class="header" href="#step-6-the-complete-script">Step 6: The Complete Script</a></h2>
+<p>Now let’s put it all together into a polished tool:</p>
+<!-- TESTED: tests/tutorial.test.ts - "tutorial: complete script" -->
+<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@{{gitv}}";
+
+const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+async function analyzeRepo(commitCount = 100) {
+  // Verify we're in a git repo
+  try {
+    await run("git", "rev-parse", "--git-dir").lines.collect();
+  } catch (error) {
+    if (error instanceof ExitCodeError) {
+      throw new Error("Not a git repository");
+    }
+    throw error;
+  }
+
+  // Get commits
+  const commits = await run("git", "log", "--oneline", `-${commitCount}`)
+    .lines
+    .collect();
+
+  // Count bug fixes
+  const fixes = commits.filter(c =&gt; c.toLowerCase().includes("fix"));
+
+  // Get top authors
+  const authorCounts = await run("git", "log", "--format=%an", `-${commitCount}`)
+    .lines
+    .filter(name =&gt; name.trim() !== "")
+    .reduce((counts, name) =&gt; {
+      counts[name] = (counts[name] || 0) + 1;
+      return counts;
+    }, {} as Record&lt;string, number&gt;);
+
+  const authors = Object.entries(authorCounts)
+    .sort((a, b) =&gt; b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) =&gt; ({ name, count }));
+
+  // Count by day of week
+  const dayCounts = await run("git", "log", "--format=%ad", "--date=format:%u", `-${commitCount}`)
+    .lines
+    .filter(line =&gt; line.trim() !== "")
+    .reduce((counts, dayNum) =&gt; {
+      const day = days[parseInt(dayNum) % 7];
+      counts[day] = (counts[day] || 0) + 1;
+      return counts;
+    }, {} as Record&lt;string, number&gt;);
+
+  const busiestDay = Object.entries(dayCounts).sort((a, b) =&gt; b[1] - a[1])[0];
+
+  return { commits, fixes, authors, busiestDay };
+}
+
+// Run the analysis
+try {
+  const result = await analyzeRepo(100);
+
+  console.log("=== Git Repository Analysis ===\n");
+  console.log(`Recent commits: ${result.commits.length}`);
+  console.log(`Bug fixes found: ${result.fixes.length}`);
+  console.log("\nTop contributors:");
+  for (const author of result.authors) {
+    console.log(`  ${author.name}: ${author.count} commits`);
+  }
+  console.log(`\nMost active day: ${result.busiestDay[0]} (${result.busiestDay[1]} commits)`);
+} catch (error) {
+  console.error(`Error: ${error.message}`);
+  Deno.exit(1);
+}
+</code></pre>
+<p>Run the complete analyzer:</p>
+<pre><code class="language-bash">deno run --allow-run git-analyzer.ts
+</code></pre>
+<h2 id="what-youve-learned"><a class="header" href="#what-youve-learned">What You’ve Learned</a></h2>
+<p>In building this tool, you’ve used proc’s core features:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>How We Used It</th></tr>
+</thead>
+<tbody>
+<tr><td><code>run()</code></td><td>Execute git commands</td></tr>
+<tr><td><code>.lines</code></td><td>Convert output to text</td></tr>
+<tr><td><code>.collect()</code></td><td>Gather results into arrays</td></tr>
+<tr><td><code>.filter()</code></td><td>Find bug fixes, remove empty lines</td></tr>
+<tr><td><code>.reduce()</code></td><td>Count commits by author and day</td></tr>
+<tr><td><code>ExitCodeError</code></td><td>Handle “not a repo” error</td></tr>
+</tbody>
+</table>
+</div>
+<p>All of this with streaming — even if you analyzed 10,000 commits, memory usage stays constant.</p>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<p>Try extending the analyzer:</p>
+<ol>
+<li><strong>Add a date range filter</strong> — Only analyze commits from the last month</li>
+<li><strong>Find the longest commit message</strong> — Use <code>.reduce()</code> to track the max</li>
+<li><strong>Export to JSON</strong> — Output results as JSON for other tools</li>
+<li><strong>Add file change stats</strong> — Use <code>git log --stat</code> to count files changed</li>
+</ol>
+<h2 id="see-also-1"><a class="header" href="#see-also-1">See Also</a></h2>
+<ul>
+<li><a href="#running-processes">Running Processes</a> — More ways to run commands</li>
+<li><a href="#error-handling-1">Error Handling</a> — Deep dive into error propagation</li>
+<li><a href="#array-like-methods">Array-Like Methods</a> — All the methods you can use</li>
+<li><a href="#counting-words">Recipes</a> — More practical examples</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="key-concepts"><a class="header" href="#key-concepts">Key Concepts</a></h1>
 <p>A few patterns that will make everything click.</p>
 <h2 id="properties-vs-methods"><a class="header" href="#properties-vs-methods">Properties vs Methods</a></h2>
@@ -514,7 +784,7 @@ for await (const line of pipeline) {
 const count: number = await run("ls").lines.count();
 </code></pre>
 <p>Type errors usually mean you’re using the API incorrectly.</p>
-<h2 id="see-also-1"><a class="header" href="#see-also-1">See Also</a></h2>
+<h2 id="see-also-2"><a class="header" href="#see-also-2">See Also</a></h2>
 <ul>
 <li><a href="#running-processes">Running Processes</a> — Execute commands and capture output</li>
 <li><a href="#error-handling-1">Error Handling</a> — How errors propagate through pipelines</li>
@@ -720,7 +990,7 @@ const result = await run("cat", "data.txt")
   .collect();
 </code></pre>
 <p>For more performance optimization strategies, see <a href="#concurrent-processing">Concurrent Processing</a> and <a href="#streaming-large-files">Streaming Large Files</a>.</p>
-<h2 id="see-also-2"><a class="header" href="#see-also-2">See Also</a></h2>
+<h2 id="see-also-3"><a class="header" href="#see-also-3">See Also</a></h2>
 <ul>
 <li><a href="#working-with-output">Working with Output</a> — Transform and process command output</li>
 <li><a href="#process-pipelines">Process Pipelines</a> — Chain multiple commands together</li>
@@ -1351,7 +1621,7 @@ await run("command").lines.forEach(() =&gt; {});
 <h2 id="why-this-approach-matters"><a class="header" href="#why-this-approach-matters">Why This Approach Matters</a></h2>
 <p>Error handling is the primary reason proc exists. If you’ve struggled with stream error events, debugged edge cases in error propagation, or written the same error handling code repeatedly, proc’s approach will feel like a relief.</p>
 <p>Errors propagate naturally. One catch block handles everything. The complexity disappears.</p>
-<h2 id="see-also-3"><a class="header" href="#see-also-3">See Also</a></h2>
+<h2 id="see-also-4"><a class="header" href="#see-also-4">See Also</a></h2>
 <ul>
 <li><a href="#running-processes">Running Processes</a> — All the ways to run commands</li>
 <li><a href="#process-pipelines">Process Pipelines</a> — Chain commands together</li>
@@ -2835,7 +3105,7 @@ const allRows = await read("huge-dataset.csv")
   }
 }
 </code></pre>
-<h2 id="see-also-4"><a class="header" href="#see-also-4">See Also</a></h2>
+<h2 id="see-also-5"><a class="header" href="#see-also-5">See Also</a></h2>
 <ul>
 <li><a href="#csv-transforms">CSV Transforms</a> — Detailed CSV parsing and generation</li>
 <li><a href="#tsv-transforms">TSV Transforms</a> — Tab-separated value processing</li>

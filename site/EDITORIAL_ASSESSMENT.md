@@ -1,19 +1,23 @@
 # Editorial Assessment: proc Documentation
 
-**Reviewer**: O'Reilly Editorial Review  
-**Date**: January 2026  
+**Reviewer**: O'Reilly Editorial Review\
+**Date**: January 2026\
 **Status**: Pre-publication assessment
 
 ---
 
 ## Executive Summary
 
-This documentation has strong bones. The technical content is solid, examples are practical, and the core value proposition (error handling that just works) is compelling. However, several structural and editorial issues need addressing before publication.
+This documentation has strong bones. The technical content is solid, examples
+are practical, and the core value proposition (error handling that just works)
+is compelling. However, several structural and editorial issues need addressing
+before publication.
 
-**Overall Grade**: B+  
+**Overall Grade**: B+\
 **Publication Readiness**: 70%
 
 ### Strengths
+
 - Clear, practical examples throughout
 - Strong technical accuracy
 - Good recipe/cookbook section
@@ -21,6 +25,7 @@ This documentation has strong bones. The technical content is solid, examples ar
 - Excellent FAQ section
 
 ### Areas Requiring Work
+
 - Table of contents ordering undermines learning progression
 - Introduction buries the lede
 - Redundant content between chapters
@@ -34,6 +39,7 @@ This documentation has strong bones. The technical content is solid, examples ar
 ### 1.1 Table of Contents Ordering
 
 **Current order** (problematic):
+
 ```
 Core Features:
   - Error Handling        ← Why is this first?
@@ -44,9 +50,12 @@ Core Features:
   - Resource Management
 ```
 
-**Problem**: You can't understand error handling until you know how to run a process. Leading with error handling is like teaching exception handling before "Hello World."
+**Problem**: You can't understand error handling until you know how to run a
+process. Leading with error handling is like teaching exception handling before
+"Hello World."
 
 **Recommended order**:
+
 ```
 Core Features:
   - Running Processes     ← Start here
@@ -61,31 +70,40 @@ Core Features:
 
 **Current**: Standalone chapter in Getting Started section.
 
-**Problem**: This 200+ line file duplicates content from Core Features and Async Iterables. Readers encounter the same patterns twice, which feels repetitive and wastes their time.
+**Problem**: This 200+ line file duplicates content from Core Features and Async
+Iterables. Readers encounter the same patterns twice, which feels repetitive and
+wastes their time.
 
-**Recommendation**: 
+**Recommendation**:
+
 - Delete as standalone chapter
 - Integrate unique patterns into relevant chapters as "Pattern:" callout boxes
 - Move anti-patterns to a "Common Mistakes" appendix
 
 ### 1.3 Advanced vs Core Distinction
 
-**Current**: "Concurrent Processing" is in Advanced Topics, but concurrency is a primary use case.
+**Current**: "Concurrent Processing" is in Advanced Topics, but concurrency is a
+primary use case.
 
-**Problem**: Users who need `concurrentMap` (a common need) might not look in "Advanced."
+**Problem**: Users who need `concurrentMap` (a common need) might not look in
+"Advanced."
 
-**Recommendation**: 
+**Recommendation**:
+
 - Rename "Advanced Topics" to "Specialized Topics"
 - Add a brief concurrency section to Core Features with a forward reference
 - Keep deep dive in Specialized Topics
 
 ### 1.4 Data Transforms Isolation
 
-**Current**: Data Transforms section exists but feels disconnected from Async Iterables.
+**Current**: Data Transforms section exists but feels disconnected from Async
+Iterables.
 
-**Problem**: Readers don't understand when to use `enumerate().map()` vs `fromCsvToRows()`. The conceptual bridge is missing.
+**Problem**: Readers don't understand when to use `enumerate().map()` vs
+`fromCsvToRows()`. The conceptual bridge is missing.
 
 **Recommendation**: Add a "Choosing Your Approach" section that explains:
+
 - When to use process pipelines (shell-like operations)
 - When to use async iterables (in-memory transformations)
 - When to use data transforms (format conversions)
@@ -99,19 +117,23 @@ Core Features:
 
 **Current**: Jumps straight into "What is proc?"
 
-**Problem**: Readers don't know if this is for them. O'Reilly books always establish audience upfront.
+**Problem**: Readers don't know if this is for them. O'Reilly books always
+establish audience upfront.
 
 **Add this section after the title**:
+
 ```markdown
 ## Who This Book Is For
 
 This book is for Deno developers who:
+
 - Run child processes and need better error handling
 - Process streaming data (logs, CSV files, API responses)
 - Want Array-like methods for async data
 - Are frustrated with JavaScript stream complexity
 
 You should be comfortable with:
+
 - TypeScript basics
 - Async/await syntax
 - Command-line tools
@@ -121,21 +143,23 @@ No prior experience with Deno streams or child processes required.
 
 ### 2.2 Buried Value Proposition
 
-**Current**: The "backpressure" explanation appears in a blockquote tip, easily missed.
+**Current**: The "backpressure" explanation appears in a blockquote tip, easily
+missed.
 
-**Problem**: This is the KILLER FEATURE. It should be front and center, not a tip.
+**Problem**: This is the KILLER FEATURE. It should be front and center, not a
+tip.
 
 **Recommendation**: Make backpressure the opening hook:
 
 ```markdown
 # Welcome to proc
 
-**The Problem**: JavaScript streams are push-based. Producers push data 
-whether consumers are ready or not. This creates backpressure—and 
-backpressure creates bugs, memory leaks, and complex coordination code.
+**The Problem**: JavaScript streams are push-based. Producers push data whether
+consumers are ready or not. This creates backpressure—and backpressure creates
+bugs, memory leaks, and complex coordination code.
 
-**The Solution**: proc uses async iterators (pull-based). Consumers pull 
-data when ready. No backpressure. No coordination. No bugs.
+**The Solution**: proc uses async iterators (pull-based). Consumers pull data
+when ready. No backpressure. No coordination. No bugs.
 
 Oh, and errors just work too.
 ```
@@ -145,6 +169,7 @@ Oh, and errors just work too.
 **Current**: Lists features but doesn't help readers decide what to use when.
 
 **Add a decision tree**:
+
 ```markdown
 ## Quick Decision Guide
 
@@ -167,31 +192,31 @@ Oh, and errors just work too.
 
 The following concepts are explained multiple times:
 
-| Concept | Locations | Recommendation |
-|---------|-----------|----------------|
-| Properties vs Methods | Key Concepts, FAQ, patterns.md | Keep in Key Concepts only, reference elsewhere |
-| Resource Management | Key Concepts, patterns.md, error-handling.md | Consolidate into Resource Management chapter |
+| Concept                | Locations                                     | Recommendation                                       |
+| ---------------------- | --------------------------------------------- | ---------------------------------------------------- |
+| Properties vs Methods  | Key Concepts, FAQ, patterns.md                | Keep in Key Concepts only, reference elsewhere       |
+| Resource Management    | Key Concepts, patterns.md, error-handling.md  | Consolidate into Resource Management chapter         |
 | enumerate() vs .enum() | Key Concepts, FAQ, enumerable.md, patterns.md | Keep in enumerable.md, brief mention in Key Concepts |
-| Error propagation | Key Concepts, error-handling.md, patterns.md | Keep in error-handling.md only |
+| Error propagation      | Key Concepts, error-handling.md, patterns.md  | Keep in error-handling.md only                       |
 
 ### 3.2 patterns.md Audit
 
 This file should be eliminated. Here's where each pattern belongs:
 
-| Pattern | Move To |
-|---------|---------|
-| Run and Collect | running-processes.md |
-| Process Pipeline | pipelines.md |
-| Transform and Filter | array-methods.md |
-| Error Handling | error-handling.md |
-| Check Status | error-handling.md |
-| Enumerate patterns | enumerable.md |
-| Stream Large Files | streaming.md |
-| Decompress | decompression.md recipe |
-| Concurrent Processing | concurrent.md |
-| Reduce | aggregations.md |
-| Tee | Already in transformations.md |
-| Anti-patterns | New appendix: common-mistakes.md |
+| Pattern               | Move To                          |
+| --------------------- | -------------------------------- |
+| Run and Collect       | running-processes.md             |
+| Process Pipeline      | pipelines.md                     |
+| Transform and Filter  | array-methods.md                 |
+| Error Handling        | error-handling.md                |
+| Check Status          | error-handling.md                |
+| Enumerate patterns    | enumerable.md                    |
+| Stream Large Files    | streaming.md                     |
+| Decompress            | decompression.md recipe          |
+| Concurrent Processing | concurrent.md                    |
+| Reduce                | aggregations.md                  |
+| Tee                   | Already in transformations.md    |
+| Anti-patterns         | New appendix: common-mistakes.md |
 
 ---
 
@@ -199,16 +224,20 @@ This file should be eliminated. Here's where each pattern belongs:
 
 ### 4.1 Missing Forward References
 
-**Problem**: Chapters mention concepts without linking to where they're explained.
+**Problem**: Chapters mention concepts without linking to where they're
+explained.
 
 **Examples found**:
-- error-handling.md mentions `fnError` option but links to non-existent `../advanced/custom-errors.md`
+
+- error-handling.md mentions `fnError` option but links to non-existent
+  `../advanced/custom-errors.md`
 - running-processes.md doesn't link to pipelines.md
 - enumerable.md doesn't link to data transforms
 
 ### 4.2 Missing "See Also" Sections
 
 **Every chapter should end with**:
+
 ```markdown
 ## See Also
 
@@ -219,6 +248,7 @@ This file should be eliminated. Here's where each pattern belongs:
 ### 4.3 Missing "Prerequisites" Notes
 
 **Complex chapters should open with**:
+
 ```markdown
 > **Prerequisites**: This chapter assumes you've read [Running Processes](...)
 > and understand basic error handling.
@@ -234,16 +264,20 @@ This file should be eliminated. Here's where each pattern belongs:
 
 **Problem**: Readers don't know which examples are verified to work.
 
-**Recommendation**: 
+**Recommendation**:
+
 - Test ALL examples
 - Remove markers from published output (they're internal)
-- Add a note in the preface: "All examples in this book are tested against proc version X.X"
+- Add a note in the preface: "All examples in this book are tested against proc
+  version X.X"
 
 ### 5.2 Examples Don't Build on Each Other
 
-**Problem**: Each chapter starts fresh. Readers can't follow a continuous example.
+**Problem**: Each chapter starts fresh. Readers can't follow a continuous
+example.
 
 **Recommendation**: Create a running example throughout Core Features:
+
 - Chapter 1: Run `git log` and capture output
 - Chapter 2: Process the output (filter, map)
 - Chapter 3: Pipe to another command
@@ -253,11 +287,13 @@ This file should be eliminated. Here's where each pattern belongs:
 ### 5.3 Missing "Why" Explanations
 
 **Current**:
+
 ```typescript
 const lines = await run("ls", "-la").lines.collect();
 ```
 
 **Better**:
+
 ```typescript
 // .lines converts byte stream to string lines
 // .collect() gathers all lines into an array (consuming the stream)
@@ -273,25 +309,30 @@ const lines = await run("ls", "-la").lines.collect();
 **Problem**: Too many exclamation marks undermine technical authority.
 
 **Examples found**:
-- "Errors just work!" 
+
+- "Errors just work!"
 - "That's the whole point!"
 - "This is revolutionary!"
 
-**Recommendation**: Remove 80% of exclamation marks. Let the technology speak for itself.
+**Recommendation**: Remove 80% of exclamation marks. Let the technology speak
+for itself.
 
-**Before**: "Errors just work. Like they should have all along."  
-**After**: "Errors propagate naturally through pipelines, eliminating the need for error handling at each step."
+**Before**: "Errors just work. Like they should have all along."\
+**After**: "Errors propagate naturally through pipelines, eliminating the need
+for error handling at each step."
 
 ### 6.2 Inconsistent Formality
 
 **Problem**: Tone shifts between casual and technical.
 
-**Too casual**: "This trips up everyone at first."  
+**Too casual**: "This trips up everyone at first."\
 **Too formal**: "The error is captured and downstream operations are skipped."
 
-**Target tone**: Conversational but confident. Like explaining to a smart colleague.
+**Target tone**: Conversational but confident. Like explaining to a smart
+colleague.
 
-**Better**: "A common stumbling block: some APIs are properties, others are methods."
+**Better**: "A common stumbling block: some APIs are properties, others are
+methods."
 
 ### 6.3 Overuse of Blockquotes
 
@@ -300,6 +341,7 @@ const lines = await run("ls", "-la").lines.collect();
 **Problem**: When everything is highlighted, nothing is highlighted.
 
 **Recommendation**:
+
 - Use blockquotes sparingly (max 2 per chapter)
 - Reserve for genuinely important warnings
 - Remove emoji from technical content
@@ -313,6 +355,7 @@ const lines = await run("ls", "-la").lines.collect();
 **Current**: Troubleshooting is buried in FAQ.
 
 **Recommendation**: Create dedicated troubleshooting chapter with:
+
 - Common error messages and solutions
 - Debugging techniques
 - Performance issues
@@ -321,11 +364,13 @@ const lines = await run("ls", "-la").lines.collect();
 
 **Current**: migration.md exists but is nearly empty.
 
-**Recommendation**: Add concrete before/after examples showing how to convert Deno.Command code to proc.
+**Recommendation**: Add concrete before/after examples showing how to convert
+Deno.Command code to proc.
 
 ### 7.3 No Glossary
 
 **Recommendation**: Add glossary defining:
+
 - Enumerable
 - Backpressure
 - Pull-based vs push-based
@@ -345,7 +390,8 @@ const lines = await run("ls", "-la").lines.collect();
 
 **Current**: `{{gitv}}` placeholders throughout.
 
-**Recommendation**: Ensure build process replaces these, or use `@latest` for documentation.
+**Recommendation**: Ensure build process replaces these, or use `@latest` for
+documentation.
 
 ---
 
@@ -435,12 +481,17 @@ Appendices
 
 ## Conclusion
 
-This documentation is close to publication-ready. The technical content is strong, and the practical focus aligns well with O'Reilly's style. The main issues are structural (TOC ordering, redundancy) and editorial (voice consistency, cross-referencing).
+This documentation is close to publication-ready. The technical content is
+strong, and the practical focus aligns well with O'Reilly's style. The main
+issues are structural (TOC ordering, redundancy) and editorial (voice
+consistency, cross-referencing).
 
-With the changes outlined above, this could be an excellent addition to the O'Reilly catalog—a focused, practical guide that solves a real problem developers face.
+With the changes outlined above, this could be an excellent addition to the
+O'Reilly catalog—a focused, practical guide that solves a real problem
+developers face.
 
 **Estimated effort to publication-ready**: 2-3 weeks of focused editorial work.
 
 ---
 
-*Assessment prepared for internal editorial review. Not for distribution.*
+_Assessment prepared for internal editorial review. Not for distribution._

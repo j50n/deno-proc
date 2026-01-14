@@ -1,9 +1,9 @@
 /**
  * Integration tests for flatdata CLI tool.
- * 
+ *
  * Tests the flatdata command-line interface for converting between
  * CSV, TSV, record format, and binary lazyrow format.
- * 
+ *
  * Test coverage:
  * - CSV/TSV to record format conversions
  * - Record format to CSV/TSV conversions
@@ -11,7 +11,7 @@
  * - RFC 4180 quoting and escaping
  * - Round-trip conversions (data integrity)
  * - Large input handling (chunk boundary edge cases)
- * 
+ *
  * @module
  */
 

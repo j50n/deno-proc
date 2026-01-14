@@ -29,7 +29,7 @@ cd "$HERE" && (
     deno lint **/*.ts
     deno check **/*.ts
 
-    deno test --reload --allow-read --allow-write=/tmp/ --allow-run=cat,deno,echo,false,grep,gunzip,gzip,ls,printf,sh,sort,tr,uniq,wc ./tests
+    deno test --reload --allow-read --allow-write=/tmp/ --allow-run=cat,deno,echo,false,git,grep,gunzip,gzip,ls,printf,sh,sort,tr,uniq,wc ./tests
 
     # Run performance benchmarks
     echo "Running performance benchmarks..."

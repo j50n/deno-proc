@@ -8,6 +8,7 @@
 
 - [Installation](./getting-started/installation.md)
 - [Quick Start](./getting-started/quick-start.md)
+- [Tutorial: Git Analyzer](./getting-started/tutorial.md)
 - [Key Concepts](./getting-started/key-concepts.md)
 
 # Running Processes
