@@ -100,27 +100,14 @@ const csv2lazyrow = new Command()
 const csv2tsv = new Command()
   .description("Convert CSV to TSV")
   .option("-d, --separator <char:string>", "CSV field separator", { default: "," })
-  .option("-q, --quote-all", "Quote all fields in output")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.csv | flatdata csv2tsv > data.tsv")
-  .action(async ({ separator, quoteAll, input, output }) => {
+  .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    // Parse CSV, output as TSV (separator=9)
-    const recordStream = new ReadableStream({
-      async start(controller) {
-        const chunks: Uint8Array[] = [];
-        await processor.csvToRecord(stream, async (data) => {
-          chunks.push(data);
-          return data.length;
-        }, separator!.charCodeAt(0));
-        controller.enqueue(new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], [] as number[])));
-        controller.close();
-      }
-    });
-    await processor.recordToCsv(recordStream, write, 9, quoteAll ?? false);
+    await processor.csvToTsv(stream, write, separator!.charCodeAt(0));
     close();
   });
 
@@ -153,27 +140,14 @@ const tsv2lazyrow = new Command()
 const tsv2csv = new Command()
   .description("Convert TSV to CSV")
   .option("-d, --separator <char:string>", "CSV field separator", { default: "," })
-  .option("-q, --quote-all", "Quote all fields in output")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.tsv | flatdata tsv2csv > data.csv")
-  .action(async ({ separator, quoteAll, input, output }) => {
+  .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    // Parse TSV, output as CSV
-    const recordStream = new ReadableStream({
-      async start(controller) {
-        const chunks: Uint8Array[] = [];
-        await processor.csvToRecord(stream, async (data) => {
-          chunks.push(data);
-          return data.length;
-        }, 9);
-        controller.enqueue(new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], [] as number[])));
-        controller.close();
-      }
-    });
-    await processor.recordToCsv(recordStream, write, separator!.charCodeAt(0), quoteAll ?? false);
+    await processor.tsvToCsv(stream, write, separator!.charCodeAt(0));
     close();
   });
 

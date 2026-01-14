@@ -335,6 +335,96 @@ export class FlatdataProcessor {
   }
 
   /**
+   * Convert CSV directly to TSV.
+   * 
+   * Fast direct conversion using WASM parser with tab output separator.
+   * Much faster than csv→record→tsv pipeline.
+   * 
+   * @param input - Readable stream of CSV bytes
+   * @param write - Writer function for output chunks
+   * @param separator - CSV field separator (default: comma)
+   */
+  async csvToTsv(
+    input: ReadableStream<Uint8Array>,
+    write: Writer,
+    separator: number,
+  ): Promise<void> {
+    // CSV input with custom separator
+    // Output: \t for fields, \n for records
+    const parserId = this.exports.create_direct_parser(separator, 0, 0x09, 0x0A, 0x0A);
+    const reader = input.getReader();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        for (let off = 0; off < value.length; off += FlatdataProcessor.CHUNK_SIZE) {
+          const slice = value.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length));
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+
+          const outLen = this.exports.parse_direct(parserId, slice.length);
+          if (outLen > 0) {
+            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen));
+          }
+        }
+      }
+
+      const finalLen = this.exports.finish_direct(parserId);
+      if (finalLen > 0) {
+        await write(new Uint8Array(this.memory.buffer, this.outputPtr, finalLen));
+      }
+    } finally {
+      this.exports.destroy_direct_parser(parserId);
+    }
+  }
+
+  /**
+   * Convert TSV directly to CSV.
+   * 
+   * Fast direct conversion using WASM parser with comma output separator.
+   * Much faster than tsv→record→csv pipeline.
+   * 
+   * @param input - Readable stream of TSV bytes
+   * @param write - Writer function for output chunks
+   * @param separator - CSV output field separator (default: comma)
+   */
+  async tsvToCsv(
+    input: ReadableStream<Uint8Array>,
+    write: Writer,
+    separator: number,
+  ): Promise<void> {
+    // TSV input: \t for fields, \n for records
+    // Output: custom separator for fields, \n for records
+    const parserId = this.exports.create_direct_parser(0x09, 0, separator, 0x0A, 0x0A);
+    const reader = input.getReader();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        for (let off = 0; off < value.length; off += FlatdataProcessor.CHUNK_SIZE) {
+          const slice = value.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length));
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+
+          const outLen = this.exports.parse_direct(parserId, slice.length);
+          if (outLen > 0) {
+            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen));
+          }
+        }
+      }
+
+      const finalLen = this.exports.finish_direct(parserId);
+      if (finalLen > 0) {
+        await write(new Uint8Array(this.memory.buffer, this.outputPtr, finalLen));
+      }
+    } finally {
+      this.exports.destroy_direct_parser(parserId);
+    }
+  }
+
+  /**
    * Convert record format to CSV/TSV.
    * 
    * Takes record format (\x1F/\x1E delimited) and converts it to standard
