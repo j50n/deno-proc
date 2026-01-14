@@ -6,7 +6,7 @@
 
 ```bash
 # Install globally with required permissions
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@{{gitv}}/flatdata
 ```
 
 This installs `flatdata` globally, making it available from any terminal.
@@ -14,7 +14,7 @@ This installs `flatdata` globally, making it available from any terminal.
 For pipeline-only use (stdin/stdout), you can install without file permissions:
 
 ```bash
-deno install -g -n flatdata jsr:@j50n/proc/flatdata
+deno install -g -n flatdata jsr:@j50n/proc@{{gitv}}/flatdata
 ```
 
 This restricts flatdata to streaming mode—no direct file reading or writing.

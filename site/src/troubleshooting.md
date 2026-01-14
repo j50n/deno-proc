@@ -160,7 +160,7 @@ await read("huge.csv")
 **Cause**: flatdata CLI not installed globally.
 
 ```bash
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@{{gitv}}/flatdata
 ```
 
 ## Performance Issues
