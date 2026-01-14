@@ -912,6 +912,31 @@ lazyrow_encode :: proc "c" (id: i32, input_len: i32) -> i32 {
     return i32(out_len)
 }
 
+// Encode record format to binary lazyrow format (from output buffer).
+// Input: record format in output buffer
+// Output: binary lazyrow in input buffer (swapped to avoid copy)
+// Returns: number of bytes written to input buffer
+@(export)
+lazyrow_encode_from_output :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    e, ok := lazyrow_encoders[id]
+    if !ok do return 0
+    
+    input := slice.from_ptr(cast(^u8)output_buffer, int(input_len))
+    csv.lazyrow_encoder_reset(e)
+    csv.lazyrow_encode(e, input)
+    
+    // Copy to input buffer (swapped)
+    out_len := min(len(e.output), input_capacity)
+    if out_len > 0 {
+        out := slice.from_ptr(cast(^u8)input_buffer, out_len)
+        copy(out, e.output[:out_len])
+    }
+    
+    return i32(out_len)
+}
+
 // Create a lazyrow decoder
 @(export)
 create_lazyrow_decoder :: proc "c" () -> i32 {

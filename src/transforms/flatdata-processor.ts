@@ -127,6 +127,9 @@ interface WasmExports {
   /** Encode record format to binary lazyrow */
   lazyrow_encode: (id: number, len: number) => number;
   
+  /** Encode record format to binary lazyrow (from output buffer) */
+  lazyrow_encode_from_output: (id: number, len: number) => number;
+  
   /** Create a lazyrow decoder instance */
   create_lazyrow_decoder: () => number;
   
@@ -614,14 +617,10 @@ export class FlatdataProcessor {
 
           const outLen = this.exports.parse_direct(parserId, slice.length);
           if (outLen > 0) {
-            // Copy parser output to input buffer for encoder
-            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
-            new Uint8Array(this.memory.buffer, this.inputPtr, outLen).set(recordData);
-            
-            // Encode record format to lazyrow binary
-            const lazyrowLen = this.exports.lazyrow_encode(encoderId, outLen);
+            // Encode directly from output buffer (no copy needed)
+            const lazyrowLen = this.exports.lazyrow_encode_from_output(encoderId, outLen);
             if (lazyrowLen > 0) {
-              await write(new Uint8Array(this.memory.buffer, this.outputPtr, lazyrowLen).slice());
+              await write(new Uint8Array(this.memory.buffer, this.inputPtr, lazyrowLen).slice());
             }
           }
         }
@@ -629,14 +628,10 @@ export class FlatdataProcessor {
 
       const finalLen = this.exports.finish_direct(parserId);
       if (finalLen > 0) {
-        // Copy parser output to input buffer for encoder
-        const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, finalLen);
-        new Uint8Array(this.memory.buffer, this.inputPtr, finalLen).set(recordData);
-        
-        // Encode final record to lazyrow binary
-        const lazyrowLen = this.exports.lazyrow_encode(encoderId, finalLen);
+        // Encode directly from output buffer (no copy needed)
+        const lazyrowLen = this.exports.lazyrow_encode_from_output(encoderId, finalLen);
         if (lazyrowLen > 0) {
-          await write(new Uint8Array(this.memory.buffer, this.outputPtr, lazyrowLen).slice());
+          await write(new Uint8Array(this.memory.buffer, this.inputPtr, lazyrowLen).slice());
         }
       }
     } finally {
