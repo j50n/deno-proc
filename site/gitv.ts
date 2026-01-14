@@ -30,24 +30,24 @@ interface Context {
   root: string;
 }
 
+function extractChapters(items: unknown[] | undefined): Chapter[] {
+  return (items ?? [])
+    .filter(isChapter)
+    .flatMap(
+      (item) => [item, ...extractChapters(item.Chapter.sub_items)],
+    );
+}
+
 if (Deno.args[0] === "supports") {
   Deno.exit(0);
 } else {
-  const [context, book]: [Context, Book] = JSON.parse(
+  const [_context, book]: [Context, Book] = JSON.parse(
     (await enumerate(Deno.stdin.readable).transform(toLines).collect())
       .join("\n"),
   );
 
   const gitv = (await run("git", "describe", "--tags").lines.first)
     .split("-")[0];
-
-  function extractChapters(items: unknown[] | undefined): Chapter[] {
-    return (items ?? [])
-      .filter(isChapter)
-      .flatMap(
-        (item) => [item, ...extractChapters(item.Chapter.sub_items)],
-      );
-  }
 
   const sections = book.sections || book.items || [];
   const chapters = extractChapters(sections);
