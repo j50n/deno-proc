@@ -304,8 +304,9 @@ export class FlatdataProcessor {
     write: Writer,
     separator: number,
   ): Promise<void> {
-    // Use default output separators: \x1F for fields, \x1E for records
-    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E);
+    // CSV input: separator for fields, \n for records
+    // Output: \x1F for fields, \x1E for records
+    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E, 0x0A);
     const reader = input.getReader();
 
     try {
@@ -448,8 +449,9 @@ export class FlatdataProcessor {
     write: Writer,
     separator: number,
   ): Promise<void> {
-    // Use default output separators: \x1F for fields, \x1E for records
-    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E);
+    // CSV input: separator for fields, \n for records
+    // Output: \x1F for fields, \x1E for records
+    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E, 0x0A);
     const reader = input.getReader();
 
     try {
@@ -582,34 +584,47 @@ export class FlatdataProcessor {
     input: ReadableStream<Uint8Array>,
     write: Writer,
   ): Promise<void> {
+    // Record input: \x1F for fields, \x1E for records
+    // Parse and convert to lazyrow binary
+    const parserId = this.exports.create_direct_parser(0x1F, 0, 0x1F, 0x1E, 0x1E);
     const reader = input.getReader();
-    let buffer = new Uint8Array(0);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      // Accumulate data
-      const newBuf = new Uint8Array(buffer.length + value.length);
-      newBuf.set(buffer);
-      newBuf.set(value, buffer.length);
-      buffer = newBuf;
+        for (let off = 0; off < value.length; off += FlatdataProcessor.CHUNK_SIZE) {
+          const slice = value.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length));
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
 
-      // Process complete records
-      let start = 0;
-      for (let i = 0; i < buffer.length; i++) {
-        if (buffer[i] === RECORD_SEP) {
-          const record = buffer.subarray(start, i);
-          await this.writeRowAsBinary(record, write);
-          start = i + 1;
+          const outLen = this.exports.parse_direct(parserId, slice.length);
+          if (outLen > 0) {
+            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
+            await this.convertRecordToLazyRow(recordData, write);
+          }
         }
       }
-      buffer = buffer.subarray(start);
-    }
 
-    // Handle final record if no trailing separator
-    if (buffer.length > 0) {
-      await this.writeRowAsBinary(buffer, write);
+      const finalLen = this.exports.finish_direct(parserId);
+      if (finalLen > 0) {
+        const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, finalLen);
+        await this.convertRecordToLazyRow(recordData, write);
+      }
+    } finally {
+      this.exports.destroy_direct_parser(parserId);
+      reader.releaseLock();
+    }
+  }
+
+  private async convertRecordToLazyRow(data: Uint8Array, write: Writer): Promise<void> {
+    let start = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i] === RECORD_SEP) {
+        const record = data.subarray(start, i);
+        await this.writeRowAsBinary(record, write);
+        start = i + 1;
+      }
     }
   }
 
@@ -636,6 +651,8 @@ export class FlatdataProcessor {
     input: ReadableStream<Uint8Array>,
     write: Writer,
   ): Promise<void> {
+    // Convert lazyrow binary to record format using pure JS
+    // (WASM stringifier expects record format input, not binary)
     const reader = input.getReader();
     let buffer = new Uint8Array(0);
 
@@ -668,24 +685,6 @@ export class FlatdataProcessor {
   // =============================================================================
   // Private Helper Methods
   // =============================================================================
-
-  /**
-   * Process a chunk of record format data and convert to binary lazyrow.
-   * Splits on RECORD_SEP and converts each record.
-   * 
-   * @param data - Record format data chunk
-   * @param write - Writer function for output
-   */
-  private async processRecordChunk(data: Uint8Array, write: Writer): Promise<void> {
-    let start = 0;
-    for (let i = 0; i < data.length; i++) {
-      if (data[i] === RECORD_SEP) {
-        const record = data.subarray(start, i);
-        await this.writeRowAsBinary(record, write);
-        start = i + 1;
-      }
-    }
-  }
 
   /**
    * Write a single row in binary lazyrow format.

@@ -251,6 +251,7 @@ DirectParser :: struct {
     carry: [dynamic]u8,  // Buffer for incomplete record data between chunks
     field_sep: u8,       // Output field separator (default \x1F)
     record_sep: u8,      // Output record separator (default \x1E)
+    input_record_sep: u8, // Input record separator (default \n)
 }
 
 direct_parsers: map[i32]^DirectParser
@@ -261,8 +262,9 @@ direct_parsers: map[i32]^DirectParser
 //   strict: 1 = fail on errors, 0 = best-effort parsing
 //   field_sep: OUTPUT field separator (0 = default \x1F)
 //   record_sep: OUTPUT record separator (0 = default \x1E)
+//   input_record_sep: INPUT record separator (0 = default \n)
 @(export)
-create_direct_parser :: proc "c" (separator: i32, strict: i32, field_sep: i32, record_sep: i32) -> i32 {
+create_direct_parser :: proc "c" (separator: i32, strict: i32, field_sep: i32, record_sep: i32, input_record_sep: i32) -> i32 {
     context = runtime.default_context()
     
     p := new(DirectParser)
@@ -274,6 +276,7 @@ create_direct_parser :: proc "c" (separator: i32, strict: i32, field_sep: i32, r
     p.carry = make([dynamic]u8)
     p.field_sep = u8(field_sep) if field_sep > 0 else csv.FIELD_SEP
     p.record_sep = u8(record_sep) if record_sep > 0 else csv.RECORD_SEP
+    p.input_record_sep = u8(input_record_sep) if input_record_sep > 0 else '\n'
     
     id := next_id
     next_id += 1
@@ -311,6 +314,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     sep := p.opts.separator
     field_sep := p.field_sep
     record_sep := p.record_sep
+    input_rec_sep := p.input_record_sep
     
     // First, flush any carried data
     for b in p.carry {
@@ -343,7 +347,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
                     p.fields_in_row += 1
                 }
                 p.state = .RecordEnd
-            } else if c == '\n' {
+            } else if c == input_rec_sep {
                 if p.row_started {
                     if out_len < out_cap { out[out_len] = field_sep; out_len += 1 }
                     p.fields_in_row += 1
@@ -367,7 +371,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
             } else if c == '\r' {
                 p.fields_in_row += 1
                 p.state = .RecordEnd
-            } else if c == '\n' {
+            } else if c == input_rec_sep {
                 p.fields_in_row += 1
                 if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 p.row += 1
@@ -396,7 +400,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
             } else if c == '\r' {
                 p.fields_in_row += 1
                 p.state = .RecordEnd
-            } else if c == '\n' {
+            } else if c == input_rec_sep {
                 p.fields_in_row += 1
                 if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 p.row += 1
@@ -410,7 +414,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
             }
             
         case .RecordEnd:
-            if c == '\n' {
+            if c == input_rec_sep {
                 if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 p.row += 1
                 p.fields_in_row = 0
