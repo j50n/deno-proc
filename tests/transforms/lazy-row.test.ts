@@ -220,3 +220,257 @@ Deno.test("LazyRow - Performance characteristics", async (t) => {
     assertEquals(end - start < 1, true);
   });
 });
+
+Deno.test("LazyRow - setField StringArray", async (t) => {
+  await t.step("basic set operation", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    row.setField(1, "modified");
+    
+    assertEquals(row.getField(0), "a");
+    assertEquals(row.getField(1), "modified");
+    assertEquals(row.getField(2), "c");
+    assertEquals(row.toStringArray(), ["a", "modified", "c"]);
+  });
+
+  await t.step("set first field", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    row.setField(0, "first");
+    
+    assertEquals(row.getField(0), "first");
+    assertEquals(row.toStringArray(), ["first", "b", "c"]);
+  });
+
+  await t.step("set last field", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    row.setField(2, "last");
+    
+    assertEquals(row.getField(2), "last");
+    assertEquals(row.toStringArray(), ["a", "b", "last"]);
+  });
+
+  await t.step("set to empty string", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    row.setField(1, "");
+    
+    assertEquals(row.getField(1), "");
+    assertEquals(row.toStringArray(), ["a", "", "c"]);
+  });
+
+  await t.step("set UTF-8 content", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    row.setField(1, "café 🚀");
+    
+    assertEquals(row.getField(1), "café 🚀");
+  });
+
+  await t.step("multiple sets", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c", "d"]);
+    row.setField(0, "w");
+    row.setField(2, "y");
+    row.setField(3, "z");
+    
+    assertEquals(row.toStringArray(), ["w", "b", "y", "z"]);
+  });
+
+  await t.step("set same field multiple times", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    row.setField(1, "first");
+    row.setField(1, "second");
+    row.setField(1, "third");
+    
+    assertEquals(row.getField(1), "third");
+  });
+
+  await t.step("bounds checking", () => {
+    const row = LazyRow.fromStringArray(["a", "b"]);
+    
+    assertThrows(() => row.setField(-1, "x"), RangeError);
+    assertThrows(() => row.setField(2, "x"), RangeError);
+    assertThrows(() => row.setField(10, "x"), RangeError);
+  });
+
+  await t.step("invalidates binary cache", () => {
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    const binary1 = row.toBinary();
+    
+    row.setField(1, "modified");
+    const binary2 = row.toBinary();
+    
+    // Should be different binaries
+    assertEquals(binary1 === binary2, false);
+    
+    // New binary should reflect changes
+    const row2 = LazyRow.fromBinary(binary2);
+    assertEquals(row2.getField(1), "modified");
+  });
+});
+
+Deno.test("LazyRow - setField Binary", async (t) => {
+  await t.step("basic set operation", () => {
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
+    row.setField(1, "modified");
+    
+    assertEquals(row.getField(0), "a");
+    assertEquals(row.getField(1), "modified");
+    assertEquals(row.getField(2), "c");
+    assertEquals(row.toStringArray(), ["a", "modified", "c"]);
+  });
+
+  await t.step("modifications take precedence over binary", () => {
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
+    
+    // Access field before modification
+    assertEquals(row.getField(1), "b");
+    
+    // Modify it
+    row.setField(1, "new");
+    
+    // Should return modified value
+    assertEquals(row.getField(1), "new");
+  });
+
+  await t.step("unmodified fields still lazy", () => {
+    const fields = Array.from({ length: 100 }, (_, i) => `field_${i}`);
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
+    
+    // Modify one field
+    row.setField(50, "modified");
+    
+    // Other fields should still work
+    assertEquals(row.getField(0), "field_0");
+    assertEquals(row.getField(50), "modified");
+    assertEquals(row.getField(99), "field_99");
+  });
+
+  await t.step("multiple modifications", () => {
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c", "d", "e"]).toBinary());
+    
+    row.setField(0, "A");
+    row.setField(2, "C");
+    row.setField(4, "E");
+    
+    assertEquals(row.toStringArray(), ["A", "b", "C", "d", "E"]);
+  });
+
+  await t.step("overwrite same field", () => {
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
+    
+    row.setField(1, "first");
+    row.setField(1, "second");
+    row.setField(1, "final");
+    
+    assertEquals(row.getField(1), "final");
+  });
+
+  await t.step("toBinary with no modifications returns original", () => {
+    const original = LazyRow.fromStringArray(["a", "b", "c"]).toBinary();
+    const row = LazyRow.fromBinary(original);
+    
+    // No modifications - should return same binary
+    assertEquals(row.toBinary(), original);
+  });
+
+  await t.step("toBinary with modifications creates new binary", () => {
+    const original = LazyRow.fromStringArray(["a", "b", "c"]).toBinary();
+    const row = LazyRow.fromBinary(original);
+    
+    row.setField(1, "modified");
+    const modified = row.toBinary();
+    
+    // Should be different
+    assertEquals(modified === original, false);
+    
+    // New binary should have modifications
+    const row2 = LazyRow.fromBinary(modified);
+    assertEquals(row2.getField(1), "modified");
+  });
+
+  await t.step("invalidates string cache", () => {
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
+    
+    // Build string cache
+    const arr1 = row.toStringArray();
+    assertEquals(arr1, ["a", "b", "c"]);
+    
+    // Modify
+    row.setField(1, "new");
+    
+    // Should reflect changes
+    const arr2 = row.toStringArray();
+    assertEquals(arr2, ["a", "new", "c"]);
+  });
+
+  await t.step("bounds checking", () => {
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b"]).toBinary());
+    
+    assertThrows(() => row.setField(-1, "x"), RangeError);
+    assertThrows(() => row.setField(2, "x"), RangeError);
+    assertThrows(() => row.setField(10, "x"), RangeError);
+  });
+
+  await t.step("UTF-8 modifications", () => {
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(["a", "b", "c"]).toBinary());
+    
+    row.setField(0, "café");
+    row.setField(1, "🚀");
+    row.setField(2, "naïve");
+    
+    assertEquals(row.toStringArray(), ["café", "🚀", "naïve"]);
+    
+    // Round trip through binary
+    const binary = row.toBinary();
+    const row2 = LazyRow.fromBinary(binary);
+    assertEquals(row2.toStringArray(), ["café", "🚀", "naïve"]);
+  });
+});
+
+Deno.test("LazyRow - setField performance", async (t) => {
+  await t.step("binary row - read-only performance unaffected", () => {
+    const fields = Array.from({ length: 100 }, (_, i) => `field_${i}`);
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
+    
+    // No modifications - getField should be fast
+    const start = performance.now();
+    for (let i = 0; i < 100; i++) {
+      row.getField(i);
+    }
+    const end = performance.now();
+    
+    // Should be very fast (< 5ms for 100 fields)
+    assertEquals(end - start < 5, true);
+  });
+
+  await t.step("binary row - sparse modifications efficient", () => {
+    const fields = Array.from({ length: 10000 }, (_, i) => `field_${i}`);
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
+    
+    // Modify only 10 fields out of 10000
+    const start = performance.now();
+    for (let i = 0; i < 10; i++) {
+      row.setField(i * 1000, "modified");
+    }
+    const end = performance.now();
+    
+    // Should be fast (< 1ms for 10 modifications)
+    assertEquals(end - start < 1, true);
+    
+    // Verify modifications
+    assertEquals(row.getField(0), "modified");
+    assertEquals(row.getField(1000), "modified");
+    assertEquals(row.getField(1), "field_1");
+  });
+
+  await t.step("binary row - toBinary fast path for no modifications", () => {
+    const fields = Array.from({ length: 1000 }, (_, i) => `field_${i}`);
+    const original = LazyRow.fromStringArray(fields).toBinary();
+    const row = LazyRow.fromBinary(original);
+    
+    // No modifications - toBinary should be instant
+    const start = performance.now();
+    const binary = row.toBinary();
+    const end = performance.now();
+    
+    assertEquals(binary, original);
+    assertEquals(end - start < 0.1, true);
+  });
+});

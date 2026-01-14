@@ -50,6 +50,14 @@ export abstract class LazyRow {
   abstract getField(index: number): string;
 
   /**
+   * Set a field by index.
+   * @param index Zero-based field index.
+   * @param value New field value.
+   * @throws RangeError if index is out of bounds.
+   */
+  abstract setField(index: number, value: string): void;
+
+  /**
    * Convert to a string array.
    * @returns All fields as a string array.
    */
@@ -107,6 +115,14 @@ class StringArrayLazyRow extends LazyRow {
     return this.fields[index];
   }
 
+  setField(index: number, value: string): void {
+    if (index < 0 || index >= this.fields.length) {
+      throw new RangeError(`Field index ${index} out of range [0, ${this.fields.length})`);
+    }
+    this.fields[index] = value;
+    this.binaryCache = undefined;
+  }
+
   toStringArray(): string[] {
     return [...this.fields];
   }
@@ -145,6 +161,7 @@ class BinaryLazyRow extends LazyRow {
   private stringCache?: string[];
   private fieldCache = new Map<number, string>();
   private fieldBoundaries: number[];
+  private modifications?: Map<number, string>;
 
   constructor(private data: Uint8Array, fieldBoundaries?: number[]) {
     super();
@@ -180,6 +197,10 @@ class BinaryLazyRow extends LazyRow {
       throw new RangeError(`Field index ${index} out of range [0, ${this.fieldBoundaries.length})`);
     }
 
+    if (this.modifications?.has(index)) {
+      return this.modifications.get(index)!;
+    }
+
     if (this.fieldCache.has(index)) {
       return this.fieldCache.get(index)!;
     }
@@ -194,6 +215,17 @@ class BinaryLazyRow extends LazyRow {
     this.fieldCache.set(index, field);
     
     return field;
+  }
+
+  setField(index: number, value: string): void {
+    if (index < 0 || index >= this.fieldBoundaries.length) {
+      throw new RangeError(`Field index ${index} out of range [0, ${this.fieldBoundaries.length})`);
+    }
+    if (!this.modifications) {
+      this.modifications = new Map();
+    }
+    this.modifications.set(index, value);
+    this.stringCache = undefined;
   }
 
   toStringArray(): string[] {
@@ -211,6 +243,33 @@ class BinaryLazyRow extends LazyRow {
   }
 
   toBinary(): Uint8Array {
-    return this.data;
+    if (!this.modifications) {
+      return this.data;
+    }
+
+    // Apply modifications by converting to array, modifying, and re-serializing
+    const fields: string[] = [];
+    for (let i = 0; i < this.fieldBoundaries.length; i++) {
+      fields.push(this.getField(i));
+    }
+
+    const fieldBytes = fields.map(field => encoder.encode(field));
+    const totalDataSize = fieldBytes.reduce((sum, bytes) => sum + bytes.length, 0);
+    const headerSize = 4 + (fields.length * 4);
+    
+    const buffer = new Uint8Array(headerSize + totalDataSize);
+    const view = new DataView(buffer.buffer);
+    
+    view.setUint32(0, fields.length, true);
+    
+    let offset = 4 + (fields.length * 4);
+    for (let i = 0; i < fields.length; i++) {
+      const fieldData = fieldBytes[i];
+      view.setUint32(4 + (i * 4), fieldData.length, true);
+      buffer.set(fieldData, offset);
+      offset += fieldData.length;
+    }
+
+    return buffer;
   }
 }
