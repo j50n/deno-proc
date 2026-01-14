@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7a896ede.js";
+            window.path_to_searchindex_js = "../searchindex-7e5e0752.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c66c9043.js"></script>
+        <script src="../toc-20f24e52.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,27 +179,24 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="key-concepts"><a class="header" href="#key-concepts">Key Concepts</a></h1>
-<p>Before you dive deep, let’s cover a few concepts that will make everything click.</p>
+<p>A few patterns that will make everything click.</p>
 <h2 id="properties-vs-methods"><a class="header" href="#properties-vs-methods">Properties vs Methods</a></h2>
-<p>This trips up everyone at first. Some APIs are <strong>properties</strong> (no parentheses), some are <strong>methods</strong> (with parentheses).</p>
-<p><strong>Properties:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">.lines    // Not .lines()
-.status   // Not .status()
-.first    // Not .first()
-.last     // Not .last()
-</code></pre>
-<p><strong>Methods:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">.collect()
+<p>Some APIs are properties (no parentheses), some are methods (with parentheses):</p>
+<pre><code class="language-typescript">// Properties - no parentheses
+.lines
+.status
+.first
+.last
+
+// Methods - with parentheses
+.collect()
 .map()
 .filter()
 .count()
 </code></pre>
-<p><strong>Why?</strong> Properties are getters that return new objects or promises. Methods are functions you call. Your IDE will help, but when in doubt, check the docs.</p>
+<p>Properties return new objects or promises. Methods are functions you call. Your IDE will guide you.</p>
 <h2 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h2>
-<p>Errors flow through pipelines like data—no need to check at every step:</p>
-<!-- NOT TESTED: Illustrative example -->
+<p>Errors flow through pipelines like data. One try-catch handles everything:</p>
 <pre><code class="language-typescript">try {
   await run("command1")
     .run("command2")
@@ -207,45 +204,38 @@
     .lines
     .forEach(process);
 } catch (error) {
-  // All errors caught here
-  handle(error);
+  // Process errors, transform errors, your errors—all caught here
 }
 </code></pre>
-<p>Errors from processes, transformations, or your own code all propagate to the same place. For details, see <a href="../core/error-handling.html">Error Handling</a>.</p>
+<p>See <a href="../core/error-handling.html">Error Handling</a> for the full story.</p>
 <h2 id="resource-management"><a class="header" href="#resource-management">Resource Management</a></h2>
-<p><strong>Golden rule:</strong> Always consume process output.</p>
-<p><strong>Good:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run("ls").lines.collect();  // ✅ Output consumed
-await run("ls").lines.forEach(console.log);  // ✅ Output consumed
+<p>Always consume process output. Unconsumed output keeps the process handle open.</p>
+<pre><code class="language-typescript">// ✅ Good - output consumed
+await run("ls").lines.collect();
+await run("ls").lines.forEach(console.log);
+
+// ❌ Bad - resource leak
+const p = run("ls");  // Output never consumed
 </code></pre>
-<p><strong>Bad:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const p = run("ls");  // ❌ Output never consumed = resource leak
-</code></pre>
-<p><strong>Why?</strong> Unconsumed output keeps the process handle open. Always use <code>.collect()</code>, <code>.forEach()</code>, or iterate through the output.</p>
-<h2 id="enumeration-pattern"><a class="header" href="#enumeration-pattern">Enumeration Pattern</a></h2>
-<p><code>enumerate()</code> wraps an iterable to give it Array-like methods. To add indices, call <code>.enum()</code> on the result:</p>
-<!-- NOT TESTED: Illustrative example -->
+<h2 id="the-enumerate-pattern"><a class="header" href="#the-enumerate-pattern">The enumerate() Pattern</a></h2>
+<p><code>enumerate()</code> wraps an iterable to add Array-like methods. Call <code>.enum()</code> to add indices:</p>
 <pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
-// enumerate() wraps the iterable, .enum() adds indices
+// Without indices
+const doubled = await enumerate([1, 2, 3])
+  .map(n =&gt; n * 2)
+  .collect();
+// [2, 4, 6]
+
+// With indices
 const numbered = await enumerate(["a", "b", "c"])
-  .enum()  // Returns [item, index] tuples
+  .enum()
   .map(([item, i]) =&gt; `${i}: ${item}`)
   .collect();
 // ["0: a", "1: b", "2: c"]
 </code></pre>
-<p><strong>Why two steps?</strong> <code>enumerate()</code> gives you the methods (map, filter, etc.), while <code>.enum()</code> is just one of many operations you can perform. You might not always need indices:</p>
-<!-- TESTED: tests/mdbook_examples.test.ts - "key-concepts: enumerate without indices" -->
-<pre><code class="language-typescript">// Use enumerate() without .enum() for other operations
-const doubled = await enumerate([1, 2, 3])
-  .map(n =&gt; n * 2)  // No indices needed
-  .collect();
-</code></pre>
-<h2 id="streaming-everything"><a class="header" href="#streaming-everything">Streaming Everything</a></h2>
-<p>proc is <strong>lazy</strong> and <strong>streaming</strong> by default. Nothing happens until you consume the output.</p>
-<!-- NOT TESTED: Illustrative example -->
+<h2 id="lazy-evaluation"><a class="header" href="#lazy-evaluation">Lazy Evaluation</a></h2>
+<p>Pipelines are lazy. Nothing executes until you consume the output:</p>
 <pre><code class="language-typescript">// This doesn't run anything yet
 const pipeline = run("cat", "huge-file.txt")
   .run("grep", "error")
@@ -254,26 +244,21 @@ const pipeline = run("cat", "huge-file.txt")
 
 // Now it runs, one line at a time
 for await (const line of pipeline) {
-  console.log(line);  // Processes one line at a time
+  console.log(line);
 }
 </code></pre>
-<p>This means you can process files larger than memory. The data flows through, never all loaded at once.</p>
+<p>This enables processing files larger than memory—data flows through without loading everything at once.</p>
 <h2 id="type-safety"><a class="header" href="#type-safety">Type Safety</a></h2>
-<p>proc is fully typed. Your IDE will guide you:</p>
-<!-- NOT TESTED: Illustrative example -->
+<p>proc is fully typed. TypeScript knows what you’re working with:</p>
 <pre><code class="language-typescript">const lines: string[] = await run("ls").lines.collect();
-//    ^-- TypeScript knows this is string[]
-
 const count: number = await run("ls").lines.count();
-//    ^-- TypeScript knows this is number
 </code></pre>
-<p>If you see a type error, you’re probably using the API wrong. Check the docs!</p>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<p>Now that you understand the concepts, dive into:</p>
+<p>Type errors usually mean you’re using the API incorrectly.</p>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
-<li><a href="../core/error-handling.html">Error Handling</a> - Deep dive into the killer feature</li>
-<li><a href="../core/running-processes.html">Running Processes</a> - All the ways to run commands</li>
-<li><a href="../iterables/array-methods.html">Array-Like Methods</a> - map, filter, reduce, and more</li>
+<li><a href="../core/running-processes.html">Running Processes</a> — Execute commands and capture output</li>
+<li><a href="../core/error-handling.html">Error Handling</a> — How errors propagate through pipelines</li>
+<li><a href="../iterables/enumerable.html">Understanding Enumerable</a> — Deep dive into async iterables</li>
 </ul>
 
                     </main>
@@ -284,7 +269,7 @@ const count: number = await run("ls").lines.count();
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../patterns.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../core/running-processes.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -298,7 +283,7 @@ const count: number = await run("ls").lines.count();
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../patterns.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../core/running-processes.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

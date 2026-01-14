@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7a896ede.js";
+            window.path_to_searchindex_js = "../searchindex-7e5e0752.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c66c9043.js"></script>
+        <script src="../toc-20f24e52.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,21 +179,37 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="data-transforms"><a class="header" href="#data-transforms">Data Transforms</a></h1>
-<p>Transform structured data between formats with high performance and streaming support.</p>
+<p>Transform structured data between formats with streaming support and high performance.</p>
+<h2 id="choosing-your-approach"><a class="header" href="#choosing-your-approach">Choosing Your Approach</a></h2>
+<p>proc offers several ways to process data. Here’s how to choose:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Approach</th><th>Best For</th><th>Throughput</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>flatdata CLI</strong></td><td>Large files (100MB+), batch processing</td><td>~330 MB/s</td></tr>
+<tr><td><strong>Data Transforms</strong></td><td>In-process conversion, filtering, enrichment</td><td>10-93 MB/s</td></tr>
+<tr><td><strong>Process Pipelines</strong></td><td>Shell-like operations, text processing</td><td>Varies</td></tr>
+<tr><td><strong>Async Iterables</strong></td><td>Custom logic, API data, any async source</td><td>Varies</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Decision guide:</strong></p>
+<ul>
+<li>Converting CSV/TSV/JSON files? → <strong>Data Transforms</strong> (this chapter)</li>
+<li>Processing 100MB+ files for maximum speed? → <a href="../utilities/flatdata.html">flatdata CLI</a></li>
+<li>Running shell commands and piping output? → <a href="../core/pipelines.html">Process Pipelines</a></li>
+<li>Working with API responses or custom data? → <a href="../iterables/enumerable.html">Async Iterables</a></li>
+</ul>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>The data transforms module provides powerful functions to convert between common data formats like CSV, TSV, JSON, and Record format. All transforms are designed for <strong>streaming large datasets</strong> without loading everything into memory.</p>
-<blockquote>
-<p><strong>📦 Separate Import</strong>: Data transforms are in a separate module from the core library. Import with <code>jsr:@j50n/proc@{{gitv}}/transforms</code> to keep your main bundle lightweight.</p>
-</blockquote>
-<blockquote>
-<p><strong>💡 For maximum performance</strong>, use the <a href="../utilities/flatdata.html">flatdata CLI</a> to offload CSV parsing to a WASM-powered subprocess. This achieves ~330 MB/s throughput—about 7x faster than pure JavaScript transforms.</p>
-</blockquote>
+<p>The data transforms module converts between CSV, TSV, JSON, and Record formats. All transforms stream data without loading everything into memory.</p>
 <h2 id="import"><a class="header" href="#import">Import</a></h2>
-<p>Data transforms are <strong>not included in the main <code>@j50n/proc</code> import</strong>. This keeps the core library lightweight for users who only need process management.</p>
-<pre><code class="language-typescript">// Core library - process management and async iterables
-import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+<p>Data transforms are a separate import to keep the core library lightweight:</p>
+<pre><code class="language-typescript">// Core library
+import { run, enumerate, read } from "jsr:@j50n/proc";
 
-// Data transforms - CSV, TSV, JSON, Record conversions
+// Data transforms (separate import)
 import { 
   fromCsvToRows, 
   fromTsvToRows,
@@ -201,17 +217,11 @@ import {
   toRecord,
   toTsv,
   toJson
-} from "jsr:@j50n/proc@{{gitv}}/transforms";
+} from "jsr:@j50n/proc/transforms";
 </code></pre>
-<p><strong>Why separate?</strong></p>
-<ul>
-<li><strong>Smaller bundles</strong>: Core library users don’t import unused transform code</li>
-<li><strong>Clear separation</strong>: Process management vs data format conversions</li>
-<li><strong>Optional feature</strong>: Powerful but not required for basic usage</li>
-</ul>
 <h2 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h2>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
-import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
 
 // Convert CSV to TSV
 await read("data.csv")
@@ -384,14 +394,15 @@ const allRows = await read("huge-dataset.csv")
   }
 }
 </code></pre>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
-<li><a href="./csv.html">CSV Transforms</a> - Detailed CSV parsing and generation</li>
-<li><a href="./tsv.html">TSV Transforms</a> - Tab-separated value processing</li>
-<li><a href="./json.html">JSON Transforms</a> - JSON Lines with validation</li>
-<li><a href="./record.html">Record Format</a> - High-performance binary format</li>
-<li><a href="./lazyrow.html">LazyRow Guide</a> - Optimized data access patterns</li>
-<li><a href="./performance.html">Performance Guide</a> - Benchmarks and optimization tips</li>
+<li><a href="./csv.html">CSV Transforms</a> — Detailed CSV parsing and generation</li>
+<li><a href="./tsv.html">TSV Transforms</a> — Tab-separated value processing</li>
+<li><a href="./json.html">JSON Transforms</a> — JSON Lines with validation</li>
+<li><a href="./record.html">Record Format</a> — High-performance binary format</li>
+<li><a href="./lazyrow.html">LazyRow Optimization</a> — Optimized data access patterns</li>
+<li><a href="./performance.html">Performance Guide</a> — Benchmarks and optimization tips</li>
+<li><a href="../utilities/flatdata.html">flatdata CLI</a> — WASM-powered processing at 330 MB/s</li>
 </ul>
 
                     </main>

@@ -292,8 +292,9 @@ const result = await run("cat", "data.txt")
 
 For more performance optimization strategies, see [Concurrent Processing](../advanced/concurrent.md) and [Streaming Large Files](../advanced/streaming.md).
 
-## Next Steps
+## See Also
 
-- [Process Pipelines](./pipelines.md) - Chain commands together
-- [Working with Output](./output.md) - Transform and process output
-- [Error Handling](./error-handling.md) - Handle failures gracefully
+- [Working with Output](./output.md) — Transform and process command output
+- [Process Pipelines](./pipelines.md) — Chain multiple commands together
+- [Error Handling](./error-handling.md) — Handle failures gracefully
+- [Shell Script Replacement](../recipes/shell-replacement.md) — Replace bash scripts with proc

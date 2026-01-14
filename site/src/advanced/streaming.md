@@ -101,7 +101,7 @@ const matches = await read("huge.log")
   .collect();
 ```
 
-Stops reading once it finds 10 matches. Efficient!
+Stops reading once it finds 10 matches.
 
 ### Process CSV File
 

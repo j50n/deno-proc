@@ -1,24 +1,38 @@
 # Data Transforms
 
-Transform structured data between formats with high performance and streaming support.
+Transform structured data between formats with streaming support and high performance.
+
+## Choosing Your Approach
+
+proc offers several ways to process data. Here's how to choose:
+
+| Approach | Best For | Throughput |
+|----------|----------|------------|
+| **flatdata CLI** | Large files (100MB+), batch processing | ~330 MB/s |
+| **Data Transforms** | In-process conversion, filtering, enrichment | 10-93 MB/s |
+| **Process Pipelines** | Shell-like operations, text processing | Varies |
+| **Async Iterables** | Custom logic, API data, any async source | Varies |
+
+**Decision guide:**
+
+- Converting CSV/TSV/JSON files? → **Data Transforms** (this chapter)
+- Processing 100MB+ files for maximum speed? → [flatdata CLI](../utilities/flatdata.md)
+- Running shell commands and piping output? → [Process Pipelines](../core/pipelines.md)
+- Working with API responses or custom data? → [Async Iterables](../iterables/enumerable.md)
 
 ## Overview
 
-The data transforms module provides powerful functions to convert between common data formats like CSV, TSV, JSON, and Record format. All transforms are designed for **streaming large datasets** without loading everything into memory.
-
-> **📦 Separate Import**: Data transforms are in a separate module from the core library. Import with `jsr:@j50n/proc@{{gitv}}/transforms` to keep your main bundle lightweight.
-
-> **💡 For maximum performance**, use the [flatdata CLI](../utilities/flatdata.md) to offload CSV parsing to a WASM-powered subprocess. This achieves ~330 MB/s throughput—about 7x faster than pure JavaScript transforms.
+The data transforms module converts between CSV, TSV, JSON, and Record formats. All transforms stream data without loading everything into memory.
 
 ## Import
 
-Data transforms are **not included in the main `@j50n/proc` import**. This keeps the core library lightweight for users who only need process management.
+Data transforms are a separate import to keep the core library lightweight:
 
 ```typescript
-// Core library - process management and async iterables
-import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+// Core library
+import { run, enumerate, read } from "jsr:@j50n/proc";
 
-// Data transforms - CSV, TSV, JSON, Record conversions
+// Data transforms (separate import)
 import { 
   fromCsvToRows, 
   fromTsvToRows,
@@ -26,19 +40,14 @@ import {
   toRecord,
   toTsv,
   toJson
-} from "jsr:@j50n/proc@{{gitv}}/transforms";
+} from "jsr:@j50n/proc/transforms";
 ```
-
-**Why separate?**
-- **Smaller bundles**: Core library users don't import unused transform code
-- **Clear separation**: Process management vs data format conversions
-- **Optional feature**: Powerful but not required for basic usage
 
 ## Quick Start
 
 ```typescript
-import { read } from "jsr:@j50n/proc@{{gitv}}";
-import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+import { read } from "jsr:@j50n/proc";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
 
 // Convert CSV to TSV
 await read("data.csv")
@@ -232,11 +241,12 @@ try {
 }
 ```
 
-## Next Steps
+## See Also
 
-- [CSV Transforms](./csv.md) - Detailed CSV parsing and generation
-- [TSV Transforms](./tsv.md) - Tab-separated value processing  
-- [JSON Transforms](./json.md) - JSON Lines with validation
-- [Record Format](./record.md) - High-performance binary format
-- [LazyRow Guide](./lazyrow.md) - Optimized data access patterns
-- [Performance Guide](./performance.md) - Benchmarks and optimization tips
+- [CSV Transforms](./csv.md) — Detailed CSV parsing and generation
+- [TSV Transforms](./tsv.md) — Tab-separated value processing  
+- [JSON Transforms](./json.md) — JSON Lines with validation
+- [Record Format](./record.md) — High-performance binary format
+- [LazyRow Optimization](./lazyrow.md) — Optimized data access patterns
+- [Performance Guide](./performance.md) — Benchmarks and optimization tips
+- [flatdata CLI](../utilities/flatdata.md) — WASM-powered processing at 330 MB/s

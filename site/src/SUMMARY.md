@@ -9,15 +9,14 @@
 - [Installation](./getting-started/installation.md)
 - [Quick Start](./getting-started/quick-start.md)
 - [Key Concepts](./getting-started/key-concepts.md)
-- [Common Patterns](./patterns.md)
 
-# Core Features
+# Running Processes
 
-- [Error Handling](./core/error-handling.md)
-- [Running Processes](./core/running-processes.md)
-- [Process Pipelines](./core/pipelines.md)
+- [Basic Usage](./core/running-processes.md)
 - [Working with Output](./core/output.md)
 - [Working with Input](./core/input.md)
+- [Process Pipelines](./core/pipelines.md)
+- [Error Handling](./core/error-handling.md)
 - [Resource Management](./core/resources.md)
 
 # Async Iterables
@@ -25,7 +24,6 @@
 - [Understanding Enumerable](./iterables/enumerable.md)
 - [Array-Like Methods](./iterables/array-methods.md)
 - [Transformations](./iterables/transformations.md)
-- [Custom Transformations](./iterables/custom-transformations.md)
 - [Aggregations](./iterables/aggregations.md)
 - [Slicing and Sampling](./iterables/slicing.md)
 
@@ -36,23 +34,24 @@
 - [TSV Transforms](./data-transforms/tsv.md)
 - [JSON Transforms](./data-transforms/json.md)
 - [Record Format](./data-transforms/record.md)
-- [LazyRow Guide](./data-transforms/lazyrow.md)
+- [LazyRow Optimization](./data-transforms/lazyrow.md)
 - [Performance Guide](./data-transforms/performance.md)
 
-# Advanced Topics
+# Going Deeper
 
 - [Concurrent Processing](./advanced/concurrent.md)
 - [Streaming Large Files](./advanced/streaming.md)
-- [Performance Characteristics](./advanced/performance.md)
+- [Custom Transformations](./iterables/custom-transformations.md)
+- [Performance Tuning](./advanced/performance.md)
 
 # Utilities
 
 - [File I/O](./utilities/file-io.md)
+- [flatdata CLI](./utilities/flatdata.md)
 - [Range and Iteration](./utilities/range.md)
 - [Zip and Enumerate](./utilities/zip-enumerate.md)
 - [WritableIterable](./utilities/writable-iterable.md)
 - [Sleep](./utilities/sleep.md)
-- [flatdata CLI](./utilities/flatdata.md)
 
 # Recipes
 
@@ -61,6 +60,19 @@
 - [Decompressing Files](./recipes/decompression.md)
 - [Parallel Downloads](./recipes/parallel-downloads.md)
 - [Shell Script Replacement](./recipes/shell-replacement.md)
+
+---
+
+# Reference
+
+- [API Reference](./api-reference.md)
+- [FAQ](./faq.md)
+- [Troubleshooting](./troubleshooting.md)
+- [Glossary](./glossary.md)
+
+# Appendix
+
+- [CSV Parser Specification](./appendix/csv-parser.md)
 
 ---
 
@@ -73,14 +85,3 @@
 - [Documentation Guidelines](./contributor/documentation.md)
 - [Testing Strategy](./contributor/testing.md)
 - [Build Process](./contributor/build-process.md)
-
----
-
-# Appendix
-
-- [CSV Parser Specification](./appendix/csv-parser.md)
-
----
-
-[API Reference](./api-reference.md) [Migration Guide](./migration.md)
-[FAQ](./faq.md)

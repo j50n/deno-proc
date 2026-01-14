@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Common Patterns - proc</title>
+        <title>Troubleshooting - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7a896ede.js";
+            window.path_to_searchindex_js = "searchindex-7e5e0752.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c66c9043.js"></script>
+        <script src="toc-20f24e52.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,259 +178,163 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h1>
-<p>This guide shows typical usage patterns to help you understand how proc works in
-practice.</p>
-<h2 id="pattern-run-and-collect"><a class="header" href="#pattern-run-and-collect">Pattern: Run and Collect</a></h2>
-<p>The most basic pattern—run a command and get all output:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+                        <h1 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h1>
+<p>Common issues and their solutions.</p>
+<h2 id="process-issues"><a class="header" href="#process-issues">Process Issues</a></h2>
+<h3 id="my-process-hangs"><a class="header" href="#my-process-hangs">My process hangs</a></h3>
+<p><strong>Cause</strong>: Output not consumed. proc waits for you to read the output before the
+process completes.</p>
+<pre><code class="language-typescript">// ❌ Hangs - output never consumed
+const p = run("ls");
+await p.status;
 
-const lines = await run("ls", "-la").lines.collect();
-// lines is string[]
+// ✅ Works - consume output first
+const p = run("ls");
+await p.lines.collect();
+await p.status;
 </code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>.lines</code> is a property (no parentheses) that returns an Enumerable</li>
-<li><code>.collect()</code> is a method that consumes the stream and returns an array</li>
-<li>Always consume output to avoid resource leaks</li>
-</ul>
-<h2 id="pattern-process-pipeline"><a class="header" href="#pattern-process-pipeline">Pattern: Process Pipeline</a></h2>
-<p>Chain commands like shell pipes:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+<h3 id="resource-leak-errors"><a class="header" href="#resource-leak-errors">“Resource leak” errors</a></h3>
+<p><strong>Cause</strong>: Process output not consumed. Every process must have its output read.</p>
+<pre><code class="language-typescript">// ❌ Resource leak
+run("ls"); // Output ignored
 
-const count = await run("cat", "data.txt")
-  .run("grep", "error")
-  .run("wc", "-l")
-  .lines.first;
-</code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li>Each <code>.run()</code> pipes the previous command’s stdout to the next command’s stdin</li>
-<li><code>.first</code> is a property that returns a Promise&lt;string | undefined&gt;</li>
-<li>Errors from any command in the chain propagate to the catch block</li>
-</ul>
-<h2 id="pattern-transform-and-filter"><a class="header" href="#pattern-transform-and-filter">Pattern: Transform and Filter</a></h2>
-<p>Process output with Array methods:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+// ✅ Consume the output
+await run("ls").lines.collect();
 
-const errors = await run("cat", "app.log")
-  .lines
-  .filter((line) =&gt; line.includes("ERROR"))
-  .map((line) =&gt; line.trim())
-  .take(10)
-  .collect();
+// ✅ Or iterate through it
+await run("ls").lines.forEach(console.log);
 </code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>.lines</code> converts byte stream to line stream</li>
-<li>Methods like <code>.filter()</code>, <code>.map()</code>, <code>.take()</code> work on the stream</li>
-<li>Nothing executes until you call a terminal operation like <code>.collect()</code></li>
-</ul>
-<h2 id="pattern-error-handling"><a class="header" href="#pattern-error-handling">Pattern: Error Handling</a></h2>
-<p>Catch errors at the end of the pipeline:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+<h3 id="process-exits-with-unexpected-code"><a class="header" href="#process-exits-with-unexpected-code">Process exits with unexpected code</a></h3>
+<p><strong>Cause</strong>: The command failed. Check the error for details.</p>
+<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@{{gitv}}";
 
 try {
-  await run("npm", "test")
-    .lines
-    .forEach((line) =&gt; console.log(line));
+  await run("grep", "pattern", "missing-file.txt").lines.collect();
 } catch (error) {
-  if (error.code) {
-    console.error(`Process exited with code ${error.code}`);
-  } else {
-    console.error(`Error: ${error.message}`);
+  if (error instanceof ExitCodeError) {
+    console.error(`Exit code: ${error.code}`);
+    console.error(`Command: ${error.command.join(" ")}`);
   }
 }
 </code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li>Processes that exit with non-zero codes throw <code>ExitCodeError</code></li>
-<li>The error has a <code>.code</code> property with the exit code</li>
-<li>All errors (process, transform, your code) propagate to the same catch block</li>
-</ul>
-<h2 id="pattern-check-status-without-throwing"><a class="header" href="#pattern-check-status-without-throwing">Pattern: Check Status Without Throwing</a></h2>
-<p>Get exit status without throwing an error:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
-
-const p = run("some-command");
-await p.lines.collect(); // Consume output first
-const status = await p.status; // .status is a property
-
-if (status.code !== 0) {
-  console.error(`Command failed with code ${status.code}`);
-}
+<h3 id="permission-denied"><a class="header" href="#permission-denied">Permission denied</a></h3>
+<p><strong>Cause</strong>: Missing Deno permissions.</p>
+<pre><code class="language-bash"># Grant necessary permissions
+deno run --allow-run --allow-read --allow-write script.ts
 </code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>.status</code> is a property that returns <code>Promise&lt;CommandStatus&gt;</code></li>
-<li>You must consume output before checking status</li>
-<li>This doesn’t throw on non-zero exit codes</li>
-</ul>
-<h2 id="pattern-enumerate-with-indices"><a class="header" href="#pattern-enumerate-with-indices">Pattern: Enumerate with Indices</a></h2>
-<p>Add indices to any iterable:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
+<h2 id="type-errors"><a class="header" href="#type-errors">Type Errors</a></h2>
+<h3 id="property-lines-does-not-exist"><a class="header" href="#property-lines-does-not-exist">“Property ‘lines’ does not exist”</a></h3>
+<p><strong>Cause</strong>: Using <code>.lines()</code> instead of <code>.lines</code> (it’s a property, not a method).</p>
+<pre><code class="language-typescript">// ❌ Wrong
+run("ls").lines().collect();
 
-const numbered = await enumerate(["a", "b", "c"])
-  .enum() // Adds [item, index] tuples
-  .map(([item, i]) =&gt; `${i + 1}. ${item}`)
+// ✅ Correct
+run("ls").lines.collect();
+</code></pre>
+<p>Same applies to <code>.status</code>, <code>.first</code>, <code>.last</code>.</p>
+<h3 id="decompressionstream-type-error"><a class="header" href="#decompressionstream-type-error">DecompressionStream type error</a></h3>
+<p><strong>Cause</strong>: TypeScript doesn’t recognize the stream type.</p>
+<pre><code class="language-typescript">// Add type assertion
+.transform(new DecompressionStream("gzip") as TransformStream&lt;Uint8Array, Uint8Array&gt;)
+</code></pre>
+<h3 id="cannot-find-module-for-transforms"><a class="header" href="#cannot-find-module-for-transforms">“Cannot find module” for transforms</a></h3>
+<p><strong>Cause</strong>: Data transforms are a separate import.</p>
+<pre><code class="language-typescript">// ❌ Wrong - transforms not in main module
+import { fromCsvToRows } from "jsr:@j50n/proc@{{gitv}}";
+
+// ✅ Correct - use /transforms subpath
+import { fromCsvToRows } from "jsr:@j50n/proc/transforms";
+</code></pre>
+<h2 id="async-issues"><a class="header" href="#async-issues">Async Issues</a></h2>
+<h3 id="results-are-undefined-or-empty"><a class="header" href="#results-are-undefined-or-empty">Results are undefined or empty</a></h3>
+<p><strong>Cause</strong>: Not awaiting async operations.</p>
+<pre><code class="language-typescript">// ❌ Wrong - not awaited
+const lines = run("ls").lines.collect();
+console.log(lines); // Promise, not array
+
+// ✅ Correct - await the result
+const lines = await run("ls").lines.collect();
+console.log(lines); // string[]
+</code></pre>
+<h3 id="foreach-doesnt-seem-to-run"><a class="header" href="#foreach-doesnt-seem-to-run">forEach doesn’t seem to run</a></h3>
+<p><strong>Cause</strong>: <code>forEach</code> returns a Promise that must be awaited.</p>
+<pre><code class="language-typescript">// ❌ Wrong - not awaited
+run("ls").lines.forEach(console.log);
+
+// ✅ Correct
+await run("ls").lines.forEach(console.log);
+</code></pre>
+<h2 id="data-transform-issues"><a class="header" href="#data-transform-issues">Data Transform Issues</a></h2>
+<h3 id="csv-parsing-produces-wrong-columns"><a class="header" href="#csv-parsing-produces-wrong-columns">CSV parsing produces wrong columns</a></h3>
+<p><strong>Cause</strong>: Delimiter mismatch or quoting issues.</p>
+<pre><code class="language-typescript">// Check your delimiter
+fromCsvToRows(); // Comma-delimited
+fromTsvToRows(); // Tab-delimited
+fromCsvToRows({ delimiter: ";" }); // Custom delimiter
+</code></pre>
+<h3 id="large-file-causes-memory-issues"><a class="header" href="#large-file-causes-memory-issues">Large file causes memory issues</a></h3>
+<p><strong>Cause</strong>: Using <code>.collect()</code> on huge datasets loads everything into memory.</p>
+<pre><code class="language-typescript">// ❌ Loads entire file into memory
+const allRows = await read("huge.csv")
+  .transform(fromCsvToRows())
   .collect();
-// ["1. a", "2. b", "3. c"]
+
+// ✅ Stream and process one at a time
+await read("huge.csv")
+  .transform(fromCsvToRows())
+  .forEach((row) =&gt; processRow(row));
 </code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>enumerate()</code> wraps an iterable to add Array-like methods</li>
-<li><code>.enum()</code> is a method that transforms items to <code>[item, index]</code> tuples</li>
-<li>This is a two-step process: wrap, then enumerate</li>
-</ul>
-<h2 id="pattern-enumerate-without-indices"><a class="header" href="#pattern-enumerate-without-indices">Pattern: Enumerate Without Indices</a></h2>
-<p>Use Array methods without adding indices:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
-
-const filtered = await enumerate(["a", "b", "c"])
-  .filter((item) =&gt; item !== "b")
-  .map((item) =&gt; item.toUpperCase())
-  .collect();
-// ["A", "C"]
+<h3 id="flatdata-command-not-found"><a class="header" href="#flatdata-command-not-found">flatdata command not found</a></h3>
+<p><strong>Cause</strong>: flatdata CLI not installed globally.</p>
+<pre><code class="language-bash">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
 </code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li>You don’t need to call <code>.enum()</code> if you don’t need indices</li>
-<li><code>enumerate()</code> just adds Array-like methods to any iterable</li>
-</ul>
-<h2 id="pattern-stream-large-files"><a class="header" href="#pattern-stream-large-files">Pattern: Stream Large Files</a></h2>
-<p>Process files without loading into memory:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
-
-const errorCount = await read("huge-log.txt")
-  .lines
-  .filter((line) =&gt; line.includes("ERROR"))
-  .count();
-</code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>read()</code> returns an Enumerable of bytes</li>
-<li><code>.lines</code> converts to line stream</li>
-<li>Everything streams—no memory spike for large files</li>
-</ul>
-<h2 id="pattern-decompress-and-process"><a class="header" href="#pattern-decompress-and-process">Pattern: Decompress and Process</a></h2>
-<p>Handle compressed files:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
-
-const lines = await read("data.txt.gz")
-  .transform(new DecompressionStream("gzip"))
-  .lines
-  .collect();
-</code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>.transform()</code> applies a TransformStream</li>
-<li><code>DecompressionStream</code> is built into Deno</li>
-<li>Everything streams—no temp files needed</li>
-</ul>
-<h2 id="pattern-concurrent-processing"><a class="header" href="#pattern-concurrent-processing">Pattern: Concurrent Processing</a></h2>
-<p>Process items in parallel with concurrency control:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
-
-const urls = ["url1", "url2", "url3"];
-
+<h2 id="performance-issues"><a class="header" href="#performance-issues">Performance Issues</a></h2>
+<h3 id="processing-is-slower-than-expected"><a class="header" href="#processing-is-slower-than-expected">Processing is slower than expected</a></h3>
+<p><strong>Possible causes</strong>:</p>
+<ol>
+<li><strong>Using CSV when TSV would work</strong> — TSV is 3-5x faster than CSV</li>
+<li><strong>Not using LazyRow</strong> — Enable with <code>fromCsvToRows({ lazy: true })</code></li>
+<li><strong>Sequential when parallel would help</strong> — Use <code>concurrentMap</code> for I/O-bound
+work</li>
+</ol>
+<pre><code class="language-typescript">// Faster: use concurrentMap for network requests
 await enumerate(urls)
-  .concurrentMap(async (url) =&gt; {
-    const response = await fetch(url);
-    return { url, status: response.status };
-  }, { concurrency: 5 })
-  .forEach((result) =&gt; console.log(result));
+  .concurrentMap(fetch, { concurrency: 10 })
+  .collect();
 </code></pre>
-<p><strong>Key points:</strong></p>
+<h3 id="memory-usage-grows-over-time"><a class="header" href="#memory-usage-grows-over-time">Memory usage grows over time</a></h3>
+<p><strong>Cause</strong>: Caching or collecting when streaming would work.</p>
+<pre><code class="language-typescript">// ❌ Caches everything
+const cached = enumerate(hugeDataset).cache();
+
+// ✅ Stream through without caching
+await enumerate(hugeDataset)
+  .filter(predicate)
+  .forEach(process);
+</code></pre>
+<h2 id="still-stuck"><a class="header" href="#still-stuck">Still Stuck?</a></h2>
+<ol>
+<li>Check the <a href="./faq.html">FAQ</a> for common questions</li>
+<li>Search <a href="https://github.com/j50n/deno-proc/issues">existing issues</a></li>
+<li><a href="https://github.com/j50n/deno-proc/issues/new">Open a new issue</a> with:
 <ul>
-<li><code>.concurrentMap()</code> processes items in parallel</li>
-<li><code>concurrency</code> option limits how many run at once</li>
-<li>Results maintain input order (use <code>.concurrentUnorderedMap()</code> for faster
-unordered results)</li>
+<li>proc version</li>
+<li>Deno version</li>
+<li>Minimal reproduction code</li>
+<li>Expected vs actual behavior</li>
 </ul>
-<h2 id="pattern-build-objects-with-reduce"><a class="header" href="#pattern-build-objects-with-reduce">Pattern: Build Objects with Reduce</a></h2>
-<p>Aggregate data into a single value:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
-
-const wordCount = await run("cat", "data.txt")
-  .lines
-  .reduce((acc, line) =&gt; {
-    const words = line.split(/\s+/);
-    for (const word of words) {
-      acc[word] = (acc[word] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record&lt;string, number&gt;);
-</code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>.reduce()</code> works like Array.reduce()</li>
-<li>Provide an initial value (second argument)</li>
-<li>The accumulator can be any type</li>
-</ul>
-<h2 id="pattern-split-stream-with-tee"><a class="header" href="#pattern-split-stream-with-tee">Pattern: Split Stream with Tee</a></h2>
-<p>Process the same stream multiple ways:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
-
-const [errors, warnings] = run("cat", "app.log")
-  .lines
-  .tee(2);
-
-const errorCount = errors.filter((line) =&gt; line.includes("ERROR")).count();
-const warningCount = warnings.filter((line) =&gt; line.includes("WARN")).count();
-
-console.log(`Errors: ${await errorCount}, Warnings: ${await warningCount}`);
-</code></pre>
-<p><strong>Key points:</strong></p>
-<ul>
-<li><code>.tee(n)</code> splits a stream into n identical streams</li>
-<li>Each stream can be processed independently</li>
-<li>All streams must be consumed</li>
-</ul>
-<h2 id="anti-pattern-not-consuming-output"><a class="header" href="#anti-pattern-not-consuming-output">Anti-Pattern: Not Consuming Output</a></h2>
-<p><strong>Don’t do this:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const p = run("ls"); // ❌ Output never consumed
-</code></pre>
-<p><strong>Why it’s bad:</strong> Unconsumed output keeps the process handle open, causing
-resource leaks.</p>
-<p><strong>Do this instead:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run("ls").lines.collect(); // ✅ Output consumed
-</code></pre>
-<h2 id="anti-pattern-mixing-sync-and-async"><a class="header" href="#anti-pattern-mixing-sync-and-async">Anti-Pattern: Mixing Sync and Async</a></h2>
-<p><strong>Don’t do this:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const lines = run("ls").lines; // ❌ Not awaited
-lines.forEach((line) =&gt; console.log(line)); // ❌ Won't work
-</code></pre>
-<p><strong>Why it’s bad:</strong> <code>.lines</code> returns an Enumerable, but you need to await the
-terminal operation.</p>
-<p><strong>Do this instead:</strong></p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run("ls").lines.forEach((line) =&gt; console.log(line)); // ✅ Awaited
-</code></pre>
+</li>
+</ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="getting-started/key-concepts.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="faq.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="core/error-handling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -440,11 +344,11 @@ terminal operation.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="getting-started/key-concepts.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="faq.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="core/error-handling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

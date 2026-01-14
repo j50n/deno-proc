@@ -306,19 +306,12 @@ Only customize error handling when you have a specific need. The default behavio
 
 ## Why This Approach Matters
 
-Error handling is the **primary reason** proc exists. If you've ever:
+Error handling is the primary reason proc exists. If you've struggled with stream error events, debugged edge cases in error propagation, or written the same error handling code repeatedly, proc's approach will feel like a relief.
 
-- Fought with stream error events
-- Debugged edge cases in error propagation
-- Written the same error handling code over and over
-- Lost errors in complex pipelines
+Errors propagate naturally. One catch block handles everything. The complexity disappears.
 
-...then you understand why this is revolutionary.
+## See Also
 
-**Errors just work.** Like they should have all along.
-
-## Next Steps
-
-- [Running Processes](./running-processes.md) - Learn all the ways to run commands
-- [Process Pipelines](./pipelines.md) - Chain commands together
-- [Custom Error Handling](../advanced/custom-errors.md) - Advanced error customization
+- [Running Processes](./running-processes.md) — All the ways to run commands
+- [Process Pipelines](./pipelines.md) — Chain commands together
+- [Troubleshooting](../troubleshooting.md) — Common issues and solutions

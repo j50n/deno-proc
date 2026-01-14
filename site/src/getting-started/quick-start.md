@@ -134,12 +134,9 @@ await read("data.csv")
 
 The transforms module is **separate from the core library** to keep your bundle lightweight. See [Data Transforms](../data-transforms/README.md) for details.
 
-## What's Next?
+## See Also
 
-Now that you've got the basics, learn about:
-
-- [Key Concepts](./key-concepts.md) - Properties vs methods, resource management
-- [Error Handling](../core/error-handling.md) - The killer feature explained
-- [Running Processes](../core/running-processes.md) - All the ways to run commands
-
-Or jump straight to [Recipes](../recipes/counting-words.md) for copy-paste solutions.
+- [Key Concepts](./key-concepts.md) — Properties vs methods, resource management
+- [Running Processes](../core/running-processes.md) — All the ways to run commands
+- [Error Handling](../core/error-handling.md) — How errors propagate through pipelines
+- [Recipes](../recipes/counting-words.md) — Copy-paste solutions for common tasks

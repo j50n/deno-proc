@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Migration Guide - proc</title>
+        <title>Glossary - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7a896ede.js";
+            window.path_to_searchindex_js = "searchindex-7e5e0752.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c66c9043.js"></script>
+        <script src="toc-20f24e52.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,44 +178,77 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="migration-guide"><a class="header" href="#migration-guide">Migration Guide</a></h1>
-<p>Migrating from other tools to proc.</p>
-<h2 id="from-denocommand"><a class="header" href="#from-denocommand">From Deno.Command</a></h2>
-<p><strong>Before:</strong></p>
-<pre><code class="language-typescript">const command = new Deno.Command("ls", { args: ["-la"] });
-const output = await command.output();
-const text = new TextDecoder().decode(output.stdout);
-</code></pre>
-<p><strong>After:</strong></p>
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
-const lines = await run("ls", "-la").lines.collect();
-</code></pre>
-<h2 id="from-shell-scripts"><a class="header" href="#from-shell-scripts">From Shell Scripts</a></h2>
-<p>See <a href="./recipes/shell-replacement.html">Shell Script Replacement</a> for detailed
-examples.</p>
-<h2 id="key-differences"><a class="header" href="#key-differences">Key Differences</a></h2>
-<ul>
-<li>Properties vs methods: <code>.lines</code> not <code>.lines()</code></li>
-<li>Always consume output to avoid leaks</li>
-<li>Errors propagate through pipelines</li>
-<li>Use <code>enumerate()</code> then <code>.enum()</code> for indices</li>
-</ul>
-<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
-<ul>
-<li><a href="./getting-started/installation.html">Getting Started</a> - Installation</li>
-<li><a href="./getting-started/key-concepts.html">Key Concepts</a> - Important concepts</li>
-<li><a href="./faq.html">FAQ</a> - Common questions</li>
-</ul>
+                        <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<p>Key terms used throughout this documentation.</p>
+<h2 id="a"><a class="header" href="#a">A</a></h2>
+<p><strong>Aggregation</strong> : An operation that consumes an entire iterable and produces a
+single value. Examples: <code>count()</code>, <code>reduce()</code>, <code>collect()</code>. Aggregations are
+terminal operations.</p>
+<p><strong>Async Iterator</strong> : A JavaScript object that produces values asynchronously,
+one at a time, when requested. proc uses async iterators instead of streams for
+pull-based data flow.</p>
+<h2 id="b"><a class="header" href="#b">B</a></h2>
+<p><strong>Backpressure</strong> : The problem of coordinating data flow when a producer
+generates data faster than a consumer can process it. Traditional streams
+require explicit backpressure handling. proc eliminates backpressure by using
+pull-based async iterators.</p>
+<h2 id="c"><a class="header" href="#c">C</a></h2>
+<p><strong>Collect</strong> : A terminal operation that gathers all items from an iterable into
+an array. Use with caution on large datasets as it loads everything into memory.</p>
+<h2 id="e"><a class="header" href="#e">E</a></h2>
+<p><strong>Enumerable</strong> : proc’s wrapper around async iterables that provides Array-like
+methods (<code>map</code>, <code>filter</code>, <code>reduce</code>, etc.). Created with <code>enumerate()</code> or
+returned by <code>run().lines</code>.</p>
+<p><strong>enumerate()</strong> : Function that wraps any iterable (sync or async) in an
+Enumerable, giving it Array-like methods.</p>
+<h2 id="f"><a class="header" href="#f">F</a></h2>
+<p><strong>flatdata</strong> : A WASM-powered CLI tool included with proc for high-performance
+CSV/TSV processing. Achieves ~330 MB/s throughput by offloading parsing to a
+subprocess.</p>
+<h2 id="l"><a class="header" href="#l">L</a></h2>
+<p><strong>Lazy Evaluation</strong> : Computation that only happens when results are needed.
+proc pipelines are lazy—nothing executes until you call a terminal operation
+like <code>collect()</code> or <code>forEach()</code>.</p>
+<p><strong>LazyRow</strong> : An optimization for CSV parsing that defers field extraction until
+accessed. Improves performance when you only need some columns from each row.</p>
+<h2 id="p"><a class="header" href="#p">P</a></h2>
+<p><strong>Pipeline</strong> : A chain of operations where each step’s output becomes the next
+step’s input. In proc, pipelines are built with method chaining:
+<code>.map().filter().collect()</code>.</p>
+<p><strong>Pull-based</strong> : A data flow model where consumers request data when ready.
+Contrast with push-based streams where producers send data regardless of
+consumer readiness. proc uses pull-based async iterators.</p>
+<p><strong>Push-based</strong> : A data flow model where producers send data to consumers.
+Traditional JavaScript streams are push-based, requiring backpressure
+coordination.</p>
+<h2 id="r"><a class="header" href="#r">R</a></h2>
+<p><strong>Record Format</strong> : A binary format used by flatdata for efficient inter-process
+communication. Faster than text formats because it avoids repeated parsing.</p>
+<h2 id="s"><a class="header" href="#s">S</a></h2>
+<p><strong>Streaming</strong> : Processing data piece by piece rather than loading everything
+into memory. proc streams by default, enabling processing of files larger than
+available RAM.</p>
+<h2 id="t"><a class="header" href="#t">T</a></h2>
+<p><strong>Terminal Operation</strong> : An operation that consumes an iterable and produces a
+final result, triggering execution of the pipeline. Examples: <code>collect()</code>,
+<code>forEach()</code>, <code>count()</code>, <code>first</code>, <code>reduce()</code>.</p>
+<p><strong>Transform</strong> : An operation that converts data from one form to another. In
+proc, transforms can be TransformStreams or async generator functions.</p>
+<p><strong>TransformStream</strong> : A Web Streams API object that transforms data passing
+through it. proc’s <code>.transform()</code> method accepts TransformStreams.</p>
+<h2 id="u"><a class="header" href="#u">U</a></h2>
+<p><strong>UpstreamError</strong> : An error type that wraps errors from earlier stages in a
+pipeline. Helps identify where in a chain the original error occurred.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="api-reference.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="troubleshooting.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="faq.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="appendix/csv-parser.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -225,11 +258,11 @@ examples.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="api-reference.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="troubleshooting.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="faq.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="appendix/csv-parser.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

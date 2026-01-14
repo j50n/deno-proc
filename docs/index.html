@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7a896ede.js";
+            window.path_to_searchindex_js = "searchindex-7e5e0752.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c66c9043.js"></script>
+        <script src="toc-20f24e52.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,137 +179,97 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="welcome-to-proc"><a class="header" href="#welcome-to-proc">Welcome to proc</a></h1>
-<p>Running child processes and working with streams should be simple. <strong>proc</strong>
-makes it simple.</p>
-<blockquote>
-<p><strong>✨ The Big Idea</strong>: Treat processes and streams like arrays. Use <code>map</code>,
-<code>filter</code>, <code>reduce</code> on anything. Errors flow naturally through pipelines. No
-callbacks, no edge cases, no headaches.</p>
-</blockquote>
-<h2 id="what-is-proc"><a class="header" href="#what-is-proc">What is proc?</a></h2>
-<p>proc is a Deno library that gives you two superpowers:</p>
-<ol>
-<li><strong>Run child processes</strong> with a clean, composable API</li>
-<li><strong>Work with async iterables</strong> using the Array methods you already know</li>
-</ol>
-<p>But here’s the real magic: <strong>errors just work</strong>. They flow through your
-pipelines naturally, like data. No edge cases, no separate error channels, no
-callbacks. One try-catch at the end handles everything.</p>
-<blockquote>
-<p><strong>💡 Tip</strong>: If you’ve ever struggled with JavaScript streams, you’re going to
-love this.</p>
-</blockquote>
-<blockquote>
-<p><strong>🚀 Need speed?</strong> Check out <a href="./utilities/flatdata.html">flatdata</a>—a
-WASM-powered CLI for CSV/TSV processing at ~330 MB/s (7x faster than pure JS).</p>
-</blockquote>
-<blockquote>
-<p><strong>📦 Optional Features</strong>: The <a href="./data-transforms/README.html">data transforms</a>
-module (CSV, TSV, JSON, Record) is separate from the core library. Import it
-with <code>/transforms</code> when needed to keep your bundle lightweight.</p>
-</blockquote>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>JavaScript streams are push-based. Producers push data whether consumers are
+ready or not. This creates backpressure—complex coordination between producers
+and consumers to prevent memory exhaustion. And when something goes wrong? You
+need error handlers on every stream in the chain.</p>
+<pre><code class="language-typescript">// Traditional streams: backpressure + error handling at every step
+stream1.on("error", handleError);
+stream2.on("error", handleError);
+stream3.on("error", handleError);
+// Plus drain events, pause/resume, pipe coordination...
+</code></pre>
+<h2 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h2>
+<p>proc uses async iterators instead of streams. Consumers pull data when ready. No
+backpressure. No coordination. And errors flow through pipelines naturally—one
+try-catch handles everything.</p>
+<pre><code class="language-typescript">// proc: no backpressure, errors just work
+try {
+  await run("cat", "data.txt")
+    .run("grep", "error")
+    .run("wc", "-l")
+    .lines
+    .forEach(console.log);
+} catch (error) {
+  // All errors caught here
+}
+</code></pre>
+<h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who This Book Is For</a></h2>
+<p>This documentation is for developers who:</p>
+<ul>
+<li>Run child processes and want better error handling than <code>Deno.Command</code>
+provides</li>
+<li>Process streaming data (logs, CSV files, API responses) without loading
+everything into memory</li>
+<li>Want Array-like methods (<code>map</code>, <code>filter</code>, <code>reduce</code>) for async data</li>
+<li>Are replacing shell scripts with type-safe, testable code</li>
+</ul>
+<p>You should be comfortable with TypeScript basics and async/await. No prior
+experience with Deno streams or child processes required.</p>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<p><strong>Running Processes</strong> — Execute commands, chain them like shell pipes, capture
+output, handle errors gracefully.</p>
+<p><strong>Async Iterables</strong> — Use <code>map</code>, <code>filter</code>, <code>reduce</code>, and more on any async data
+source. Process gigabyte files with constant memory.</p>
+<p><strong>Data Transforms</strong> — Convert between CSV, TSV, JSON, and Record formats with
+streaming support. Or use the WASM-powered flatdata CLI for 330 MB/s throughput.</p>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
-<p>Count lines in a compressed file—streaming, no temp files:</p>
-<!-- NOT TESTED: Illustrative example -->
+<p>Count lines in a compressed file—streaming, constant memory:</p>
 <pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
 
-const lines = await read("war-and-peace.txt.gz")
+const count = await read("logs.txt.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
   .count();
-
-console.log(`${lines} lines`); // 23,166 lines
-</code></pre>
-<p>Build custom transformations with readable async generators:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
-
-// Parse and validate JSON lines
-async function* parseJsonLines(lines) {
-  for await (const line of lines) {
-    try {
-      const obj = JSON.parse(line.trim());
-      if (obj.id &amp;&amp; obj.timestamp) yield obj;
-    } catch {
-      // Skip invalid JSON
-    }
-  }
-}
-
-const validEntries = await enumerate(logLines)
-  .transform(parseJsonLines)
-  .collect();
 </code></pre>
 <p>Chain processes like shell pipes:</p>
-<!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
 
-const result = await run("cat", "data.txt")
-  .run("grep", "error")
+const errors = await run("cat", "app.log")
+  .run("grep", "ERROR")
   .run("wc", "-l")
   .lines.first;
 </code></pre>
-<p>Handle errors gracefully:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@{{gitv}}";
+<p>Transform async data with familiar methods:</p>
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
-try {
-  await run("npm", "test")
-    .lines
-    .map((line) =&gt; line.toUpperCase())
-    .filter((line) =&gt; line.includes("FAIL"))
-    .forEach((line) =&gt; console.log(line));
-} catch (error) {
-  // All errors caught here—from the process, from map, from filter
-  console.error(`Tests failed: ${error.code}`);
-}
+const results = await enumerate(urls)
+  .concurrentMap(fetch, { concurrency: 5 })
+  .filter((r) =&gt; r.ok)
+  .map((r) =&gt; r.json())
+  .collect();
 </code></pre>
-<h2 id="why-proc"><a class="header" href="#why-proc">Why proc?</a></h2>
-<p>JavaScript streaming is powerful, but traditional approaches create unnecessary
-complexity. proc eliminates the two biggest pain points: backpressure
-coordination and error handling. By using async iterators (pull-based) instead
-of streams (push-based), backpressure disappears entirely and errors propagate
-naturally through pipelines.</p>
-<h2 id="high-performance-data-processing"><a class="header" href="#high-performance-data-processing">High-Performance Data Processing</a></h2>
-<p>proc includes <strong>flatdata</strong>, a WASM-powered CLI for converting between CSV, TSV,
-and binary record formats. By offloading CSV parsing to a subprocess, your main
-application stays responsive while processing data at ~330 MB/s—about 7x faster
-than pure JavaScript.</p>
-<pre><code class="language-bash"># Install flatdata globally
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
-
-# Use in pipelines
-cat huge.csv | flatdata csv2record | ./your-processor | flatdata record2csv
-</code></pre>
-<p>See the <a href="./utilities/flatdata.html">flatdata documentation</a> for details.</p>
-<p>This design gives you:</p>
-<ul>
-<li><strong>Errors that propagate naturally</strong> through pipelines</li>
-<li><strong>Array methods on async iterables</strong> (map, filter, reduce, and more)</li>
-<li><strong>Custom transformations with async generators</strong> (easier than streams API)</li>
-<li><strong>Process management</strong> that feels like shell scripting</li>
-<li><strong>Streaming everything</strong> for memory efficiency</li>
-<li><strong>Type safety</strong> with full TypeScript support</li>
-</ul>
-<h2 id="who-is-this-for"><a class="header" href="#who-is-this-for">Who is this for?</a></h2>
-<ul>
-<li><strong>DevOps engineers</strong> automating deployments, processing logs, and managing
-infrastructure</li>
-<li><strong>Data engineers</strong> processing large CSV files, log files, or streaming data</li>
-<li><strong>Backend developers</strong> building CLI tools, batch processors, or data pipelines</li>
-<li><strong>System administrators</strong> replacing Bash scripts with type-safe, testable Deno
-code</li>
-<li><strong>Anyone</strong> who needs to run child processes or work with large datasets
-efficiently</li>
-</ul>
-<h2 id="ready-to-dive-in"><a class="header" href="#ready-to-dive-in">Ready to dive in?</a></h2>
-<p>Start with <a href="./getting-started/installation.html">Installation</a> or jump straight to
-the <a href="./getting-started/quick-start.html">Quick Start</a>.</p>
+<h2 id="quick-decision-guide"><a class="header" href="#quick-decision-guide">Quick Decision Guide</a></h2>
+<p><strong>Need to run shell commands?</strong> →
+<a href="./core/running-processes.html">Running Processes</a></p>
+<p><strong>Processing files line by line?</strong> → <a href="./utilities/file-io.html">File I/O</a></p>
+<p><strong>Converting CSV/TSV/JSON?</strong> → <a href="./data-transforms/README.html">Data Transforms</a></p>
+<p><strong>Need maximum throughput?</strong> → <a href="./utilities/flatdata.html">flatdata CLI</a></p>
+<p><strong>Working with any async data?</strong> →
+<a href="./iterables/enumerable.html">Understanding Enumerable</a></p>
+<h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
+<ol>
+<li><a href="./getting-started/installation.html">Installation</a> — Add proc to your project</li>
+<li><a href="./getting-started/quick-start.html">Quick Start</a> — Your first proc script in 5
+minutes</li>
+<li><a href="./getting-started/key-concepts.html">Key Concepts</a> — Essential patterns to
+understand</li>
+</ol>
 <hr>
-<p><strong>Current Version:</strong> {{gitv}}<br><strong>Status:</strong> Stable, actively maintained, ready for production</p>
-<p>Found a bug? Have a question?
-<a href="https://github.com/j50n/deno-proc/issues">File an issue</a> or check the
-<a href="./faq.html">FAQ</a>.</p>
+<p><strong>Version:</strong> {{gitv}} | <strong>License:</strong> MIT | <strong>Status:</strong> Production-ready</p>
+<p><a href="https://github.com/j50n/deno-proc">GitHub</a> ·
+<a href="https://github.com/j50n/deno-proc/issues">Issues</a> · <a href="./faq.html">FAQ</a></p>
 
                     </main>
 

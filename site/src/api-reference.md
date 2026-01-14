@@ -86,7 +86,7 @@ The API reference provides:
 - **Technical details** - Implementation specifics
 - **All exports** - Everything available
 
-Use both together for complete understanding!
+Use both together for complete understanding.
 
 ## Keeping Docs Updated
 

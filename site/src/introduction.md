@@ -1,161 +1,125 @@
 # Welcome to proc
 
-Running child processes and working with streams should be simple. **proc**
-makes it simple.
+## The Problem
 
-> **✨ The Big Idea**: Treat processes and streams like arrays. Use `map`,
-> `filter`, `reduce` on anything. Errors flow naturally through pipelines. No
-> callbacks, no edge cases, no headaches.
+JavaScript streams are push-based. Producers push data whether consumers are
+ready or not. This creates backpressure—complex coordination between producers
+and consumers to prevent memory exhaustion. And when something goes wrong? You
+need error handlers on every stream in the chain.
 
-## What is proc?
+```typescript
+// Traditional streams: backpressure + error handling at every step
+stream1.on("error", handleError);
+stream2.on("error", handleError);
+stream3.on("error", handleError);
+// Plus drain events, pause/resume, pipe coordination...
+```
 
-proc is a Deno library that gives you two superpowers:
+## The Solution
 
-1. **Run child processes** with a clean, composable API
-2. **Work with async iterables** using the Array methods you already know
+proc uses async iterators instead of streams. Consumers pull data when ready. No
+backpressure. No coordination. And errors flow through pipelines naturally—one
+try-catch handles everything.
 
-But here's the real magic: **errors just work**. They flow through your
-pipelines naturally, like data. No edge cases, no separate error channels, no
-callbacks. One try-catch at the end handles everything.
+```typescript
+// proc: no backpressure, errors just work
+try {
+  await run("cat", "data.txt")
+    .run("grep", "error")
+    .run("wc", "-l")
+    .lines
+    .forEach(console.log);
+} catch (error) {
+  // All errors caught here
+}
+```
 
-> **💡 Tip**: If you've ever struggled with JavaScript streams, you're going to
-> love this.
+## Who This Book Is For
 
-> **🚀 Need speed?** Check out [flatdata](./utilities/flatdata.md)—a
-> WASM-powered CLI for CSV/TSV processing at ~330 MB/s (7x faster than pure JS).
+This documentation is for developers who:
 
-> **📦 Optional Features**: The [data transforms](./data-transforms/README.md)
-> module (CSV, TSV, JSON, Record) is separate from the core library. Import it
-> with `/transforms` when needed to keep your bundle lightweight.
+- Run child processes and want better error handling than `Deno.Command`
+  provides
+- Process streaming data (logs, CSV files, API responses) without loading
+  everything into memory
+- Want Array-like methods (`map`, `filter`, `reduce`) for async data
+- Are replacing shell scripts with type-safe, testable code
+
+You should be comfortable with TypeScript basics and async/await. No prior
+experience with Deno streams or child processes required.
+
+## What You'll Learn
+
+**Running Processes** — Execute commands, chain them like shell pipes, capture
+output, handle errors gracefully.
+
+**Async Iterables** — Use `map`, `filter`, `reduce`, and more on any async data
+source. Process gigabyte files with constant memory.
+
+**Data Transforms** — Convert between CSV, TSV, JSON, and Record formats with
+streaming support. Or use the WASM-powered flatdata CLI for 330 MB/s throughput.
 
 ## A Taste of proc
 
-Count lines in a compressed file—streaming, no temp files:
-
-<!-- NOT TESTED: Illustrative example -->
+Count lines in a compressed file—streaming, constant memory:
 
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
-const lines = await read("war-and-peace.txt.gz")
+const count = await read("logs.txt.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
   .count();
-
-console.log(`${lines} lines`); // 23,166 lines
-```
-
-Build custom transformations with readable async generators:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
-
-// Parse and validate JSON lines
-async function* parseJsonLines(lines) {
-  for await (const line of lines) {
-    try {
-      const obj = JSON.parse(line.trim());
-      if (obj.id && obj.timestamp) yield obj;
-    } catch {
-      // Skip invalid JSON
-    }
-  }
-}
-
-const validEntries = await enumerate(logLines)
-  .transform(parseJsonLines)
-  .collect();
 ```
 
 Chain processes like shell pipes:
 
-<!-- NOT TESTED: Illustrative example -->
-
 ```typescript
 import { run } from "jsr:@j50n/proc@{{gitv}}";
 
-const result = await run("cat", "data.txt")
-  .run("grep", "error")
+const errors = await run("cat", "app.log")
+  .run("grep", "ERROR")
   .run("wc", "-l")
   .lines.first;
 ```
 
-Handle errors gracefully:
-
-<!-- NOT TESTED: Illustrative example -->
+Transform async data with familiar methods:
 
 ```typescript
-import { run } from "jsr:@j50n/proc@{{gitv}}";
+import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
-try {
-  await run("npm", "test")
-    .lines
-    .map((line) => line.toUpperCase())
-    .filter((line) => line.includes("FAIL"))
-    .forEach((line) => console.log(line));
-} catch (error) {
-  // All errors caught here—from the process, from map, from filter
-  console.error(`Tests failed: ${error.code}`);
-}
+const results = await enumerate(urls)
+  .concurrentMap(fetch, { concurrency: 5 })
+  .filter((r) => r.ok)
+  .map((r) => r.json())
+  .collect();
 ```
 
-## Why proc?
+## Quick Decision Guide
 
-JavaScript streaming is powerful, but traditional approaches create unnecessary
-complexity. proc eliminates the two biggest pain points: backpressure
-coordination and error handling. By using async iterators (pull-based) instead
-of streams (push-based), backpressure disappears entirely and errors propagate
-naturally through pipelines.
+**Need to run shell commands?** →
+[Running Processes](./core/running-processes.md)
 
-## High-Performance Data Processing
+**Processing files line by line?** → [File I/O](./utilities/file-io.md)
 
-proc includes **flatdata**, a WASM-powered CLI for converting between CSV, TSV,
-and binary record formats. By offloading CSV parsing to a subprocess, your main
-application stays responsive while processing data at ~330 MB/s—about 7x faster
-than pure JavaScript.
+**Converting CSV/TSV/JSON?** → [Data Transforms](./data-transforms/README.md)
 
-```bash
-# Install flatdata globally
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
+**Need maximum throughput?** → [flatdata CLI](./utilities/flatdata.md)
 
-# Use in pipelines
-cat huge.csv | flatdata csv2record | ./your-processor | flatdata record2csv
-```
+**Working with any async data?** →
+[Understanding Enumerable](./iterables/enumerable.md)
 
-See the [flatdata documentation](./utilities/flatdata.md) for details.
+## Getting Started
 
-This design gives you:
-
-- **Errors that propagate naturally** through pipelines
-- **Array methods on async iterables** (map, filter, reduce, and more)
-- **Custom transformations with async generators** (easier than streams API)
-- **Process management** that feels like shell scripting
-- **Streaming everything** for memory efficiency
-- **Type safety** with full TypeScript support
-
-## Who is this for?
-
-- **DevOps engineers** automating deployments, processing logs, and managing
-  infrastructure
-- **Data engineers** processing large CSV files, log files, or streaming data
-- **Backend developers** building CLI tools, batch processors, or data pipelines
-- **System administrators** replacing Bash scripts with type-safe, testable Deno
-  code
-- **Anyone** who needs to run child processes or work with large datasets
-  efficiently
-
-## Ready to dive in?
-
-Start with [Installation](./getting-started/installation.md) or jump straight to
-the [Quick Start](./getting-started/quick-start.md).
+1. [Installation](./getting-started/installation.md) — Add proc to your project
+2. [Quick Start](./getting-started/quick-start.md) — Your first proc script in 5
+   minutes
+3. [Key Concepts](./getting-started/key-concepts.md) — Essential patterns to
+   understand
 
 ---
 
-**Current Version:** {{gitv}}\
-**Status:** Stable, actively maintained, ready for production
+**Version:** {{gitv}} | **License:** MIT | **Status:** Production-ready
 
-Found a bug? Have a question?
-[File an issue](https://github.com/j50n/deno-proc/issues) or check the
-[FAQ](./faq.md).
+[GitHub](https://github.com/j50n/deno-proc) ·
+[Issues](https://github.com/j50n/deno-proc/issues) · [FAQ](./faq.md)
