@@ -11,6 +11,14 @@ export {
   type CsvStringifyOptions 
 } from "./csv.ts";
 
+// High-performance WASM CSV transformers
+export {
+  fromCsvToRowsFast,
+  fromCsvToLazyRowsFast,
+  toCsvFast,
+  CsvParseError
+} from "./csv-fast.ts";
+
 // TSV transformers
 export { 
   fromTsvToRows,

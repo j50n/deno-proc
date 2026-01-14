@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b34b5ea6.js";
+            window.path_to_searchindex_js = "searchindex-6df71b01.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9208c6f.js"></script>
@@ -3119,7 +3119,7 @@ const allRows = await read("huge-dataset.csv")
 <h1 id="csv-transforms"><a class="header" href="#csv-transforms">CSV Transforms</a></h1>
 <p>Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance and LazyRow optimization.</p>
 <blockquote>
-<p><strong>⚡ Need more speed?</strong> This page covers the pure-Deno CSV parser (10-30 MB/s). For maximum performance, use the <a href="#flatdata-cli">flatdata CLI</a> which achieves ~330 MB/s using a WASM-powered subprocess — about 10x faster.</p>
+<p><strong>⚡ Need more speed?</strong> Use <code>fromCsvToRowsFast()</code> for ~10x better performance. It uses the same WASM parser as flatdata CLI. See <a href="#fast-csv-parsing-wasm">Fast CSV Parsing</a> below.</p>
 </blockquote>
 <h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
 <p>CSV transforms provide robust parsing and generation of CSV files with proper handling of quoted fields, escaping, and edge cases. While CSV is the slowest format for parsing, LazyRow optimization provides significant performance improvements.</p>
@@ -3442,18 +3442,55 @@ await read("data.csv")
 </code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
-<li><strong>Always use LazyRow</strong> for CSV processing - it’s consistently faster</li>
-<li><strong>Handle headers explicitly</strong> - they’re treated as regular data rows</li>
+<li><strong>Use <code>fromCsvToRowsFast()</code> for large files</strong> — 10x faster than the standard parser</li>
+<li><strong>Use LazyRow</strong> for CSV processing when you don’t need all fields</li>
+<li><strong>Handle headers explicitly</strong> — they’re treated as regular data rows</li>
 <li><strong>Validate field counts</strong> if your data requires consistent structure</li>
 <li><strong>Use streaming processing</strong> for large files to maintain constant memory usage</li>
 <li><strong>Convert to faster formats</strong> for repeated processing of the same data</li>
-<li><strong>Quote fields with special characters</strong> when generating CSV for compatibility</li>
 </ol>
-<h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
+<h2 id="fast-csv-parsing-wasm"><a class="header" href="#fast-csv-parsing-wasm">Fast CSV Parsing (WASM)</a></h2>
+<p>For maximum in-process performance, use the WASM-powered transforms:</p>
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
+import { fromCsvToRowsFast, fromCsvToLazyRowsFast } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+// ~10x faster than fromCsvToRows()
+const rows = await read("large-file.csv")
+  .transform(fromCsvToRowsFast())
+  .flatMap(batch =&gt; batch)  // Flatten batches
+  .collect();
+
+// Or with LazyRow
+const lazyRows = await read("large-file.csv")
+  .transform(fromCsvToLazyRowsFast())
+  .flatMap(batch =&gt; batch)
+  .collect();
+</code></pre>
+<p><strong>Key differences from standard parser:</strong></p>
 <ul>
-<li><a href="#tsv-transforms">TSV Transforms</a> - Faster tab-separated processing</li>
-<li><a href="#lazyrow-guide">LazyRow Guide</a> - Detailed LazyRow usage patterns</li>
-<li><a href="#performance-guide">Performance Guide</a> - Optimization strategies</li>
+<li>Returns batches of rows (<code>string[][]</code>) instead of individual rows</li>
+<li>Uses the same WASM engine as flatdata CLI</li>
+<li>Same RFC 4180 compliance and options</li>
+</ul>
+<p><strong>When to use which:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parser</th><th>Throughput</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fromCsvToRows()</code></td><td>10-30 MB/s</td><td>Small files, simple scripts</td></tr>
+<tr><td><code>fromCsvToRowsFast()</code></td><td>~100-200 MB/s</td><td>Large files, performance-critical</td></tr>
+<tr><td><code>flatdata</code> CLI</td><td>~330 MB/s</td><td>Maximum throughput, batch pipelines</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="see-also-6"><a class="header" href="#see-also-6">See Also</a></h2>
+<ul>
+<li><a href="#tsv-transforms">TSV Transforms</a> — Faster tab-separated processing</li>
+<li><a href="#lazyrow-guide">LazyRow Guide</a> — Detailed LazyRow usage patterns</li>
+<li><a href="#performance-guide">Performance Guide</a> — Optimization strategies</li>
+<li><a href="#flatdata-cli">flatdata CLI</a> — Maximum throughput via subprocess</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="tsv-transforms"><a class="header" href="#tsv-transforms">TSV Transforms</a></h1>
@@ -3835,7 +3872,7 @@ if (errors.length &gt; 0) {
 <li><strong>Size</strong>: TSV is more compact for simple data</li>
 <li><strong>Flexibility</strong>: JSON is more flexible for complex structures</li>
 </ul>
-<h2 id="next-steps-11"><a class="header" href="#next-steps-11">Next Steps</a></h2>
+<h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
 <ul>
 <li><a href="#csv-transforms">CSV Transforms</a> - When you need CSV compatibility</li>
 <li><a href="#record-format">Record Format</a> - For maximum performance</li>
@@ -4308,7 +4345,7 @@ await read("users.jsonl")
 <li><strong>Performance</strong>: Record is faster for large datasets</li>
 <li><strong>Compatibility</strong>: JSON works everywhere, Record is specialized</li>
 </ul>
-<h2 id="next-steps-12"><a class="header" href="#next-steps-12">Next Steps</a></h2>
+<h2 id="next-steps-11"><a class="header" href="#next-steps-11">Next Steps</a></h2>
 <ul>
 <li><a href="#record-format">Record Format</a> - For maximum performance with structured data</li>
 <li><a href="#csv-transforms">CSV Transforms</a> - When you need tabular compatibility</li>
@@ -4783,7 +4820,7 @@ if (errors.length &gt; 0) {
 <li><strong>Flexibility</strong>: JSON is more flexible for complex structures</li>
 <li><strong>Size</strong>: Record is more compact for simple tabular data</li>
 </ul>
-<h2 id="next-steps-13"><a class="header" href="#next-steps-13">Next Steps</a></h2>
+<h2 id="next-steps-12"><a class="header" href="#next-steps-12">Next Steps</a></h2>
 <ul>
 <li><a href="#performance-guide">Performance Guide</a> - Detailed benchmarks and optimization</li>
 <li><a href="#lazyrow-guide">LazyRow Guide</a> - Optimization patterns for Record format</li>
@@ -5174,7 +5211,7 @@ await read("users.csv")
   .transform(toJson())
   .writeTo("validated-users.jsonl");
 </code></pre>
-<h2 id="next-steps-14"><a class="header" href="#next-steps-14">Next Steps</a></h2>
+<h2 id="next-steps-13"><a class="header" href="#next-steps-13">Next Steps</a></h2>
 <ul>
 <li><a href="#csv-transforms">CSV Transforms</a> - Using LazyRow with CSV data</li>
 <li><a href="#tsv-transforms">TSV Transforms</a> - Using LazyRow with TSV data</li>
@@ -5564,7 +5601,7 @@ await read("large-file.csv")
 <li><strong>Use batching</strong> for memory-constrained environments</li>
 <li><strong>Handle errors gracefully</strong> with proper cleanup</li>
 </ol>
-<h2 id="next-steps-15"><a class="header" href="#next-steps-15">Next Steps</a></h2>
+<h2 id="next-steps-14"><a class="header" href="#next-steps-14">Next Steps</a></h2>
 <ul>
 <li><a href="#csv-transforms">CSV Transforms</a> - Detailed CSV optimization</li>
 <li><a href="#lazyrow-guide">LazyRow Guide</a> - Advanced LazyRow patterns</li>
@@ -5952,7 +5989,7 @@ const results = await enumerate(urls)
   .concurrentMap(fetch, { concurrency: 5 })
   .collect();
 </code></pre>
-<h2 id="next-steps-16"><a class="header" href="#next-steps-16">Next Steps</a></h2>
+<h2 id="next-steps-15"><a class="header" href="#next-steps-15">Next Steps</a></h2>
 <ul>
 <li><a href="#streaming-large-files">Streaming Large Files</a> - Handle huge files efficiently</li>
 <li><a href="#performance-characteristics-5">Performance Optimization</a> - Make it faster</li>
@@ -6218,7 +6255,7 @@ await Deno.writeFile("output.txt", concat(output));
     return acc;
   }, initialStats);
 </code></pre>
-<h2 id="next-steps-17"><a class="header" href="#next-steps-17">Next Steps</a></h2>
+<h2 id="next-steps-16"><a class="header" href="#next-steps-16">Next Steps</a></h2>
 <ul>
 <li><a href="#concurrent-processing">Concurrent Processing</a> - Process multiple files in parallel</li>
 <li><a href="#performance-characteristics-5">Performance Optimization</a> - Make it faster</li>
@@ -6830,7 +6867,7 @@ for await (const line of read("huge.txt").lines) {
 
 await Deno.writeTextFile("data.jsonl", jsonLines.join("\n"));
 </code></pre>
-<h2 id="next-steps-18"><a class="header" href="#next-steps-18">Next Steps</a></h2>
+<h2 id="next-steps-17"><a class="header" href="#next-steps-17">Next Steps</a></h2>
 <ul>
 <li><a href="#decompressing-files">Decompressing Files</a> - Work with compressed files</li>
 <li><a href="#streaming-large-files">Streaming Large Files</a> - Handle huge files</li>
@@ -7193,7 +7230,7 @@ const huge = range({ to: 1_000_000_000 });
 // Only generates what you use
 const first10 = await huge.take(10).collect();
 </code></pre>
-<h2 id="next-steps-19"><a class="header" href="#next-steps-19">Next Steps</a></h2>
+<h2 id="next-steps-18"><a class="header" href="#next-steps-18">Next Steps</a></h2>
 <ul>
 <li><a href="#zip-and-enumerate">Zip and Enumerate</a> - Combine iterables</li>
 <li><a href="#array-like-methods">Array-Like Methods</a> - Transform ranges</li>
@@ -7275,7 +7312,7 @@ await enumerate(items)
     process(item);
   });
 </code></pre>
-<h2 id="next-steps-20"><a class="header" href="#next-steps-20">Next Steps</a></h2>
+<h2 id="next-steps-19"><a class="header" href="#next-steps-19">Next Steps</a></h2>
 <ul>
 <li><a href="#range-and-iteration">Range and Iteration</a> - Generate sequences</li>
 <li><a href="#array-like-methods">Array-Like Methods</a> - Transform data</li>
@@ -7904,7 +7941,7 @@ const words = await run("cat", "book.txt")
   .filter(word =&gt; word.length &gt; 5)  // JavaScript filter
   .count();
 </code></pre>
-<h2 id="next-steps-21"><a class="header" href="#next-steps-21">Next Steps</a></h2>
+<h2 id="next-steps-20"><a class="header" href="#next-steps-20">Next Steps</a></h2>
 <ul>
 <li><a href="#process-pipelines">Process Pipelines</a> - Chain commands together</li>
 <li><a href="#concurrent-processing">Concurrent Processing</a> - Process multiple files</li>
@@ -8052,7 +8089,7 @@ for await (const line of read("app.log").lines) {
   }
 }
 </code></pre>
-<h2 id="next-steps-22"><a class="header" href="#next-steps-22">Next Steps</a></h2>
+<h2 id="next-steps-21"><a class="header" href="#next-steps-21">Next Steps</a></h2>
 <ul>
 <li><a href="#streaming-large-files">Streaming Large Files</a> - Handle huge logs</li>
 <li><a href="#concurrent-processing">Concurrent Processing</a> - Process multiple files</li>
@@ -8226,7 +8263,7 @@ await read("file.gz")
   .forEach(console.log);
 </code></pre>
 <p>Faster, cleaner, more memory-efficient.</p>
-<h2 id="next-steps-23"><a class="header" href="#next-steps-23">Next Steps</a></h2>
+<h2 id="next-steps-22"><a class="header" href="#next-steps-22">Next Steps</a></h2>
 <ul>
 <li><a href="#streaming-large-files">Streaming Large Files</a> - Handle huge files</li>
 <li><a href="#concurrent-processing">Concurrent Processing</a> - Process multiple files in parallel</li>
@@ -8422,7 +8459,7 @@ console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
 <li>Server capacity</li>
 <li>Start with 3-5, adjust based on results</li>
 </ul>
-<h2 id="next-steps-24"><a class="header" href="#next-steps-24">Next Steps</a></h2>
+<h2 id="next-steps-23"><a class="header" href="#next-steps-23">Next Steps</a></h2>
 <ul>
 <li><a href="#concurrent-processing">Concurrent Processing</a> - Deep dive into concurrency</li>
 <li><a href="#error-handling-1">Error Handling</a> - Handle download failures</li>
@@ -8566,7 +8603,7 @@ try {
 <pre><code class="language-bash">chmod +x script.ts
 ./script.ts
 </code></pre>
-<h2 id="next-steps-25"><a class="header" href="#next-steps-25">Next Steps</a></h2>
+<h2 id="next-steps-24"><a class="header" href="#next-steps-24">Next Steps</a></h2>
 <ul>
 <li><a href="#running-processes">Running Processes</a> - Process basics</li>
 <li><a href="#error-handling-1">Error Handling</a> - Handle failures</li>
@@ -8653,7 +8690,7 @@ always in sync with the code.</p>
 <p>To regenerate manually:</p>
 <pre><code class="language-bash">deno doc --html --name="proc" --output=./site/src/api-docs ./mod.ts
 </code></pre>
-<h2 id="next-steps-26"><a class="header" href="#next-steps-26">Next Steps</a></h2>
+<h2 id="next-steps-25"><a class="header" href="#next-steps-25">Next Steps</a></h2>
 <ul>
 <li><a href="api-docs/index.html">Browse the full API documentation</a>{:target=“_blank”}</li>
 <li><a href="#installation">Getting Started</a> - If you’re new</li>

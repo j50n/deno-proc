@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b34b5ea6.js";
+            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -181,7 +181,7 @@
                         <h1 id="csv-transforms"><a class="header" href="#csv-transforms">CSV Transforms</a></h1>
 <p>Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance and LazyRow optimization.</p>
 <blockquote>
-<p><strong>⚡ Need more speed?</strong> This page covers the pure-Deno CSV parser (10-30 MB/s). For maximum performance, use the <a href="../utilities/flatdata.html">flatdata CLI</a> which achieves ~330 MB/s using a WASM-powered subprocess — about 10x faster.</p>
+<p><strong>⚡ Need more speed?</strong> Use <code>fromCsvToRowsFast()</code> for ~10x better performance. It uses the same WASM parser as flatdata CLI. See <a href="#fast-csv-parsing-wasm">Fast CSV Parsing</a> below.</p>
 </blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>CSV transforms provide robust parsing and generation of CSV files with proper handling of quoted fields, escaping, and edge cases. While CSV is the slowest format for parsing, LazyRow optimization provides significant performance improvements.</p>
@@ -504,18 +504,55 @@ await read("data.csv")
 </code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
-<li><strong>Always use LazyRow</strong> for CSV processing - it’s consistently faster</li>
-<li><strong>Handle headers explicitly</strong> - they’re treated as regular data rows</li>
+<li><strong>Use <code>fromCsvToRowsFast()</code> for large files</strong> — 10x faster than the standard parser</li>
+<li><strong>Use LazyRow</strong> for CSV processing when you don’t need all fields</li>
+<li><strong>Handle headers explicitly</strong> — they’re treated as regular data rows</li>
 <li><strong>Validate field counts</strong> if your data requires consistent structure</li>
 <li><strong>Use streaming processing</strong> for large files to maintain constant memory usage</li>
 <li><strong>Convert to faster formats</strong> for repeated processing of the same data</li>
-<li><strong>Quote fields with special characters</strong> when generating CSV for compatibility</li>
 </ol>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<h2 id="fast-csv-parsing-wasm"><a class="header" href="#fast-csv-parsing-wasm">Fast CSV Parsing (WASM)</a></h2>
+<p>For maximum in-process performance, use the WASM-powered transforms:</p>
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
+import { fromCsvToRowsFast, fromCsvToLazyRowsFast } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+// ~10x faster than fromCsvToRows()
+const rows = await read("large-file.csv")
+  .transform(fromCsvToRowsFast())
+  .flatMap(batch =&gt; batch)  // Flatten batches
+  .collect();
+
+// Or with LazyRow
+const lazyRows = await read("large-file.csv")
+  .transform(fromCsvToLazyRowsFast())
+  .flatMap(batch =&gt; batch)
+  .collect();
+</code></pre>
+<p><strong>Key differences from standard parser:</strong></p>
 <ul>
-<li><a href="./tsv.html">TSV Transforms</a> - Faster tab-separated processing</li>
-<li><a href="./lazyrow.html">LazyRow Guide</a> - Detailed LazyRow usage patterns</li>
-<li><a href="./performance.html">Performance Guide</a> - Optimization strategies</li>
+<li>Returns batches of rows (<code>string[][]</code>) instead of individual rows</li>
+<li>Uses the same WASM engine as flatdata CLI</li>
+<li>Same RFC 4180 compliance and options</li>
+</ul>
+<p><strong>When to use which:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parser</th><th>Throughput</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fromCsvToRows()</code></td><td>10-30 MB/s</td><td>Small files, simple scripts</td></tr>
+<tr><td><code>fromCsvToRowsFast()</code></td><td>~100-200 MB/s</td><td>Large files, performance-critical</td></tr>
+<tr><td><code>flatdata</code> CLI</td><td>~330 MB/s</td><td>Maximum throughput, batch pipelines</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="./tsv.html">TSV Transforms</a> — Faster tab-separated processing</li>
+<li><a href="./lazyrow.html">LazyRow Guide</a> — Detailed LazyRow usage patterns</li>
+<li><a href="./performance.html">Performance Guide</a> — Optimization strategies</li>
+<li><a href="../utilities/flatdata.html">flatdata CLI</a> — Maximum throughput via subprocess</li>
 </ul>
 
                     </main>
