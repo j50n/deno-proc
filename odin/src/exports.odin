@@ -1333,3 +1333,279 @@ record_to_lazyrow :: proc "c" (input_len: i32) -> i32 {
     
     return i32(len(output_buffer))
 }
+
+
+/*
+Streaming LazyRow Decoder
+=========================
+High-performance streaming decoder for lazyrow binary → delimited text.
+- Accepts arbitrary input chunks (buffers incomplete rows internally)
+- Accumulates output until threshold before signaling ready
+- Reuses field_lengths array (no per-row allocations)
+*/
+
+streaming_lazyrow_decoders: map[i32]^csv.StreamingLazyRowDecoder
+
+// Create a streaming lazyrow decoder. Returns decoder ID.
+// Parameters:
+//   field_sep: output field separator (e.g., ',' for CSV, '\t' for TSV, 0x1F for record)
+//   record_sep: output record separator (e.g., '\n' for CSV/TSV, 0x1E for record)
+@(export)
+create_streaming_lazyrow_decoder :: proc "c" (field_sep: i32, record_sep: i32) -> i32 {
+    context = runtime.default_context()
+    
+    d := new(csv.StreamingLazyRowDecoder)
+    d^ = csv.streaming_lazyrow_decoder_init(u8(field_sep), u8(record_sep))
+    
+    id := next_id
+    next_id += 1
+    streaming_lazyrow_decoders[id] = d
+    return id
+}
+
+// Destroy a streaming lazyrow decoder
+@(export)
+destroy_streaming_lazyrow_decoder :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if d, ok := streaming_lazyrow_decoders[id]; ok {
+        csv.streaming_lazyrow_decoder_destroy(d)
+        free(d)
+        delete_key(&streaming_lazyrow_decoders, id)
+    }
+}
+
+// Decode a chunk of lazyrow binary data from input buffer.
+// Buffers incomplete rows internally. Output accumulates in decoder.
+// Returns: 1 if output >= threshold (ready to read), 0 otherwise
+@(export)
+streaming_lazyrow_decode :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    d, ok := streaming_lazyrow_decoders[id]
+    if !ok do return 0
+    
+    input := input_buffer[:input_len]
+    csv.streaming_lazyrow_decode(d, input)
+    
+    return 1 if csv.streaming_lazyrow_has_output(d) else 0
+}
+
+// Get output from streaming decoder. Copies to output_buffer.
+// Returns: number of bytes written to output buffer
+@(export)
+get_streaming_lazyrow_output :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    d, ok := streaming_lazyrow_decoders[id]
+    if !ok do return 0
+    
+    out_len := csv.streaming_lazyrow_output_len(d)
+    if out_len == 0 do return 0
+    
+    resize(&output_buffer, out_len)
+    copy(output_buffer[:], d.output[:])
+    
+    return i32(out_len)
+}
+
+// Clear decoder's output buffer after reading
+@(export)
+clear_streaming_lazyrow_output :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if d, ok := streaming_lazyrow_decoders[id]; ok {
+        csv.streaming_lazyrow_clear_output(d)
+    }
+}
+
+// Finalize decoding - flush any remaining buffered data.
+// Returns: number of bytes in output buffer (call get_streaming_lazyrow_output to read)
+@(export)
+finish_streaming_lazyrow :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    d, ok := streaming_lazyrow_decoders[id]
+    if !ok do return 0
+    
+    csv.streaming_lazyrow_finish(d)
+    return i32(csv.streaming_lazyrow_output_len(d))
+}
+
+
+/*
+Streaming Record Stringifier
+============================
+High-performance streaming converter from record format to delimited output.
+- Accepts arbitrary input chunks (buffers incomplete records internally)
+- Accumulates output until threshold before returning
+- Handles proper CSV quoting when needed
+*/
+
+streaming_record_stringifiers: map[i32]^csv.StreamingRecordStringifier
+
+// Create a streaming record stringifier. Returns stringifier ID.
+// Parameters:
+//   out_sep: output field separator (e.g., ',' for CSV, '\t' for TSV)
+//   field_sep: input field separator (0 = default \x1F)
+//   record_sep: input record separator (0 = default \x1E)
+//   crlf: 1 = use \r\n line endings, 0 = use \n
+//   always_quote: 1 = quote all fields, 0 = quote only when needed
+@(export)
+create_streaming_record_stringifier :: proc "c" (out_sep: i32, field_sep: i32, record_sep: i32, crlf: i32, always_quote: i32) -> i32 {
+    context = runtime.default_context()
+    
+    s := new(csv.StreamingRecordStringifier)
+    s^ = csv.streaming_record_stringifier_init(u8(out_sep), u8(field_sep), u8(record_sep), crlf != 0, always_quote != 0)
+    
+    id := next_id
+    next_id += 1
+    streaming_record_stringifiers[id] = s
+    return id
+}
+
+// Destroy a streaming record stringifier
+@(export)
+destroy_streaming_record_stringifier :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if s, ok := streaming_record_stringifiers[id]; ok {
+        csv.streaming_record_stringifier_destroy(s)
+        free(s)
+        delete_key(&streaming_record_stringifiers, id)
+    }
+}
+
+// Stringify a chunk of record format data from input buffer.
+// Buffers incomplete records internally. Output accumulates in stringifier.
+// Returns: 1 if output >= threshold (ready to read), 0 otherwise
+@(export)
+streaming_record_stringify :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    s, ok := streaming_record_stringifiers[id]
+    if !ok do return 0
+    
+    input := input_buffer[:input_len]
+    csv.streaming_record_stringify(s, input)
+    
+    return 1 if csv.streaming_record_has_output(s) else 0
+}
+
+// Get output from streaming stringifier. Copies to output_buffer.
+// Returns: number of bytes written to output buffer
+@(export)
+get_streaming_record_output :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    s, ok := streaming_record_stringifiers[id]
+    if !ok do return 0
+    
+    out_len := csv.streaming_record_output_len(s)
+    if out_len == 0 do return 0
+    
+    resize(&output_buffer, out_len)
+    copy(output_buffer[:], s.output[:])
+    
+    return i32(out_len)
+}
+
+// Clear stringifier's output buffer after reading
+@(export)
+clear_streaming_record_output :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if s, ok := streaming_record_stringifiers[id]; ok {
+        csv.streaming_record_clear_output(s)
+    }
+}
+
+// Finalize stringifying - flush any remaining buffered data.
+// Returns: number of bytes in output buffer (call get_streaming_record_output to read)
+@(export)
+finish_streaming_record :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    s, ok := streaming_record_stringifiers[id]
+    if !ok do return 0
+    
+    csv.streaming_record_finish(s)
+    return i32(csv.streaming_record_output_len(s))
+}
+
+
+/*
+Streaming Delimiter Replacer
+============================
+Simple delimiter replacement for non-CSV formats.
+Use for record↔TSV, record↔record conversions.
+*/
+
+streaming_delimiter_replacers: map[i32]^csv.StreamingDelimiterReplacer
+
+@(export)
+create_streaming_delimiter_replacer :: proc "c" (in_field_sep: i32, in_record_sep: i32, out_field_sep: i32, out_record_sep: i32) -> i32 {
+    context = runtime.default_context()
+    
+    r := new(csv.StreamingDelimiterReplacer)
+    r^ = csv.streaming_delimiter_replacer_init(u8(in_field_sep), u8(in_record_sep), u8(out_field_sep), u8(out_record_sep))
+    
+    id := next_id
+    next_id += 1
+    streaming_delimiter_replacers[id] = r
+    return id
+}
+
+@(export)
+destroy_streaming_delimiter_replacer :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if r, ok := streaming_delimiter_replacers[id]; ok {
+        csv.streaming_delimiter_replacer_destroy(r)
+        free(r)
+        delete_key(&streaming_delimiter_replacers, id)
+    }
+}
+
+@(export)
+streaming_delimiter_replace :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    r, ok := streaming_delimiter_replacers[id]
+    if !ok do return 0
+    
+    input := input_buffer[:input_len]
+    csv.streaming_delimiter_replace(r, input)
+    
+    return 1 if csv.streaming_delimiter_has_output(r) else 0
+}
+
+@(export)
+get_streaming_delimiter_output :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    r, ok := streaming_delimiter_replacers[id]
+    if !ok do return 0
+    
+    out_len := csv.streaming_delimiter_output_len(r)
+    if out_len == 0 do return 0
+    
+    resize(&output_buffer, out_len)
+    copy(output_buffer[:], r.output[:])
+    
+    return i32(out_len)
+}
+
+@(export)
+clear_streaming_delimiter_output :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if r, ok := streaming_delimiter_replacers[id]; ok {
+        csv.streaming_delimiter_clear_output(r)
+    }
+}
+
+@(export)
+finish_streaming_delimiter :: proc "c" (id: i32) -> i32 {
+    context = runtime.default_context()
+    
+    r, ok := streaming_delimiter_replacers[id]
+    if !ok do return 0
+    
+    csv.streaming_delimiter_finish(r)
+    return i32(csv.streaming_delimiter_output_len(r))
+}

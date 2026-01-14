@@ -207,3 +207,123 @@ Deno.test("TSV - LazyRow selective access", async () => {
   assertEquals(rows[2].getField(0), "Bob");   // name  
   assertEquals(rows[2].getField(2), "LA");    // city
 });
+
+// =============================================================================
+// Pathological Data Tests
+// =============================================================================
+
+/** Generate random alphanumeric string of given length */
+function randomString(len: number): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const result = new Array<string>(len);
+  for (let i = 0; i < len; i++) {
+    result[i] = chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result.join("");
+}
+
+Deno.test("TSV pathological - 1MB field", async () => {
+  const hugeField = randomString(1_000_000);
+  const tsvData = `header1\theader2\theader3\nsmall\t${hugeField}\tend\n`;
+  
+  const result = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToRows())
+    .collect();
+  
+  assertEquals(result[0][0].header1, "small");
+  assertEquals(result[0][0].header2, hugeField);
+  assertEquals(result[0][0].header3, "end");
+});
+
+Deno.test("TSV pathological - many fields (100 columns)", async () => {
+  const headers = Array.from({ length: 100 }, (_, i) => `h${i}`);
+  const values = Array.from({ length: 100 }, (_, i) => `v${i}`);
+  const tsvData = headers.join("\t") + "\n" + values.join("\t") + "\n";
+  
+  const result = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToRows())
+    .collect();
+  
+  assertEquals(Object.keys(result[0][0]).length, 100);
+  assertEquals(result[0][0].h0, "v0");
+  assertEquals(result[0][0].h99, "v99");
+});
+
+Deno.test("TSV pathological - many rows (10000 rows)", async () => {
+  const header = "a\tb\tc\n";
+  const rows = Array.from({ length: 10000 }, (_, i) => `a${i}\tb${i}\tc${i}`);
+  const tsvData = header + rows.join("\n") + "\n";
+  
+  const result = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToRows())
+    .collect();
+  
+  const allRows = result.flat();
+  assertEquals(allRows.length, 10000);
+  assertEquals(allRows[0].a, "a0");
+  assertEquals(allRows[9999].a, "a9999");
+});
+
+Deno.test("TSV pathological - 1MB field to LazyRow", async () => {
+  const hugeField = randomString(1_000_000);
+  const tsvData = `small\t${hugeField}\tend\n`;
+  
+  const result = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToLazyRows())
+    .collect();
+  
+  assertEquals(result[0][0].getField(0), "small");
+  assertEquals(result[0][0].getField(1), hugeField);
+  assertEquals(result[0][0].getField(2), "end");
+});
+
+Deno.test("TSV pathological - chunk boundary in middle of field", async () => {
+  const field = "a".repeat(100);
+  const tsvData = `h1\th2\n${field}\t${field}\n`;
+  const bytes = new TextEncoder().encode(tsvData);
+  
+  // Split in middle of first data field
+  const chunk1 = bytes.slice(0, 60);
+  const chunk2 = bytes.slice(60);
+  
+  const result = await enumerate([chunk1, chunk2])
+    .transform(fromTsvToRows())
+    .collect();
+  
+  assertEquals(result[0][0].h1, field);
+  assertEquals(result[0][0].h2, field);
+});
+
+Deno.test("TSV pathological - many small chunks", async () => {
+  const tsvData = "a\tb\tc\nd\te\tf\ng\th\ti\n";
+  const bytes = new TextEncoder().encode(tsvData);
+  
+  // Split into 1-byte chunks
+  const chunks = Array.from(bytes).map(b => new Uint8Array([b]));
+  
+  const result = await enumerate(chunks)
+    .transform(fromTsvToLazyRows())
+    .collect();
+  
+  const allRows = result.flat();
+  assertEquals(allRows.length, 3);
+  assertEquals(allRows[0].toStringArray(), ["a", "b", "c"]);
+});
+
+Deno.test("TSV pathological - round-trip with 1MB field", async () => {
+  const hugeField = randomString(1_000_000);
+  const tsvData = `h1\th2\nsmall\t${hugeField}\n`;
+  
+  // Parse to rows
+  const rows = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToRows())
+    .collect();
+  
+  // Convert back to TSV
+  const tsvBytes = await enumerate(rows)
+    .transform(toTsv())
+    .collect();
+  
+  const resultTsv = new TextDecoder().decode(tsvBytes[0]);
+  assertEquals(resultTsv, `small\t${hugeField}\n`);
+});

@@ -1123,3 +1123,593 @@ decode_row_delimited :: proc(d: ^LazyRowDecoder, row_data: []u8, field_sep: u8, 
         data_offset += flen
     }
 }
+
+
+/*
+Streaming LazyRow Decoder
+=========================
+High-performance streaming decoder that:
+- Accepts arbitrary input chunks (buffers incomplete rows internally)
+- Accumulates output until threshold before returning
+- Uses dynamic field_lengths array (no artificial limits)
+
+Designed for maximum throughput with minimal JS↔WASM boundary crossings.
+*/
+
+OUTPUT_THRESHOLD :: 64 * 1024  // Accumulate at least 64KB before returning
+
+StreamingLazyRowDecoder :: struct {
+    output: [dynamic]u8,
+    carry: [dynamic]u8,  // Buffer for incomplete row data between chunks
+    field_lengths: [dynamic]u32,  // Reusable field lengths array
+    field_sep: u8,
+    record_sep: u8,
+}
+
+streaming_lazyrow_decoder_init :: proc(field_sep: u8, record_sep: u8) -> StreamingLazyRowDecoder {
+    return StreamingLazyRowDecoder{
+        output = make([dynamic]u8),
+        carry = make([dynamic]u8),
+        field_lengths = make([dynamic]u32),
+        field_sep = field_sep,
+        record_sep = record_sep,
+    }
+}
+
+streaming_lazyrow_decoder_destroy :: proc(d: ^StreamingLazyRowDecoder) {
+    delete(d.output)
+    delete(d.carry)
+    delete(d.field_lengths)
+}
+
+// Decode a chunk of lazyrow binary data. Returns bytes written to output.
+// Buffers incomplete rows internally. Output accumulates until >= OUTPUT_THRESHOLD.
+// Call streaming_lazyrow_get_output() to retrieve output, then streaming_lazyrow_clear_output().
+streaming_lazyrow_decode :: proc(d: ^StreamingLazyRowDecoder, input: []u8) -> int {
+    start_len := len(d.output)
+    
+    // Combine carry buffer with new input
+    total_len := len(d.carry) + len(input)
+    if total_len < 4 {
+        append(&d.carry, ..input)
+        return 0
+    }
+    
+    // Work buffer: carry + input
+    data: []u8
+    temp_buf: [dynamic]u8
+    if len(d.carry) > 0 {
+        reserve(&temp_buf, total_len)
+        append(&temp_buf, ..d.carry[:])
+        append(&temp_buf, ..input)
+        data = temp_buf[:]
+        clear(&d.carry)
+    } else {
+        data = input
+    }
+    defer delete(temp_buf)
+    
+    i := 0
+    n := len(data)
+    
+    for i + 4 <= n {
+        // Read row_length (little-endian u32)
+        row_length := u32(data[i]) | (u32(data[i+1]) << 8) | (u32(data[i+2]) << 16) | (u32(data[i+3]) << 24)
+        total_row_size := 4 + int(row_length)
+        
+        // Check if we have the complete row
+        if i + total_row_size > n {
+            break
+        }
+        
+        // Decode this row directly to output
+        row_data := data[i+4 : i+total_row_size]
+        streaming_decode_row(d, row_data)
+        
+        i += total_row_size
+    }
+    
+    // Save incomplete data to carry buffer
+    if i < n {
+        append(&d.carry, ..data[i:])
+    }
+    
+    return len(d.output) - start_len
+}
+
+@(private)
+streaming_decode_row :: proc(d: ^StreamingLazyRowDecoder, row_data: []u8) {
+    if len(row_data) < 4 do return
+    
+    // Read field_count
+    field_count := int(u32(row_data[0]) | (u32(row_data[1]) << 8) | (u32(row_data[2]) << 16) | (u32(row_data[3]) << 24))
+    
+    header_size := 4 + field_count * 4
+    if len(row_data) < header_size do return
+    
+    // Ensure field_lengths array is large enough
+    if len(d.field_lengths) < field_count {
+        resize(&d.field_lengths, field_count)
+    }
+    
+    // Read field lengths
+    for i := 0; i < field_count; i += 1 {
+        offset := 4 + i * 4
+        d.field_lengths[i] = u32(row_data[offset]) | (u32(row_data[offset+1]) << 8) | 
+                            (u32(row_data[offset+2]) << 16) | (u32(row_data[offset+3]) << 24)
+    }
+    
+    // Write fields to output
+    data_offset := header_size
+    for i := 0; i < field_count; i += 1 {
+        flen := int(d.field_lengths[i])
+        if data_offset + flen > len(row_data) do return
+        
+        append(&d.output, ..row_data[data_offset:data_offset+flen])
+        
+        if i < field_count - 1 {
+            append(&d.output, d.field_sep)
+        } else {
+            append(&d.output, d.record_sep)
+        }
+        
+        data_offset += flen
+    }
+}
+
+// Check if output has reached threshold
+streaming_lazyrow_has_output :: proc(d: ^StreamingLazyRowDecoder) -> bool {
+    return len(d.output) >= OUTPUT_THRESHOLD
+}
+
+// Get current output length
+streaming_lazyrow_output_len :: proc(d: ^StreamingLazyRowDecoder) -> int {
+    return len(d.output)
+}
+
+// Clear output buffer after reading
+streaming_lazyrow_clear_output :: proc(d: ^StreamingLazyRowDecoder) {
+    clear(&d.output)
+}
+
+// Flush any remaining data (call at end of stream)
+streaming_lazyrow_finish :: proc(d: ^StreamingLazyRowDecoder) -> int {
+    if len(d.carry) == 0 do return len(d.output)
+    
+    // Process any remaining complete rows in carry buffer
+    start_len := len(d.output)
+    data := d.carry[:]
+    i := 0
+    n := len(data)
+    
+    for i + 4 <= n {
+        row_length := u32(data[i]) | (u32(data[i+1]) << 8) | (u32(data[i+2]) << 16) | (u32(data[i+3]) << 24)
+        total_row_size := 4 + int(row_length)
+        
+        if i + total_row_size > n do break
+        
+        row_data := data[i+4 : i+total_row_size]
+        streaming_decode_row(d, row_data)
+        
+        i += total_row_size
+    }
+    
+    clear(&d.carry)
+    return len(d.output) - start_len
+}
+
+
+/*
+Streaming Record Stringifier
+============================
+High-performance streaming converter from record format to delimited output.
+- Accepts arbitrary input chunks (buffers incomplete records internally)
+- Accumulates output until threshold before returning
+- Handles proper CSV quoting when needed
+*/
+
+StreamingRecordStringifier :: struct {
+    output: [dynamic]u8,
+    carry: [dynamic]u8,  // Buffer for incomplete record data between chunks
+    field_sep: u8,       // Input field separator (default \x1F)
+    record_sep: u8,      // Input record separator (default \x1E)
+    out_sep: u8,         // Output field separator
+    line_ending: LineEnding,
+    always_quote: bool,
+}
+
+streaming_record_stringifier_init :: proc(out_sep: u8, field_sep: u8, record_sep: u8, crlf: bool, always_quote: bool) -> StreamingRecordStringifier {
+    return StreamingRecordStringifier{
+        output = make([dynamic]u8),
+        carry = make([dynamic]u8),
+        field_sep = field_sep if field_sep > 0 else FIELD_SEP,
+        record_sep = record_sep if record_sep > 0 else RECORD_SEP,
+        out_sep = out_sep if out_sep > 0 else ',',
+        line_ending = .CRLF if crlf else .LF,
+        always_quote = always_quote,
+    }
+}
+
+streaming_record_stringifier_destroy :: proc(s: ^StreamingRecordStringifier) {
+    delete(s.output)
+    delete(s.carry)
+}
+
+OUTPUT_THRESHOLD_STRINGIFY :: 64 * 1024
+
+// Stringify a chunk of record format data. Returns bytes written to output.
+streaming_record_stringify :: proc(s: ^StreamingRecordStringifier, input: []u8) -> int {
+    start_len := len(s.output)
+    
+    // Combine carry buffer with new input
+    total_len := len(s.carry) + len(input)
+    if total_len == 0 do return 0
+    
+    // Work buffer: carry + input
+    data: []u8
+    temp_buf: [dynamic]u8
+    if len(s.carry) > 0 {
+        reserve(&temp_buf, total_len)
+        append(&temp_buf, ..s.carry[:])
+        append(&temp_buf, ..input)
+        data = temp_buf[:]
+        clear(&s.carry)
+    } else {
+        data = input
+    }
+    defer delete(temp_buf)
+    
+    // Find last complete record
+    last_record_end := -1
+    for i := len(data) - 1; i >= 0; i -= 1 {
+        if data[i] == s.record_sep {
+            last_record_end = i
+            break
+        }
+    }
+    
+    if last_record_end < 0 {
+        // No complete records, save everything to carry
+        append(&s.carry, ..data)
+        return 0
+    }
+    
+    // Process complete records
+    complete_data := data[:last_record_end + 1]
+    field_start := 0
+    first_field_in_row := true
+    
+    for i := 0; i < len(complete_data); i += 1 {
+        c := complete_data[i]
+        
+        if c == s.field_sep || c == s.record_sep {
+            field := complete_data[field_start:i]
+            
+            if !first_field_in_row {
+                append(&s.output, s.out_sep)
+            }
+            first_field_in_row = false
+            
+            // Check if quoting needed
+            needs_quote := s.always_quote
+            if !needs_quote {
+                for b in field {
+                    if b == s.out_sep || b == '"' || b == '\n' || b == '\r' {
+                        needs_quote = true
+                        break
+                    }
+                }
+            }
+            
+            if needs_quote {
+                append(&s.output, '"')
+                for b in field {
+                    if b == '"' {
+                        append(&s.output, '"', '"')
+                    } else {
+                        append(&s.output, b)
+                    }
+                }
+                append(&s.output, '"')
+            } else {
+                append(&s.output, ..field)
+            }
+            
+            if c == s.record_sep {
+                if s.line_ending == .CRLF {
+                    append(&s.output, '\r')
+                }
+                append(&s.output, '\n')
+                first_field_in_row = true
+            }
+            
+            field_start = i + 1
+        }
+    }
+    
+    // Save incomplete record to carry
+    if last_record_end + 1 < len(data) {
+        append(&s.carry, ..data[last_record_end + 1:])
+    }
+    
+    return len(s.output) - start_len
+}
+
+streaming_record_has_output :: proc(s: ^StreamingRecordStringifier) -> bool {
+    return len(s.output) >= OUTPUT_THRESHOLD_STRINGIFY
+}
+
+streaming_record_output_len :: proc(s: ^StreamingRecordStringifier) -> int {
+    return len(s.output)
+}
+
+streaming_record_clear_output :: proc(s: ^StreamingRecordStringifier) {
+    clear(&s.output)
+}
+
+streaming_record_finish :: proc(s: ^StreamingRecordStringifier) -> int {
+    if len(s.carry) == 0 do return len(s.output)
+    
+    // Process remaining data as final record (even if no trailing separator)
+    data := s.carry[:]
+    field_start := 0
+    first_field_in_row := true
+    has_content := false
+    
+    for i := 0; i < len(data); i += 1 {
+        c := data[i]
+        
+        if c == s.field_sep || c == s.record_sep {
+            field := data[field_start:i]
+            has_content = true
+            
+            if !first_field_in_row {
+                append(&s.output, s.out_sep)
+            }
+            first_field_in_row = false
+            
+            needs_quote := s.always_quote
+            if !needs_quote {
+                for b in field {
+                    if b == s.out_sep || b == '"' || b == '\n' || b == '\r' {
+                        needs_quote = true
+                        break
+                    }
+                }
+            }
+            
+            if needs_quote {
+                append(&s.output, '"')
+                for b in field {
+                    if b == '"' {
+                        append(&s.output, '"', '"')
+                    } else {
+                        append(&s.output, b)
+                    }
+                }
+                append(&s.output, '"')
+            } else {
+                append(&s.output, ..field)
+            }
+            
+            if c == s.record_sep {
+                if s.line_ending == .CRLF {
+                    append(&s.output, '\r')
+                }
+                append(&s.output, '\n')
+                first_field_in_row = true
+            }
+            
+            field_start = i + 1
+        }
+    }
+    
+    // Handle trailing field without separator
+    if field_start < len(data) {
+        field := data[field_start:]
+        has_content = true
+        
+        if !first_field_in_row {
+            append(&s.output, s.out_sep)
+        }
+        
+        needs_quote := s.always_quote
+        if !needs_quote {
+            for b in field {
+                if b == s.out_sep || b == '"' || b == '\n' || b == '\r' {
+                    needs_quote = true
+                    break
+                }
+            }
+        }
+        
+        if needs_quote {
+            append(&s.output, '"')
+            for b in field {
+                if b == '"' {
+                    append(&s.output, '"', '"')
+                } else {
+                    append(&s.output, b)
+                }
+            }
+            append(&s.output, '"')
+        } else {
+            append(&s.output, ..field)
+        }
+    }
+    
+    // Add final newline if we had content
+    if has_content && !first_field_in_row {
+        if s.line_ending == .CRLF {
+            append(&s.output, '\r')
+        }
+        append(&s.output, '\n')
+    }
+    
+    clear(&s.carry)
+    return len(s.output)
+}
+
+
+/*
+Streaming Delimiter Replacer
+============================
+Ultra-fast streaming converter that just replaces delimiters.
+No quoting logic - use only when output format doesn't require quoting.
+*/
+
+StreamingDelimiterReplacer :: struct {
+    output: [dynamic]u8,
+    carry: [dynamic]u8,
+    in_field_sep: u8,
+    in_record_sep: u8,
+    out_field_sep: u8,
+    out_record_sep: u8,
+}
+
+streaming_delimiter_replacer_init :: proc(in_field_sep, in_record_sep, out_field_sep, out_record_sep: u8) -> StreamingDelimiterReplacer {
+    return StreamingDelimiterReplacer{
+        output = make([dynamic]u8),
+        carry = make([dynamic]u8),
+        in_field_sep = in_field_sep,
+        in_record_sep = in_record_sep,
+        out_field_sep = out_field_sep,
+        out_record_sep = out_record_sep,
+    }
+}
+
+streaming_delimiter_replacer_destroy :: proc(r: ^StreamingDelimiterReplacer) {
+    delete(r.output)
+    delete(r.carry)
+}
+
+OUTPUT_THRESHOLD_REPLACE :: 64 * 1024
+
+// Replace delimiters in a chunk. Returns bytes written to output.
+streaming_delimiter_replace :: proc(r: ^StreamingDelimiterReplacer, input: []u8) -> int {
+    start_len := len(r.output)
+    
+    // Fast path: no carry data, process input directly
+    if len(r.carry) == 0 {
+        // Find last complete record
+        last_record_end := -1
+        for i := len(input) - 1; i >= 0; i -= 1 {
+            if input[i] == r.in_record_sep {
+                last_record_end = i
+                break
+            }
+        }
+        
+        if last_record_end < 0 {
+            // No complete record - carry forward for later processing
+            append(&r.carry, ..input)
+            return 0
+        }
+        
+        // Replace delimiters in complete records
+        complete_len := last_record_end + 1
+        
+        // Pre-allocate and get raw pointer for direct writes
+        old_len := len(r.output)
+        resize(&r.output, old_len + complete_len)
+        out := r.output[old_len:]
+        
+        for i := 0; i < complete_len; i += 1 {
+            c := input[i]
+            if c == r.in_field_sep {
+                out[i] = r.out_field_sep
+            } else if c == r.in_record_sep {
+                out[i] = r.out_record_sep
+            } else {
+                out[i] = c
+            }
+        }
+        
+        // Save incomplete record to carry
+        if last_record_end + 1 < len(input) {
+            append(&r.carry, ..input[last_record_end + 1:])
+        }
+        
+        return len(r.output) - start_len
+    }
+    
+    // Slow path: combine carry with input
+    total_len := len(r.carry) + len(input)
+    temp_buf: [dynamic]u8
+    reserve(&temp_buf, total_len)
+    append(&temp_buf, ..r.carry[:])
+    append(&temp_buf, ..input)
+    clear(&r.carry)
+    defer delete(temp_buf)
+    
+    data := temp_buf[:]
+    
+    // Find last complete record
+    last_record_end := -1
+    for i := len(data) - 1; i >= 0; i -= 1 {
+        if data[i] == r.in_record_sep {
+            last_record_end = i
+            break
+        }
+    }
+    
+    if last_record_end < 0 {
+        append(&r.carry, ..data)
+        return 0
+    }
+    
+    // Replace delimiters
+    complete_len := last_record_end + 1
+    old_len := len(r.output)
+    resize(&r.output, old_len + complete_len)
+    out := r.output[old_len:]
+    
+    for i := 0; i < complete_len; i += 1 {
+        c := data[i]
+        if c == r.in_field_sep {
+            out[i] = r.out_field_sep
+        } else if c == r.in_record_sep {
+            out[i] = r.out_record_sep
+        } else {
+            out[i] = c
+        }
+    }
+    
+    if last_record_end + 1 < len(data) {
+        append(&r.carry, ..data[last_record_end + 1:])
+    }
+    
+    return len(r.output) - start_len
+}
+
+streaming_delimiter_has_output :: proc(r: ^StreamingDelimiterReplacer) -> bool {
+    return len(r.output) >= OUTPUT_THRESHOLD_REPLACE
+}
+
+streaming_delimiter_output_len :: proc(r: ^StreamingDelimiterReplacer) -> int {
+    return len(r.output)
+}
+
+streaming_delimiter_clear_output :: proc(r: ^StreamingDelimiterReplacer) {
+    clear(&r.output)
+}
+
+streaming_delimiter_finish :: proc(r: ^StreamingDelimiterReplacer) -> int {
+    if len(r.carry) == 0 do return len(r.output)
+    
+    // Process remaining data
+    data := r.carry[:]
+    for i := 0; i < len(data); i += 1 {
+        c := data[i]
+        if c == r.in_field_sep {
+            append(&r.output, r.out_field_sep)
+        } else if c == r.in_record_sep {
+            append(&r.output, r.out_record_sep)
+        } else {
+            append(&r.output, c)
+        }
+    }
+    
+    clear(&r.carry)
+    return len(r.output)
+}

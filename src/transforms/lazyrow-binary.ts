@@ -92,32 +92,48 @@ export function fromLazyRowBinary() {
   return async function* (
     bytes: AsyncIterable<Uint8Array>
   ): AsyncIterable<LazyRow[]> {
-    let buffer = new Uint8Array(0);
+    const chunks: Uint8Array[] = [];
+    let totalLen = 0;
+    let buffer: Uint8Array | null = null;
+    let offset = 0;
     let currentBatch: LazyRow[] = [];
     let currentBatchSize = 0;
 
-    for await (const chunk of bytes) {
-      // Append chunk to buffer
-      const newBuffer = new Uint8Array(buffer.length + chunk.length);
-      newBuffer.set(buffer);
-      newBuffer.set(chunk, buffer.length);
-      buffer = newBuffer;
+    const ensureBuffer = () => {
+      if (buffer && offset === 0) return;
+      buffer = new Uint8Array(totalLen - offset);
+      let pos = 0;
+      let skip = offset;
+      for (const chunk of chunks) {
+        if (skip >= chunk.length) { skip -= chunk.length; continue; }
+        const src = skip > 0 ? chunk.subarray(skip) : chunk;
+        skip = 0;
+        buffer.set(src, pos);
+        pos += src.length;
+      }
+      chunks.length = 0;
+      chunks.push(buffer);
+      totalLen = buffer.length;
+      offset = 0;
+    };
 
-      // Parse complete rows from buffer
-      while (buffer.length >= 4) {
-        const view = new DataView(buffer.buffer, buffer.byteOffset);
+    for await (const chunk of bytes) {
+      chunks.push(chunk);
+      totalLen += chunk.length;
+      buffer = null;
+
+      ensureBuffer();
+
+      while (totalLen - offset >= 4) {
+        const view = new DataView(buffer!.buffer, buffer!.byteOffset + offset);
         const rowLength = view.getUint32(0, true);
 
-        if (buffer.length < 4 + rowLength) break;
+        if (totalLen - offset < 4 + rowLength) break;
 
-        // Extract row data (without the length prefix)
-        const rowData = buffer.slice(4, 4 + rowLength);
-        const row = LazyRow.fromBinary(rowData);
-
-        currentBatch.push(row);
+        const rowData = buffer!.subarray(offset + 4, offset + 4 + rowLength);
+        currentBatch.push(LazyRow.fromBinary(rowData));
         currentBatchSize += rowLength;
-
-        buffer = buffer.slice(4 + rowLength);
+        offset += 4 + rowLength;
 
         if (currentBatchSize >= BATCH_SIZE_BYTES) {
           yield currentBatch;

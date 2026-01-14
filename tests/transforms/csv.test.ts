@@ -375,3 +375,147 @@ Deno.test("CSV - invalid separator in quotes", async () => {
   // Should parse correctly
   assertEquals(result[0][1][1], "Has ; semicolon but valid");
 });
+
+// =============================================================================
+// Pathological Data Tests
+// =============================================================================
+
+/** Generate random alphanumeric string of given length */
+function randomString(len: number): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const result = new Array<string>(len);
+  for (let i = 0; i < len; i++) {
+    result[i] = chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result.join("");
+}
+
+Deno.test("CSV pathological - 1MB field", async () => {
+  const hugeField = randomString(1_000_000);
+  const csvData = `small,${hugeField},end\n`;
+  
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+  
+  assertEquals(result.length, 1);
+  assertEquals(result[0][0][0], "small");
+  assertEquals(result[0][0][1], hugeField);
+  assertEquals(result[0][0][2], "end");
+});
+
+Deno.test("CSV pathological - 1MB quoted field", async () => {
+  const hugeField = randomString(1_000_000);
+  const csvData = `"${hugeField}"\n`;
+  
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+  
+  assertEquals(result[0][0][0], hugeField);
+});
+
+Deno.test("CSV pathological - many fields (100 columns)", async () => {
+  const fields = Array.from({ length: 100 }, (_, i) => `field${i}`);
+  const csvData = fields.join(",") + "\n";
+  
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+  
+  assertEquals(result[0][0].length, 100);
+  assertEquals(result[0][0][0], "field0");
+  assertEquals(result[0][0][99], "field99");
+});
+
+Deno.test("CSV pathological - many rows (10000 rows)", async () => {
+  const rows = Array.from({ length: 10000 }, (_, i) => `a${i},b${i},c${i}`);
+  const csvData = rows.join("\n") + "\n";
+  
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+  
+  const allRows = result.flat();
+  assertEquals(allRows.length, 10000);
+  assertEquals(allRows[0], ["a0", "b0", "c0"]);
+  assertEquals(allRows[9999], ["a9999", "b9999", "c9999"]);
+});
+
+Deno.test("CSV pathological - 1MB field round-trip", async () => {
+  const hugeField = randomString(1_000_000);
+  const originalData = [[["small", hugeField, "end"]]];
+  
+  const csvBytes = await enumerate(originalData)
+    .transform(toCsv())
+    .collect();
+  
+  const parsedData = await enumerate(csvBytes)
+    .transform(fromCsvToRows())
+    .collect();
+  
+  assertEquals(parsedData[0][0][1], hugeField);
+});
+
+Deno.test("CSV pathological - 1MB field to LazyRow", async () => {
+  const hugeField = randomString(1_000_000);
+  const csvData = `small,${hugeField},end\n`;
+  
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToLazyRows())
+    .collect();
+  
+  assertEquals(result[0][0].getField(0), "small");
+  assertEquals(result[0][0].getField(1), hugeField);
+  assertEquals(result[0][0].getField(2), "end");
+});
+
+Deno.test("CSV pathological - chunk boundary in middle of field", async () => {
+  const field = "a".repeat(100);
+  const csvData = `${field},${field}\n`;
+  const bytes = new TextEncoder().encode(csvData);
+  
+  // Split in middle of first field
+  const chunk1 = bytes.slice(0, 50);
+  const chunk2 = bytes.slice(50);
+  
+  const result = await enumerate([chunk1, chunk2])
+    .transform(fromCsvToRows())
+    .collect();
+  
+  assertEquals(result[0][0][0], field);
+  assertEquals(result[0][0][1], field);
+});
+
+Deno.test("CSV pathological - chunk boundary in quoted field", async () => {
+  const field = "a".repeat(100);
+  const csvData = `"${field}","${field}"\n`;
+  const bytes = new TextEncoder().encode(csvData);
+  
+  // Split in middle of quoted field
+  const chunk1 = bytes.slice(0, 60);
+  const chunk2 = bytes.slice(60);
+  
+  const result = await enumerate([chunk1, chunk2])
+    .transform(fromCsvToRows())
+    .collect();
+  
+  assertEquals(result[0][0][0], field);
+  assertEquals(result[0][0][1], field);
+});
+
+Deno.test("CSV pathological - many small chunks", async () => {
+  const csvData = "a,b,c\nd,e,f\ng,h,i\n";
+  const bytes = new TextEncoder().encode(csvData);
+  
+  // Split into 1-byte chunks
+  const chunks = Array.from(bytes).map(b => new Uint8Array([b]));
+  
+  const result = await enumerate(chunks)
+    .transform(fromCsvToRows())
+    .collect();
+  
+  const allRows = result.flat();
+  assertEquals(allRows.length, 3);
+  assertEquals(allRows[0], ["a", "b", "c"]);
+});

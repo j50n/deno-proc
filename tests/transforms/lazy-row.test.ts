@@ -500,3 +500,158 @@ Deno.test("LazyRow - setField performance", async (t) => {
     assertEquals(end - start < 0.1, true);
   });
 });
+
+// =============================================================================
+// Pathological Data Tests
+// =============================================================================
+
+/** Generate random alphanumeric string of given length */
+function randomString(len: number): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const result = new Array<string>(len);
+  for (let i = 0; i < len; i++) {
+    result[i] = chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result.join("");
+}
+
+Deno.test("LazyRow pathological - 1MB field", async (t) => {
+  await t.step("StringArray with 1MB field", () => {
+    const hugeField = randomString(1_000_000);
+    const row = LazyRow.fromStringArray(["small", hugeField, "end"]);
+    
+    assertEquals(row.columnCount, 3);
+    assertEquals(row.getField(0), "small");
+    assertEquals(row.getField(1), hugeField);
+    assertEquals(row.getField(2), "end");
+  });
+
+  await t.step("Binary round-trip with 1MB field", () => {
+    const hugeField = randomString(1_000_000);
+    const stringRow = LazyRow.fromStringArray(["small", hugeField, "end"]);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    assertEquals(binaryRow.getField(0), "small");
+    assertEquals(binaryRow.getField(1), hugeField);
+    assertEquals(binaryRow.getField(2), "end");
+  });
+
+  await t.step("setField with 1MB value", () => {
+    const hugeField = randomString(1_000_000);
+    const row = LazyRow.fromStringArray(["a", "b", "c"]);
+    row.setField(1, hugeField);
+    
+    assertEquals(row.getField(1), hugeField);
+    
+    // Verify binary round-trip after modification
+    const binary = row.toBinary();
+    const row2 = LazyRow.fromBinary(binary);
+    assertEquals(row2.getField(1), hugeField);
+  });
+});
+
+Deno.test("LazyRow pathological - many columns (1000 fields)", async (t) => {
+  await t.step("StringArray with 1000 fields", () => {
+    const fields = Array.from({ length: 1000 }, (_, i) => `field${i}`);
+    const row = LazyRow.fromStringArray(fields);
+    
+    assertEquals(row.columnCount, 1000);
+    assertEquals(row.getField(0), "field0");
+    assertEquals(row.getField(500), "field500");
+    assertEquals(row.getField(999), "field999");
+  });
+
+  await t.step("Binary round-trip with 1000 fields", () => {
+    const fields = Array.from({ length: 1000 }, (_, i) => `field${i}`);
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    assertEquals(binaryRow.columnCount, 1000);
+    assertEquals(binaryRow.getField(0), "field0");
+    assertEquals(binaryRow.getField(500), "field500");
+    assertEquals(binaryRow.getField(999), "field999");
+  });
+
+  await t.step("toStringArray with 1000 fields", () => {
+    const fields = Array.from({ length: 1000 }, (_, i) => `field${i}`);
+    const stringRow = LazyRow.fromStringArray(fields);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    const result = binaryRow.toStringArray();
+    assertEquals(result.length, 1000);
+    assertEquals(result[0], "field0");
+    assertEquals(result[999], "field999");
+  });
+});
+
+Deno.test("LazyRow pathological - multiple 1MB fields", async (t) => {
+  await t.step("three 1MB fields", () => {
+    const huge1 = randomString(1_000_000);
+    const huge2 = randomString(1_000_000);
+    const huge3 = randomString(1_000_000);
+    
+    const row = LazyRow.fromStringArray([huge1, huge2, huge3]);
+    
+    assertEquals(row.getField(0), huge1);
+    assertEquals(row.getField(1), huge2);
+    assertEquals(row.getField(2), huge3);
+  });
+
+  await t.step("binary round-trip with multiple 1MB fields", () => {
+    const huge1 = randomString(1_000_000);
+    const huge2 = randomString(1_000_000);
+    
+    const stringRow = LazyRow.fromStringArray([huge1, huge2]);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    assertEquals(binaryRow.getField(0), huge1);
+    assertEquals(binaryRow.getField(1), huge2);
+  });
+});
+
+Deno.test("LazyRow pathological - sparse modifications on large row", async (t) => {
+  await t.step("modify 10 fields out of 1000", () => {
+    const fields = Array.from({ length: 1000 }, (_, i) => `original${i}`);
+    const row = LazyRow.fromBinary(LazyRow.fromStringArray(fields).toBinary());
+    
+    // Modify every 100th field
+    for (let i = 0; i < 10; i++) {
+      row.setField(i * 100, `modified${i * 100}`);
+    }
+    
+    // Check modified fields
+    assertEquals(row.getField(0), "modified0");
+    assertEquals(row.getField(100), "modified100");
+    assertEquals(row.getField(900), "modified900");
+    
+    // Check unmodified fields
+    assertEquals(row.getField(1), "original1");
+    assertEquals(row.getField(50), "original50");
+    assertEquals(row.getField(999), "original999");
+  });
+});
+
+Deno.test("LazyRow pathological - UTF-8 stress test", async (t) => {
+  await t.step("many multi-byte characters", () => {
+    // Mix of 1, 2, 3, and 4 byte UTF-8 characters
+    const field = "a北🚀é".repeat(10000); // ~40000 characters
+    const row = LazyRow.fromStringArray([field]);
+    
+    assertEquals(row.getField(0), field);
+  });
+
+  await t.step("binary round-trip with multi-byte UTF-8", () => {
+    const field = "北京🏙️中国🇨🇳".repeat(1000);
+    const stringRow = LazyRow.fromStringArray([field, "normal", field]);
+    const binary = stringRow.toBinary();
+    const binaryRow = LazyRow.fromBinary(binary);
+    
+    assertEquals(binaryRow.getField(0), field);
+    assertEquals(binaryRow.getField(1), "normal");
+    assertEquals(binaryRow.getField(2), field);
+  });
+});

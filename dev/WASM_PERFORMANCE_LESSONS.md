@@ -142,3 +142,127 @@ After applying these lessons:
 3. **Track consumed bytes** - for partial data handling
 4. **Minimal JS buffering** - only for leftovers
 5. **Direct format output** - skip intermediate formats
+
+## Streaming Architecture (Advanced)
+
+For maximum throughput, WASM should handle ALL buffering and batching
+internally.
+
+### The Problem with Row-by-Row Processing
+
+Even with "one WASM call per chunk", if JS is parsing row boundaries and calling
+WASM per-row, you get 100,000 WASM calls for 100,000 rows:
+
+```typescript
+// BAD: JS parses row boundaries, calls WASM per row
+while (buffer.length >= 4) {
+  const rowLength = view.getUint32(0, true);
+  const totalRowSize = 4 + rowLength;
+  
+  if (totalRowSize > buffer.length) break;
+  
+  // WASM call for EACH row - 100K calls!
+  const outLen = exports.decode_row(totalRowSize);
+  await write(...);
+  
+  buffer = buffer.subarray(totalRowSize);
+}
+```
+
+### The Solution: WASM Handles Everything
+
+WASM should:
+
+1. Accept arbitrary input chunks (64KB+ from Deno)
+2. Buffer incomplete rows internally (carry buffer)
+3. Accumulate output until threshold (64KB+) before returning
+4. Return complete rows only, carry partial row to next call
+
+```odin
+StreamingDecoder :: struct {
+    output: [dynamic]u8,           // Accumulates until threshold
+    carry: [dynamic]u8,            // Incomplete row data between chunks
+    field_lengths: [dynamic]u32,   // Reusable, grows as needed
+    field_sep: u8,
+    record_sep: u8,
+}
+
+OUTPUT_THRESHOLD :: 64 * 1024  // Return when output >= 64KB
+```
+
+### JS Becomes Trivial
+
+```typescript
+// GOOD: JS just shuttles bytes, WASM does all the work
+const decoderId = exports.create_streaming_decoder(separator, 0x0A);
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+
+  // Copy chunk to WASM
+  new Uint8Array(memory.buffer, inputPtr, value.length).set(value);
+
+  // Single WASM call processes entire chunk
+  const ready = exports.streaming_decode(decoderId, value.length);
+
+  // Write when threshold reached
+  if (ready) {
+    const outLen = exports.get_output(decoderId);
+    await write(new Uint8Array(memory.buffer, outputPtr, outLen).slice());
+    exports.clear_output(decoderId);
+  }
+}
+
+// Flush remaining
+const outLen = exports.finish(decoderId);
+if (outLen > 0) {
+  await write(new Uint8Array(memory.buffer, outputPtr, outLen).slice());
+}
+```
+
+### Key Design Principles
+
+1. **No artificial limits** - Use dynamic arrays that grow as needed
+2. **Threshold-based output** - Accumulate 64KB+ before returning to reduce
+   write() calls
+3. **Internal carry buffer** - WASM handles partial rows, not JS
+4. **Reusable scratch space** - Pre-allocate arrays, resize only when needed
+   (not per-row)
+
+### Per-Row Allocations Kill Performance
+
+```odin
+// BAD: Allocates for EVERY row
+decode_row :: proc(row_data: []u8) {
+    field_lengths := make([]u32, field_count)  // ALLOCATION
+    defer delete(field_lengths)                 // DEALLOCATION
+    // ...
+}
+
+// GOOD: Reuse array across all rows
+StreamingDecoder :: struct {
+    field_lengths: [dynamic]u32,  // Grows once, reused forever
+}
+
+decode_row :: proc(d: ^StreamingDecoder, row_data: []u8) {
+    if len(d.field_lengths) < field_count {
+        resize(&d.field_lengths, field_count)  // Rare resize
+    }
+    // Use d.field_lengths[:]
+}
+```
+
+### Expected Results
+
+With streaming architecture:
+
+- **Before**: ~18 MB/s (row-by-row, per-row allocations)
+- **After**: ~80 MB/s (streaming, reused buffers) - **4x speedup**
+
+| Conversion      | Before  | After   | Speedup |
+| --------------- | ------- | ------- | ------- |
+| lazyrow2csv     | 18 MB/s | 77 MB/s | 4.3x    |
+| lazyrow2tsv     | 18 MB/s | 85 MB/s | 4.7x    |
+| lazyrow2record  | 17 MB/s | 79 MB/s | 4.6x    |
+| **Overall avg** | 49 MB/s | 71 MB/s | 1.4x    |
