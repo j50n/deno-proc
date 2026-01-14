@@ -304,7 +304,8 @@ export class FlatdataProcessor {
     write: Writer,
     separator: number,
   ): Promise<void> {
-    const parserId = this.exports.create_direct_parser(separator, 0);
+    // Use default output separators: \x1F for fields, \x1E for records
+    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E);
     const reader = input.getReader();
 
     try {
@@ -447,7 +448,8 @@ export class FlatdataProcessor {
     write: Writer,
     separator: number,
   ): Promise<void> {
-    const parserId = this.exports.create_direct_parser(separator, 0);
+    // Use default output separators: \x1F for fields, \x1E for records
+    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E);
     const reader = input.getReader();
 
     try {

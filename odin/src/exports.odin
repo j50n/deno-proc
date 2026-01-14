@@ -249,16 +249,20 @@ DirectParser :: struct {
     error: csv.CsvError,
     row_started: bool,
     carry: [dynamic]u8,  // Buffer for incomplete record data between chunks
+    field_sep: u8,       // Output field separator (default \x1F)
+    record_sep: u8,      // Output record separator (default \x1E)
 }
 
 direct_parsers: map[i32]^DirectParser
 
 // Create a direct parser. Returns parser ID.
 // Parameters:
-//   separator: field separator char code (0 = default comma)
+//   separator: field separator char code for INPUT (0 = default comma)
 //   strict: 1 = fail on errors, 0 = best-effort parsing
+//   field_sep: OUTPUT field separator (0 = default \x1F)
+//   record_sep: OUTPUT record separator (0 = default \x1E)
 @(export)
-create_direct_parser :: proc "c" (separator: i32, strict: i32) -> i32 {
+create_direct_parser :: proc "c" (separator: i32, strict: i32, field_sep: i32, record_sep: i32) -> i32 {
     context = runtime.default_context()
     
     p := new(DirectParser)
@@ -268,6 +272,8 @@ create_direct_parser :: proc "c" (separator: i32, strict: i32) -> i32 {
     }
     p.state = .FieldStart
     p.carry = make([dynamic]u8)
+    p.field_sep = u8(field_sep) if field_sep > 0 else csv.FIELD_SEP
+    p.record_sep = u8(record_sep) if record_sep > 0 else csv.RECORD_SEP
     
     id := next_id
     next_id += 1
@@ -303,6 +309,8 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     out_cap := output_capacity
     
     sep := p.opts.separator
+    field_sep := p.field_sep
+    record_sep := p.record_sep
     
     // First, flush any carried data
     for b in p.carry {
@@ -322,31 +330,31 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
         switch p.state {
         case .FieldStart:
             if c == '"' {
-                if p.row_started && out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                if p.row_started && out_len < out_cap { out[out_len] = field_sep; out_len += 1 }
                 p.row_started = true
                 p.state = .Quoted
             } else if c == sep {
-                if p.row_started && out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                if p.row_started && out_len < out_cap { out[out_len] = field_sep; out_len += 1 }
                 p.row_started = true
                 p.fields_in_row += 1
             } else if c == '\r' {
                 if p.row_started {
-                    if out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                    if out_len < out_cap { out[out_len] = field_sep; out_len += 1 }
                     p.fields_in_row += 1
                 }
                 p.state = .RecordEnd
             } else if c == '\n' {
                 if p.row_started {
-                    if out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                    if out_len < out_cap { out[out_len] = field_sep; out_len += 1 }
                     p.fields_in_row += 1
-                    if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                    if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
                 record_start = out_len
             } else {
-                if p.row_started && out_len < out_cap { out[out_len] = csv.FIELD_SEP; out_len += 1 }
+                if p.row_started && out_len < out_cap { out[out_len] = field_sep; out_len += 1 }
                 p.row_started = true
                 if out_len < out_cap { out[out_len] = c; out_len += 1 }
                 p.state = .Unquoted
@@ -361,7 +369,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
                 p.state = .RecordEnd
             } else if c == '\n' {
                 p.fields_in_row += 1
-                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
@@ -390,7 +398,7 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
                 p.state = .RecordEnd
             } else if c == '\n' {
                 p.fields_in_row += 1
-                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
@@ -403,14 +411,14 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
             
         case .RecordEnd:
             if c == '\n' {
-                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
                 p.state = .FieldStart
                 record_start = out_len
             } else {
-                if out_len < out_cap { out[out_len] = csv.RECORD_SEP; out_len += 1 }
+                if out_len < out_cap { out[out_len] = record_sep; out_len += 1 }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
@@ -455,7 +463,7 @@ finish_direct :: proc "c" (id: i32) -> i32 {
     
     // Add final record separator if there's data
     if p.row_started && out_len > 0 && out_len < out_cap {
-        out[out_len] = csv.RECORD_SEP
+        out[out_len] = p.record_sep
         out_len += 1
     }
     
@@ -702,4 +710,142 @@ clear_stringify_output :: proc "c" (id: i32) {
     if s, ok := delimited_stringifiers[id]; ok {
         csv.delimited_stringify_reset(s)
     }
+}
+
+/*
+Direct Stringifier
+==================
+Converts delimited input (with custom separators) directly to CSV output.
+Supports configurable input field/record separators for flexibility.
+*/
+
+DirectStringifier :: struct {
+    opts: csv.StringifyOptions,
+    field_sep: u8,   // Input field separator
+    record_sep: u8,  // Input record separator
+}
+
+direct_stringifiers: map[i32]^DirectStringifier
+
+// Create a direct stringifier with custom input separators.
+// Parameters:
+//   separator: OUTPUT field separator (0 = default comma)
+//   crlf: 1 = use \r\n line endings, 0 = use \n
+//   always_quote: 1 = quote all fields, 0 = quote only when needed
+//   field_sep: INPUT field separator (0 = default \x1F)
+//   record_sep: INPUT record separator (0 = default \x1E)
+@(export)
+create_direct_stringifier :: proc "c" (separator: i32, crlf: i32, always_quote: i32, field_sep: i32, record_sep: i32) -> i32 {
+    context = runtime.default_context()
+    
+    s := new(DirectStringifier)
+    s.opts = csv.StringifyOptions{
+        separator = u8(separator) if separator > 0 else ',',
+        line_ending = .CRLF if crlf != 0 else .LF,
+        always_quote = always_quote != 0,
+    }
+    s.field_sep = u8(field_sep) if field_sep > 0 else csv.FIELD_SEP
+    s.record_sep = u8(record_sep) if record_sep > 0 else csv.RECORD_SEP
+    
+    id := next_id
+    next_id += 1
+    direct_stringifiers[id] = s
+    return id
+}
+
+// Destroy a direct stringifier
+@(export)
+destroy_direct_stringifier :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if s, ok := direct_stringifiers[id]; ok {
+        free(s)
+        delete_key(&direct_stringifiers, id)
+    }
+}
+
+// Convert delimited input to CSV, writing directly to output buffer.
+// Returns: number of bytes written to output buffer
+@(export)
+stringify_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    s, ok := direct_stringifiers[id]
+    if !ok do return 0
+    
+    input := slice.from_ptr(cast(^u8)input_buffer, int(input_len))
+    out := ([^]u8)(output_buffer)
+    out_len := 0
+    out_cap := output_capacity
+    
+    field_sep := s.field_sep
+    record_sep := s.record_sep
+    out_sep := s.opts.separator
+    always_quote := s.opts.always_quote
+    line_ending := s.opts.line_ending
+    
+    field_start := 0
+    in_field := false
+    first_field_in_row := true
+    
+    for i := 0; i < len(input); i += 1 {
+        c := input[i]
+        
+        if c == field_sep || c == record_sep {
+            // End of field
+            field := input[field_start:i]
+            
+            // Add separator before field (except first in row)
+            if !first_field_in_row && out_len < out_cap {
+                out[out_len] = out_sep
+                out_len += 1
+            }
+            first_field_in_row = false
+            
+            // Check if field needs quoting
+            needs_quote := always_quote
+            if !needs_quote {
+                for b in field {
+                    if b == out_sep || b == '"' || b == '\n' || b == '\r' {
+                        needs_quote = true
+                        break
+                    }
+                }
+            }
+            
+            // Write field
+            if needs_quote {
+                if out_len < out_cap { out[out_len] = '"'; out_len += 1 }
+                for b in field {
+                    if b == '"' {
+                        if out_len < out_cap { out[out_len] = '"'; out_len += 1 }
+                        if out_len < out_cap { out[out_len] = '"'; out_len += 1 }
+                    } else {
+                        if out_len < out_cap { out[out_len] = b; out_len += 1 }
+                    }
+                }
+                if out_len < out_cap { out[out_len] = '"'; out_len += 1 }
+            } else {
+                for b in field {
+                    if out_len < out_cap { out[out_len] = b; out_len += 1 }
+                }
+            }
+            
+            // End of record
+            if c == record_sep {
+                if line_ending == .CRLF && out_len < out_cap {
+                    out[out_len] = '\r'
+                    out_len += 1
+                }
+                if out_len < out_cap {
+                    out[out_len] = '\n'
+                    out_len += 1
+                }
+                first_field_in_row = true
+            }
+            
+            field_start = i + 1
+        }
+    }
+    
+    return i32(out_len)
 }
