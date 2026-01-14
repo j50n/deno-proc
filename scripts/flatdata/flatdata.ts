@@ -269,9 +269,7 @@ Formats:
   csv      RFC 4180 comma-separated values (configurable separator)
   tsv      Tab-separated values
   record   Text format using \\x1F (field) and \\x1E (record) separators
-  lazyrow  Binary format with length-prefixed fields for efficient random access
-
-Uses WebAssembly for high-performance parsing (~100+ MB/s).`)
+  lazyrow  Binary format with length-prefixed fields for efficient random access`)
   .example("CSV to record", "cat data.csv | flatdata csv2record | ./process")
   .example("Record to CSV", "flatdata record2csv -d ';' < data.rec > euro.csv")
   .example("Full pipeline", "flatdata csv2record -i huge.csv | ./analyze | flatdata record2csv -o results.csv")
