@@ -117,6 +117,24 @@ interface WasmExports {
   
   /** Clear stringifier output buffer */
   clear_stringify_output: (id: number) => void;
+  
+  /** Create a lazyrow encoder instance */
+  create_lazyrow_encoder: () => number;
+  
+  /** Destroy a lazyrow encoder instance */
+  destroy_lazyrow_encoder: (id: number) => void;
+  
+  /** Encode record format to binary lazyrow */
+  lazyrow_encode: (id: number, len: number) => number;
+  
+  /** Create a lazyrow decoder instance */
+  create_lazyrow_decoder: () => number;
+  
+  /** Destroy a lazyrow decoder instance */
+  destroy_lazyrow_decoder: (id: number) => void;
+  
+  /** Decode binary lazyrow to record format */
+  lazyrow_decode: (id: number, len: number) => number;
 }
 
 /**
@@ -425,6 +443,46 @@ export class FlatdataProcessor {
   }
 
   /**
+   * Convert record format to CSV/TSV (fast pure JS version).
+   * 
+   * Simple delimiter replacement: \x1F→separator, \x1E→\n
+   * Much faster than WASM stringifier but doesn't add CSV quoting.
+   * 
+   * @param input - Readable stream of record format bytes
+   * @param write - Writer function for output chunks
+   * @param separator - Output field separator
+   */
+  async recordToDelimited(
+    input: ReadableStream<Uint8Array>,
+    write: Writer,
+    separator: number,
+  ): Promise<void> {
+    const reader = input.getReader();
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        // Replace delimiters: \x1F→separator, \x1E→\n
+        const output = new Uint8Array(value.length);
+        for (let i = 0; i < value.length; i++) {
+          if (value[i] === 0x1F) {
+            output[i] = separator;
+          } else if (value[i] === 0x1E) {
+            output[i] = 0x0A; // newline
+          } else {
+            output[i] = value[i];
+          }
+        }
+        await write(output);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /**
    * Convert record format to CSV/TSV.
    * 
    * Takes record format (\x1F/\x1E delimited) and converts it to standard
@@ -542,6 +600,7 @@ export class FlatdataProcessor {
     // CSV input: separator for fields, \n for records
     // Output: \x1F for fields, \x1E for records
     const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E, 0x0A);
+    const encoderId = this.exports.create_lazyrow_encoder();
     const reader = input.getReader();
 
     try {
@@ -555,19 +614,34 @@ export class FlatdataProcessor {
 
           const outLen = this.exports.parse_direct(parserId, slice.length);
           if (outLen > 0) {
+            // Copy parser output to input buffer for encoder
             const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
-            await this.convertRecordToLazyRow(recordData, write);
+            new Uint8Array(this.memory.buffer, this.inputPtr, outLen).set(recordData);
+            
+            // Encode record format to lazyrow binary
+            const lazyrowLen = this.exports.lazyrow_encode(encoderId, outLen);
+            if (lazyrowLen > 0) {
+              await write(new Uint8Array(this.memory.buffer, this.outputPtr, lazyrowLen).slice());
+            }
           }
         }
       }
 
       const finalLen = this.exports.finish_direct(parserId);
       if (finalLen > 0) {
+        // Copy parser output to input buffer for encoder
         const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, finalLen);
-        await this.convertRecordToLazyRow(recordData, write);
+        new Uint8Array(this.memory.buffer, this.inputPtr, finalLen).set(recordData);
+        
+        // Encode final record to lazyrow binary
+        const lazyrowLen = this.exports.lazyrow_encode(encoderId, finalLen);
+        if (lazyrowLen > 0) {
+          await write(new Uint8Array(this.memory.buffer, this.outputPtr, lazyrowLen).slice());
+        }
       }
     } finally {
       this.exports.destroy_direct_parser(parserId);
+      this.exports.destroy_lazyrow_encoder(encoderId);
     }
   }
 
@@ -598,6 +672,7 @@ export class FlatdataProcessor {
     separator: number,
     quoteAll: boolean,
   ): Promise<void> {
+    const decoderId = this.exports.create_lazyrow_decoder();
     const stringifierId = this.exports.create_delimited_stringifier(separator, 0, quoteAll ? 1 : 0, 0);
     const reader = input.getReader();
     let buffer = new Uint8Array(0);
@@ -607,32 +682,44 @@ export class FlatdataProcessor {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Accumulate data to handle partial rows
+        // Accumulate data
         const newBuf = new Uint8Array(buffer.length + value.length);
         newBuf.set(buffer);
         newBuf.set(value, buffer.length);
         buffer = newBuf;
 
         // Process complete rows
-        while (buffer.length >= 4) {
-          const view = new DataView(buffer.buffer, buffer.byteOffset);
-          const rowLength = view.getUint32(0, true);
-
-          if (buffer.length < 4 + rowLength) break; // Incomplete row
-
-          const rowData = buffer.subarray(4, 4 + rowLength);
-          const recordData = this.binaryRowToRecord(rowData);
-
-          new Uint8Array(this.memory.buffer, this.inputPtr, recordData.length).set(recordData);
-          this.exports.stringify_delimited(stringifierId, recordData.length);
-
-          const outLen = this.exports.get_stringify_output(stringifierId);
-          if (outLen > 0) {
-            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
-            this.exports.clear_stringify_output(stringifierId);
+        if (buffer.length >= 4) {
+          new Uint8Array(this.memory.buffer, this.inputPtr, buffer.length).set(buffer);
+          const recordLen = this.exports.lazyrow_decode(decoderId, buffer.length);
+          
+          if (recordLen > 0) {
+            // Copy decoder output to input buffer for stringifier
+            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, recordLen);
+            new Uint8Array(this.memory.buffer, this.inputPtr, recordLen).set(recordData);
+            
+            // Stringify record format to CSV
+            this.exports.stringify_delimited(stringifierId, recordLen);
+            
+            const outLen = this.exports.get_stringify_output(stringifierId);
+            if (outLen > 0) {
+              await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+              this.exports.clear_stringify_output(stringifierId);
+            }
           }
 
-          buffer = buffer.subarray(4 + rowLength);
+          // Calculate how many bytes were consumed
+          let consumed = 0;
+          let i = 0;
+          while (i + 4 <= buffer.length) {
+            const view = new DataView(buffer.buffer, buffer.byteOffset + i);
+            const rowLength = view.getUint32(0, true);
+            if (i + 4 + rowLength > buffer.length) break;
+            consumed = i + 4 + rowLength;
+            i = consumed;
+          }
+          
+          buffer = buffer.subarray(consumed);
         }
       }
 
@@ -642,7 +729,9 @@ export class FlatdataProcessor {
         await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
       }
     } finally {
+      this.exports.destroy_lazyrow_decoder(decoderId);
       this.exports.destroy_delimited_stringifier(stringifierId);
+      reader.releaseLock();
     }
   }
 
@@ -674,9 +763,7 @@ export class FlatdataProcessor {
     input: ReadableStream<Uint8Array>,
     write: Writer,
   ): Promise<void> {
-    // Record input: \x1F for fields, \x1E for records
-    // Parse and convert to lazyrow binary
-    const parserId = this.exports.create_direct_parser(0x1F, 0, 0x1F, 0x1E, 0x1E);
+    const encoderId = this.exports.create_lazyrow_encoder();
     const reader = input.getReader();
 
     try {
@@ -688,33 +775,15 @@ export class FlatdataProcessor {
           const slice = value.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length));
           new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
 
-          const outLen = this.exports.parse_direct(parserId, slice.length);
+          const outLen = this.exports.lazyrow_encode(encoderId, slice.length);
           if (outLen > 0) {
-            const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
-            await this.convertRecordToLazyRow(recordData, write);
+            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen));
           }
         }
       }
-
-      const finalLen = this.exports.finish_direct(parserId);
-      if (finalLen > 0) {
-        const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, finalLen);
-        await this.convertRecordToLazyRow(recordData, write);
-      }
     } finally {
-      this.exports.destroy_direct_parser(parserId);
+      this.exports.destroy_lazyrow_encoder(encoderId);
       reader.releaseLock();
-    }
-  }
-
-  private async convertRecordToLazyRow(data: Uint8Array, write: Writer): Promise<void> {
-    let start = 0;
-    for (let i = 0; i < data.length; i++) {
-      if (data[i] === RECORD_SEP) {
-        const record = data.subarray(start, i);
-        await this.writeRowAsBinary(record, write);
-        start = i + 1;
-      }
     }
   }
 
@@ -741,34 +810,47 @@ export class FlatdataProcessor {
     input: ReadableStream<Uint8Array>,
     write: Writer,
   ): Promise<void> {
-    // Convert lazyrow binary to record format using pure JS
-    // (WASM stringifier expects record format input, not binary)
+    const decoderId = this.exports.create_lazyrow_decoder();
     const reader = input.getReader();
     let buffer = new Uint8Array(0);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      // Accumulate data
-      const newBuf = new Uint8Array(buffer.length + value.length);
-      newBuf.set(buffer);
-      newBuf.set(value, buffer.length);
-      buffer = newBuf;
+        // Accumulate data
+        const newBuf = new Uint8Array(buffer.length + value.length);
+        newBuf.set(buffer);
+        newBuf.set(value, buffer.length);
+        buffer = newBuf;
 
-      // Process complete rows
-      while (buffer.length >= 4) {
-        const view = new DataView(buffer.buffer, buffer.byteOffset);
-        const rowLength = view.getUint32(0, true);
+        // Process complete rows
+        if (buffer.length >= 4) {
+          new Uint8Array(this.memory.buffer, this.inputPtr, buffer.length).set(buffer);
+          const outLen = this.exports.lazyrow_decode(decoderId, buffer.length);
+          
+          if (outLen > 0) {
+            await write(new Uint8Array(this.memory.buffer, this.outputPtr, outLen).slice());
+          }
 
-        if (buffer.length < 4 + rowLength) break; // Incomplete row
-
-        const rowData = buffer.subarray(4, 4 + rowLength);
-        const recordData = this.binaryRowToRecord(rowData);
-        await write(recordData);
-
-        buffer = buffer.subarray(4 + rowLength);
+          // Calculate how many bytes were consumed
+          let consumed = 0;
+          let i = 0;
+          while (i + 4 <= buffer.length) {
+            const view = new DataView(buffer.buffer, buffer.byteOffset + i);
+            const rowLength = view.getUint32(0, true);
+            if (i + 4 + rowLength > buffer.length) break;
+            consumed = i + 4 + rowLength;
+            i = consumed;
+          }
+          
+          buffer = buffer.subarray(consumed);
+        }
       }
+    } finally {
+      this.exports.destroy_lazyrow_decoder(decoderId);
+      reader.releaseLock();
     }
   }
 

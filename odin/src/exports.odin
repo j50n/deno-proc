@@ -853,3 +853,111 @@ stringify_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     
     return i32(out_len)
 }
+
+
+// =============================================================================
+// LazyRow Binary Format Encoder/Decoder
+// =============================================================================
+
+lazyrow_encoders: map[i32]^csv.LazyRowEncoder
+lazyrow_decoders: map[i32]^csv.LazyRowDecoder
+
+// Create a lazyrow encoder
+@(export)
+create_lazyrow_encoder :: proc "c" () -> i32 {
+    context = runtime.default_context()
+    
+    e := new(csv.LazyRowEncoder)
+    e^ = csv.lazyrow_encoder_init()
+    
+    id := next_id
+    next_id += 1
+    lazyrow_encoders[id] = e
+    return id
+}
+
+// Destroy a lazyrow encoder
+@(export)
+destroy_lazyrow_encoder :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if e, ok := lazyrow_encoders[id]; ok {
+        csv.lazyrow_encoder_destroy(e)
+        free(e)
+        delete_key(&lazyrow_encoders, id)
+    }
+}
+
+// Encode record format to binary lazyrow format.
+// Input: record format in input buffer
+// Output: binary lazyrow in output buffer
+// Returns: number of bytes written to output buffer
+@(export)
+lazyrow_encode :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    e, ok := lazyrow_encoders[id]
+    if !ok do return 0
+    
+    input := slice.from_ptr(cast(^u8)input_buffer, int(input_len))
+    csv.lazyrow_encoder_reset(e)
+    csv.lazyrow_encode(e, input)
+    
+    // Copy to output buffer
+    out_len := min(len(e.output), output_capacity)
+    if out_len > 0 {
+        out := slice.from_ptr(cast(^u8)output_buffer, out_len)
+        copy(out, e.output[:out_len])
+    }
+    
+    return i32(out_len)
+}
+
+// Create a lazyrow decoder
+@(export)
+create_lazyrow_decoder :: proc "c" () -> i32 {
+    context = runtime.default_context()
+    
+    d := new(csv.LazyRowDecoder)
+    d^ = csv.lazyrow_decoder_init()
+    
+    id := next_id
+    next_id += 1
+    lazyrow_decoders[id] = d
+    return id
+}
+
+// Destroy a lazyrow decoder
+@(export)
+destroy_lazyrow_decoder :: proc "c" (id: i32) {
+    context = runtime.default_context()
+    if d, ok := lazyrow_decoders[id]; ok {
+        csv.lazyrow_decoder_destroy(d)
+        free(d)
+        delete_key(&lazyrow_decoders, id)
+    }
+}
+
+// Decode binary lazyrow format to record format.
+// Input: binary lazyrow in input buffer
+// Output: record format in output buffer
+// Returns: number of bytes written to output buffer
+@(export)
+lazyrow_decode :: proc "c" (id: i32, input_len: i32) -> i32 {
+    context = runtime.default_context()
+    
+    d, ok := lazyrow_decoders[id]
+    if !ok do return 0
+    
+    input := slice.from_ptr(cast(^u8)input_buffer, int(input_len))
+    csv.lazyrow_decoder_reset(d)
+    csv.lazyrow_decode(d, input)
+    
+    // Copy to output buffer
+    out_len := min(len(d.output), output_capacity)
+    if out_len > 0 {
+        out := slice.from_ptr(cast(^u8)output_buffer, out_len)
+        copy(out, d.output[:out_len])
+    }
+    
+    return i32(out_len)
+}

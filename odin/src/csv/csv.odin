@@ -860,3 +860,193 @@ write_span_field :: proc(s: ^SpanStringifier, field: []u8, was_quoted: bool) {
         append(&s.output, ..field)
     }
 }
+
+
+/*
+LazyRow Binary Format Encoder/Decoder
+======================================
+
+Binary format optimized for random field access without parsing.
+Each row is encoded as:
+  - [row_length: u32] Total bytes for this row (little-endian)
+  - [field_count: u32] Number of fields (little-endian)
+  - [field_lengths: u32[]] Length of each field (little-endian)
+  - [field_data: bytes] Concatenated field data
+
+Benefits:
+  - O(1) access to any field by index
+  - No string parsing needed for field access
+  - Efficient for columnar operations
+
+Trade-offs:
+  - Larger file size (~20-30% overhead for metadata)
+  - Binary format (not human-readable)
+*/
+
+LazyRowEncoder :: struct {
+    output: [dynamic]u8,
+}
+
+lazyrow_encoder_init :: proc() -> LazyRowEncoder {
+    return LazyRowEncoder{
+        output = make([dynamic]u8),
+    }
+}
+
+lazyrow_encoder_destroy :: proc(e: ^LazyRowEncoder) {
+    delete(e.output)
+}
+
+lazyrow_encoder_reset :: proc(e: ^LazyRowEncoder) {
+    clear(&e.output)
+}
+
+// Encode record format (\x1F/\x1E delimited) to binary lazyrow format.
+// Processes all complete records in input, returns number of bytes written.
+lazyrow_encode :: proc(e: ^LazyRowEncoder, input: []u8) -> int {
+    if len(input) == 0 do return 0
+    
+    start_len := len(e.output)
+    i := 0
+    n := len(input)
+    field_start := 0
+    fields: [dynamic][]u8
+    defer delete(fields)
+    
+    for i < n {
+        c := input[i]
+        
+        if c == FIELD_SEP {
+            append(&fields, input[field_start:i])
+            field_start = i + 1
+        } else if c == RECORD_SEP {
+            // Add final field
+            append(&fields, input[field_start:i])
+            
+            // Encode this row
+            encode_row(e, fields[:])
+            
+            // Reset for next row
+            clear(&fields)
+            field_start = i + 1
+        }
+        
+        i += 1
+    }
+    
+    return len(e.output) - start_len
+}
+
+@(private)
+encode_row :: proc(e: ^LazyRowEncoder, fields: [][]u8) {
+    field_count := u32(len(fields))
+    data_size := 0
+    for f in fields {
+        data_size += len(f)
+    }
+    
+    header_size := 4 + int(field_count) * 4  // field_count + field_lengths array
+    row_length := u32(header_size + data_size)
+    
+    // Write row_length
+    append(&e.output, u8(row_length), u8(row_length >> 8), u8(row_length >> 16), u8(row_length >> 24))
+    
+    // Write field_count
+    append(&e.output, u8(field_count), u8(field_count >> 8), u8(field_count >> 16), u8(field_count >> 24))
+    
+    // Write field lengths
+    for f in fields {
+        flen := u32(len(f))
+        append(&e.output, u8(flen), u8(flen >> 8), u8(flen >> 16), u8(flen >> 24))
+    }
+    
+    // Write field data
+    for f in fields {
+        append(&e.output, ..f)
+    }
+}
+
+LazyRowDecoder :: struct {
+    output: [dynamic]u8,
+}
+
+lazyrow_decoder_init :: proc() -> LazyRowDecoder {
+    return LazyRowDecoder{
+        output = make([dynamic]u8),
+    }
+}
+
+lazyrow_decoder_destroy :: proc(d: ^LazyRowDecoder) {
+    delete(d.output)
+}
+
+lazyrow_decoder_reset :: proc(d: ^LazyRowDecoder) {
+    clear(&d.output)
+}
+
+// Decode binary lazyrow format to record format (\x1F/\x1E delimited).
+// Processes all complete rows in input, returns number of bytes written.
+lazyrow_decode :: proc(d: ^LazyRowDecoder, input: []u8) -> int {
+    if len(input) < 4 do return 0
+    
+    start_len := len(d.output)
+    i := 0
+    n := len(input)
+    
+    for i + 4 <= n {
+        // Read row_length
+        row_length := u32(input[i]) | (u32(input[i+1]) << 8) | (u32(input[i+2]) << 16) | (u32(input[i+3]) << 24)
+        
+        // Check if we have the complete row
+        if i + 4 + int(row_length) > n {
+            break
+        }
+        
+        row_data := input[i+4 : i+4+int(row_length)]
+        decode_row(d, row_data)
+        
+        i += 4 + int(row_length)
+    }
+    
+    return len(d.output) - start_len
+}
+
+@(private)
+decode_row :: proc(d: ^LazyRowDecoder, row_data: []u8) {
+    if len(row_data) < 4 do return
+    
+    // Read field_count
+    field_count := u32(row_data[0]) | (u32(row_data[1]) << 8) | (u32(row_data[2]) << 16) | (u32(row_data[3]) << 24)
+    
+    header_size := 4 + int(field_count) * 4
+    if len(row_data) < header_size do return
+    
+    // Read field lengths
+    field_lengths := make([]u32, field_count)
+    defer delete(field_lengths)
+    
+    for i := 0; i < int(field_count); i += 1 {
+        offset := 4 + i * 4
+        field_lengths[i] = u32(row_data[offset]) | (u32(row_data[offset+1]) << 8) | 
+                          (u32(row_data[offset+2]) << 16) | (u32(row_data[offset+3]) << 24)
+    }
+    
+    // Write fields to output
+    data_offset := header_size
+    for i := 0; i < int(field_count); i += 1 {
+        flen := int(field_lengths[i])
+        if data_offset + flen > len(row_data) do return
+        
+        // Write field data
+        append(&d.output, ..row_data[data_offset:data_offset+flen])
+        
+        // Write separator
+        if i < int(field_count) - 1 {
+            append(&d.output, FIELD_SEP)
+        } else {
+            append(&d.output, RECORD_SEP)
+        }
+        
+        data_offset += flen
+    }
+}
