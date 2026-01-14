@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "../searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -200,8 +200,8 @@
 </blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-json-lines"><a class="header" href="#parsing-json-lines">Parsing JSON Lines</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
-import { fromJsonToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.1";
+import { fromJsonToRows } from "jsr:@j50n/proc@0.24.1/transforms";
 
 // Parse JSONL into objects
 const objects = await read("events.jsonl")
@@ -213,7 +213,7 @@ const objects = await read("events.jsonl")
 // objects[1] = { id: "evt_124", type: "view", metadata: [1, 2, 3] }
 </code></pre>
 <h3 id="generating-json-lines"><a class="header" href="#generating-json-lines">Generating JSON Lines</a></h3>
-<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@{{gitv}}/transforms";
+<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.1/transforms";
 
 // From objects
 const events = [

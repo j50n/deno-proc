@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "../searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -206,7 +206,7 @@ done
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { run } from "jsr:@j50n/proc@{{gitv}}";
+import { run } from "jsr:@j50n/proc@0.24.1";
 
 for await (const entry of Deno.readDir(".")) {
   if (entry.name.endsWith(".txt")) {
@@ -223,7 +223,7 @@ grep ERROR app.log | wc -l
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { read } from "jsr:@j50n/proc@{{gitv}}";
+import { read } from "jsr:@j50n/proc@0.24.1";
 
 const errors = await read("app.log")
   .lines
@@ -240,7 +240,7 @@ tar -czf backup-$(date +%Y%m%d).tar.gz /data
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { run } from "jsr:@j50n/proc@{{gitv}}";
+import { run } from "jsr:@j50n/proc@0.24.1";
 
 const date = new Date().toISOString().split("T")[0].replace(/-/g, "");
 await run("tar", "-czf", `backup-${date}.tar.gz`, "/data").toStdout();
@@ -256,7 +256,7 @@ done
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-run
-import { run, sleep } from "jsr:@j50n/proc@{{gitv}}";
+import { run, sleep } from "jsr:@j50n/proc@0.24.1";
 
 while (true) {
   const usage = await run("df", "-h")
@@ -271,7 +271,7 @@ while (true) {
 <p>Complete deployment script:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-all
-import { run } from "jsr:@j50n/proc@{{gitv}}";
+import { run } from "jsr:@j50n/proc@0.24.1";
 
 console.log("🚀 Deploying application...");
 

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "../searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,21 +183,21 @@
 <h2 id="import-from-jsr"><a class="header" href="#import-from-jsr">Import from JSR</a></h2>
 <p>Add proc to your Deno project:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import * as proc from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import * as proc from "jsr:@j50n/proc@0.24.1";
 </code></pre>
 <p>Or import just what you need:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { run, enumerate, read } from "jsr:@j50n/proc@0.24.1";
 </code></pre>
 <p>That’s it! No installation step, no package.json, no node_modules.</p>
 <h2 id="data-transforms-optional"><a class="header" href="#data-transforms-optional">Data Transforms (Optional)</a></h2>
 <p>The data transforms module is <strong>separate from the core library</strong> to keep the main import lightweight. Import it when you need CSV, TSV, JSON, or Record format conversions:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">// Core library - process management and async iterables
-import { run, enumerate, read } from "jsr:@j50n/proc@{{gitv}}";
+import { run, enumerate, read } from "jsr:@j50n/proc@0.24.1";
 
 // Data transforms - CSV, TSV, JSON, Record conversions
-import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.1/transforms";
 </code></pre>
 <p><strong>Why separate?</strong></p>
 <ul>

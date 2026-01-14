@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "../searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -284,7 +284,7 @@ stream3.on('error', handleError);
 <p>proc throws specific error types that help you handle different failure scenarios appropriately. Each error type carries relevant context about what went wrong, making debugging and error recovery more straightforward.</p>
 <p><strong>ExitCodeError</strong> occurs when a process exits with a non-zero code:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@0.24.1";
 
 try {
   await run("false").lines.collect();
@@ -297,7 +297,7 @@ try {
 </code></pre>
 <p><strong>SignalError</strong> happens when a process is terminated by a signal, such as when you interrupt it with Ctrl+C:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { SignalError } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { SignalError } from "jsr:@j50n/proc@0.24.1";
 
 try {
   await run("sleep", "1000").lines.collect();
@@ -310,7 +310,7 @@ try {
 </code></pre>
 <p><strong>UpstreamError</strong> wraps errors that come from earlier stages in a pipeline:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { UpstreamError } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { UpstreamError } from "jsr:@j50n/proc@0.24.1";
 
 try {
   await run("cat", "missing.txt")  // This fails

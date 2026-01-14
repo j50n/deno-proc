@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "../searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -208,7 +208,7 @@
 </blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="creating-lazyrow"><a class="header" href="#creating-lazyrow">Creating LazyRow</a></h3>
-<pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@{{gitv}}/transforms";
+<pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@0.24.1/transforms";
 
 // From string array (zero cost)
 const lazyRow1 = LazyRow.fromStringArray(['Alice', '30', 'Engineer']);
@@ -237,7 +237,7 @@ const binary2 = lazyRow.toBinary();       // Returns cached result
 </code></pre>
 <h2 id="parsing-with-lazyrow"><a class="header" href="#parsing-with-lazyrow">Parsing with LazyRow</a></h2>
 <h3 id="csv-to-lazyrow"><a class="header" href="#csv-to-lazyrow">CSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.1/transforms";
 
 const lazyRows = await read("data.csv")
   .transform(fromCsvToLazyRows())
@@ -257,7 +257,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="tsv-to-lazyrow"><a class="header" href="#tsv-to-lazyrow">TSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
+<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.1/transforms";
 
 const lazyRows = await read("logs.tsv")
   .transform(fromTsvToLazyRows())
@@ -275,7 +275,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="record-to-lazyrow"><a class="header" href="#record-to-lazyrow">Record to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
+<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@0.24.1/transforms";
 
 const lazyRows = await read("data.record")
   .transform(fromRecordToLazyRows())

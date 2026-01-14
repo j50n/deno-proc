@@ -1,57 +1,62 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
 /**
- * Convert `{{gitv}}` in the book content to the latest `git` tag, like `0.20.17`.
- *
- * My very first `mdbook` plugin.
+ * Convert `@{{gitv}}` in the book content to the latest `git` tag, like `@0.24.1`.
  */
 
 import { run, toLines } from "../mod.ts";
 import { enumerate } from "../src/enumerable.ts";
 
-type Section = {
+interface Chapter {
   Chapter: {
     content: string;
+    sub_items?: unknown[];
   };
-};
+}
 
-function isSection(obj: unknown): obj is Section {
+function isChapter(obj: unknown): obj is Chapter {
   return obj != null && typeof obj === "object" && "Chapter" in obj &&
     obj.Chapter != null;
 }
 
-type CONTEXT = unknown;
-type BOOK = {
-  sections: Section[];
-};
-type Input = [CONTEXT, BOOK];
+type Section = Chapter | { PartTitle: string } | "Separator";
+
+interface Book {
+  sections?: Section[];
+  items?: Section[];
+}
+
+interface Context {
+  root: string;
+}
 
 if (Deno.args[0] === "supports") {
   Deno.exit(0);
 } else {
-  const input = JSON.parse(
+  const [context, book]: [Context, Book] = JSON.parse(
     (await enumerate(Deno.stdin.readable).transform(toLines).collect())
       .join("\n"),
   );
 
-  // Handle both array format [context, book] and object format {sections: [...]}
-  const book: BOOK = Array.isArray(input) ? input[1] : input;
-
-  if (!book?.sections) {
-    console.log(JSON.stringify(book));
-    Deno.exit(0);
-  }
-
   const gitv = (await run("git", "describe", "--tags").lines.first)
     .split("-")[0];
 
-  for (const section of book.sections) {
-    if (isSection(section)) {
-      section.Chapter.content = section.Chapter.content.replaceAll(
-        "{{gitv}}",
-        gitv,
+  function extractChapters(items: unknown[] | undefined): Chapter[] {
+    return (items ?? [])
+      .filter(isChapter)
+      .flatMap(
+        (item) => [item, ...extractChapters(item.Chapter.sub_items)],
       );
-    }
+  }
+
+  const sections = book.sections || book.items || [];
+  const chapters = extractChapters(sections);
+
+  for (const chapter of chapters) {
+    chapter.Chapter.content = chapter.Chapter.content.replaceAll(
+      "@{{gitv}}",
+      `@${gitv}`,
+    );
   }
 
   console.log(JSON.stringify(book));

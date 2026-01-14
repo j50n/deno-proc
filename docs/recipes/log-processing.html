@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "../searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="counting-errors"><a class="header" href="#counting-errors">Counting Errors</a></h2>
 <p>The simplest log analysis task is counting error occurrences. This approach streams through the file, filtering for error lines and counting them:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "log-processing: count errors" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.1";
 
 const errorCount = await read("app.log")
   .lines
@@ -281,7 +281,7 @@ Object.entries(errorsByHour)
 </code></pre>
 <h2 id="multiple-log-files"><a class="header" href="#multiple-log-files">Multiple Log Files</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.1";
 
 const files = ["app1.log", "app2.log", "app3.log"];
 

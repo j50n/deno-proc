@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9208c6f.js"></script>
@@ -196,10 +196,10 @@ data, with error handling that actually makes sense.</p>
 <h3 id="how-do-i-import-data-transforms-csv-tsv-json"><a class="header" href="#how-do-i-import-data-transforms-csv-tsv-json">How do I import data transforms (CSV, TSV, JSON)?</a></h3>
 <p>Data transforms are in a <strong>separate module</strong> from the core library:</p>
 <pre><code class="language-typescript">// Core library
-import { enumerate, read, run } from "jsr:@j50n/proc@{{gitv}}";
+import { enumerate, read, run } from "jsr:@j50n/proc@0.24.1";
 
 // Data transforms (separate import)
-import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.1/transforms";
 </code></pre>
 <p>This keeps the core library lightweight. See
 <a href="./data-transforms/README.html">Data Transforms</a> for details.</p>

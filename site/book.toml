@@ -24,6 +24,10 @@ enable = true
 limit-results = 30
 use-boolean-and = true
 
+[preprocessor.gitv]
+command = "./gitv.ts"
+output-to-file = false
+
 [preprocessor.mdbook-deno-script-preprocessor]
 command = """deno run \
   --allow-net=deno.land \
@@ -31,8 +35,4 @@ command = """deno run \
   ../tools/mdbook-deno-script-preprocessor.ts \
   process \
   --concurrently """
-output-to-file = false
-
-[preprocessor.gitv]
-command = "./gitv.ts"
 output-to-file = false

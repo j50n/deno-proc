@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6df71b01.js";
+            window.path_to_searchindex_js = "../searchindex-ee147872.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -229,7 +229,7 @@ const lines = content.split("\n");
 <h2 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h2>
 <p>Stream it, one line at a time:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.1";
 
 // ✅ Constant memory, any file size
 for await (const line of read("huge.log").lines) {
@@ -294,7 +294,7 @@ console.log(`${count} lines`);
 <h2 id="multiple-files"><a class="header" href="#multiple-files">Multiple Files</a></h2>
 <p>Process multiple large files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.1";
 
 const files = ["log1.txt", "log2.txt", "log3.txt"];
 
@@ -321,7 +321,7 @@ for (const file of files) {
 <h2 id="writing-large-files"><a class="header" href="#writing-large-files">Writing Large Files</a></h2>
 <p>Stream output to a file:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@{{gitv}}";
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.24.1";
 
 const processed = await read("input.txt")
   .lines
