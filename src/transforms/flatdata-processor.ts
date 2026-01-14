@@ -466,7 +466,7 @@ export class FlatdataProcessor {
           const outLen = this.exports.parse_direct(parserId, slice.length);
           if (outLen > 0) {
             const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, outLen);
-            await this.processRecordChunk(recordData, write);
+            await this.convertRecordToLazyRow(recordData, write);
           }
         }
       }
@@ -474,7 +474,7 @@ export class FlatdataProcessor {
       const finalLen = this.exports.finish_direct(parserId);
       if (finalLen > 0) {
         const recordData = new Uint8Array(this.memory.buffer, this.outputPtr, finalLen);
-        await this.processRecordChunk(recordData, write);
+        await this.convertRecordToLazyRow(recordData, write);
       }
     } finally {
       this.exports.destroy_direct_parser(parserId);
