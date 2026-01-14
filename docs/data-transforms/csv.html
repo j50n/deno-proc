@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9889c580.js";
+            window.path_to_searchindex_js = "../searchindex-b34b5ea6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -180,6 +180,9 @@
                     <main>
                         <h1 id="csv-transforms"><a class="header" href="#csv-transforms">CSV Transforms</a></h1>
 <p>Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance and LazyRow optimization.</p>
+<blockquote>
+<p><strong>⚡ Need more speed?</strong> This page covers the pure-Deno CSV parser (10-30 MB/s). For maximum performance, use the <a href="../utilities/flatdata.html">flatdata CLI</a> which achieves ~330 MB/s using a WASM-powered subprocess — about 10x faster.</p>
+</blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>CSV transforms provide robust parsing and generation of CSV files with proper handling of quoted fields, escaping, and edge cases. While CSV is the slowest format for parsing, LazyRow optimization provides significant performance improvements.</p>
 <h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
@@ -196,7 +199,7 @@
 </table>
 </div>
 <blockquote>
-<p><strong>💡 Recommendation</strong>: Always use LazyRow for CSV processing - it’s consistently faster with no downsides.</p>
+<p><strong>💡 Recommendation</strong>: Always use LazyRow for CSV processing — it’s consistently faster with no downsides. For files over 100MB, consider <a href="../utilities/flatdata.html">flatdata</a> instead.</p>
 </blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-csv-to-rows"><a class="header" href="#parsing-csv-to-rows">Parsing CSV to Rows</a></h3>

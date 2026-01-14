@@ -2,6 +2,8 @@
 
 Parse and generate CSV (Comma-Separated Values) files with RFC 4180 compliance and LazyRow optimization.
 
+> **⚡ Need more speed?** This page covers the pure-Deno CSV parser (10-30 MB/s). For maximum performance, use the [flatdata CLI](../utilities/flatdata.md) which achieves ~330 MB/s using a WASM-powered subprocess — about 10x faster.
+
 ## Overview
 
 CSV transforms provide robust parsing and generation of CSV files with proper handling of quoted fields, escaping, and edge cases. While CSV is the slowest format for parsing, LazyRow optimization provides significant performance improvements.
@@ -14,7 +16,7 @@ CSV transforms provide robust parsing and generation of CSV files with proper ha
 | Medium (10K) | 17.09 MB/s     | 19.14 MB/s      | **1.12x** |
 | Large (50K)  | 27.29 MB/s     | 29.29 MB/s      | **1.07x** |
 
-> **💡 Recommendation**: Always use LazyRow for CSV processing - it's consistently faster with no downsides.
+> **💡 Recommendation**: Always use LazyRow for CSV processing — it's consistently faster with no downsides. For files over 100MB, consider [flatdata](../utilities/flatdata.md) instead.
 
 ## Basic Usage
 
