@@ -78,6 +78,19 @@ cat huge.csv | flatdata csv2record | ./process | flatdata record2csv > results.c
 
 ## Commands
 
+### Direct Conversions
+
+```bash
+flatdata csv2tsv [options]       # CSV → TSV
+flatdata tsv2csv [options]       # TSV → CSV
+```
+
+Options:
+- `-d, --separator <char>` - CSV field separator (default: `,`)
+- `-q, --quote-all` - Quote all fields in output
+- `-i, --input <file>` - Input file (default: stdin)
+- `-o, --output <file>` - Output file (default: stdout)
+
 ### CSV/TSV Input
 
 ```bash
@@ -123,6 +136,19 @@ Options:
 ## Using with proc
 
 The real power comes from combining flatdata with proc's pipeline capabilities.
+
+### Direct Format Conversion
+
+```bash
+# Convert CSV to TSV
+cat data.csv | flatdata csv2tsv > data.tsv
+
+# Convert TSV to CSV
+flatdata tsv2csv -i data.tsv -o data.csv
+
+# European CSV (semicolon) to TSV
+flatdata csv2tsv -d ';' -i euro.csv -o data.tsv
+```
 
 ### Basic Pipeline
 

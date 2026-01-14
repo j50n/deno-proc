@@ -53,7 +53,10 @@ if (Deno.args[0] === "supports") {
   const chapters = extractChapters(sections);
 
   for (const chapter of chapters) {
-    chapter.Chapter.content = chapter.Chapter.content.replaceAll("{{gitv}}", gitv);
+    chapter.Chapter.content = chapter.Chapter.content.replaceAll(
+      "{{gitv}}",
+      gitv,
+    );
   }
 
   console.log(JSON.stringify(book));

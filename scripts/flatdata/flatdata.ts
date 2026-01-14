@@ -97,6 +97,33 @@ const csv2lazyrow = new Command()
     close();
   });
 
+const csv2tsv = new Command()
+  .description("Convert CSV to TSV")
+  .option("-d, --separator <char:string>", "CSV field separator", { default: "," })
+  .option("-q, --quote-all", "Quote all fields in output")
+  .option("-i, --input <file:string>", "Input file (default: stdin)")
+  .option("-o, --output <file:string>", "Output file (default: stdout)")
+  .example("Basic", "cat data.csv | flatdata csv2tsv > data.tsv")
+  .action(async ({ separator, quoteAll, input, output }) => {
+    const processor = await FlatdataProcessor.create();
+    const stream = await getInput(input);
+    const { write, close } = await getWriter(output);
+    // Parse CSV, output as TSV (separator=9)
+    const recordStream = new ReadableStream({
+      async start(controller) {
+        const chunks: Uint8Array[] = [];
+        await processor.csvToRecord(stream, async (data) => {
+          chunks.push(data);
+          return data.length;
+        }, separator!.charCodeAt(0));
+        controller.enqueue(new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], [] as number[])));
+        controller.close();
+      }
+    });
+    await processor.recordToCsv(recordStream, write, 9, quoteAll ?? false);
+    close();
+  });
+
 // TSV input commands
 const tsv2record = new Command()
   .description("Convert TSV to record format (\\x1F/\\x1E delimited)")
@@ -120,6 +147,33 @@ const tsv2lazyrow = new Command()
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
     await processor.csvToLazyRowBinary(stream, write, 9);
+    close();
+  });
+
+const tsv2csv = new Command()
+  .description("Convert TSV to CSV")
+  .option("-d, --separator <char:string>", "CSV field separator", { default: "," })
+  .option("-q, --quote-all", "Quote all fields in output")
+  .option("-i, --input <file:string>", "Input file (default: stdin)")
+  .option("-o, --output <file:string>", "Output file (default: stdout)")
+  .example("Basic", "cat data.tsv | flatdata tsv2csv > data.csv")
+  .action(async ({ separator, quoteAll, input, output }) => {
+    const processor = await FlatdataProcessor.create();
+    const stream = await getInput(input);
+    const { write, close } = await getWriter(output);
+    // Parse TSV, output as CSV
+    const recordStream = new ReadableStream({
+      async start(controller) {
+        const chunks: Uint8Array[] = [];
+        await processor.csvToRecord(stream, async (data) => {
+          chunks.push(data);
+          return data.length;
+        }, 9);
+        controller.enqueue(new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], [] as number[])));
+        controller.close();
+      }
+    });
+    await processor.recordToCsv(recordStream, write, separator!.charCodeAt(0), quoteAll ?? false);
     close();
   });
 
@@ -223,8 +277,10 @@ Uses WebAssembly for high-performance parsing (~100+ MB/s).`)
   .example("Full pipeline", "flatdata csv2record -i huge.csv | ./analyze | flatdata record2csv -o results.csv")
   .command("csv2record", csv2record)
   .command("csv2lazyrow", csv2lazyrow)
+  .command("csv2tsv", csv2tsv)
   .command("tsv2record", tsv2record)
   .command("tsv2lazyrow", tsv2lazyrow)
+  .command("tsv2csv", tsv2csv)
   .command("record2csv", record2csv)
   .command("record2tsv", record2tsv)
   .command("record2lazyrow", record2lazyrow)

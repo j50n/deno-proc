@@ -152,3 +152,51 @@ Deno.test("roundtrip - large input preserves data", async () => {
 
   assertEquals(back, csv);
 });
+
+// =============================================================================
+// Direct CSV <-> TSV Conversion Tests
+// =============================================================================
+
+Deno.test("csv2tsv - basic", async () => {
+  const out = await run(["csv2tsv"], "a,b,c\n1,2,3\n");
+  assertEquals(out, "a\tb\tc\n1\t2\t3\n");
+});
+
+Deno.test("csv2tsv - quoted fields", async () => {
+  const out = await run(["csv2tsv"], '"hello, world",test\n');
+  assertEquals(out, "hello, world\ttest\n");
+});
+
+Deno.test("csv2tsv - custom separator", async () => {
+  const out = await run(["csv2tsv", "-d", ";"], "a;b;c\n1;2;3\n");
+  assertEquals(out, "a\tb\tc\n1\t2\t3\n");
+});
+
+Deno.test("tsv2csv - basic", async () => {
+  const out = await run(["tsv2csv"], "a\tb\tc\n1\t2\t3\n");
+  assertEquals(out, "a,b,c\n1,2,3\n");
+});
+
+Deno.test("tsv2csv - fields needing quotes", async () => {
+  const out = await run(["tsv2csv"], "hello, world\ttest\n");
+  assertEquals(out, '"hello, world",test\n');
+});
+
+Deno.test("tsv2csv - custom separator", async () => {
+  const out = await run(["tsv2csv", "-d", ";"], "a\tb\tc\n1\t2\t3\n");
+  assertEquals(out, "a;b;c\n1;2;3\n");
+});
+
+Deno.test("roundtrip csv -> tsv -> csv", async () => {
+  const csv = 'name,value\n"hello, world",123\n';
+  const tsv = await run(["csv2tsv"], csv);
+  const back = await run(["tsv2csv"], tsv);
+  assertEquals(back, csv);
+});
+
+Deno.test("roundtrip tsv -> csv -> tsv", async () => {
+  const tsv = "a\tb\tc\n1\t2\t3\n";
+  const csv = await run(["tsv2csv"], tsv);
+  const back = await run(["csv2tsv"], csv);
+  assertEquals(back, tsv);
+});

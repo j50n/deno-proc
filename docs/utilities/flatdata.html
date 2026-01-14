@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-22b07831.js";
+            window.path_to_searchindex_js = "../searchindex-59ecbe58.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -182,11 +182,11 @@
 <p><strong>flatdata</strong> is a high-performance command-line utility for converting between tabular data formats. It’s distributed as part of proc and uses WebAssembly for near-native parsing speed.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-bash"># Install globally with required permissions
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.1/flatdata
 </code></pre>
 <p>This installs <code>flatdata</code> globally, making it available from any terminal.</p>
 <p>For pipeline-only use (stdin/stdout), you can install without file permissions:</p>
-<pre><code class="language-bash">deno install -g -n flatdata jsr:@j50n/proc/flatdata
+<pre><code class="language-bash">deno install -g -n flatdata jsr:@j50n/proc@0.24.1/flatdata
 </code></pre>
 <p>This restricts flatdata to streaming mode—no direct file reading or writing.</p>
 <p>To verify the installation:</p>
@@ -250,6 +250,17 @@ flatdata record2csv &lt; data.rec &gt; output.csv
 cat huge.csv | flatdata csv2record | ./process | flatdata record2csv &gt; results.csv
 </code></pre>
 <h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
+<h3 id="direct-conversions"><a class="header" href="#direct-conversions">Direct Conversions</a></h3>
+<pre><code class="language-bash">flatdata csv2tsv [options]       # CSV → TSV
+flatdata tsv2csv [options]       # TSV → CSV
+</code></pre>
+<p>Options:</p>
+<ul>
+<li><code>-d, --separator &lt;char&gt;</code> - CSV field separator (default: <code>,</code>)</li>
+<li><code>-q, --quote-all</code> - Quote all fields in output</li>
+<li><code>-i, --input &lt;file&gt;</code> - Input file (default: stdin)</li>
+<li><code>-o, --output &lt;file&gt;</code> - Output file (default: stdout)</li>
+</ul>
 <h3 id="csvtsv-input"><a class="header" href="#csvtsv-input">CSV/TSV Input</a></h3>
 <pre><code class="language-bash">flatdata csv2record [options]    # CSV → record
 flatdata csv2lazyrow [options]   # CSV → lazyrow
@@ -288,6 +299,16 @@ flatdata lazyrow2record [options]  # lazyrow → record
 </ul>
 <h2 id="using-with-proc"><a class="header" href="#using-with-proc">Using with proc</a></h2>
 <p>The real power comes from combining flatdata with proc’s pipeline capabilities.</p>
+<h3 id="direct-format-conversion"><a class="header" href="#direct-format-conversion">Direct Format Conversion</a></h3>
+<pre><code class="language-bash"># Convert CSV to TSV
+cat data.csv | flatdata csv2tsv &gt; data.tsv
+
+# Convert TSV to CSV
+flatdata tsv2csv -i data.tsv -o data.csv
+
+# European CSV (semicolon) to TSV
+flatdata csv2tsv -d ';' -i euro.csv -o data.tsv
+</code></pre>
 <h3 id="basic-pipeline"><a class="header" href="#basic-pipeline">Basic Pipeline</a></h3>
 <pre><code class="language-typescript">import { run, enumerate } from "jsr:@j50n/proc";
 
