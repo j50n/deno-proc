@@ -2,101 +2,59 @@
 
 ## Executive Summary
 
-This experiment creates minimal, isolated implementations of `record2tsv` transformation to identify and profile the common performance bottleneck affecting all flatdata operations. Profiling shows these simple character conversion operations perform similarly to more complex transforms, suggesting a shared bottleneck in the data pipeline rather than algorithmic complexity.
+This experiment creates minimal, isolated implementations of `record2tsv` transformation to identify and profile the common performance bottleneck affecting all flatdata operations.
 
-We implement **four approaches** to compare:
+## Format Specifications
+
+### Record Format (Input)
+- **Field separator**: `0x1f` (ASCII Unit Separator, 31 decimal)
+- **Record separator**: `0x1e` (ASCII Record Separator, 30 decimal)
+- **Data values can contain**: `\t`, `\r`, `\n` (valid for formats like CSV)
+- **Purpose**: Universal interchange format that preserves all characters
+
+### TSV Format (Output)
+- **Field separator**: `\t` (0x09, tab character)
+- **Record separator**: `\n` (0x0a, newline)
+- **Data values cannot contain**: `\t`, `\r`, or `\n`
+- **Purpose**: Simple text format for tools that expect tab-delimited data
+
+### Transformation Requirements
+
+**Character Conversions:**
+1. `0x1f` → `\t` (field separator conversion)
+2. `0x1e` → `\n` (record separator conversion)
+
+**Validation (for "correct" implementations):**
+- **Error if found in data**: `\t` (0x09), `\r` (0x0d), or `\n` (0x0a)
+- **Error message format**: `"Invalid character 0x09 (tab) found in record 1,234,567"`
+- **Record numbering**: 1-based, with locale-formatted thousands separators
+- **Record counting**: Increment on each `0x1e` encountered
+
+**Why validation matters:**
+- Record format can legitimately contain tabs, CR, and LF in data values
+- TSV format cannot - these characters have structural meaning
+- Users must pre-process data if they want to strip/replace these characters
+- We fail fast with clear error messages rather than producing invalid TSV
+
+## Implementation Approaches
+
+We implement **six approaches** to compare:
+
+### Fast (no validation):
 1. **TypeScript (Uint8Array)** - Direct byte manipulation
-2. **TypeScript (TextDecoder + replaceAll)** - String-based with regex
+2. **TypeScript (TextDecoder + replaceAll)** - String-based
 3. **WASM (Standard Loop)** - Simple Odin loop
-4. **WASM (SIMD)** - Vectorized Odin implementation
+4. **WASM (SIMD)** - 128-bit vectorized processing
+
+### Correct (with validation):
+5. **WASM (Correct)** - Scalar loop with validation and record tracking
+6. **WASM (SIMD Correct)** - SIMD with validation and record tracking
 
 ## Prerequisites
 
 ⚠️ **Complete `labs/stdout-async/` experiment first!**
 
-If `toStdout()` is a bottleneck due to synchronous writes, this experiment's results will be misleading. We need to know if stdout is the limiting factor before measuring WASM performance.
-
-## Objectives
-
-1. **Isolate the bottleneck**: Create dead-simple implementations to eliminate algorithmic complexity as a variable
-2. **Compare approaches**: TypeScript (pure JS) vs WASM, byte-level vs string-level
-3. **Profile the full code path**: From Deno → WASM → Deno to identify where time is spent
-4. **Establish baselines**: Measure performance across all four implementations
-5. **Explore SIMD optimization**: Test whether SIMD can overcome the bottleneck
-6. **Inform production decisions**: Determine if the issue is in data transfer, WASM overhead, or processing
-
-## Problem Statement
-
-Current profiling data shows that `tsv2record` and `record2tsv` operations—which only convert between tab (`\t`) and record separator (`\x1e`) characters—perform at similar speeds to more complex CSV parsing operations. This is unexpected because:
-
-- TSV/Record conversion is O(n) single-pass character replacement
-- CSV parsing involves state machines, quote handling, and field extraction
-- Both should have vastly different performance profiles
-
-**Hypothesis**: The bottleneck is not in the transformation logic but in:
-- Data transfer between Deno and WASM
-- WASM instantiation/invocation overhead
-- Memory allocation patterns
-- Stream chunking behavior
-- Or possibly pure TypeScript is competitive for simple operations
-
-## Technical Approach
-
-### Simplifications
-
-To isolate the bottleneck, we make these simplifying assumptions:
-
-1. **ASCII-only**: Assume all characters are in the ASCII range (0-127), allowing byte-level operations without UTF-8 decoding
-2. **Stdin/Stdout only**: No file I/O complexity, just streaming transformation
-3. **No validation**: Skip error checking and edge cases
-4. **Direct memory operations**: WASM operates directly on Uint8Array memory from Deno
-5. **Record → TSV only**: Single direction to keep scope focused
-6. **Line ending caveat**: TSV with `\r\n` won't strip `\r` (would require more complex logic), but we'll ignore this for now
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ TypeScript Implementations                                  │
-│                                                             │
-│  1. Uint8Array approach:                                    │
-│     stdin → enumerate() → transform(byteReplace) → stdout  │
-│                                                             │
-│  2. TextDecoder approach:                                   │
-│     stdin → enumerate() → decode → replaceAll → stdout     │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│ WASM Implementations                                        │
-│                                                             │
-│  stdin → enumerate() → transform(wasmTransformer) → stdout │
-│                              ↓                              │
-│                         Uint8Array                          │
-│                              ↓                              │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │ WASM Layer (Odin)                                     │ │
-│  │                                                       │ │
-│  │  Input: Uint8Array (shared memory)                   │ │
-│  │  Process: 0x1e → '\t' replacement                    │ │
-│  │  Output: Modified Uint8Array                         │ │
-│  │                                                       │ │
-│  │  3. Standard loop                                     │ │
-│  │  4. SIMD (128-bit vectors)                            │ │
-│  └───────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Data Flow
-
-1. **Deno reads chunks** from stdin as Uint8Array
-2. **Pass to WASM** via shared memory (no copy if possible)
-3. **WASM transforms in-place** (or minimal allocation)
-4. **Return to Deno** and write to stdout
-5. **Repeat** until EOF
-
-## Implementation Details
-
-### TypeScript Implementations
+If `toStdout()` is a bottleneck due to synchronous writes, this experiment's results will be misleading.
 
 #### 1. Uint8Array Byte Manipulation
 

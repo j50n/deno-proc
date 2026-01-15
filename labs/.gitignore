@@ -1,0 +1,12 @@
+# Generated test data and build artifacts
+*.record
+*.csv
+*.tsv
+*.json
+*.jsonl
+*.wasm
+
+# Keep configuration files
+!deno.json
+!package.json
+!tsconfig.json
