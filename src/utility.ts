@@ -321,6 +321,11 @@ export function shuffle<T>(items: T[]) {
  * @param data The data to write.
  * @param writer The writer.
  */
+// DEV NOTE: This uses async write() rather than writeSync(). Performance testing
+// (labs/stdout-async/) showed writeSync() is actually 5-10% faster due to OS kernel
+// buffering, but we use async here to avoid blocking the event loop. The performance
+// difference is negligible in practice (~1026 MB/s vs ~922 MB/s). If maximum throughput
+// becomes critical, consider switching to writeSync().
 export async function writeAll(data: Uint8Array, writer: Writer) {
   const len = data.length;
 

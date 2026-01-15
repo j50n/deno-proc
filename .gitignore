@@ -3,4 +3,13 @@ output.txt
 
 # Benchmark data files (generated, not tracked)
 benchmarks/data/
+
+# Lab experiment data files (generated, not tracked)
+labs/*/data/
+labs/*/results/*.txt
+labs/*/results/*.csv
+labs/*/results/*.tsv
+labs/*/results/*.record
+labs/*/results/*.jsonl
+
 .idea/
