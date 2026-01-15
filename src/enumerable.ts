@@ -201,7 +201,23 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Write all data to the writer.
+   * Write all data to a file.
+   *
+   * **Example**
+   *
+   * ```typescript
+   * read("input.csv")
+   *   .transform(fromCsvToRows())
+   *   .transform(toTsv())
+   *   .writeTo("output.tsv");
+   * ```
+   *
+   * @param path The file path to write to.
+   */
+  async writeTo(path: string): Promise<void>;
+
+  /**
+   * Write all data to a writer.
    *
    * **Example**
    *
@@ -215,11 +231,28 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * ```
    *
    * @param writer The writer.
+   * @param options Options for writing. Set `noclose: true` to keep the writer open.
    */
   async writeTo(
     writer: Writable<T> | WritableStream<T>,
     options?: { noclose?: boolean },
+  ): Promise<void>;
+
+  async writeTo(
+    writer: Writable<T> | WritableStream<T> | string,
+    options?: { noclose?: boolean },
   ): Promise<void> {
+    // Handle file path
+    if (typeof writer === "string") {
+      const file = await Deno.create(writer);
+      try {
+        await this.writeTo(file.writable as WritableStream<T>, { noclose: true });
+      } finally {
+        file.close();
+      }
+      return;
+    }
+
     const iter = this.iter;
 
     if ("getWriter" in writer) {
