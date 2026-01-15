@@ -62,6 +62,8 @@
  * @module
  */
 
+import { LazyRow } from "../transforms/lazy-row.ts";
+
 /** Field separator byte for record format (\x1F - Unit Separator) */
 const FIELD_SEP = 0x1F;
 
@@ -131,6 +133,9 @@ interface WasmExports {
 
   /** Clear stringifier output buffer */
   clear_stringify_output: (id: number) => void;
+
+  /** Convert record format to TSV (in-place, SIMD optimized) */
+  record_to_tsv: (ptr: number, length: number) => number;
 
   /** Create a lazyrow encoder instance */
   create_lazyrow_encoder: () => number;
@@ -252,6 +257,31 @@ interface WasmExports {
 
   /** Finish streaming replace and flush remaining data */
   finish_streaming_delimiter: (id: number) => number;
+
+  /** Create a delimited parser instance (for streaming) */
+  create_delimited_parser: (
+    sep: number,
+    strict: number,
+    expectedFields: number,
+  ) => number;
+
+  /** Destroy a delimited parser instance */
+  destroy_delimited_parser: (id: number) => void;
+
+  /** Parse a chunk with delimited parser */
+  parse_delimited: (id: number, len: number) => bigint;
+
+  /** Finish parsing and flush remaining data */
+  finish_delimited: (id: number) => bigint;
+
+  /** Get delimited parser output length */
+  get_delimited_output: (id: number) => number;
+
+  /** Clear delimited parser output buffer */
+  clear_delimited_output: (id: number) => void;
+
+  /** Get delimited parse error info */
+  get_delimited_error: (id: number) => bigint;
 }
 
 /**
@@ -374,7 +404,10 @@ export class FlatdataProcessor {
    * @throws Error if WASM module fails to load or initialize
    */
   static async create(): Promise<FlatdataProcessor> {
-    const wasmUrl = new URL("../../wasm/flatdata.wasm", import.meta.url);
+    const { detectSimd } = await import("./simd-detect.ts");
+    const useSimd = detectSimd();
+    const wasmFile = useSimd ? "flatdata-simd.wasm" : "flatdata-scalar.wasm";
+    const wasmUrl = new URL(`../../wasm/${wasmFile}`, import.meta.url);
     const wasmBytes = await Deno.readFile(wasmUrl);
     const memory = new WebAssembly.Memory({ initial: 256, maximum: 1024 });
 
@@ -1321,5 +1354,244 @@ export class FlatdataProcessor {
     }
 
     return output;
+  }
+
+  async *csvToRowsStreaming(
+    input: AsyncIterable<Uint8Array>,
+    parseOptions?: { separator?: string },
+  ): AsyncIterable<string[][]> {
+    const separator = parseOptions?.separator?.charCodeAt(0) ?? 44;
+    const parserId = this.exports.create_delimited_parser(separator, 10, 0);
+    try {
+      for await (const chunk of input) {
+        if (chunk.length === 0) continue;
+
+        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+
+        const result = this.exports.parse_delimited(parserId, chunk.length);
+        const rowsParsed = Number(result >> 32n);
+        const errorCode = Number(result & 0xFFFFFFFFn);
+
+        if (errorCode !== 0) {
+          throw new Error(`CSV parse error: ${errorCode}`);
+        }
+
+        if (rowsParsed > 0) {
+          const bytesWritten = this.exports.get_delimited_output(parserId);
+          const outputPtr = this.getOutputPtr();
+          const output = new Uint8Array(
+            this.memory.buffer,
+            outputPtr,
+            bytesWritten,
+          );
+
+          const decoder = new TextDecoder();
+          const text = decoder.decode(output);
+          const records = text.split(String.fromCharCode(RECORD_SEP));
+          const rows: string[][] = [];
+
+          for (const record of records) {
+            if (!record) continue;
+            const fields = record.split(String.fromCharCode(FIELD_SEP));
+            rows.push(fields);
+          }
+
+          if (rows.length > 0) {
+            yield rows;
+          }
+
+          this.exports.clear_delimited_output(parserId);
+        }
+      }
+
+      const finalResult = this.exports.finish_delimited(parserId);
+      const finalRows = Number(finalResult >> 32n);
+      const finalError = Number(finalResult & 0xFFFFFFFFn);
+
+      if (finalError !== 0) {
+        throw new Error(`CSV parse error: ${finalError}`);
+      }
+
+      if (finalRows > 0) {
+        const bytesWritten = this.exports.get_delimited_output(parserId);
+        const outputPtr = this.getOutputPtr();
+        const output = new Uint8Array(
+          this.memory.buffer,
+          outputPtr,
+          bytesWritten,
+        );
+
+        const decoder = new TextDecoder();
+        const text = decoder.decode(output);
+        const records = text.split(String.fromCharCode(0x1E));
+        const rows: string[][] = [];
+
+        for (const record of records) {
+          if (!record) continue;
+          const fields = record.split(String.fromCharCode(0x1F));
+          rows.push(fields);
+        }
+
+        if (rows.length > 0) {
+          yield rows;
+        }
+      }
+    } finally {
+      this.exports.destroy_delimited_parser(parserId);
+    }
+  }
+
+  async *csvToLazyRowsStreaming(
+    input: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<LazyRow[]> {
+    const parserId = this.exports.create_delimited_parser(44, 10, 0);
+    try {
+      for await (const chunk of input) {
+        if (chunk.length === 0) continue;
+
+        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+
+        const result = this.exports.parse_delimited(parserId, chunk.length);
+        const rowsParsed = Number(result >> 32n);
+        const errorCode = Number(result & 0xFFFFFFFFn);
+
+        if (errorCode !== 0) {
+          throw new Error(`CSV parse error: ${errorCode}`);
+        }
+
+        if (rowsParsed > 0) {
+          const bytesWritten = this.exports.get_delimited_output(parserId);
+          const outputPtr = this.getOutputPtr();
+          const output = new Uint8Array(
+            this.memory.buffer,
+            outputPtr,
+            bytesWritten,
+          );
+
+          const decoder = new TextDecoder();
+          const text = decoder.decode(output);
+          const records = text.split(String.fromCharCode(0x1E));
+          const lazyRows: LazyRow[] = [];
+
+          for (const record of records) {
+            if (!record) continue;
+            const fields = record.split(String.fromCharCode(0x1F));
+            lazyRows.push(LazyRow.fromStringArray(fields));
+          }
+
+          if (lazyRows.length > 0) {
+            yield lazyRows;
+          }
+
+          this.exports.clear_delimited_output(parserId);
+        }
+      }
+
+      const finalResult = this.exports.finish_delimited(parserId);
+      const finalRows = Number(finalResult >> 32n);
+      const finalError = Number(finalResult & 0xFFFFFFFFn);
+
+      if (finalError !== 0) {
+        throw new Error(`CSV parse error: ${finalError}`);
+      }
+
+      if (finalRows > 0) {
+        const bytesWritten = this.exports.get_delimited_output(parserId);
+        const outputPtr = this.getOutputPtr();
+        const output = new Uint8Array(
+          this.memory.buffer,
+          outputPtr,
+          bytesWritten,
+        );
+
+        const decoder = new TextDecoder();
+        const text = decoder.decode(output);
+        const records = text.split(String.fromCharCode(0x1E));
+        const lazyRows: LazyRow[] = [];
+
+        for (const record of records) {
+          if (!record) continue;
+          const fields = record.split(String.fromCharCode(0x1F));
+          lazyRows.push(LazyRow.fromStringArray(fields));
+        }
+
+        if (lazyRows.length > 0) {
+          yield lazyRows;
+        }
+      }
+    } finally {
+      this.exports.destroy_delimited_parser(parserId);
+    }
+  }
+
+  async *recordToCsvStreaming(
+    input: AsyncIterable<Uint8Array>,
+    separator = 44,
+    crlf = false,
+  ): AsyncIterable<Uint8Array> {
+    const stringifierId = this.exports.create_delimited_stringifier(
+      separator,
+      crlf ? 1 : 0,
+      0,
+      0,
+    );
+    try {
+      for await (const chunk of input) {
+        if (chunk.length === 0) continue;
+
+        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+        this.exports.stringify_delimited(stringifierId, chunk.length);
+
+        const bytesWritten = this.exports.get_stringify_output(stringifierId);
+        if (bytesWritten > 0) {
+          const outputPtr = this.getOutputPtr();
+          const output = new Uint8Array(
+            this.memory.buffer,
+            outputPtr,
+            bytesWritten,
+          ).slice();
+          yield output;
+          this.exports.clear_stringify_output(stringifierId);
+        }
+      }
+    } finally {
+      this.exports.destroy_delimited_stringifier(stringifierId);
+    }
+  }
+
+  /**
+   * Convert record format to TSV using SIMD-optimized in-place transformation.
+   * Replaces 0x1F (field separator) with tab and 0x1E (record separator) with newline.
+   * Much faster than going through the CSV stringifier.
+   */
+  async recordToTsvFast(
+    input: ReadableStream<Uint8Array>,
+    write: Writer,
+  ): Promise<void> {
+    const reader = input.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value.length === 0) continue;
+
+        // Copy to WASM memory
+        this.ensureInputBuffer(value.length);
+        new Uint8Array(this.memory.buffer, this.inputPtr, value.length).set(value);
+
+        // Transform in-place (0x1F→tab, 0x1E→newline)
+        const outputLen = this.exports.record_to_tsv(this.inputPtr, value.length);
+
+        // Write output
+        const output = new Uint8Array(
+          this.memory.buffer,
+          this.inputPtr,
+          outputLen,
+        );
+        await write(output);
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 }

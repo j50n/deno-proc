@@ -181,19 +181,69 @@ Deno.test("TSV - invalid UTF-8 throws", async () => {
   }
 });
 
-Deno.test("TSV - data with embedded tabs (should work)", async () => {
-  // TSV spec says data shouldn't contain tabs, but let's test what happens
-  const tsvData = "name\tdescription\nAlice\tHas\ttabs\nBob\tNormal";
+Deno.test("TSV - data with embedded tabs throws error", async () => {
+  const data = [
+    [
+      { name: "Alice", description: "Has\ttabs" },
+      { name: "Bob", description: "Normal" },
+    ],
+  ];
 
-  const result = await enumerate([new TextEncoder().encode(tsvData)])
-    .transform(fromTsvToRows())
-    .collect();
+  try {
+    const result = enumerate(data).transform(toTsv());
+    for await (const chunk of result) {
+      // Should throw before we get here
+    }
+    throw new Error("Expected error to be thrown");
+  } catch (error) {
+    assertEquals(
+      (error as Error).message.includes("Invalid character (tab)"),
+      true,
+    );
+    assertEquals((error as Error).message.includes("row 1"), true);
+  }
+});
 
-  // Will split on all tabs, so Alice gets extra fields
-  assertEquals(result[0][0].name, "Alice");
-  assertEquals(result[0][0].description, "Has");
-  assertEquals(result[0][1].name, "Bob");
-  assertEquals(result[0][1].description, "Normal");
+Deno.test("TSV - data with embedded CR throws error", async () => {
+  const data = [
+    [
+      { name: "Alice", description: "Has\rCR" },
+    ],
+  ];
+
+  try {
+    const result = enumerate(data).transform(toTsv());
+    for await (const chunk of result) {
+      // Should throw before we get here
+    }
+    throw new Error("Expected error to be thrown");
+  } catch (error) {
+    assertEquals(
+      (error as Error).message.includes("Invalid character (CR)"),
+      true,
+    );
+  }
+});
+
+Deno.test("TSV - data with embedded LF throws error", async () => {
+  const data = [
+    [
+      { name: "Alice", description: "Has\nLF" },
+    ],
+  ];
+
+  try {
+    const result = enumerate(data).transform(toTsv());
+    for await (const chunk of result) {
+      // Should throw before we get here
+    }
+    throw new Error("Expected error to be thrown");
+  } catch (error) {
+    assertEquals(
+      (error as Error).message.includes("Invalid character (LF)"),
+      true,
+    );
+  }
 });
 
 Deno.test("TSV - LazyRow selective access", async () => {

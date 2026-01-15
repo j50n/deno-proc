@@ -1609,3 +1609,6 @@ finish_streaming_delimiter :: proc "c" (id: i32) -> i32 {
     csv.streaming_delimiter_finish(r)
     return i32(csv.streaming_delimiter_output_len(r))
 }
+
+// Record2TSV exports are in record2tsv.odin with conditional SIMD/scalar implementation
+

@@ -29,7 +29,7 @@
  */
 
 import { Command } from "@cliffy/command";
-import { FlatdataProcessor } from "../../src/transforms/flatdata-processor.ts";
+import { FlatdataProcessor } from "../../src/wasm/flatdata-processor.ts";
 import denoJson from "../../deno.json" with { type: "json" };
 
 /** Writer function type for streaming output */
@@ -189,7 +189,7 @@ const record2tsv = new Command()
     const processor = await FlatdataProcessor.create();
     const stream = await getInput(input);
     const { write, close } = await getWriter(output);
-    await processor.recordToDelimited(stream, write, 9);
+    await processor.recordToTsvFast(stream, write);
     close();
   });
 

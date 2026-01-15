@@ -323,6 +323,9 @@ cargo install mdbook
 
 # Document generation tools
 sudo apt install pandoc weasyprint ghostscript imagemagick
+
+# WebAssembly Binary Toolkit (for WASM verification)
+sudo apt install wabt
 ```
 
 ### Build

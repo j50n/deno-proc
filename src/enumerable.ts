@@ -246,7 +246,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
     if (typeof writer === "string") {
       const file = await Deno.create(writer);
       try {
-        await this.writeTo(file.writable as WritableStream<T>, { noclose: true });
+        await this.writeTo(file.writable as WritableStream<T>, {
+          noclose: true,
+        });
       } finally {
         file.close();
       }

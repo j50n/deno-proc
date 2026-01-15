@@ -149,7 +149,7 @@ test_delimited_error_bare_quote_strict :: proc(t: ^testing.T) {
     p := delimited_init(CsvOptions{strict = true})
     defer delimited_destroy(&p)
     
-    rows, ok := delimited_parse(&p, transmute([]u8)string("a\"b,c\n"))
+    _, ok := delimited_parse(&p, transmute([]u8)string("a\"b,c\n"))
     testing.expect(t, !ok, "parse should fail")
     testing.expect_value(t, p.error.kind, CsvErrorKind.BareQuote)
     testing.expect_value(t, p.error.row, u32(0))
@@ -172,7 +172,7 @@ test_delimited_error_invalid_after_quote :: proc(t: ^testing.T) {
     p := delimited_init()
     defer delimited_destroy(&p)
     
-    rows, ok := delimited_parse(&p, transmute([]u8)string("\"a\"b,c\n"))
+    _, ok := delimited_parse(&p, transmute([]u8)string("\"a\"b,c\n"))
     testing.expect(t, !ok, "parse should fail")
     testing.expect_value(t, p.error.kind, CsvErrorKind.InvalidCharAfterQuote)
 }
@@ -208,7 +208,7 @@ test_delimited_error_bare_cr_strict :: proc(t: ^testing.T) {
     p := delimited_init(CsvOptions{strict = true})
     defer delimited_destroy(&p)
     
-    rows, ok := delimited_parse(&p, transmute([]u8)string("a,b\rc,d"))
+    _, ok := delimited_parse(&p, transmute([]u8)string("a,b\rc,d"))
     testing.expect(t, !ok, "parse should fail")
     testing.expect_value(t, p.error.kind, CsvErrorKind.BareCR)
 }
@@ -228,7 +228,7 @@ test_delimited_error_field_count_strict :: proc(t: ^testing.T) {
     p := delimited_init(CsvOptions{strict = true, expected_fields = 3})
     defer delimited_destroy(&p)
     
-    rows, ok := delimited_parse(&p, transmute([]u8)string("a,b,c\nd,e\n"))
+    _, ok := delimited_parse(&p, transmute([]u8)string("a,b,c\nd,e\n"))
     testing.expect(t, !ok, "parse should fail")
     testing.expect_value(t, p.error.kind, CsvErrorKind.FieldCountMismatch)
     testing.expect_value(t, p.error.row, u32(1))
@@ -260,7 +260,7 @@ test_span_quoted :: proc(t: ^testing.T) {
     p := span_init()
     defer span_destroy(&p)
     
-    rows, ok := span_parse(&p, transmute([]u8)string("\"a,b\",c\n"))
+    _, ok := span_parse(&p, transmute([]u8)string("\"a,b\",c\n"))
     testing.expect(t, ok, "parse should succeed")
     testing.expect_value(t, len(p.spans), 2)
     
@@ -274,7 +274,7 @@ test_span_empty_fields :: proc(t: ^testing.T) {
     p := span_init()
     defer span_destroy(&p)
     
-    rows, ok := span_parse(&p, transmute([]u8)string(",b,\n"))
+    _, ok := span_parse(&p, transmute([]u8)string(",b,\n"))
     testing.expect(t, ok, "parse should succeed")
     testing.expect_value(t, len(p.spans), 3)
     
@@ -304,7 +304,7 @@ test_span_escaped_quote :: proc(t: ^testing.T) {
     defer span_destroy(&p)
     
     // "a""b" -> field contains a""b, caller must unescape
-    rows, ok := span_parse(&p, transmute([]u8)string("\"a\"\"b\",c\n"))
+    _, ok := span_parse(&p, transmute([]u8)string("\"a\"\"b\",c\n"))
     testing.expect(t, ok, "parse should succeed")
     testing.expect_value(t, len(p.spans), 2)
     
@@ -317,7 +317,7 @@ test_span_base_offset :: proc(t: ^testing.T) {
     p := span_init()
     defer span_destroy(&p)
     
-    rows, ok := span_parse(&p, transmute([]u8)string("a,b\n"), 1000)
+    _, ok := span_parse(&p, transmute([]u8)string("a,b\n"), 1000)
     testing.expect(t, ok, "parse should succeed")
     
     testing.expect_value(t, p.spans[0], FieldSpan{1000, 1001, 0})
@@ -619,7 +619,7 @@ test_roundtrip_basic :: proc(t: ^testing.T) {
     defer delimited_destroy(&p)
     
     input := "a,b,c\n"
-    rows, ok := delimited_parse(&p, transmute([]u8)input)
+    _, ok := delimited_parse(&p, transmute([]u8)input)
     testing.expect(t, ok, "parse should succeed")
     
     // Stringify
@@ -637,7 +637,7 @@ test_roundtrip_quoted :: proc(t: ^testing.T) {
     defer delimited_destroy(&p)
     
     input := "\"a,b\",c\n"
-    rows, ok := delimited_parse(&p, transmute([]u8)input)
+    _, ok := delimited_parse(&p, transmute([]u8)input)
     testing.expect(t, ok, "parse should succeed")
     
     s := delimited_stringify_init()
@@ -654,7 +654,7 @@ test_roundtrip_escaped_quote :: proc(t: ^testing.T) {
     defer delimited_destroy(&p)
     
     input := "\"a\"\"b\",c\n"
-    rows, ok := delimited_parse(&p, transmute([]u8)input)
+    _, ok := delimited_parse(&p, transmute([]u8)input)
     testing.expect(t, ok, "parse should succeed")
     
     s := delimited_stringify_init()
@@ -671,7 +671,7 @@ test_roundtrip_newline_in_field :: proc(t: ^testing.T) {
     defer delimited_destroy(&p)
     
     input := "\"a\nb\",c\n"
-    rows, ok := delimited_parse(&p, transmute([]u8)input)
+    _, ok := delimited_parse(&p, transmute([]u8)input)
     testing.expect(t, ok, "parse should succeed")
     
     s := delimited_stringify_init()
@@ -688,7 +688,7 @@ test_roundtrip_empty_fields :: proc(t: ^testing.T) {
     defer delimited_destroy(&p)
     
     input := ",b,\n"
-    rows, ok := delimited_parse(&p, transmute([]u8)input)
+    _, ok := delimited_parse(&p, transmute([]u8)input)
     testing.expect(t, ok, "parse should succeed")
     
     s := delimited_stringify_init()
@@ -705,7 +705,7 @@ test_roundtrip_multi_row :: proc(t: ^testing.T) {
     defer delimited_destroy(&p)
     
     input := "a,b\nc,d\ne,f\n"
-    rows, ok := delimited_parse(&p, transmute([]u8)input)
+    _, ok := delimited_parse(&p, transmute([]u8)input)
     testing.expect(t, ok, "parse should succeed")
     
     s := delimited_stringify_init()
