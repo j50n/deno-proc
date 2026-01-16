@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,25 +179,29 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="processing-log-files"><a class="header" href="#processing-log-files">Processing Log Files</a></h1>
-<p>Log file analysis is a common task that benefits greatly from proc’s streaming capabilities, allowing you to analyze even huge log files efficiently without loading them entirely into memory.</p>
+<p>Log file analysis is a common task that benefits greatly from proc’s streaming
+capabilities, allowing you to analyze even huge log files efficiently without
+loading them entirely into memory.</p>
 <h2 id="counting-errors"><a class="header" href="#counting-errors">Counting Errors</a></h2>
-<p>The simplest log analysis task is counting error occurrences. This approach streams through the file, filtering for error lines and counting them:</p>
+<p>The simplest log analysis task is counting error occurrences. This approach
+streams through the file, filtering for error lines and counting them:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "log-processing: count errors" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const errorCount = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .count();
 
 console.log(`${errorCount} errors found`);
 </code></pre>
 <h2 id="categorizing-errors-by-type"><a class="header" href="#categorizing-errors-by-type">Categorizing Errors by Type</a></h2>
-<p>For more detailed analysis, you can group errors by type to understand which kinds of errors are most common:</p>
+<p>For more detailed analysis, you can group errors by type to understand which
+kinds of errors are most common:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const errorTypes = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .reduce((acc, line) =&gt; {
     const match = line.match(/ERROR: (\w+)/);
     const type = match ? match[1] : "unknown";
@@ -213,27 +217,26 @@ Object.entries(errorTypes)
   });
 </code></pre>
 <h2 id="extracting-structured-data"><a class="header" href="#extracting-structured-data">Extracting Structured Data</a></h2>
-<p>When you need to extract specific information from log entries, you can parse timestamps, error messages, and other structured data:</p>
+<p>When you need to extract specific information from log entries, you can parse
+timestamps, error messages, and other structured data:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const errors = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
-  .map(line =&gt; {
+  .filter((line) =&gt; line.includes("ERROR"))
+  .map((line) =&gt; {
     const timestamp = line.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)?.[0];
     const message = line.split("ERROR:")[1]?.trim();
     return { timestamp, message };
   })
-  .filter(error =&gt; error.timestamp &amp;&amp; error.message)
+  .filter((error) =&gt; error.timestamp &amp;&amp; error.message)
   .collect();
 
 console.log(`Found ${errors.length} structured errors`);
 </code></pre>
 <pre><code>return { timestamp, message };
 </code></pre>
-<p>})
-.collect();</p>
-<pre><code>
-## Find Patterns
+<p>}) .collect();</p>
+<pre><code>## Find Patterns
 
 &lt;!-- NOT TESTED: Illustrative example --&gt;
 ```typescript
@@ -263,7 +266,7 @@ Object.entries(suspiciousIPs)
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const errorsByHour = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .reduce((acc, line) =&gt; {
     const hour = line.match(/T(\d{2}):/)?.[1];
     if (hour) {
@@ -281,7 +284,7 @@ Object.entries(errorsByHour)
 </code></pre>
 <h2 id="multiple-log-files"><a class="header" href="#multiple-log-files">Multiple Log Files</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const files = ["app1.log", "app2.log", "app3.log"];
 
@@ -289,7 +292,7 @@ const results = await enumerate(files)
   .concurrentMap(async (file) =&gt; {
     const errors = await read(file)
       .lines
-      .filter(line =&gt; line.includes("ERROR"))
+      .filter((line) =&gt; line.includes("ERROR"))
       .count();
     return { file, errors };
   }, { concurrency: 3 })
@@ -304,7 +307,7 @@ results.forEach(({ file, errors }) =&gt; {
 <pre><code class="language-typescript">const errors = await read("app.log.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .take(10)
   .collect();
 </code></pre>

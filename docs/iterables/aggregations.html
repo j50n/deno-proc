@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="reduce"><a class="header" href="#reduce">reduce()</a></h2>
 <p>The Swiss Army knife of aggregations:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "enumerable: reduce" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const sum = await enumerate([1, 2, 3, 4])
   .reduce((acc, n) =&gt; acc + n, 0);
@@ -214,7 +214,7 @@ const sum = await enumerate([1, 2, 3, 4])
     sum: acc.sum + n,
     count: acc.count + 1,
     min: Math.min(acc.min, n),
-    max: Math.max(acc.max, n)
+    max: Math.max(acc.max, n),
   }), { sum: 0, count: 0, min: Infinity, max: -Infinity });
 
 const average = stats.sum / stats.count;
@@ -229,14 +229,14 @@ const average = stats.sum / stats.count;
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const errorCount = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .count();
 </code></pre>
 <h2 id="some"><a class="header" href="#some">some()</a></h2>
 <p>Check if any item matches:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const hasError = await enumerate(lines)
-  .some(line =&gt; line.includes("ERROR"));
+  .some((line) =&gt; line.includes("ERROR"));
 // true or false
 </code></pre>
 <h3 id="early-exit"><a class="header" href="#early-exit">Early Exit</a></h3>
@@ -244,21 +244,21 @@ const average = stats.sum / stats.count;
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">// Stops reading after first match
 const hasLargeFile = await enumerate(files)
-  .some(file =&gt; file.size &gt; 1_000_000_000);
+  .some((file) =&gt; file.size &gt; 1_000_000_000);
 </code></pre>
 <h2 id="every"><a class="header" href="#every">every()</a></h2>
 <p>Check if all items match:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const allPositive = await enumerate([1, 2, 3, 4])
-  .every(n =&gt; n &gt; 0);
+  .every((n) =&gt; n &gt; 0);
 // true
 </code></pre>
 <h3 id="validation"><a class="header" href="#validation">Validation</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const allValid = await enumerate(records)
-  .every(record =&gt; 
-    record.name &amp;&amp; 
-    record.email &amp;&amp; 
+  .every((record) =&gt;
+    record.name &amp;&amp;
+    record.email &amp;&amp;
     record.age &gt;= 0
   );
 </code></pre>
@@ -266,14 +266,14 @@ const hasLargeFile = await enumerate(files)
 <p>Find first matching item:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const firstError = await enumerate(lines)
-  .find(line =&gt; line.includes("ERROR"));
+  .find((line) =&gt; line.includes("ERROR"));
 // First line with ERROR, or undefined
 </code></pre>
 <h3 id="with-complex-predicate"><a class="header" href="#with-complex-predicate">With Complex Predicate</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const admin = await enumerate(users)
-  .find(user =&gt; 
-    user.role === "admin" &amp;&amp; 
+  .find((user) =&gt;
+    user.role === "admin" &amp;&amp;
     user.active
   );
 </code></pre>
@@ -281,7 +281,7 @@ const hasLargeFile = await enumerate(files)
 <h3 id="sum-values"><a class="header" href="#sum-values">Sum Values</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const total = await enumerate(orders)
-  .map(order =&gt; order.amount)
+  .map((order) =&gt; order.amount)
   .reduce((sum, amount) =&gt; sum + amount, 0);
 </code></pre>
 <h3 id="count-by-category"><a class="header" href="#count-by-category">Count by Category</a></h3>
@@ -335,11 +335,11 @@ const hasLargeFile = await enumerate(files)
   .reduce((acc, item) =&gt; {
     const cat = item.category;
     const type = item.type;
-    
+
     acc[cat] = acc[cat] || {};
     acc[cat][type] = acc[cat][type] || [];
     acc[cat][type].push(item);
-    
+
     return acc;
   }, {});
 </code></pre>
@@ -393,7 +393,7 @@ const matches = await enumerate(huge)
 const stats = await enumerate(numbers)
   .reduce((acc, n) =&gt; ({
     sum: acc.sum + n,
-    count: acc.count + 1
+    count: acc.count + 1,
   }), { sum: 0, count: 0 });
 
 // ❌ Two passes

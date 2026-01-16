@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -186,7 +186,8 @@
 <li>File is larger than available RAM (or even close to it)</li>
 <li>You don’t need all data at once</li>
 <li>Processing can be done incrementally (line-by-line, record-by-record)</li>
-<li>You want to start processing immediately without waiting for full download/read</li>
+<li>You want to start processing immediately without waiting for full
+download/read</li>
 <li>Memory efficiency is important</li>
 </ul>
 <p><strong>Consider collecting when:</strong></p>
@@ -199,8 +200,10 @@
 </ul>
 <p><strong>Memory/Speed Tradeoffs:</strong></p>
 <ul>
-<li><strong>Streaming</strong>: Constant memory (~64KB buffer), processes as data arrives, can’t random access</li>
-<li><strong>Collecting</strong>: Memory = file size, all data available immediately, can random access, must wait for full load</li>
+<li><strong>Streaming</strong>: Constant memory (~64KB buffer), processes as data arrives,
+can’t random access</li>
+<li><strong>Collecting</strong>: Memory = file size, all data available immediately, can random
+access, must wait for full load</li>
 </ul>
 <p><strong>Example decision:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
@@ -216,7 +219,7 @@ const parsed = JSON.parse(config.join("\n"));
 // 500MB data file - stream if processing once
 const sum = await read("numbers.txt")
   .lines
-  .map(line =&gt; parseFloat(line))
+  .map((line) =&gt; parseFloat(line))
   .reduce((a, b) =&gt; a + b, 0);
 </code></pre>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
@@ -229,7 +232,7 @@ const lines = content.split("\n");
 <h2 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h2>
 <p>Stream it, one line at a time:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 // ✅ Constant memory, any file size
 for await (const line of read("huge.log").lines) {
@@ -258,8 +261,8 @@ console.log(`${count} lines`);
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const matches = await read("huge.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
-  .take(10)  // Stop after 10 matches
+  .filter((line) =&gt; line.includes("ERROR"))
+  .take(10) // Stop after 10 matches
   .collect();
 </code></pre>
 <p>Stops reading once it finds 10 matches.</p>
@@ -267,19 +270,19 @@ console.log(`${count} lines`);
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const data = await read("huge-data.csv")
   .lines
-  .drop(1)  // Skip header
-  .map(line =&gt; {
+  .drop(1) // Skip header
+  .map((line) =&gt; {
     const [id, name, value] = line.split(",");
     return { id, name, value: parseFloat(value) };
   })
-  .filter(row =&gt; row.value &gt; 100)
+  .filter((row) =&gt; row.value &gt; 100)
   .collect();
 </code></pre>
 <h3 id="aggregate-large-dataset"><a class="header" href="#aggregate-large-dataset">Aggregate Large Dataset</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const sum = await read("numbers.txt")
   .lines
-  .map(line =&gt; parseFloat(line))
+  .map((line) =&gt; parseFloat(line))
   .reduce((acc, n) =&gt; acc + n, 0);
 </code></pre>
 <h2 id="compressed-files"><a class="header" href="#compressed-files">Compressed Files</a></h2>
@@ -294,14 +297,14 @@ console.log(`${count} lines`);
 <h2 id="multiple-files"><a class="header" href="#multiple-files">Multiple Files</a></h2>
 <p>Process multiple large files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const files = ["log1.txt", "log2.txt", "log3.txt"];
 
 for (const file of files) {
   const errors = await read(file)
     .lines
-    .filter(line =&gt; line.includes("ERROR"))
+    .filter((line) =&gt; line.includes("ERROR"))
     .count();
   console.log(`${file}: ${errors} errors`);
 }
@@ -311,22 +314,22 @@ for (const file of files) {
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const result = await read("data.txt")
   .lines
-  .map(line =&gt; line.trim())
-  .filter(line =&gt; line.length &gt; 0)
-  .map(line =&gt; line.toUpperCase())
-  .filter(line =&gt; line.startsWith("ERROR"))
+  .map((line) =&gt; line.trim())
+  .filter((line) =&gt; line.length &gt; 0)
+  .map((line) =&gt; line.toUpperCase())
+  .filter((line) =&gt; line.startsWith("ERROR"))
   .collect();
 </code></pre>
 <p>Each line flows through all transformations before the next line is read.</p>
 <h2 id="writing-large-files"><a class="header" href="#writing-large-files">Writing Large Files</a></h2>
 <p>Stream output to a file:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.24.3";
 
 const processed = await read("input.txt")
   .lines
-  .map(line =&gt; line.toUpperCase())
-  .map(line =&gt; new TextEncoder().encode(line + "\n"))
+  .map((line) =&gt; line.toUpperCase())
+  .map((line) =&gt; new TextEncoder().encode(line + "\n"))
   .collect();
 
 await Deno.writeFile("output.txt", concat(processed));
@@ -368,19 +371,19 @@ for await (const line of read("huge.txt").lines) {
 // Memory used: ~64KB (buffer size)
 await read("10gb-file.txt")
   .lines
-  .forEach(line =&gt; process(line));
+  .forEach((line) =&gt; process(line));
 </code></pre>
 <h2 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h2>
 <p>Analyze a year of logs:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const errorsByDay = await read("year-of-logs.txt")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
-  .map(line =&gt; {
+  .filter((line) =&gt; line.includes("ERROR"))
+  .map((line) =&gt; {
     const date = line.match(/\d{4}-\d{2}-\d{2}/)?.[0];
     return date;
   })
-  .filter(date =&gt; date !== null)
+  .filter((date) =&gt; date !== null)
   .reduce((acc, date) =&gt; {
     acc[date] = (acc[date] || 0) + 1;
     return acc;
@@ -423,7 +426,7 @@ Object.entries(errorsByDay)
 <pre><code class="language-typescript">const output = await read("input.txt")
   .lines
   .map(transform)
-  .map(line =&gt; new TextEncoder().encode(line + "\n"))
+  .map((line) =&gt; new TextEncoder().encode(line + "\n"))
   .collect();
 
 await Deno.writeFile("output.txt", concat(output));
@@ -441,7 +444,8 @@ await Deno.writeFile("output.txt", concat(output));
 <ul>
 <li><a href="./concurrent.html">Concurrent Processing</a> - Process multiple files in parallel</li>
 <li><a href="./performance.html">Performance Optimization</a> - Make it faster</li>
-<li><a href="../recipes/decompression.html">Decompressing Files</a> - Work with compressed files</li>
+<li><a href="../recipes/decompression.html">Decompressing Files</a> - Work with compressed
+files</li>
 </ul>
 
                     </main>

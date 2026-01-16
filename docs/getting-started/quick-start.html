@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="your-first-process"><a class="header" href="#your-first-process">Your First Process</a></h2>
 <p>Create a file called <code>hello.ts</code>:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: basic run and capture" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 // Run a command and capture output
 const lines = await run("echo", "Hello, proc!").lines.collect();
@@ -201,10 +201,10 @@ console.log(lines); // ["Hello, proc!"]
 <h2 id="chaining-processes"><a class="header" href="#chaining-processes">Chaining Processes</a></h2>
 <p>Let’s chain commands together, like shell pipes:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: chain processes" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 const result = await run("echo", "HELLO WORLD")
-  .run("tr", "A-Z", "a-z")  // Convert to lowercase
+  .run("tr", "A-Z", "a-z") // Convert to lowercase
   .lines.first;
 
 console.log(result); // "hello world"
@@ -213,11 +213,11 @@ console.log(result); // "hello world"
 <h2 id="working-with-files"><a class="header" href="#working-with-files">Working with Files</a></h2>
 <p>Process a file line by line:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: process file" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const errorCount = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .count();
 
 console.log(`Found ${errorCount} errors`);
@@ -225,26 +225,27 @@ console.log(`Found ${errorCount} errors`);
 <h2 id="handling-errors"><a class="header" href="#handling-errors">Handling Errors</a></h2>
 <p>Errors propagate naturally—catch them once at the end:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: handle errors" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 try {
-  await run("false")  // This command exits with code 1
+  await run("false") // This command exits with code 1
     .lines
     .collect();
 } catch (error) {
   console.error(`Command failed: ${error.code}`);
 }
 </code></pre>
-<p>No need to check errors at each step. They flow through the pipeline and you catch them once. For details, see <a href="../core/error-handling.html">Error Handling</a>.</p>
+<p>No need to check errors at each step. They flow through the pipeline and you
+catch them once. For details, see <a href="../core/error-handling.html">Error Handling</a>.</p>
 <h2 id="using-array-methods"><a class="header" href="#using-array-methods">Using Array Methods</a></h2>
 <p>Work with async data using familiar Array methods:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: enumerate with indices" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const data = ["apple", "banana", "cherry"];
 
 const numbered = await enumerate(data)
-  .enum()  // Add indices
+  .enum() // Add indices
   .map(([fruit, i]) =&gt; `${i + 1}. ${fruit}`)
   .collect();
 
@@ -254,22 +255,24 @@ console.log(numbered);
 <h2 id="a-real-example"><a class="header" href="#a-real-example">A Real Example</a></h2>
 <p>Let’s find the 5 most recent commits that mention “fix”:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: git log example" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 const commits = await run("git", "log", "--oneline")
   .lines
-  .filter(line =&gt; line.includes("fix"))
+  .filter((line) =&gt; line.includes("fix"))
   .take(5)
   .collect();
 
-commits.forEach(commit =&gt; console.log(commit));
+commits.forEach((commit) =&gt; console.log(commit));
 </code></pre>
-<p>This chains multiple operations, all streaming, using minimal memory. For more complex examples, see <a href="../recipes/counting-words.html">Recipes</a>.</p>
+<p>This chains multiple operations, all streaming, using minimal memory. For more
+complex examples, see <a href="../recipes/counting-words.html">Recipes</a>.</p>
 <h2 id="data-transforms-optional"><a class="header" href="#data-transforms-optional">Data Transforms (Optional)</a></h2>
-<p>Need to work with CSV, TSV, JSON, or Record formats? Import the transforms module:</p>
+<p>Need to work with CSV, TSV, JSON, or Record formats? Import the transforms
+module:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
-import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // Convert CSV to TSV
 await read("data.csv")
@@ -277,13 +280,17 @@ await read("data.csv")
   .transform(toTsv())
   .writeTo("data.tsv");
 </code></pre>
-<p>The transforms module is <strong>separate from the core library</strong> to keep your bundle lightweight. See <a href="../data-transforms/README.html">Data Transforms</a> for details.</p>
+<p>The transforms module is <strong>separate from the core library</strong> to keep your bundle
+lightweight. See <a href="../data-transforms/README.html">Data Transforms</a> for details.</p>
 <h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
 <li><a href="./key-concepts.html">Key Concepts</a> — Properties vs methods, resource management</li>
-<li><a href="../core/running-processes.html">Running Processes</a> — All the ways to run commands</li>
-<li><a href="../core/error-handling.html">Error Handling</a> — How errors propagate through pipelines</li>
-<li><a href="../recipes/counting-words.html">Recipes</a> — Copy-paste solutions for common tasks</li>
+<li><a href="../core/running-processes.html">Running Processes</a> — All the ways to run
+commands</li>
+<li><a href="../core/error-handling.html">Error Handling</a> — How errors propagate through
+pipelines</li>
+<li><a href="../recipes/counting-words.html">Recipes</a> — Copy-paste solutions for common
+tasks</li>
 </ul>
 
                     </main>

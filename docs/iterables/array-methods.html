@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -185,7 +185,7 @@
 <p>Transform each item:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const doubled = await enumerate([1, 2, 3])
-  .map(n =&gt; n * 2)
+  .map((n) =&gt; n * 2)
   .collect();
 // [2, 4, 6]
 </code></pre>
@@ -202,7 +202,7 @@
 <p>Keep only items that match:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const evens = await enumerate([1, 2, 3, 4])
-  .filter(n =&gt; n % 2 === 0)
+  .filter((n) =&gt; n % 2 === 0)
   .collect();
 // [2, 4]
 </code></pre>
@@ -210,7 +210,7 @@
 <p>Map and flatten in one step:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: flatMap" -->
 <pre><code class="language-typescript">const words = await enumerate(["hello world", "foo bar"])
-  .flatMap(line =&gt; line.split(" "))
+  .flatMap((line) =&gt; line.split(" "))
   .collect();
 // ["hello", "world", "foo", "bar"]
 </code></pre>
@@ -241,20 +241,20 @@
 <p>Check if any item matches:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: some" -->
 <pre><code class="language-typescript">const hasError = await enumerate(lines)
-  .some(line =&gt; line.includes("ERROR"));
+  .some((line) =&gt; line.includes("ERROR"));
 </code></pre>
 <h3 id="every"><a class="header" href="#every">every()</a></h3>
 <p>Check if all items match:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: every" -->
 <pre><code class="language-typescript">const allPositive = await enumerate([1, 2, 3])
-  .every(n =&gt; n &gt; 0);
+  .every((n) =&gt; n &gt; 0);
 </code></pre>
 <h2 id="finding-items"><a class="header" href="#finding-items">Finding Items</a></h2>
 <h3 id="find"><a class="header" href="#find">find()</a></h3>
 <p>Find first match:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "array-methods: find" -->
 <pre><code class="language-typescript">const match = await enumerate([1, 2, 3, 4])
-  .find(n =&gt; n &gt; 2);
+  .find((n) =&gt; n &gt; 2);
 // 3
 </code></pre>
 <h3 id="first"><a class="header" href="#first">first</a></h3>
@@ -304,7 +304,7 @@
 <h3 id="foreach"><a class="header" href="#foreach">forEach()</a></h3>
 <p>Process each item:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await enumerate([1, 2, 3]).forEach(n =&gt; {
+<pre><code class="language-typescript">await enumerate([1, 2, 3]).forEach((n) =&gt; {
   console.log(n);
 });
 </code></pre>
@@ -387,10 +387,10 @@ const [sum, product] = await Promise.all([
 <h3 id="complex-pipeline"><a class="header" href="#complex-pipeline">Complex Pipeline</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const result = await enumerate(data)
-  .filter(item =&gt; item.active)
-  .map(item =&gt; item.value)
-  .filter(value =&gt; value &gt; 0)
-  .map(value =&gt; value * 2)
+  .filter((item) =&gt; item.active)
+  .map((item) =&gt; item.value)
+  .filter((value) =&gt; value &gt; 0)
+  .map((value) =&gt; value * 2)
   .take(10)
   .collect();
 </code></pre>
@@ -398,8 +398,8 @@ const [sum, product] = await Promise.all([
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const topErrors = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
-  .map(line =&gt; {
+  .filter((line) =&gt; line.includes("ERROR"))
+  .map((line) =&gt; {
     const match = line.match(/ERROR: (.+)/);
     return match ? match[1] : line;
   })
@@ -438,7 +438,8 @@ const results = await enumerate(urls)
 </code></pre>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
-<li><a href="./transformations.html">Transformations</a> - Deep dive into map, flatMap, transform</li>
+<li><a href="./transformations.html">Transformations</a> - Deep dive into map, flatMap,
+transform</li>
 <li><a href="./aggregations.html">Aggregations</a> - Deep dive into reduce, count, sum</li>
 <li><a href="./slicing.html">Slicing and Sampling</a> - Deep dive into take, drop, slice</li>
 </ul>

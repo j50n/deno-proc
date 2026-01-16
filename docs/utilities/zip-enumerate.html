@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,10 +183,10 @@
 <h2 id="enumerate"><a class="header" href="#enumerate">enumerate()</a></h2>
 <p>Wrap any iterable for Array-like methods:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const result = await enumerate([1, 2, 3])
-  .map(n =&gt; n * 2)
+  .map((n) =&gt; n * 2)
   .collect();
 // [2, 4, 6]
 </code></pre>
@@ -209,7 +209,7 @@ const result = await enumerate([1, 2, 3])
 <h2 id="zip"><a class="header" href="#zip">zip()</a></h2>
 <p>Combine two iterables:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { zip } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { zip } from "jsr:@j50n/proc@0.24.3";
 
 const names = ["Alice", "Bob", "Charlie"];
 const ages = [25, 30, 35];
@@ -238,7 +238,7 @@ const people = await zip(names, ages)
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const merged = await zip(
   read("names.txt").lines,
-  read("emails.txt").lines
+  read("emails.txt").lines,
 )
   .map(([name, email]) =&gt; ({ name, email }))
   .collect();

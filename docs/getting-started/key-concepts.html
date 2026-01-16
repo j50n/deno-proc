@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -194,7 +194,8 @@
 .filter()
 .count()
 </code></pre>
-<p>Properties return new objects or promises. Methods are functions you call. Your IDE will guide you.</p>
+<p>Properties return new objects or promises. Methods are functions you call. Your
+IDE will guide you.</p>
 <h2 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h2>
 <p>Errors flow through pipelines like data. One try-catch handles everything:</p>
 <pre><code class="language-typescript">try {
@@ -215,15 +216,16 @@ await run("ls").lines.collect();
 await run("ls").lines.forEach(console.log);
 
 // ❌ Bad - resource leak
-const p = run("ls");  // Output never consumed
+const p = run("ls"); // Output never consumed
 </code></pre>
 <h2 id="the-enumerate-pattern"><a class="header" href="#the-enumerate-pattern">The enumerate() Pattern</a></h2>
-<p><code>enumerate()</code> wraps an iterable to add Array-like methods. Call <code>.enum()</code> to add indices:</p>
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<p><code>enumerate()</code> wraps an iterable to add Array-like methods. Call <code>.enum()</code> to add
+indices:</p>
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 // Without indices
 const doubled = await enumerate([1, 2, 3])
-  .map(n =&gt; n * 2)
+  .map((n) =&gt; n * 2)
   .collect();
 // [2, 4, 6]
 
@@ -240,14 +242,15 @@ const numbered = await enumerate(["a", "b", "c"])
 const pipeline = run("cat", "huge-file.txt")
   .run("grep", "error")
   .lines
-  .map(line =&gt; line.toUpperCase());
+  .map((line) =&gt; line.toUpperCase());
 
 // Now it runs, one line at a time
 for await (const line of pipeline) {
   console.log(line);
 }
 </code></pre>
-<p>This enables processing files larger than memory—data flows through without loading everything at once.</p>
+<p>This enables processing files larger than memory—data flows through without
+loading everything at once.</p>
 <h2 id="type-safety"><a class="header" href="#type-safety">Type Safety</a></h2>
 <p>proc is fully typed. TypeScript knows what you’re working with:</p>
 <pre><code class="language-typescript">const lines: string[] = await run("ls").lines.collect();
@@ -256,9 +259,12 @@ const count: number = await run("ls").lines.count();
 <p>Type errors usually mean you’re using the API incorrectly.</p>
 <h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
-<li><a href="../core/running-processes.html">Running Processes</a> — Execute commands and capture output</li>
-<li><a href="../core/error-handling.html">Error Handling</a> — How errors propagate through pipelines</li>
-<li><a href="../iterables/enumerable.html">Understanding Enumerable</a> — Deep dive into async iterables</li>
+<li><a href="../core/running-processes.html">Running Processes</a> — Execute commands and
+capture output</li>
+<li><a href="../core/error-handling.html">Error Handling</a> — How errors propagate through
+pipelines</li>
+<li><a href="../iterables/enumerable.html">Understanding Enumerable</a> — Deep dive into async
+iterables</li>
 </ul>
 
                     </main>

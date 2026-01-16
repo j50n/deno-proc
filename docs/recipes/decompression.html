@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -182,7 +182,7 @@
 <p>Process compressed files without creating temporary files. Stream everything.</p>
 <h2 id="decompress-and-count-lines"><a class="header" href="#decompress-and-count-lines">Decompress and Count Lines</a></h2>
 <!-- TESTED: tests/mdbook_examples.test.ts - "decompression: decompress and count" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const lineCount = await read("war-and-peace.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -201,19 +201,19 @@ console.log(`${lineCount} lines`);
 <p>All streaming. No temp files. Constant memory usage.</p>
 <h2 id="search-in-compressed-file"><a class="header" href="#search-in-compressed-file">Search in Compressed File</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const matches = await read("logs.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .collect();
 
 console.log(`Found ${matches.length} errors`);
 </code></pre>
 <h2 id="process-multiple-compressed-files"><a class="header" href="#process-multiple-compressed-files">Process Multiple Compressed Files</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read, enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate, read } from "jsr:@j50n/proc@0.24.3";
 
 const files = ["log1.gz", "log2.gz", "log3.gz"];
 
@@ -221,21 +221,21 @@ for (const file of files) {
   const errors = await read(file)
     .transform(new DecompressionStream("gzip"))
     .lines
-    .filter(line =&gt; line.includes("ERROR"))
+    .filter((line) =&gt; line.includes("ERROR"))
     .count();
-  
+
   console.log(`${file}: ${errors} errors`);
 }
 </code></pre>
 <h2 id="decompress-and-transform"><a class="header" href="#decompress-and-transform">Decompress and Transform</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const data = await read("data.json.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .map(line =&gt; JSON.parse(line))
-  .filter(obj =&gt; obj.status === "active")
+  .map((line) =&gt; JSON.parse(line))
+  .filter((obj) =&gt; obj.status === "active")
   .collect();
 </code></pre>
 <h2 id="supported-formats"><a class="header" href="#supported-formats">Supported Formats</a></h2>
@@ -258,7 +258,7 @@ const data = await read("data.json.gz")
 <h2 id="compress-output"><a class="header" href="#compress-output">Compress Output</a></h2>
 <p>You can also compress:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const compressed = await read("large-file.txt")
   .transform(new CompressionStream("gzip"))
@@ -269,7 +269,7 @@ await Deno.writeFile("large-file.txt.gz", concat(compressed));
 <h2 id="real-world-example-log-analysis"><a class="header" href="#real-world-example-log-analysis">Real-World Example: Log Analysis</a></h2>
 <p>Analyze compressed logs without extracting them:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 interface LogEntry {
   timestamp: string;
@@ -280,15 +280,15 @@ interface LogEntry {
 const errors = await read("app.log.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .map(line =&gt; {
+  .map((line) =&gt; {
     const [timestamp, level, ...message] = line.split(" ");
     return { timestamp, level, message: message.join(" ") };
   })
-  .filter(entry =&gt; entry.level === "ERROR")
+  .filter((entry) =&gt; entry.level === "ERROR")
   .collect();
 
 console.log(`Found ${errors.length} errors`);
-errors.slice(0, 10).forEach(e =&gt; {
+errors.slice(0, 10).forEach((e) =&gt; {
   console.log(`${e.timestamp}: ${e.message}`);
 });
 </code></pre>
@@ -302,16 +302,18 @@ const lines = await read("huge.gz")
   .collect();
 
 // ✅ Processes one line at a time
-for await (const line of read("huge.gz")
-  .transform(new DecompressionStream("gzip"))
-  .lines) {
+for await (
+  const line of read("huge.gz")
+    .transform(new DecompressionStream("gzip"))
+    .lines
+) {
   process(line);
 }
 </code></pre>
 <h3 id="use-concurrent-processing"><a class="header" href="#use-concurrent-processing">Use Concurrent Processing</a></h3>
 <p>Process multiple files in parallel:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const files = ["log1.gz", "log2.gz", "log3.gz"];
 
@@ -320,7 +322,7 @@ const results = await enumerate(files)
     const errors = await read(file)
       .transform(new DecompressionStream("gzip"))
       .lines
-      .filter(line =&gt; line.includes("ERROR"))
+      .filter((line) =&gt; line.includes("ERROR"))
       .count();
     return { file, errors };
   }, { concurrency: 3 })
@@ -341,14 +343,15 @@ rm file
 await read("file.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .forEach(console.log);
 </code></pre>
 <p>Faster, cleaner, more memory-efficient.</p>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
 <li><a href="../advanced/streaming.html">Streaming Large Files</a> - Handle huge files</li>
-<li><a href="../advanced/concurrent.html">Concurrent Processing</a> - Process multiple files in parallel</li>
+<li><a href="../advanced/concurrent.html">Concurrent Processing</a> - Process multiple files in
+parallel</li>
 <li><a href="../utilities/file-io.html">File I/O</a> - More file operations</li>
 </ul>
 

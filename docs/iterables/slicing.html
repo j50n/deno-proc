@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="take"><a class="header" href="#take">take()</a></h2>
 <p>Take first N items:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "slicing: take" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const first3 = await enumerate([1, 2, 3, 4, 5])
   .take(3)
@@ -204,7 +204,7 @@ const preview = await read("huge-file.txt")
 <pre><code class="language-typescript">// First 5 errors
 const errors = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .take(5)
   .collect();
 </code></pre>
@@ -220,7 +220,7 @@ const errors = await read("app.log")
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const data = await read("data.csv")
   .lines
-  .drop(1)  // Skip header row
+  .drop(1) // Skip header row
   .collect();
 </code></pre>
 <h2 id="combining-drop-and-take"><a class="header" href="#combining-drop-and-take">Combining drop() and take()</a></h2>
@@ -274,7 +274,7 @@ const items = await enumerate(allItems)
 await read("file.txt")
   .lines
   .take(10)
-  .forEach(line =&gt; console.log(line));
+  .forEach((line) =&gt; console.log(line));
 </code></pre>
 <h3 id="skip-and-take"><a class="header" href="#skip-and-take">Skip and Take</a></h3>
 <!-- NOT TESTED: Illustrative example -->
@@ -297,8 +297,8 @@ const sample = await enumerate(data)
 <pre><code class="language-typescript">// 5th error
 const fifthError = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
-  .nth(4);  // Zero-indexed
+  .filter((line) =&gt; line.includes("ERROR"))
+  .nth(4); // Zero-indexed
 </code></pre>
 <h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
 <h3 id="use-take-for-limits"><a class="header" href="#use-take-for-limits">Use take() for Limits</a></h3>
@@ -310,7 +310,7 @@ const first100 = await enumerate(huge)
 
 // ❌ Reads everything
 const all = await enumerate(huge).collect();
-const first100 = all.slice(0, 100);  // Array slice, not Enumerable
+const first100 = all.slice(0, 100); // Array slice, not Enumerable
 </code></pre>
 <h3 id="combine-with-filter"><a class="header" href="#combine-with-filter">Combine with Filter</a></h3>
 <!-- NOT TESTED: Illustrative example -->

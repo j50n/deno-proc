@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,28 +179,34 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="running-processes"><a class="header" href="#running-processes">Running Processes</a></h1>
-<p>Running child processes with proc is designed to be as simple and intuitive as possible, eliminating the boilerplate typically required for process management.</p>
+<p>Running child processes with proc is designed to be as simple and intuitive as
+possible, eliminating the boilerplate typically required for process management.</p>
 <h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
-<p>The most basic usage requires just importing <code>run</code> and calling it with your command:</p>
+<p>The most basic usage requires just importing <code>run</code> and calling it with your
+command:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "running-processes: capture output" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 // Run a command
 await run("ls", "-la").lines.collect();
 </code></pre>
-<p>That’s all you need. No configuration objects, no callback functions, no complex setup—just run the command and get the results.</p>
+<p>That’s all you need. No configuration objects, no callback functions, no complex
+setup—just run the command and get the results.</p>
 <h2 id="understanding-command-arguments"><a class="header" href="#understanding-command-arguments">Understanding Command Arguments</a></h2>
-<p>The first parameter to <code>run()</code> is the command name, and all subsequent parameters are individual arguments. This approach prevents shell injection vulnerabilities and makes argument handling explicit:</p>
+<p>The first parameter to <code>run()</code> is the command name, and all subsequent
+parameters are individual arguments. This approach prevents shell injection
+vulnerabilities and makes argument handling explicit:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">run("command", "arg1", "arg2", "arg3")
+<pre><code class="language-typescript">run("command", "arg1", "arg2", "arg3");
 </code></pre>
-<p>It’s important to pass arguments as separate parameters rather than as a single string:</p>
+<p>It’s important to pass arguments as separate parameters rather than as a single
+string:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">// ✅ Correct
-run("ls", "-la", "/home")
+run("ls", "-la", "/home");
 
 // ❌ Wrong - this won't work
-run("ls -la /home")
+run("ls -la /home");
 </code></pre>
 <h2 id="capturing-output"><a class="header" href="#capturing-output">Capturing Output</a></h2>
 <h3 id="as-an-array"><a class="header" href="#as-an-array">As an Array</a></h3>
@@ -233,7 +239,7 @@ const last = await run("ls").lines.last;
 <h2 id="building-commands-dynamically"><a class="header" href="#building-commands-dynamically">Building Commands Dynamically</a></h2>
 <p>Sometimes you need to build a command from variables:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { type Cmd, run } from "jsr:@j50n/proc@0.24.3";
 
 const cmd: Cmd = ["ls"];
 
@@ -247,44 +253,47 @@ if (directory) {
 
 await run(...cmd).toStdout();
 </code></pre>
-<p>The <code>Cmd</code> type is an array where the first element is the command (string or URL) and the rest are string arguments. Using the <code>Cmd</code> type ensures type safety when building commands dynamically.</p>
+<p>The <code>Cmd</code> type is an array where the first element is the command (string or
+URL) and the rest are string arguments. Using the <code>Cmd</code> type ensures type safety
+when building commands dynamically.</p>
 <h2 id="process-options"><a class="header" href="#process-options">Process Options</a></h2>
 <p>Customize process behavior with options:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">await run(
   {
-    cwd: "/tmp",           // Working directory
-    env: { FOO: "bar" },   // Environment variables
+    cwd: "/tmp", // Working directory
+    env: { FOO: "bar" }, // Environment variables
   },
   "command",
-  "arg1"
+  "arg1",
 ).lines.collect();
 </code></pre>
 <h3 id="working-directory"><a class="header" href="#working-directory">Working Directory</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">await run(
   { cwd: "/var/log" },
-  "ls"
+  "ls",
 ).toStdout();
 </code></pre>
 <h3 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">await run(
   { env: { PATH: "/custom/path" } },
-  "command"
+  "command",
 ).lines.collect();
 </code></pre>
 <h2 id="checking-exit-status"><a class="header" href="#checking-exit-status">Checking Exit Status</a></h2>
 <p>Get the exit status without throwing:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const p = run("command");
-await p.lines.collect();  // Consume output first
+await p.lines.collect(); // Consume output first
 const status = await p.status;
 
 console.log(`Exit code: ${status.code}`);
 console.log(`Success: ${status.success}`);
 </code></pre>
-<p><strong>Remember:</strong> Always consume output before checking status, or you’ll leak resources.</p>
+<p><strong>Remember:</strong> Always consume output before checking status, or you’ll leak
+resources.</p>
 <h2 id="process-id"><a class="header" href="#process-id">Process ID</a></h2>
 <p>Get the process ID:</p>
 <!-- NOT TESTED: Illustrative example -->
@@ -308,7 +317,7 @@ await run(scriptUrl).toStdout();
 <p>Capture output while also printing it:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const lines: string[] = [];
-await run("command").lines.forEach(line =&gt; {
+await run("command").lines.forEach((line) =&gt; {
   console.log(line);
   lines.push(line);
 });
@@ -372,17 +381,20 @@ const first10 = await run("grep", "ERROR", "huge.log")
 <pre><code class="language-typescript">// ✅ Filter first (fast), then transform (expensive)
 const result = await run("cat", "data.txt")
   .lines
-  .filter(line =&gt; line.length &gt; 0)  // Fast filter
-  .map(expensiveTransform)          // Only runs on filtered data
+  .filter((line) =&gt; line.length &gt; 0) // Fast filter
+  .map(expensiveTransform) // Only runs on filtered data
   .collect();
 </code></pre>
-<p>For more performance optimization strategies, see <a href="../advanced/concurrent.html">Concurrent Processing</a> and <a href="../advanced/streaming.html">Streaming Large Files</a>.</p>
+<p>For more performance optimization strategies, see
+<a href="../advanced/concurrent.html">Concurrent Processing</a> and
+<a href="../advanced/streaming.html">Streaming Large Files</a>.</p>
 <h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
 <li><a href="./output.html">Working with Output</a> — Transform and process command output</li>
 <li><a href="./pipelines.html">Process Pipelines</a> — Chain multiple commands together</li>
 <li><a href="./error-handling.html">Error Handling</a> — Handle failures gracefully</li>
-<li><a href="../recipes/shell-replacement.html">Shell Script Replacement</a> — Replace bash scripts with proc</li>
+<li><a href="../recipes/shell-replacement.html">Shell Script Replacement</a> — Replace bash
+scripts with proc</li>
 </ul>
 
                     </main>

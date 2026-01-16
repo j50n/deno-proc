@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -182,7 +182,7 @@
 <p>Download multiple files concurrently with controlled concurrency.</p>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const urls = [
   "https://example.com/file1.json",
@@ -200,7 +200,7 @@ const results = await enumerate(urls)
     return {
       url,
       data: await response.json(),
-      size: response.headers.get("content-length")
+      size: response.headers.get("content-length"),
     };
   }, { concurrency: 5 })
   .collect();
@@ -210,7 +210,7 @@ console.log(`Downloaded ${results.length} files`);
 <h2 id="download-and-save-files"><a class="header" href="#download-and-save-files">Download and Save Files</a></h2>
 <p>Download files and save them to disk:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const downloads = [
   { url: "https://example.com/image1.jpg", path: "./downloads/image1.jpg" },
@@ -234,7 +234,7 @@ console.log("All downloads complete");
 <h2 id="with-progress-tracking"><a class="header" href="#with-progress-tracking">With Progress Tracking</a></h2>
 <p>Track download progress:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 let completed = 0;
 const total = urls.length;
@@ -243,10 +243,14 @@ const results = await enumerate(urls)
   .concurrentMap(async (url) =&gt; {
     const response = await fetch(url);
     const data = await response.json();
-    
+
     completed++;
-    console.log(`Progress: ${completed}/${total} (${Math.round(completed/total*100)}%)`);
-    
+    console.log(
+      `Progress: ${completed}/${total} (${
+        Math.round(completed / total * 100)
+      }%)`,
+    );
+
     return { url, data };
   }, { concurrency: 5 })
   .collect();
@@ -254,24 +258,26 @@ const results = await enumerate(urls)
 <h2 id="with-retry-logic"><a class="header" href="#with-retry-logic">With Retry Logic</a></h2>
 <p>Retry failed downloads:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 async function fetchWithRetry(url: string, maxRetries = 3): Promise&lt;Response&gt; {
   for (let attempt = 1; attempt &lt;= maxRetries; attempt++) {
     try {
       const response = await fetch(url);
       if (response.ok) return response;
-      
+
       if (attempt === maxRetries) {
-        throw new Error(`Failed after ${maxRetries} attempts: ${response.status}`);
+        throw new Error(
+          `Failed after ${maxRetries} attempts: ${response.status}`,
+        );
       }
     } catch (error) {
       if (attempt === maxRetries) throw error;
-      
+
       // Exponential backoff
       const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
       console.log(`Retry ${attempt}/${maxRetries} for ${url} after ${delay}ms`);
-      await new Promise(resolve =&gt; setTimeout(resolve, delay));
+      await new Promise((resolve) =&gt; setTimeout(resolve, delay));
     }
   }
   throw new Error("Unreachable");
@@ -287,7 +293,7 @@ const results = await enumerate(urls)
 <h2 id="download-large-files"><a class="header" href="#download-large-files">Download Large Files</a></h2>
 <p>Stream large files to disk without loading into memory:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const largeFiles = [
   { url: "https://example.com/large1.zip", path: "./large1.zip" },
@@ -298,10 +304,10 @@ await enumerate(largeFiles)
   .concurrentMap(async ({ url, path }) =&gt; {
     const response = await fetch(url);
     if (!response.body) throw new Error("No response body");
-    
+
     const file = await Deno.open(path, { write: true, create: true });
     await response.body.pipeTo(file.writable);
-    
+
     console.log(`Downloaded: ${path}`);
     return path;
   }, { concurrency: 2 })
@@ -310,7 +316,7 @@ await enumerate(largeFiles)
 <h2 id="api-rate-limiting"><a class="header" href="#api-rate-limiting">API Rate Limiting</a></h2>
 <p>Respect API rate limits:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const apiEndpoints = [
   "/api/users/1",
@@ -323,18 +329,18 @@ await enumerate(apiEndpoints)
   .concurrentMap(async (endpoint) =&gt; {
     const response = await fetch(`https://api.example.com${endpoint}`);
     const data = await response.json();
-    
+
     // Wait 100ms between requests (10 requests/second)
-    await new Promise(resolve =&gt; setTimeout(resolve, 100));
-    
+    await new Promise((resolve) =&gt; setTimeout(resolve, 100));
+
     return data;
-  }, { concurrency: 1 })  // Sequential to respect rate limit
+  }, { concurrency: 1 }) // Sequential to respect rate limit
   .collect();
 </code></pre>
 <h2 id="filter-failed-downloads"><a class="header" href="#filter-failed-downloads">Filter Failed Downloads</a></h2>
 <p>Continue even if some downloads fail:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const results = await enumerate(urls)
   .concurrentMap(async (url) =&gt; {
@@ -347,7 +353,7 @@ const results = await enumerate(urls)
       return null;
     }
   }, { concurrency: 5 })
-  .filter(result =&gt; result !== null)
+  .filter((result) =&gt; result !== null)
   .collect();
 
 console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
@@ -369,7 +375,8 @@ console.log(`Successfully downloaded ${results.length}/${urls.length} files`);
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
-<li><a href="../advanced/concurrent.html">Concurrent Processing</a> - Deep dive into concurrency</li>
+<li><a href="../advanced/concurrent.html">Concurrent Processing</a> - Deep dive into
+concurrency</li>
 <li><a href="../core/error-handling.html">Error Handling</a> - Handle download failures</li>
 <li><a href="../advanced/streaming.html">Streaming Large Files</a> - Work with large downloads</li>
 </ul>

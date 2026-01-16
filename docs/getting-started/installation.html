@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,31 +183,35 @@
 <h2 id="import-from-jsr"><a class="header" href="#import-from-jsr">Import from JSR</a></h2>
 <p>Add proc to your Deno project:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import * as proc from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import * as proc from "jsr:@j50n/proc@0.24.3";
 </code></pre>
 <p>Or import just what you need:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run, enumerate, read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate, read, run } from "jsr:@j50n/proc@0.24.3";
 </code></pre>
 <p>That’s it! No installation step, no package.json, no node_modules.</p>
 <h2 id="data-transforms-optional"><a class="header" href="#data-transforms-optional">Data Transforms (Optional)</a></h2>
-<p>The data transforms module is <strong>separate from the core library</strong> to keep the main import lightweight. Import it when you need CSV, TSV, JSON, or Record format conversions:</p>
+<p>The data transforms module is <strong>separate from the core library</strong> to keep the
+main import lightweight. Import it when you need CSV, TSV, JSON, or Record
+format conversions:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">// Core library - process management and async iterables
-import { run, enumerate, read } from "jsr:@j50n/proc@0.24.2";
+import { enumerate, read, run } from "jsr:@j50n/proc@0.24.3";
 
 // Data transforms - CSV, TSV, JSON, Record conversions
-import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.2/transforms";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.3/transforms";
 </code></pre>
 <p><strong>Why separate?</strong></p>
 <ul>
-<li><strong>Smaller bundles</strong>: Users who only need process management don’t import transform code</li>
+<li><strong>Smaller bundles</strong>: Users who only need process management don’t import
+transform code</li>
 <li><strong>Clear separation</strong>: Core library vs specialized data format conversions</li>
 <li><strong>Optional feature</strong>: Transforms are powerful but not required for basic usage</li>
 </ul>
 <p>See the <a href="../data-transforms/README.html">Data Transforms</a> guide for details.</p>
 <h2 id="permissions"><a class="header" href="#permissions">Permissions</a></h2>
-<p>proc needs permissions to run child processes and access files. When you run your script, Deno will prompt you, or you can grant them upfront:</p>
+<p>proc needs permissions to run child processes and access files. When you run
+your script, Deno will prompt you, or you can grant them upfront:</p>
 <pre><code class="language-bash">deno run --allow-run --allow-read your-script.ts
 </code></pre>
 <p><strong>Common permissions:</strong></p>
@@ -234,7 +238,8 @@ deno run --allow-read=/var/log your-script.ts
 <pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
 </code></pre>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<p>Ready to write your first proc script? Head to the <a href="./quick-start.html">Quick Start</a> guide.</p>
+<p>Ready to write your first proc script? Head to the
+<a href="./quick-start.html">Quick Start</a> guide.</p>
 
                     </main>
 

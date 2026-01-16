@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,9 +179,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="csv-parser-specification"><a class="header" href="#csv-parser-specification">CSV Parser Specification</a></h1>
-<p>This appendix documents the RFC 4180 compliant CSV parser used by proc’s data transforms and the flatdata CLI. The parser is implemented in Odin and compiled to WebAssembly for high-performance parsing in JavaScript/TypeScript environments.</p>
+<p>This appendix documents the RFC 4180 compliant CSV parser used by proc’s data
+transforms and the flatdata CLI. The parser is implemented in Odin and compiled
+to WebAssembly for high-performance parsing in JavaScript/TypeScript
+environments.</p>
 <h2 id="standards-compliance"><a class="header" href="#standards-compliance">Standards Compliance</a></h2>
-<p>The parser implements <a href="https://datatracker.ietf.org/doc/html/rfc4180">RFC 4180</a> - Common Format and MIME Type for Comma-Separated Values (CSV) Files.</p>
+<p>The parser implements
+<a href="https://datatracker.ietf.org/doc/html/rfc4180">RFC 4180</a> - Common Format and
+MIME Type for Comma-Separated Values (CSV) Files.</p>
 <h3 id="rfc-4180-requirements"><a class="header" href="#rfc-4180-requirements">RFC 4180 Requirements</a></h3>
 <div class="table-wrapper">
 <table>
@@ -201,14 +206,16 @@
 </div>
 <h3 id="extensions-beyond-rfc-4180"><a class="header" href="#extensions-beyond-rfc-4180">Extensions Beyond RFC 4180</a></h3>
 <ul>
-<li><strong>Configurable separator</strong>: Supports any single-byte delimiter (comma, semicolon, tab, etc.)</li>
+<li><strong>Configurable separator</strong>: Supports any single-byte delimiter (comma,
+semicolon, tab, etc.)</li>
 <li><strong>Lenient mode</strong>: Accepts bare quotes in unquoted fields (non-strict)</li>
 <li><strong>Strict mode</strong>: Rejects malformed input with detailed error reporting</li>
 <li><strong>Streaming</strong>: Processes input in chunks without loading entire file</li>
 </ul>
 <h2 id="parser-modes"><a class="header" href="#parser-modes">Parser Modes</a></h2>
 <h3 id="strict-mode"><a class="header" href="#strict-mode">Strict Mode</a></h3>
-<p>In strict mode, the parser rejects malformed CSV and reports errors with row and column positions.</p>
+<p>In strict mode, the parser rejects malformed CSV and reports errors with row and
+column positions.</p>
 <p>Error conditions:</p>
 <ul>
 <li><code>BareQuote</code>: Unescaped quote in unquoted field</li>
@@ -231,9 +238,11 @@
 <li><code>\x1F</code> (Unit Separator) between fields</li>
 <li><code>\x1E</code> (Record Separator) between rows</li>
 </ul>
-<p>This format enables trivial downstream parsing: <code>row.split('\x1F')</code> yields fields.</p>
+<p>This format enables trivial downstream parsing: <code>row.split('\x1F')</code> yields
+fields.</p>
 <h3 id="span-format"><a class="header" href="#span-format">Span Format</a></h3>
-<p>For zero-copy parsing, the span format returns byte offsets into the original input rather than copying field data.</p>
+<p>For zero-copy parsing, the span format returns byte offsets into the original
+input rather than copying field data.</p>
 <h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
 <h3 id="initialization"><a class="header" href="#initialization">Initialization</a></h3>
 <pre><code>delimited_init(options: CsvOptions) -&gt; DelimitedParser
@@ -247,14 +256,17 @@
 <h3 id="parsing"><a class="header" href="#parsing">Parsing</a></h3>
 <pre><code>delimited_parse(parser, input: []u8) -&gt; (rows: u32, ok: bool)
 </code></pre>
-<p>Parses a chunk of input. May be called multiple times for streaming. Returns the number of complete rows parsed and success status.</p>
+<p>Parses a chunk of input. May be called multiple times for streaming. Returns the
+number of complete rows parsed and success status.</p>
 <pre><code>delimited_finish(parser) -&gt; (rows: u32, ok: bool)
 </code></pre>
-<p>Finalizes parsing after all input has been provided. Handles any remaining partial record.</p>
+<p>Finalizes parsing after all input has been provided. Handles any remaining
+partial record.</p>
 <h3 id="output-retrieval"><a class="header" href="#output-retrieval">Output Retrieval</a></h3>
 <pre><code>delimited_get_complete_output(parser) -&gt; []u8
 </code></pre>
-<p>Returns output bytes for complete records only. Partial records (those without a trailing record separator) are retained for the next chunk.</p>
+<p>Returns output bytes for complete records only. Partial records (those without a
+trailing record separator) are retained for the next chunk.</p>
 <pre><code>delimited_reset_output(parser)
 </code></pre>
 <p>Clears the output buffer after reading.</p>
@@ -272,7 +284,8 @@ parser.error.col   // 0-indexed column number
 <ul>
 <li><code>separator</code>: Output field delimiter (default: <code>,</code>)</li>
 <li><code>line_ending</code>: <code>.LF</code> or <code>.CRLF</code> (default: <code>.LF</code>)</li>
-<li><code>always_quote</code>: Quote all fields, not just those requiring it (default: <code>false</code>)</li>
+<li><code>always_quote</code>: Quote all fields, not just those requiring it (default:
+<code>false</code>)</li>
 <li><code>expected_fields</code>: Expected field count, 0 to disable (default: <code>0</code>)</li>
 </ul>
 <h3 id="stringifying"><a class="header" href="#stringifying">Stringifying</a></h3>
@@ -349,7 +362,9 @@ parser.error.col   // 0-indexed column number
 <li>Streaming maintains partial record state between chunks</li>
 </ul>
 <h3 id="utf-8-handling"><a class="header" href="#utf-8-handling">UTF-8 Handling</a></h3>
-<p>The parser operates on raw bytes and is UTF-8 transparent. Multi-byte UTF-8 sequences pass through unchanged. The separator and control characters are all single-byte ASCII, ensuring correct handling of UTF-8 text.</p>
+<p>The parser operates on raw bytes and is UTF-8 transparent. Multi-byte UTF-8
+sequences pass through unchanged. The separator and control characters are all
+single-byte ASCII, ensuring correct handling of UTF-8 text.</p>
 
                     </main>
 

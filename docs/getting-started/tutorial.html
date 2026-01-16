@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,7 +179,9 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="tutorial-building-a-git-analyzer"><a class="header" href="#tutorial-building-a-git-analyzer">Tutorial: Building a Git Analyzer</a></h1>
-<p>In this tutorial, you’ll build a command-line tool that analyzes a git repository’s commit history. Along the way, you’ll learn proc’s core features by using them to solve a real problem.</p>
+<p>In this tutorial, you’ll build a command-line tool that analyzes a git
+repository’s commit history. Along the way, you’ll learn proc’s core features by
+using them to solve a real problem.</p>
 <p>By the end, you’ll have a working script that:</p>
 <ul>
 <li>Lists recent commits</li>
@@ -211,9 +213,10 @@ Most active day: Tuesday (8 commits)
 </code></pre>
 <p>Let’s build it step by step.</p>
 <h2 id="step-1-getting-commits"><a class="header" href="#step-1-getting-commits">Step 1: Getting Commits</a></h2>
-<p>Create a file called <code>git-analyzer.ts</code>. We’ll start by fetching the last 100 commits:</p>
+<p>Create a file called <code>git-analyzer.ts</code>. We’ll start by fetching the last 100
+commits:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: get commits" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 // Get the last 100 commits (one line each)
 const commits = await run("git", "log", "--oneline", "-100")
@@ -236,11 +239,11 @@ console.log("First commit:", commits[0]);
 <h2 id="step-2-filtering-for-bug-fixes"><a class="header" href="#step-2-filtering-for-bug-fixes">Step 2: Filtering for Bug Fixes</a></h2>
 <p>Now let’s find commits that mention “fix” — likely bug fixes:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: filter fixes" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 const fixes = await run("git", "log", "--oneline", "-100")
   .lines
-  .filter(line =&gt; line.toLowerCase().includes("fix"))
+  .filter((line) =&gt; line.toLowerCase().includes("fix"))
   .collect();
 
 console.log(`Found ${fixes.length} bug fixes:`);
@@ -253,16 +256,18 @@ for (const fix of fixes.slice(0, 5)) {
 <li><code>.filter()</code> keeps only lines containing “fix”</li>
 <li>We use <code>.slice(0, 5)</code> to show just the first 5 matches</li>
 </ul>
-<p>The filtering happens as data streams through — we never load all 100 commits into memory just to filter them.</p>
+<p>The filtering happens as data streams through — we never load all 100 commits
+into memory just to filter them.</p>
 <h2 id="step-3-counting-commits-by-author"><a class="header" href="#step-3-counting-commits-by-author">Step 3: Counting Commits by Author</a></h2>
-<p>Let’s see who’s contributing the most. We’ll parse the commit log to extract author names:</p>
+<p>Let’s see who’s contributing the most. We’ll parse the commit log to extract
+author names:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: count by author" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 // Get author of each commit
 const authorCounts = await run("git", "log", "--format=%an", "-100")
   .lines
-  .filter(name =&gt; name.trim() !== "")
+  .filter((name) =&gt; name.trim() !== "")
   .reduce((counts, name) =&gt; {
     counts[name] = (counts[name] || 0) + 1;
     return counts;
@@ -285,16 +290,31 @@ for (const [name, count] of topAuthors) {
 <li>We sort and slice to get the top 5</li>
 </ul>
 <h2 id="step-4-finding-the-most-active-day"><a class="header" href="#step-4-finding-the-most-active-day">Step 4: Finding the Most Active Day</a></h2>
-<p>Which day of the week sees the most commits? We’ll parse commit dates and count them:</p>
+<p>Which day of the week sees the most commits? We’ll parse commit dates and count
+them:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: active day" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
-const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 // Get commit dates
-const dayCounts = await run("git", "log", "--format=%ad", "--date=format:%u", "-100")
+const dayCounts = await run(
+  "git",
+  "log",
+  "--format=%ad",
+  "--date=format:%u",
+  "-100",
+)
   .lines
-  .filter(line =&gt; line.trim() !== "")
+  .filter((line) =&gt; line.trim() !== "")
   .reduce((counts, dayNum) =&gt; {
     const day = days[parseInt(dayNum) % 7];
     counts[day] = (counts[day] || 0) + 1;
@@ -314,15 +334,16 @@ console.log(`Most active day: ${busiest[0]} (${busiest[1]} commits)`);
 <li>We sort to find the maximum</li>
 </ul>
 <h2 id="step-5-handling-errors"><a class="header" href="#step-5-handling-errors">Step 5: Handling Errors</a></h2>
-<p>What happens if someone runs this outside a git repository? Let’s handle that gracefully:</p>
+<p>What happens if someone runs this outside a git repository? Let’s handle that
+gracefully:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: error handling" -->
-<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { ExitCodeError, run } from "jsr:@j50n/proc@0.24.3";
 
 try {
   const commits = await run("git", "rev-parse", "--git-dir")
     .lines
     .collect();
-  
+
   console.log("This is a git repository");
 } catch (error) {
   if (error instanceof ExitCodeError) {
@@ -342,9 +363,17 @@ try {
 <h2 id="step-6-the-complete-script"><a class="header" href="#step-6-the-complete-script">Step 6: The Complete Script</a></h2>
 <p>Now let’s put it all together into a polished tool:</p>
 <!-- TESTED: tests/tutorial.test.ts - "tutorial: complete script" -->
-<pre><code class="language-typescript">import { run, ExitCodeError } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { ExitCodeError, run } from "jsr:@j50n/proc@0.24.3";
 
-const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 async function analyzeRepo(commitCount = 100) {
   // Verify we're in a git repo
@@ -363,12 +392,17 @@ async function analyzeRepo(commitCount = 100) {
     .collect();
 
   // Count bug fixes
-  const fixes = commits.filter(c =&gt; c.toLowerCase().includes("fix"));
+  const fixes = commits.filter((c) =&gt; c.toLowerCase().includes("fix"));
 
   // Get top authors
-  const authorCounts = await run("git", "log", "--format=%an", `-${commitCount}`)
+  const authorCounts = await run(
+    "git",
+    "log",
+    "--format=%an",
+    `-${commitCount}`,
+  )
     .lines
-    .filter(name =&gt; name.trim() !== "")
+    .filter((name) =&gt; name.trim() !== "")
     .reduce((counts, name) =&gt; {
       counts[name] = (counts[name] || 0) + 1;
       return counts;
@@ -380,9 +414,15 @@ async function analyzeRepo(commitCount = 100) {
     .map(([name, count]) =&gt; ({ name, count }));
 
   // Count by day of week
-  const dayCounts = await run("git", "log", "--format=%ad", "--date=format:%u", `-${commitCount}`)
+  const dayCounts = await run(
+    "git",
+    "log",
+    "--format=%ad",
+    "--date=format:%u",
+    `-${commitCount}`,
+  )
     .lines
-    .filter(line =&gt; line.trim() !== "")
+    .filter((line) =&gt; line.trim() !== "")
     .reduce((counts, dayNum) =&gt; {
       const day = days[parseInt(dayNum) % 7];
       counts[day] = (counts[day] || 0) + 1;
@@ -405,7 +445,11 @@ try {
   for (const author of result.authors) {
     console.log(`  ${author.name}: ${author.count} commits`);
   }
-  console.log(`\nMost active day: ${result.busiestDay[0]} (${result.busiestDay[1]} commits)`);
+  console.log(
+    `\nMost active day: ${result.busiestDay[0]} (${
+      result.busiestDay[1]
+    } commits)`,
+  );
 } catch (error) {
   console.error(`Error: ${error.message}`);
   Deno.exit(1);
@@ -431,7 +475,8 @@ try {
 </tbody>
 </table>
 </div>
-<p>All of this with streaming — even if you analyzed 10,000 commits, memory usage stays constant.</p>
+<p>All of this with streaming — even if you analyzed 10,000 commits, memory usage
+stays constant.</p>
 <h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
 <p>Try extending the analyzer:</p>
 <ol>
@@ -444,7 +489,8 @@ try {
 <ul>
 <li><a href="../core/running-processes.html">Running Processes</a> — More ways to run commands</li>
 <li><a href="../core/error-handling.html">Error Handling</a> — Deep dive into error propagation</li>
-<li><a href="../iterables/array-methods.html">Array-Like Methods</a> — All the methods you can use</li>
+<li><a href="../iterables/array-methods.html">Array-Like Methods</a> — All the methods you can
+use</li>
 <li><a href="../recipes/counting-words.html">Recipes</a> — More practical examples</li>
 </ul>
 

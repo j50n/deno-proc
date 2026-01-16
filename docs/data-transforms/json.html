@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,12 +179,18 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="json-transforms"><a class="header" href="#json-transforms">JSON Transforms</a></h1>
-<p>Process JSON Lines (JSONL) format with full object structure support and optional schema validation.</p>
+<p>Process JSON Lines (JSONL) format with full object structure support and
+optional schema validation.</p>
 <blockquote>
-<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: JSON transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: JSON transforms are under active development.
+API may change as we improve correctness and streaming performance. Test
+thoroughly with your data patterns.</p>
 </blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>JSON transforms handle <strong>JSON Lines</strong> format - one complete JSON value per line. Unlike other formats, JSON preserves full object structure including nested objects, arrays, and all JSON data types. This makes it ideal for APIs, configuration data, and complex structured information.</p>
+<p>JSON transforms handle <strong>JSON Lines</strong> format - one complete JSON value per line.
+Unlike other formats, JSON preserves full object structure including nested
+objects, arrays, and all JSON data types. This makes it ideal for APIs,
+configuration data, and complex structured information.</p>
 <h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
 <div class="table-wrapper">
 <table>
@@ -199,12 +205,14 @@
 </table>
 </div>
 <blockquote>
-<p><strong>Performance Note</strong>: JSON is fastest for small datasets but performance decreases with larger files. Use for rich object structures rather than simple tabular data.</p>
+<p><strong>Performance Note</strong>: JSON is fastest for small datasets but performance
+decreases with larger files. Use for rich object structures rather than simple
+tabular data.</p>
 </blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-json-lines"><a class="header" href="#parsing-json-lines">Parsing JSON Lines</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
-import { fromJsonToRows } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
+import { fromJsonToRows } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // Parse JSONL into objects
 const objects = await read("events.jsonl")
@@ -216,12 +224,12 @@ const objects = await read("events.jsonl")
 // objects[1] = { id: "evt_124", type: "view", metadata: [1, 2, 3] }
 </code></pre>
 <h3 id="generating-json-lines"><a class="header" href="#generating-json-lines">Generating JSON Lines</a></h3>
-<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // From objects
 const events = [
   { id: "evt_123", type: "click", timestamp: "2024-01-15T10:30:00Z" },
-  { id: "evt_124", type: "view", user: { id: 456, name: "Bob" } }
+  { id: "evt_124", type: "view", user: { id: 456, name: "Bob" } },
 ];
 
 await enumerate(events)
@@ -239,36 +247,36 @@ const EventSchema = z.object({
   timestamp: z.string().datetime(),
   user: z.object({
     id: z.number(),
-    name: z.string()
+    name: z.string(),
   }).optional(),
-  metadata: z.record(z.unknown()).optional()
+  metadata: z.record(z.unknown()).optional(),
 });
 
 type Event = z.infer&lt;typeof EventSchema&gt;;
 
 // Parse with validation
 const validEvents = await read("events.jsonl")
-  .transform(fromJsonToRows&lt;Event&gt;({ 
-    schema: EventSchema 
+  .transform(fromJsonToRows&lt;Event&gt;({
+    schema: EventSchema,
   }))
   .collect();
 </code></pre>
 <h3 id="partial-validation-for-performance"><a class="header" href="#partial-validation-for-performance">Partial Validation for Performance</a></h3>
 <pre><code class="language-typescript">// Validate only first 1000 rows for performance
 const events = await read("large-events.jsonl")
-  .transform(fromJsonToRows&lt;Event&gt;({ 
+  .transform(fromJsonToRows&lt;Event&gt;({
     schema: EventSchema,
-    sampleSize: 1000  // Only validate first 1000 rows
+    sampleSize: 1000, // Only validate first 1000 rows
   }))
   .collect();
 </code></pre>
 <h3 id="custom-validation"><a class="header" href="#custom-validation">Custom Validation</a></h3>
 <pre><code class="language-typescript">// Custom validation logic
 const validateEvent = (obj: unknown): obj is Event =&gt; {
-  return typeof obj === 'object' &amp;&amp; 
-         obj !== null &amp;&amp; 
-         'id' in obj &amp;&amp; 
-         'type' in obj;
+  return typeof obj === "object" &amp;&amp;
+    obj !== null &amp;&amp;
+    "id" in obj &amp;&amp;
+    "type" in obj;
 };
 
 const events = await read("events.jsonl")
@@ -294,12 +302,12 @@ interface WebhookEvent {
 
 await read("webhook-events.jsonl")
   .transform(fromJsonToRows&lt;WebhookEvent&gt;())
-  .filter(event =&gt; event.type === "user.created")
-  .map(event =&gt; ({
+  .filter((event) =&gt; event.type === "user.created")
+  .map((event) =&gt; ({
     userId: event.data.id as string,
     email: event.data.email as string,
     createdAt: new Date(event.timestamp),
-    source: "webhook"
+    source: "webhook",
   }))
   .transform(toJson())
   .writeTo("new-users.jsonl");
@@ -323,14 +331,14 @@ interface AppConfig {
 
 const configs = await read("app-configs.jsonl")
   .transform(fromJsonToRows&lt;AppConfig&gt;())
-  .filter(config =&gt; config.version.startsWith("2."))  // Version 2.x only
-  .map(config =&gt; ({
+  .filter((config) =&gt; config.version.startsWith("2.")) // Version 2.x only
+  .map((config) =&gt; ({
     ...config,
-    features: config.features.filter(f =&gt; f !== "deprecated-feature"),
+    features: config.features.filter((f) =&gt; f !== "deprecated-feature"),
     database: {
       ...config.database,
-      ssl: true  // Force SSL for all configs
-    }
+      ssl: true, // Force SSL for all configs
+    },
   }))
   .collect();
 
@@ -359,15 +367,15 @@ const errorPatterns = new Map&lt;string, number&gt;();
 
 await read("app-logs.jsonl")
   .transform(fromJsonToRows&lt;LogEntry&gt;())
-  .filter(log =&gt; log.level === "error" &amp;&amp; log.error)
-  .forEach(log =&gt; {
+  .filter((log) =&gt; log.level === "error" &amp;&amp; log.error)
+  .forEach((log) =&gt; {
     const errorType = log.error!.name;
     errorPatterns.set(errorType, (errorPatterns.get(errorType) || 0) + 1);
   });
 
 // Output error summary
 const sortedErrors = Array.from(errorPatterns.entries())
-  .sort(([,a], [,b]) =&gt; b - a);
+  .sort(([, a], [, b]) =&gt; b - a);
 
 console.log("Top error types:");
 sortedErrors.slice(0, 10).forEach(([type, count]) =&gt; {
@@ -411,14 +419,15 @@ await read("raw-orders.jsonl")
     id: order.orderId,
     customerId: order.customer.id,
     customerEmail: order.customer.email,
-    totalAmount: order.items.reduce((sum, item) =&gt; 
-      sum + (item.quantity * item.price), 0
+    totalAmount: order.items.reduce(
+      (sum, item) =&gt; sum + (item.quantity * item.price),
+      0,
     ),
     itemCount: order.items.reduce((sum, item) =&gt; sum + item.quantity, 0),
     shippingCost: order.shipping.cost,
-    processedAt: new Date().toISOString()
+    processedAt: new Date().toISOString(),
   }))
-  .filter(order =&gt; order.totalAmount &gt; 100)  // High-value orders only
+  .filter((order) =&gt; order.totalAmount &gt; 100) // High-value orders only
   .transform(toJson())
   .writeTo("processed-orders.jsonl");
 </code></pre>
@@ -434,11 +443,11 @@ await read("huge-logs.jsonl")
   .forEach(async (log) =&gt; {
     batch.push(log);
     processedCount++;
-    
+
     if (batch.length &gt;= batchSize) {
       await processBatch(batch);
       batch = [];
-      
+
       if (processedCount % 10000 === 0) {
         console.log(`Processed ${processedCount} log entries`);
       }
@@ -470,14 +479,14 @@ interface NestedData {
 
 await read("nested-data.jsonl")
   .transform(fromJsonToRows&lt;NestedData&gt;())
-  .map(data =&gt; ({
+  .map((data) =&gt; ({
     // Flatten nested structure
     userName: data.user.profile.personal.name,
     userAge: data.user.profile.personal.age,
     theme: data.user.profile.preferences.theme,
     notifications: data.user.profile.preferences.notifications,
     // Preserve metadata as-is
-    metadata: data.metadata
+    metadata: data.metadata,
   }))
   .transform(toJson())
   .writeTo("flattened-data.jsonl");
@@ -496,12 +505,12 @@ interface EventBatch {
 // Flatten event batches into individual events
 await read("event-batches.jsonl")
   .transform(fromJsonToRows&lt;EventBatch&gt;())
-  .flatMap(batch =&gt; 
-    batch.events.map(event =&gt; ({
+  .flatMap((batch) =&gt;
+    batch.events.map((event) =&gt; ({
       batchId: batch.batchId,
       batchTimestamp: batch.timestamp,
       eventType: event.type,
-      eventData: event.data
+      eventData: event.data,
     }))
   )
   .transform(toJson())
@@ -530,14 +539,14 @@ await read("event-batches.jsonl")
   if (error.name === "ZodError") {
     console.error("Schema validation failed:");
     error.errors.forEach((err: any) =&gt; {
-      console.error(`  ${err.path.join('.')}: ${err.message}`);
+      console.error(`  ${err.path.join(".")}: ${err.message}`);
     });
   }
 }
 </code></pre>
 <h3 id="graceful-error-recovery"><a class="header" href="#graceful-error-recovery">Graceful Error Recovery</a></h3>
 <pre><code class="language-typescript">// Continue processing despite individual JSON errors
-const errors: Array&lt;{line: number, error: string}&gt; = [];
+const errors: Array&lt;{ line: number; error: string }&gt; = [];
 let successCount = 0;
 
 await read("mixed-quality.jsonl")
@@ -550,7 +559,7 @@ await read("mixed-quality.jsonl")
     } catch (error) {
       errors.push({
         line: index + 1,
-        error: error.message
+        error: error.message,
       });
     }
   });
@@ -565,8 +574,8 @@ if (errors.length &gt; 0) {
 <pre><code class="language-typescript">// Only parse objects that match criteria
 await read("events.jsonl")
   .lines
-  .filter(line =&gt; line.includes('"type":"error"'))  // Quick string check
-  .map(line =&gt; JSON.parse(line))  // Parse only matching lines
+  .filter((line) =&gt; line.includes('"type":"error"')) // Quick string check
+  .map((line) =&gt; JSON.parse(line)) // Parse only matching lines
   .transform(toJson())
   .writeTo("error-events.jsonl");
 </code></pre>
@@ -574,14 +583,14 @@ await read("events.jsonl")
 <pre><code class="language-typescript">// ✅ Streaming - constant memory usage
 await read("large-data.jsonl")
   .transform(fromJsonToRows())
-  .filter(obj =&gt; obj.status === "active")
+  .filter((obj) =&gt; obj.status === "active")
   .transform(toJson())
   .writeTo("active-data.jsonl");
 
 // ❌ Batch - loads everything into memory
 const allData = await read("large-data.jsonl")
   .transform(fromJsonToRows())
-  .collect();  // Memory explosion!
+  .collect(); // Memory explosion!
 </code></pre>
 <h2 id="integration-examples"><a class="header" href="#integration-examples">Integration Examples</a></h2>
 <h3 id="json-to-database"><a class="header" href="#json-to-database">JSON to Database</a></h3>
@@ -601,8 +610,8 @@ await read("users.jsonl")
         id: user.id,
         name: user.name,
         email: user.email,
-        metadata: JSON.stringify(user.metadata)
-      }
+        metadata: JSON.stringify(user.metadata),
+      },
     });
   }, { concurrency: 10 })
   .forEach(() =&gt; {}); // Consume the stream
@@ -611,11 +620,11 @@ await read("users.jsonl")
 <pre><code class="language-typescript">// Convert JSON to CSV (flatten objects)
 await read("users.jsonl")
   .transform(fromJsonToRows&lt;User&gt;())
-  .map(user =&gt; [
+  .map((user) =&gt; [
     user.id,
     user.name,
     user.email,
-    JSON.stringify(user.metadata)  // Serialize complex data
+    JSON.stringify(user.metadata), // Serialize complex data
   ])
   .transform(toCsv())
   .writeTo("users.csv");
@@ -629,7 +638,8 @@ await read("users.jsonl")
 <li><strong>Stream large files</strong> - avoid loading everything into memory</li>
 <li><strong>Consider flattening</strong> complex nested structures for simpler processing</li>
 <li><strong>Use selective parsing</strong> when you only need specific object types</li>
-<li><strong>Preserve object structure</strong> when possible rather than flattening unnecessarily</li>
+<li><strong>Preserve object structure</strong> when possible rather than flattening
+unnecessarily</li>
 </ol>
 <h2 id="comparison-with-other-formats"><a class="header" href="#comparison-with-other-formats">Comparison with Other Formats</a></h2>
 <h3 id="json-vs-csvtsv"><a class="header" href="#json-vs-csvtsv">JSON vs CSV/TSV</a></h3>
@@ -650,8 +660,10 @@ await read("users.jsonl")
 <ul>
 <li><a href="./record.html">Record Format</a> - For maximum performance with structured data</li>
 <li><a href="./csv.html">CSV Transforms</a> - When you need tabular compatibility</li>
-<li><a href="./lazyrow.html">LazyRow Guide</a> - Not applicable to JSON (preserves object structure)</li>
-<li><a href="./performance.html">Performance Guide</a> - Optimization strategies for all formats</li>
+<li><a href="./lazyrow.html">LazyRow Guide</a> - Not applicable to JSON (preserves object
+structure)</li>
+<li><a href="./performance.html">Performance Guide</a> - Optimization strategies for all
+formats</li>
 </ul>
 
                     </main>

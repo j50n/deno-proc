@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="reading-files"><a class="header" href="#reading-files">Reading Files</a></h2>
 <h3 id="read-as-bytes"><a class="header" href="#read-as-bytes">Read as Bytes</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const bytes = await read("file.bin").collect();
 // Uint8Array[]
@@ -197,22 +197,22 @@ const bytes = await read("file.bin").collect();
 <p>Process files larger than memory:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">for await (const line of read("huge-file.txt").lines) {
-  process(line);  // One line at a time
+  process(line); // One line at a time
 }
 </code></pre>
 <h2 id="file-paths"><a class="header" href="#file-paths">File Paths</a></h2>
 <h3 id="relative-paths"><a class="header" href="#relative-paths">Relative Paths</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">read("data.txt")  // Relative to current directory
+<pre><code class="language-typescript">read("data.txt"); // Relative to current directory
 </code></pre>
 <h3 id="absolute-paths"><a class="header" href="#absolute-paths">Absolute Paths</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">read("/var/log/app.log")
+<pre><code class="language-typescript">read("/var/log/app.log");
 </code></pre>
 <h3 id="urls"><a class="header" href="#urls">URLs</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const path = new URL("./data.txt", import.meta.url);
-read(path)
+read(path);
 </code></pre>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="count-lines"><a class="header" href="#count-lines">Count Lines</a></h3>
@@ -223,22 +223,22 @@ read(path)
 <!-- TESTED: tests/mdbook_examples.test.ts - "file-io: read and filter" -->
 <pre><code class="language-typescript">const matches = await read("file.txt")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .collect();
 </code></pre>
 <h3 id="transform-lines"><a class="header" href="#transform-lines">Transform Lines</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const processed = await read("input.txt")
   .lines
-  .map(line =&gt; line.toUpperCase())
+  .map((line) =&gt; line.toUpperCase())
   .collect();
 </code></pre>
 <h3 id="parse-csv"><a class="header" href="#parse-csv">Parse CSV</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const data = await read("data.csv")
   .lines
-  .drop(1)  // Skip header
-  .map(line =&gt; {
+  .drop(1) // Skip header
+  .map((line) =&gt; {
     const [name, age, city] = line.split(",");
     return { name, age: parseInt(age), city };
   })
@@ -253,11 +253,11 @@ await Deno.writeTextFile("output.txt", content);
 </code></pre>
 <h3 id="stream-to-file"><a class="header" href="#stream-to-file">Stream to File</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.24.3";
 
 const bytes = await read("input.txt")
   .lines
-  .map(line =&gt; new TextEncoder().encode(line + "\n"))
+  .map((line) =&gt; new TextEncoder().encode(line + "\n"))
   .collect();
 
 await Deno.writeFile("output.txt", concat(bytes));
@@ -271,7 +271,7 @@ const data = concat(bytes);
 <h3 id="process-binary"><a class="header" href="#process-binary">Process Binary</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const processed = await read("data.bin")
-  .map(chunk =&gt; {
+  .map((chunk) =&gt; {
     // Process each chunk
     return transform(chunk);
   })
@@ -294,14 +294,14 @@ const data = concat(bytes);
 for (const file of files) {
   const errors = await read(file)
     .lines
-    .filter(line =&gt; line.includes("ERROR"))
+    .filter((line) =&gt; line.includes("ERROR"))
     .count();
   console.log(`${file}: ${errors} errors`);
 }
 </code></pre>
 <h3 id="concurrent-processing"><a class="header" href="#concurrent-processing">Concurrent Processing</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const results = await enumerate(files)
   .concurrentMap(async (file) =&gt; {
@@ -351,7 +351,7 @@ for await (const line of read("huge.txt").lines) {
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const errorsByType = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .reduce((acc, line) =&gt; {
     const type = line.match(/ERROR: (\w+)/)?.[1] || "unknown";
     acc[type] = (acc[type] || 0) + 1;
@@ -362,17 +362,17 @@ for await (const line of read("huge.txt").lines) {
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const emails = await read("contacts.txt")
   .lines
-  .map(line =&gt; line.match(/[\w.-]+@[\w.-]+\.\w+/))
-  .filter(match =&gt; match !== null)
-  .map(match =&gt; match[0])
+  .map((line) =&gt; line.match(/[\w.-]+@[\w.-]+\.\w+/))
+  .filter((match) =&gt; match !== null)
+  .map((match) =&gt; match[0])
   .collect();
 </code></pre>
 <h3 id="file-conversion"><a class="header" href="#file-conversion">File Conversion</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const jsonLines = await read("data.csv")
   .lines
-  .drop(1)  // Skip header
-  .map(line =&gt; {
+  .drop(1) // Skip header
+  .map((line) =&gt; {
     const [name, age] = line.split(",");
     return JSON.stringify({ name, age: parseInt(age) });
   })
@@ -382,7 +382,8 @@ await Deno.writeTextFile("data.jsonl", jsonLines.join("\n"));
 </code></pre>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
-<li><a href="../recipes/decompression.html">Decompressing Files</a> - Work with compressed files</li>
+<li><a href="../recipes/decompression.html">Decompressing Files</a> - Work with compressed
+files</li>
 <li><a href="../advanced/streaming.html">Streaming Large Files</a> - Handle huge files</li>
 <li><a href="../recipes/log-processing.html">Log Processing</a> - Analyze logs</li>
 </ul>

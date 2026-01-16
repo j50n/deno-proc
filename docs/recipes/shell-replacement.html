@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -206,7 +206,7 @@ done
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { run } from "jsr:@j50n/proc@0.24.2";
+import { run } from "jsr:@j50n/proc@0.24.3";
 
 for await (const entry of Deno.readDir(".")) {
   if (entry.name.endsWith(".txt")) {
@@ -223,11 +223,11 @@ grep ERROR app.log | wc -l
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { read } from "jsr:@j50n/proc@0.24.2";
+import { read } from "jsr:@j50n/proc@0.24.3";
 
 const errors = await read("app.log")
   .lines
-  .filter(line =&gt; line.includes("ERROR"))
+  .filter((line) =&gt; line.includes("ERROR"))
   .count();
 
 console.log(`${errors} errors`);
@@ -240,7 +240,7 @@ tar -czf backup-$(date +%Y%m%d).tar.gz /data
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-read --allow-run
-import { run } from "jsr:@j50n/proc@0.24.2";
+import { run } from "jsr:@j50n/proc@0.24.3";
 
 const date = new Date().toISOString().split("T")[0].replace(/-/g, "");
 await run("tar", "-czf", `backup-${date}.tar.gz`, "/data").toStdout();
@@ -256,22 +256,22 @@ done
 <p><strong>proc:</strong></p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-run
-import { run, sleep } from "jsr:@j50n/proc@0.24.2";
+import { run, sleep } from "jsr:@j50n/proc@0.24.3";
 
 while (true) {
   const usage = await run("df", "-h")
     .lines
-    .find(line =&gt; line.includes("/dev/sda1"));
-  
+    .find((line) =&gt; line.includes("/dev/sda1"));
+
   console.log(usage);
-  await sleep(60000);  // sleep() is exported from proc
+  await sleep(60000); // sleep() is exported from proc
 }
 </code></pre>
 <h2 id="real-script-example"><a class="header" href="#real-script-example">Real Script Example</a></h2>
 <p>Complete deployment script:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">#!/usr/bin/env -S deno run --allow-all
-import { run } from "jsr:@j50n/proc@0.24.2";
+import { run } from "jsr:@j50n/proc@0.24.3";
 
 console.log("🚀 Deploying application...");
 
@@ -279,23 +279,23 @@ try {
   // Pull latest code
   console.log("📥 Pulling latest code...");
   await run("git", "pull").toStdout();
-  
+
   // Install dependencies
   console.log("📦 Installing dependencies...");
   await run("npm", "install").toStdout();
-  
+
   // Run tests
   console.log("🧪 Running tests...");
   await run("npm", "test").toStdout();
-  
+
   // Build
   console.log("🔨 Building...");
   await run("npm", "run", "build").toStdout();
-  
+
   // Restart service
   console.log("🔄 Restarting service...");
   await run("systemctl", "restart", "myapp").toStdout();
-  
+
   console.log("✅ Deployment complete!");
 } catch (error) {
   console.error("❌ Deployment failed:", error.message);

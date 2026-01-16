@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,9 +179,13 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="data-transforms"><a class="header" href="#data-transforms">Data Transforms</a></h1>
-<p>Transform structured data between formats with streaming support and high performance.</p>
+<p>Transform structured data between formats with streaming support and high
+performance.</p>
 <blockquote>
-<p>⚠️ <strong>Experimental API (v0.24.0+)</strong>: Data transforms are new and under active development. While tests pass and performance is reasonable, expect API changes and edge cases as we improve correctness and streaming performance. Production use should include thorough testing of your specific data patterns.</p>
+<p>⚠️ <strong>Experimental API (v0.24.0+)</strong>: Data transforms are new and under active
+development. While tests pass and performance is reasonable, expect API
+changes and edge cases as we improve correctness and streaming performance.
+Production use should include thorough testing of your specific data patterns.</p>
 </blockquote>
 <h2 id="choosing-your-approach"><a class="header" href="#choosing-your-approach">Choosing Your Approach</a></h2>
 <p>proc offers several ways to process data. Here’s how to choose:</p>
@@ -201,25 +205,29 @@
 <p><strong>Decision guide:</strong></p>
 <ul>
 <li>Converting CSV/TSV/JSON files? → <strong>Data Transforms</strong> (this chapter)</li>
-<li>Processing 100MB+ files for maximum speed? → <a href="../utilities/flatdata.html">flatdata CLI</a></li>
-<li>Running shell commands and piping output? → <a href="../core/pipelines.html">Process Pipelines</a></li>
-<li>Working with API responses or custom data? → <a href="../iterables/enumerable.html">Async Iterables</a></li>
+<li>Processing 100MB+ files for maximum speed? →
+<a href="../utilities/flatdata.html">flatdata CLI</a></li>
+<li>Running shell commands and piping output? →
+<a href="../core/pipelines.html">Process Pipelines</a></li>
+<li>Working with API responses or custom data? →
+<a href="../iterables/enumerable.html">Async Iterables</a></li>
 </ul>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>The data transforms module converts between CSV, TSV, JSON, and Record formats. All transforms stream data without loading everything into memory.</p>
+<p>The data transforms module converts between CSV, TSV, JSON, and Record formats.
+All transforms stream data without loading everything into memory.</p>
 <h2 id="import"><a class="header" href="#import">Import</a></h2>
 <p>Data transforms are a separate import to keep the core library lightweight:</p>
 <pre><code class="language-typescript">// Core library
-import { run, enumerate, read } from "jsr:@j50n/proc";
+import { enumerate, read, run } from "jsr:@j50n/proc";
 
 // Data transforms (separate import)
-import { 
-  fromCsvToRows, 
-  fromTsvToRows,
+import {
+  fromCsvToRows,
   fromJsonToRows,
+  fromTsvToRows,
+  toJson,
   toRecord,
   toTsv,
-  toJson
 } from "jsr:@j50n/proc/transforms";
 </code></pre>
 <h2 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h2>
@@ -277,14 +285,14 @@ await read("data.csv")
 <pre><code class="language-typescript">// Best for: Compatibility, Excel integration, legacy systems
 await read("legacy-data.csv")
   .transform(fromCsvToRows())
-  .transform(toRecord())  // Convert to faster format
+  .transform(toRecord()) // Convert to faster format
   .writeTo("optimized.record");
 </code></pre>
 <h3 id="tsv---speed--readability"><a class="header" href="#tsv---speed--readability">TSV - Speed + Readability</a></h3>
 <pre><code class="language-typescript">// Best for: Fast processing, human-readable data
 await read("logs.tsv")
   .transform(fromTsvToRows())
-  .filter(row =&gt; row[2] === "ERROR")
+  .filter((row) =&gt; row[2] === "ERROR")
   .transform(toTsv())
   .writeTo("errors.tsv");
 </code></pre>
@@ -292,7 +300,7 @@ await read("logs.tsv")
 <pre><code class="language-typescript">// Best for: Complex nested data, APIs, configuration
 await read("events.jsonl")
   .transform(fromJsonToRows())
-  .filter(event =&gt; event.severity === "high")
+  .filter((event) =&gt; event.severity === "high")
   .transform(toJson())
   .writeTo("alerts.jsonl");
 </code></pre>
@@ -300,13 +308,14 @@ await read("events.jsonl")
 <pre><code class="language-typescript">// Best for: High-throughput processing, internal formats
 await read("big-data.record")
   .transform(fromRecordToRows())
-  .map(row =&gt; [row[0], processValue(row[1]), row[2]])
+  .map((row) =&gt; [row[0], processValue(row[1]), row[2]])
   .transform(toRecord())
   .writeTo("processed.record");
 </code></pre>
 <h2 id="lazyrow-optimized-data-access"><a class="header" href="#lazyrow-optimized-data-access">LazyRow: Optimized Data Access</a></h2>
-<p>LazyRow provides a read-only interface optimized for field access without upfront parsing costs:</p>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
+<p>LazyRow provides a read-only interface optimized for field access without
+upfront parsing costs:</p>
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // Parse CSV into LazyRow format
 const lazyRows = await read("data.csv")
@@ -315,9 +324,9 @@ const lazyRows = await read("data.csv")
 
 // Efficient field access
 for (const row of lazyRows) {
-  const name = row.getField(0);     // Fast field access
-  const age = row.getField(1);      // No parsing until needed
-  
+  const name = row.getField(0); // Fast field access
+  const age = row.getField(1); // No parsing until needed
+
   if (parseInt(age) &gt; 18) {
     console.log(`Adult: ${name}`);
   }
@@ -335,12 +344,12 @@ for (const row of lazyRows) {
 <pre><code class="language-typescript">// Process sales data: CSV → filter → enrich → JSON
 await read("sales.csv")
   .transform(fromCsvToLazyRows())
-  .filter(row =&gt; parseFloat(row.getField(3)) &gt; 1000)  // Amount &gt; $1000
-  .map(row =&gt; ({
+  .filter((row) =&gt; parseFloat(row.getField(3)) &gt; 1000) // Amount &gt; $1000
+  .map((row) =&gt; ({
     id: row.getField(0),
     customer: row.getField(1),
     amount: parseFloat(row.getField(3)),
-    processed: new Date().toISOString()
+    processed: new Date().toISOString(),
   }))
   .transform(toJson())
   .writeTo("high-value-sales.jsonl");
@@ -358,12 +367,12 @@ await read("legacy.csv")
 <pre><code class="language-typescript">// Parse structured logs and extract errors
 await read("app.log.tsv")
   .transform(fromTsvToRows())
-  .filter(row =&gt; row[2] === "ERROR")
-  .map(row =&gt; ({
+  .filter((row) =&gt; row[2] === "ERROR")
+  .map((row) =&gt; ({
     timestamp: row[0],
     service: row[1],
     level: row[2],
-    message: row[3]
+    message: row[3],
   }))
   .transform(toJson())
   .writeTo("errors.jsonl");
@@ -373,14 +382,14 @@ await read("app.log.tsv")
 <pre><code class="language-typescript">// ✅ Processes 10GB file with constant ~128KB memory usage
 await read("huge-dataset.csv")
   .transform(fromCsvToRows())
-  .filter(row =&gt; row[0].startsWith("2024"))
+  .filter((row) =&gt; row[0].startsWith("2024"))
   .transform(toTsv())
   .writeTo("filtered.tsv");
 
 // ❌ Don't do this - loads everything into memory
 const allRows = await read("huge-dataset.csv")
   .transform(fromCsvToRows())
-  .collect();  // Memory explosion!
+  .collect(); // Memory explosion!
 </code></pre>
 <h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
 <p>Transforms use strict error handling:</p>

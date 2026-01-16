@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -196,14 +196,14 @@ await enumerate(["line1", "line2"]).toStdout();
 // Process lines - newlines added automatically
 await run("ls")
   .lines
-  .map(line =&gt; line.toUpperCase())
+  .map((line) =&gt; line.toUpperCase())
   .toStdout();
 
 // Bytes - no automatic newlines
 const encoder = new TextEncoder();
 await enumerate([
   encoder.encode("line1\n"),
-  encoder.encode("line2\n")
+  encoder.encode("line2\n"),
 ]).toStdout();
 // Output: line1\nline2\n (newlines from source data)
 </code></pre>
@@ -221,11 +221,11 @@ await enumerate([
 // Strings automatically have newlines appended
 await run("ls")
   .lines
-  .map(line =&gt; line.toUpperCase())
+  .map((line) =&gt; line.toUpperCase())
   .toStdout();
 
 // Alternative: forEach with console.log
-await run("ls").lines.forEach(line =&gt; console.log(line));
+await run("ls").lines.forEach((line) =&gt; console.log(line));
 </code></pre>
 <h3 id="process-execution"><a class="header" href="#process-execution">Process Execution</a></h3>
 <pre><code class="language-typescript">// Good: Output consumed
@@ -248,8 +248,8 @@ try {
   try {
     const p2 = p1.run("cmd2");
     // ...
-  } catch (e2) { }
-} catch (e1) { }
+  } catch (e2) {}
+} catch (e1) {}
 </code></pre>
 <h3 id="enumeration"><a class="header" href="#enumeration">Enumeration</a></h3>
 <pre><code class="language-typescript">// Good: enumerate() wraps, .enum() adds indices

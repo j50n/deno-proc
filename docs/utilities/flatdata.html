@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,14 +179,16 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="flatdata-cli"><a class="header" href="#flatdata-cli">flatdata CLI</a></h1>
-<p><strong>flatdata</strong> is a high-performance command-line utility for converting between tabular data formats. It’s distributed as part of proc and uses WebAssembly for near-native parsing speed.</p>
+<p><strong>flatdata</strong> is a high-performance command-line utility for converting between
+tabular data formats. It’s distributed as part of proc and uses WebAssembly for
+near-native parsing speed.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-bash"># Install globally with required permissions
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.2/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.3/flatdata
 </code></pre>
 <p>This installs <code>flatdata</code> globally, making it available from any terminal.</p>
 <p>For pipeline-only use (stdin/stdout), you can install without file permissions:</p>
-<pre><code class="language-bash">deno install -g -n flatdata jsr:@j50n/proc@0.24.2/flatdata
+<pre><code class="language-bash">deno install -g -n flatdata jsr:@j50n/proc@0.24.3/flatdata
 </code></pre>
 <p>This restricts flatdata to streaming mode—no direct file reading or writing.</p>
 <p>To verify the installation:</p>
@@ -194,13 +196,18 @@ deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.2/fla
 flatdata --version
 </code></pre>
 <h2 id="why-flatdata"><a class="header" href="#why-flatdata">Why flatdata?</a></h2>
-<p>CSV parsing is CPU-intensive. When processing large files, the parsing step can become a bottleneck. flatdata solves this by:</p>
+<p>CSV parsing is CPU-intensive. When processing large files, the parsing step can
+become a bottleneck. flatdata solves this by:</p>
 <ol>
-<li><strong>Offloading parsing to a separate process</strong> - Your main application stays responsive</li>
-<li><strong>Using WASM for speed</strong> - ~7x faster than pure JavaScript, about half native speed</li>
+<li><strong>Offloading parsing to a separate process</strong> - Your main application stays
+responsive</li>
+<li><strong>Using WASM for speed</strong> - ~7x faster than pure JavaScript, about half native
+speed</li>
 <li><strong>Streaming design</strong> - Handles files of any size with constant memory</li>
 </ol>
-<p>The key insight: by converting CSV to a simple binary format (record), downstream processing becomes trivial string splits instead of complex CSV parsing.</p>
+<p>The key insight: by converting CSV to a simple binary format (record),
+downstream processing becomes trivial string splits instead of complex CSV
+parsing.</p>
 <h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
 <div class="table-wrapper">
 <table>
@@ -233,7 +240,8 @@ flatdata --version
 </tbody>
 </table>
 </div>
-<p>The <strong>record</strong> format is the key to performance. It uses ASCII control characters that never appear in text data:</p>
+<p>The <strong>record</strong> format is the key to performance. It uses ASCII control
+characters that never appear in text data:</p>
 <ul>
 <li><code>\x1F</code> (Unit Separator) between fields</li>
 <li><code>\x1E</code> (Record Separator) between rows</li>
@@ -310,15 +318,15 @@ flatdata tsv2csv -i data.tsv -o data.csv
 flatdata csv2tsv -d ';' -i euro.csv -o data.tsv
 </code></pre>
 <h3 id="basic-pipeline"><a class="header" href="#basic-pipeline">Basic Pipeline</a></h3>
-<pre><code class="language-typescript">import { run, enumerate } from "jsr:@j50n/proc";
+<pre><code class="language-typescript">import { enumerate, run } from "jsr:@j50n/proc";
 
 // Parse CSV in a subprocess, process records in JS
 const results = await run("flatdata", "csv2record")
   .writeToStdin(csvData)
   .lines
-  .map(record =&gt; record.split('\x1F'))  // Split into fields
-  .filter(fields =&gt; fields[2] === 'active')
-  .map(fields =&gt; ({ id: fields[0], name: fields[1] }))
+  .map((record) =&gt; record.split("\x1F")) // Split into fields
+  .filter((fields) =&gt; fields[2] === "active")
+  .map((fields) =&gt; ({ id: fields[0], name: fields[1] }))
   .collect();
 </code></pre>
 <h3 id="processing-large-files"><a class="header" href="#processing-large-files">Processing Large Files</a></h3>
@@ -328,14 +336,14 @@ const results = await run("flatdata", "csv2record")
 await read("huge.csv")
   .run("flatdata", "csv2record")
   .lines
-  .map(record =&gt; {
-    const fields = record.split('\x1F');
+  .map((record) =&gt; {
+    const fields = record.split("\x1F");
     return processRow(fields);
   })
-  .forEach(result =&gt; console.log(result));
+  .forEach((result) =&gt; console.log(result));
 </code></pre>
 <h3 id="with-enumerate-for-indexing"><a class="header" href="#with-enumerate-for-indexing">With enumerate for Indexing</a></h3>
-<pre><code class="language-typescript">import { run, enumerate } from "jsr:@j50n/proc";
+<pre><code class="language-typescript">import { enumerate, run } from "jsr:@j50n/proc";
 
 // Number each row
 await run("cat", "data.csv")
@@ -343,7 +351,7 @@ await run("cat", "data.csv")
   .lines
   .enum()
   .map(([record, index]) =&gt; {
-    const fields = record.split('\x1F');
+    const fields = record.split("\x1F");
     return `${index + 1}: ${fields[0]}`;
   })
   .toStdout();
@@ -354,17 +362,18 @@ await run("cat", "data.csv")
 // CSV → process → CSV
 const output = await run("flatdata", "csv2record", "-i", "input.csv")
   .lines
-  .map(record =&gt; {
-    const fields = record.split('\x1F');
-    fields[1] = fields[1].toUpperCase();  // Transform field
-    return fields.join('\x1F');
+  .map((record) =&gt; {
+    const fields = record.split("\x1F");
+    fields[1] = fields[1].toUpperCase(); // Transform field
+    return fields.join("\x1F");
   })
   .run("flatdata", "record2csv")
   .lines
   .collect();
 </code></pre>
 <h2 id="transforms-for-record-format"><a class="header" href="#transforms-for-record-format">Transforms for Record Format</a></h2>
-<p>proc provides transforms to convert between the binary record format and JavaScript objects.</p>
+<p>proc provides transforms to convert between the binary record format and
+JavaScript objects.</p>
 <h3 id="fromrecordtorows"><a class="header" href="#fromrecordtorows">fromRecordToRows</a></h3>
 <p>Convert record-delimited bytes to string arrays:</p>
 <pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
@@ -373,19 +382,20 @@ import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2record", "-i", "data.csv")
   .transform(fromRecordToRows())
   .flatten()
-  .filter(row =&gt; row[2] === "active")
-  .forEach(row =&gt; console.log(row[0], row[1]));
+  .filter((row) =&gt; row[2] === "active")
+  .forEach((row) =&gt; console.log(row[0], row[1]));
 </code></pre>
 <h3 id="fromrecordtolazyrows"><a class="header" href="#fromrecordtolazyrows">fromRecordToLazyRows</a></h3>
-<p>Convert record-delimited bytes to LazyRow objects (more efficient for wide rows):</p>
+<p>Convert record-delimited bytes to LazyRow objects (more efficient for wide
+rows):</p>
 <pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
 import { fromRecordToLazyRows } from "jsr:@j50n/proc/transforms";
 
 await run("flatdata", "csv2record", "-i", "wide.csv")
   .transform(fromRecordToLazyRows())
   .flatten()
-  .filter(row =&gt; row.getField(0) === "active")
-  .forEach(row =&gt; console.log(row.getField(1), row.getField(5)));
+  .filter((row) =&gt; row.getField(0) === "active")
+  .forEach((row) =&gt; console.log(row.getField(1), row.getField(5)));
 </code></pre>
 <h3 id="fromlazyrowbinary"><a class="header" href="#fromlazyrowbinary">fromLazyRowBinary</a></h3>
 <p>Convert binary lazyrow format (from <code>csv2lazyrow</code>) to LazyRow objects:</p>
@@ -395,8 +405,8 @@ import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2lazyrow", "-i", "wide.csv")
   .transform(fromLazyRowBinary())
   .flatten()
-  .filter(row =&gt; row.getField(2) === "error")
-  .forEach(row =&gt; console.log(`${row.getField(0)}: ${row.getField(3)}`));
+  .filter((row) =&gt; row.getField(2) === "error")
+  .forEach((row) =&gt; console.log(`${row.getField(0)}: ${row.getField(3)}`));
 </code></pre>
 <h3 id="torecord"><a class="header" href="#torecord">toRecord</a></h3>
 <p>Convert row data to record format for piping to flatdata:</p>
@@ -407,21 +417,22 @@ import { fromRecordToRows, toRecord } from "jsr:@j50n/proc/transforms";
 await run("flatdata", "csv2record", "-i", "input.csv")
   .transform(fromRecordToRows())
   .flatten()
-  .map(row =&gt; [row[0], row[1].toUpperCase(), row[2]])
+  .map((row) =&gt; [row[0], row[1].toUpperCase(), row[2]])
   .transform(toRecord())
   .run("flatdata", "record2csv")
   .toStdout();
 </code></pre>
 <h2 id="lazyrow-for-memory-efficiency"><a class="header" href="#lazyrow-for-memory-efficiency">LazyRow for Memory Efficiency</a></h2>
-<p>LazyRow defers field parsing until accessed - ideal when you only need a few fields from wide rows:</p>
+<p>LazyRow defers field parsing until accessed - ideal when you only need a few
+fields from wide rows:</p>
 <pre><code class="language-typescript">import { run } from "jsr:@j50n/proc";
 import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
 
 await run("flatdata", "csv2lazyrow", "-i", "huge.csv")
   .transform(fromLazyRowBinary())
   .flatten()
-  .filter(row =&gt; row.columnCount &gt; 5)  // O(1) column count
-  .map(row =&gt; row.getField(0))          // Only parse field 0
+  .filter((row) =&gt; row.columnCount &gt; 5) // O(1) column count
+  .map((row) =&gt; row.getField(0)) // Only parse field 0
   .take(100)
   .toStdout();
 </code></pre>
@@ -447,7 +458,11 @@ flatdata csv2record --columns 10 --strict -i data.csv &gt; /dev/null
 <li><strong>Validate early</strong> with <code>--columns</code> and <code>--strict</code> to catch data issues</li>
 </ol>
 <h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
-<p>flatdata uses a <a href="../appendix/csv-parser.html">custom RFC 4180 CSV parser</a> written in Odin and compiled to WebAssembly. We needed a <em>push parser</em>—one that accepts arbitrary chunks of input and tracks state across calls—because WASM modules can’t pull data from JavaScript. Odin’s standard library CSV parser is a pull parser that expects to read from a file or complete buffer.</p>
+<p>flatdata uses a <a href="../appendix/csv-parser.html">custom RFC 4180 CSV parser</a> written
+in Odin and compiled to WebAssembly. We needed a <em>push parser</em>—one that accepts
+arbitrary chunks of input and tracks state across calls—because WASM modules
+can’t pull data from JavaScript. Odin’s standard library CSV parser is a pull
+parser that expects to read from a file or complete buffer.</p>
 
                     </main>
 

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,7 +179,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="concurrent-processing"><a class="header" href="#concurrent-processing">Concurrent Processing</a></h1>
-<p>Process multiple items in parallel with controlled concurrency. It’s easier than you think.</p>
+<p>Process multiple items in parallel with controlled concurrency. It’s easier than
+you think.</p>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>You have a list of URLs to fetch. Sequential is slow:</p>
 <!-- NOT TESTED: Illustrative example -->
@@ -191,12 +192,12 @@ for (const url of urls) {
 <p>Promise.all is fast but dangerous:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">// Starts 1000 requests at once - might crash
-await Promise.all(urls.map(url =&gt; fetch(url)));
+await Promise.all(urls.map((url) =&gt; fetch(url)));
 </code></pre>
 <h2 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h2>
 <p>proc gives you controlled concurrency:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 // Defaults to CPU count (usually 4-8)
 const results = await enumerate(urls)
@@ -214,9 +215,12 @@ const results = await enumerate(urls)
 </code></pre>
 <p>Fast, but won’t overwhelm your system.</p>
 <h2 id="understanding-javascript-concurrency"><a class="header" href="#understanding-javascript-concurrency">Understanding JavaScript Concurrency</a></h2>
-<p><strong>Important:</strong> JavaScript concurrency is not parallelism. You’re running on a single thread.</p>
+<p><strong>Important:</strong> JavaScript concurrency is not parallelism. You’re running on a
+single thread.</p>
 <h3 id="what-this-means"><a class="header" href="#what-this-means">What This Means</a></h3>
-<p>When you use <code>concurrentMap</code> or <code>concurrentUnorderedMap</code>, you’re not creating threads or workers. You’re managing multiple <strong>async operations</strong> on one thread. The JavaScript event loop switches between them when they’re waiting.</p>
+<p>When you use <code>concurrentMap</code> or <code>concurrentUnorderedMap</code>, you’re not creating
+threads or workers. You’re managing multiple <strong>async operations</strong> on one thread.
+The JavaScript event loop switches between them when they’re waiting.</p>
 <p><strong>This works great for:</strong></p>
 <ul>
 <li><strong>Network requests</strong> - While waiting for a response, other operations run</li>
@@ -226,9 +230,11 @@ const results = await enumerate(urls)
 </ul>
 <p><strong>This does NOT work for:</strong></p>
 <ul>
-<li><strong>CPU-intensive calculations</strong> - Pure JavaScript math, parsing, etc. blocks everything</li>
+<li><strong>CPU-intensive calculations</strong> - Pure JavaScript math, parsing, etc. blocks
+everything</li>
 <li><strong>Synchronous operations</strong> - Anything that doesn’t <code>await</code> blocks the thread</li>
-<li><strong>Heavy computation</strong> - You still only have one CPU core’s worth of processing power</li>
+<li><strong>Heavy computation</strong> - You still only have one CPU core’s worth of processing
+power</li>
 </ul>
 <h3 id="example-what-works"><a class="header" href="#example-what-works">Example: What Works</a></h3>
 <!-- NOT TESTED: Illustrative example -->
@@ -260,10 +266,13 @@ const results = await enumerate(numbers)
 <h3 id="why-it-still-matters"><a class="header" href="#why-it-still-matters">Why It Still Matters</a></h3>
 <p>Even though it’s not true parallelism, concurrency is incredibly useful:</p>
 <ol>
-<li><strong>I/O operations dominate</strong> - Most real-world tasks are waiting for network/disk</li>
-<li><strong>Child processes run in parallel</strong> - When you <code>run()</code> a command, it uses a separate process</li>
+<li><strong>I/O operations dominate</strong> - Most real-world tasks are waiting for
+network/disk</li>
+<li><strong>Child processes run in parallel</strong> - When you <code>run()</code> a command, it uses a
+separate process</li>
 <li><strong>Better resource utilization</strong> - Keep the CPU busy while waiting for I/O</li>
-<li><strong>Simpler than threads</strong> - No race conditions, no locks, no shared memory issues</li>
+<li><strong>Simpler than threads</strong> - No race conditions, no locks, no shared memory
+issues</li>
 </ol>
 <h3 id="when-you-need-true-parallelism"><a class="header" href="#when-you-need-true-parallelism">When You Need True Parallelism</a></h3>
 <p>If you need to parallelize CPU-intensive JavaScript code, use:</p>
@@ -272,14 +281,16 @@ const results = await enumerate(numbers)
 <li><strong>Worker Threads</strong> (in Node.js/Deno)</li>
 <li><strong>Child processes</strong> with <code>run()</code> - each process gets its own CPU</li>
 </ul>
-<p>But for most tasks (fetching URLs, processing files, running commands), JavaScript’s concurrency model is perfect.</p>
+<p>But for most tasks (fetching URLs, processing files, running commands),
+JavaScript’s concurrency model is perfect.</p>
 <h2 id="when-to-use-concurrent-processing"><a class="header" href="#when-to-use-concurrent-processing">When to Use Concurrent Processing</a></h2>
 <p><strong>Use <code>concurrentUnorderedMap()</code> (recommended default) when:</strong></p>
 <ul>
 <li>Order doesn’t matter - you want maximum speed</li>
 <li>Processing independent tasks where results can arrive in any order</li>
 <li>You’ll sort or aggregate results anyway</li>
-<li><strong>This is usually what you want</strong> - it keeps all workers busy and delivers results as they complete</li>
+<li><strong>This is usually what you want</strong> - it keeps all workers busy and delivers
+results as they complete</li>
 <li>Example: Downloading files, processing logs, fetching data you’ll aggregate</li>
 </ul>
 <p><strong>Use <code>concurrentMap()</code> when:</strong></p>
@@ -298,9 +309,12 @@ const results = await enumerate(numbers)
 </ul>
 <p><strong>Choose concurrency level based on:</strong></p>
 <ul>
-<li><strong>I/O-bound tasks</strong> (network, disk): Start with 5-10, increase if you have bandwidth (see “Understanding JavaScript Concurrency” above)</li>
-<li><strong>CPU-bound tasks</strong>: Won’t benefit from concurrency - use Worker Threads or child processes instead</li>
-<li><strong>Rate-limited APIs</strong>: Match the rate limit (e.g., 10 requests/second = concurrency 1 with 100ms delays)</li>
+<li><strong>I/O-bound tasks</strong> (network, disk): Start with 5-10, increase if you have
+bandwidth (see “Understanding JavaScript Concurrency” above)</li>
+<li><strong>CPU-bound tasks</strong>: Won’t benefit from concurrency - use Worker Threads or
+child processes instead</li>
+<li><strong>Rate-limited APIs</strong>: Match the rate limit (e.g., 10 requests/second =
+concurrency 1 with 100ms delays)</li>
 <li><strong>Memory constraints</strong>: Lower concurrency if processing large data per task</li>
 </ul>
 <h2 id="concurrentunorderedmap---recommended"><a class="header" href="#concurrentunorderedmap---recommended">concurrentUnorderedMap() - Recommended</a></h2>
@@ -315,9 +329,12 @@ const results = await enumerate([1, 2, 3, 4, 5])
   .collect();
 // [6, 2, 10, 4, 8] - order varies, but all workers stay busy
 </code></pre>
-<p><strong>Why it’s faster:</strong> Results are delivered as soon as they’re ready. If item 3 finishes before item 1, you get item 3 immediately. No waiting for slower items.</p>
-<p><strong>Use when:</strong> You don’t care about order (most cases). Better performance under real-world conditions where work isn’t perfectly balanced.</p>
-<p><strong>Concurrency:</strong> Defaults to <code>navigator.hardwareConcurrency</code> (CPU count). Override with <code>{ concurrency: n }</code> if needed.</p>
+<p><strong>Why it’s faster:</strong> Results are delivered as soon as they’re ready. If item 3
+finishes before item 1, you get item 3 immediately. No waiting for slower items.</p>
+<p><strong>Use when:</strong> You don’t care about order (most cases). Better performance under
+real-world conditions where work isn’t perfectly balanced.</p>
+<p><strong>Concurrency:</strong> Defaults to <code>navigator.hardwareConcurrency</code> (CPU count).
+Override with <code>{ concurrency: n }</code> if needed.</p>
 <h2 id="concurrentmap---order-preserved"><a class="header" href="#concurrentmap---order-preserved">concurrentMap() - Order Preserved</a></h2>
 <p>Process items concurrently, return results in input order:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "concurrent: concurrentMap" -->
@@ -329,9 +346,13 @@ const results = await enumerate([1, 2, 3, 4, 5])
   .collect();
 // [2, 4, 6, 8, 10] - always in order
 </code></pre>
-<p><strong>Performance caveat:</strong> If item 1 takes 5 seconds and item 2 takes 1 second, item 2 waits for item 1 before being returned. This can create bottlenecks where fast items wait for slow ones.</p>
-<p><strong>Use when:</strong> You specifically need results in the same order as input. Only use if order truly matters for your use case.</p>
-<p><strong>Concurrency:</strong> Defaults to CPU count. Override with <code>{ concurrency: n }</code> if needed.</p>
+<p><strong>Performance caveat:</strong> If item 1 takes 5 seconds and item 2 takes 1 second,
+item 2 waits for item 1 before being returned. This can create bottlenecks where
+fast items wait for slow ones.</p>
+<p><strong>Use when:</strong> You specifically need results in the same order as input. Only use
+if order truly matters for your use case.</p>
+<p><strong>Concurrency:</strong> Defaults to CPU count. Override with <code>{ concurrency: n }</code> if
+needed.</p>
 <h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
 <h3 id="fetch-multiple-urls"><a class="header" href="#fetch-multiple-urls">Fetch Multiple URLs</a></h3>
 <!-- NOT TESTED: Illustrative example -->
@@ -360,7 +381,7 @@ const data = await enumerate(urls)
 </code></pre>
 <h3 id="process-files-in-parallel"><a class="header" href="#process-files-in-parallel">Process Files in Parallel</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
 
 const files = ["log1.txt", "log2.txt", "log3.txt"];
 
@@ -368,7 +389,7 @@ const results = await enumerate(files)
   .concurrentMap(async (file) =&gt; {
     const errors = await read(file)
       .lines
-      .filter(line =&gt; line.includes("ERROR"))
+      .filter((line) =&gt; line.includes("ERROR"))
       .count();
     return { file, errors };
   })
@@ -385,7 +406,8 @@ const results = await enumerate(files)
   .collect();
 </code></pre>
 <h2 id="choosing-concurrency"><a class="header" href="#choosing-concurrency">Choosing Concurrency</a></h2>
-<p><strong>Default behavior:</strong> Both methods default to <code>navigator.hardwareConcurrency</code> (CPU count, typically 4-8). This is usually a good starting point.</p>
+<p><strong>Default behavior:</strong> Both methods default to <code>navigator.hardwareConcurrency</code>
+(CPU count, typically 4-8). This is usually a good starting point.</p>
 <p><strong>When to override:</strong></p>
 <p><strong>For I/O-bound tasks</strong> (network, disk):</p>
 <ul>
@@ -451,9 +473,9 @@ const results = await enumerate(urls)
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const results = await enumerate(urls)
   .concurrentMap(fetch, { concurrency: 5 })
-  .filter(response =&gt; response.ok)
-  .concurrentMap(response =&gt; response.json(), { concurrency: 5 })
-  .filter(data =&gt; data.active)
+  .filter((response) =&gt; response.ok)
+  .concurrentMap((response) =&gt; response.json(), { concurrency: 5 })
+  .filter((data) =&gt; data.active)
   .collect();
 </code></pre>
 <h2 id="performance-comparison"><a class="header" href="#performance-comparison">Performance Comparison</a></h2>
@@ -475,7 +497,10 @@ await enumerate(urls)
   .concurrentUnorderedMap(fetch, { concurrency: 5 })
   .collect();
 </code></pre>
-<p><strong>Why unordered is faster:</strong> Imagine 5 tasks with times [1s, 1s, 1s, 1s, 5s]. With <code>concurrentMap</code>, the 5-second task blocks its batch. With <code>concurrentUnorderedMap</code>, the four 1-second tasks complete and return immediately while the 5-second task finishes in the background.</p>
+<p><strong>Why unordered is faster:</strong> Imagine 5 tasks with times [1s, 1s, 1s, 1s, 5s].
+With <code>concurrentMap</code>, the 5-second task blocks its batch. With
+<code>concurrentUnorderedMap</code>, the four 1-second tasks complete and return
+immediately while the 5-second task finishes in the background.</p>
 <h2 id="advanced-patterns"><a class="header" href="#advanced-patterns">Advanced Patterns</a></h2>
 <h3 id="batch-processing"><a class="header" href="#batch-processing">Batch Processing</a></h3>
 <p>Process in batches:</p>
@@ -513,13 +538,13 @@ for (let i = 0; i &lt; items.length; i += batchSize) {
 
 for (const batch of batches) {
   const start = Date.now();
-  
+
   const results = await enumerate(batch)
     .concurrentMap(process, { concurrency })
     .collect();
-  
+
   const duration = Date.now() - start;
-  
+
   // Adjust based on performance
   if (duration &lt; 1000) concurrency = Math.min(concurrency + 1, 20);
   if (duration &gt; 5000) concurrency = Math.max(concurrency - 1, 1);
@@ -527,12 +552,14 @@ for (const batch of batches) {
 </code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
-<li><strong>Prefer unordered</strong> - Use <code>concurrentUnorderedMap</code> unless you specifically need order</li>
+<li><strong>Prefer unordered</strong> - Use <code>concurrentUnorderedMap</code> unless you specifically
+need order</li>
 <li><strong>Start conservative</strong> - Begin with low concurrency, increase if needed</li>
 <li><strong>Monitor resources</strong> - Watch memory and network usage</li>
 <li><strong>Respect rate limits</strong> - Don’t overwhelm external services</li>
 <li><strong>Handle errors</strong> - One error stops everything, handle gracefully</li>
-<li><strong>Understand the bottleneck</strong> - <code>concurrentMap</code> can wait on slow items; unordered doesn’t</li>
+<li><strong>Understand the bottleneck</strong> - <code>concurrentMap</code> can wait on slow items;
+unordered doesn’t</li>
 </ol>
 <h2 id="common-mistakes"><a class="header" href="#common-mistakes">Common Mistakes</a></h2>
 <h3 id="too-much-concurrency"><a class="header" href="#too-much-concurrency">Too Much Concurrency</a></h3>

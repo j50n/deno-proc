@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,11 +179,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="resource-management"><a class="header" href="#resource-management">Resource Management</a></h1>
-<p>Proper resource management ensures your applications don’t leak memory or file handles when working with processes and streams.</p>
+<p>Proper resource management ensures your applications don’t leak memory or file
+handles when working with processes and streams.</p>
 <h2 id="the-fundamental-rule"><a class="header" href="#the-fundamental-rule">The Fundamental Rule</a></h2>
-<p>The most important principle in proc is simple: always consume process output. When you start a process, you must consume its output through methods like <code>.collect()</code>, <code>.forEach()</code>, or by iterating through the results:</p>
+<p>The most important principle in proc is simple: always consume process output.
+When you start a process, you must consume its output through methods like
+<code>.collect()</code>, <code>.forEach()</code>, or by iterating through the results:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 // ❌ Resource leak
 const p = run("ls");
@@ -193,15 +196,20 @@ const p = run("ls");
 await run("ls").lines.collect();
 </code></pre>
 <h2 id="understanding-resource-leaks"><a class="header" href="#understanding-resource-leaks">Understanding Resource Leaks</a></h2>
-<p>Unconsumed output keeps the process handle open, preventing proper cleanup. This happens because the process continues running and holding resources until its output stream is fully consumed. Even if you don’t care about the actual output data, you still need to consume it to signal that the process can be cleaned up.</p>
+<p>Unconsumed output keeps the process handle open, preventing proper cleanup. This
+happens because the process continues running and holding resources until its
+output stream is fully consumed. Even if you don’t care about the actual output
+data, you still need to consume it to signal that the process can be cleaned up.</p>
 <h2 id="methods-for-consuming-output"><a class="header" href="#methods-for-consuming-output">Methods for Consuming Output</a></h2>
-<p>proc provides several ways to consume process output, each suited to different use cases. Use <code>.collect()</code> when you need all output as an array:</p>
+<p>proc provides several ways to consume process output, each suited to different
+use cases. Use <code>.collect()</code> when you need all output as an array:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const lines = await run("ls").lines.collect();
 </code></pre>
-<p>Use <code>.forEach()</code> when you want to process each item without collecting everything in memory:</p>
+<p>Use <code>.forEach()</code> when you want to process each item without collecting
+everything in memory:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await run("ls").lines.forEach(line =&gt; {
+<pre><code class="language-typescript">await run("ls").lines.forEach((line) =&gt; {
   console.log(line);
 });
 </code></pre>
@@ -215,7 +223,8 @@ await run("ls").lines.collect();
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">await run("ls").toStdout();
 </code></pre>
-<p>Aggregation methods like <code>.count()</code> and property access like <code>.first</code> also consume output:</p>
+<p>Aggregation methods like <code>.count()</code> and property access like <code>.first</code> also
+consume output:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const count = await run("ls").lines.count();
 const first = await run("ls").lines.first;
@@ -224,8 +233,8 @@ const first = await run("ls").lines.first;
 <p>Consume output before checking status:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const p = run("command");
-await p.lines.collect();  // Consume first
-const status = await p.status;  // Then check
+await p.lines.collect(); // Consume first
+const status = await p.status; // Then check
 </code></pre>
 <h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
 <p>Errors automatically clean up resources:</p>
@@ -245,11 +254,18 @@ for await (const line of run("tail", "-f", "log").lines) {
 }
 </code></pre>
 <h2 id="best-practices-for-resource-management"><a class="header" href="#best-practices-for-resource-management">Best Practices for Resource Management</a></h2>
-<p>Following these principles will help you avoid resource leaks and build reliable applications:</p>
-<p>Always consume output using methods like <code>collect()</code>, <code>forEach()</code>, or iteration. This is the most important rule for preventing resource leaks.</p>
-<p>When you need to check process status, consume the output first, then check the status. The process must complete its output before status information is reliable.</p>
-<p>Let errors propagate naturally through your pipelines. proc’s error handling automatically cleans up resources when errors occur, so you don’t need to manually manage cleanup in error cases.</p>
-<p>For custom cleanup scenarios, use try-finally blocks, but remember that proc handles most cleanup automatically through its error propagation system.</p>
+<p>Following these principles will help you avoid resource leaks and build reliable
+applications:</p>
+<p>Always consume output using methods like <code>collect()</code>, <code>forEach()</code>, or iteration.
+This is the most important rule for preventing resource leaks.</p>
+<p>When you need to check process status, consume the output first, then check the
+status. The process must complete its output before status information is
+reliable.</p>
+<p>Let errors propagate naturally through your pipelines. proc’s error handling
+automatically cleans up resources when errors occur, so you don’t need to
+manually manage cleanup in error cases.</p>
+<p>For custom cleanup scenarios, use try-finally blocks, but remember that proc
+handles most cleanup automatically through its error propagation system.</p>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
 <li><a href="./error-handling.html">Error Handling</a> - Handle failures</li>

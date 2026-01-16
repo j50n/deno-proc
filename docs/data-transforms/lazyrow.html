@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,12 +179,17 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="lazyrow-guide"><a class="header" href="#lazyrow-guide">LazyRow Guide</a></h1>
-<p>Optimized read-only data access with lazy evaluation and caching for maximum performance.</p>
+<p>Optimized read-only data access with lazy evaluation and caching for maximum
+performance.</p>
 <blockquote>
-<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: LazyRow is under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: LazyRow is under active development. API may
+change as we improve correctness and streaming performance. Test thoroughly
+with your data patterns.</p>
 </blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>LazyRow is a high-performance data structure designed for efficient field access in tabular data. It uses <strong>lazy evaluation</strong> and <strong>caching</strong> to minimize parsing overhead while providing a clean, simple API.</p>
+<p>LazyRow is a high-performance data structure designed for efficient field access
+in tabular data. It uses <strong>lazy evaluation</strong> and <strong>caching</strong> to minimize parsing
+overhead while providing a clean, simple API.</p>
 <h2 id="key-benefits"><a class="header" href="#key-benefits">Key Benefits</a></h2>
 <ul>
 <li><strong>Zero conversion cost</strong>: Choose optimal backing based on source data</li>
@@ -207,11 +212,12 @@
 </table>
 </div>
 <blockquote>
-<p><strong>Best Use Cases</strong>: LazyRow excels with CSV and large TSV datasets. For Record format, benefits vary by dataset size.</p>
+<p><strong>Best Use Cases</strong>: LazyRow excels with CSV and large TSV datasets. For Record
+format, benefits vary by dataset size.</p>
 </blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="creating-lazyrow"><a class="header" href="#creating-lazyrow">Creating LazyRow</a></h3>
-<pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // From string array (zero cost)
 const lazyRow1 = LazyRow.fromStringArray(['Alice', '30', 'Engineer']);
@@ -222,25 +228,25 @@ const lazyRow2 = LazyRow.fromBinary(binaryData);
 </code></pre>
 <h3 id="field-access"><a class="header" href="#field-access">Field Access</a></h3>
 <pre><code class="language-typescript">// Efficient field access
-const name = lazyRow.getField(0);     // "Alice"
-const age = lazyRow.getField(1);      // "30"
-const job = lazyRow.getField(2);      // "Engineer"
+const name = lazyRow.getField(0); // "Alice"
+const age = lazyRow.getField(1); // "30"
+const job = lazyRow.getField(2); // "Engineer"
 
 // Column count
-console.log(lazyRow.columnCount);     // 3
+console.log(lazyRow.columnCount); // 3
 </code></pre>
 <h3 id="conversions-with-caching"><a class="header" href="#conversions-with-caching">Conversions with Caching</a></h3>
 <pre><code class="language-typescript">// Convert to string array (cached after first call)
-const fields1 = lazyRow.toStringArray();  // Converts and caches
-const fields2 = lazyRow.toStringArray();  // Returns cached result
+const fields1 = lazyRow.toStringArray(); // Converts and caches
+const fields2 = lazyRow.toStringArray(); // Returns cached result
 
 // Convert to binary (cached after first call)
-const binary1 = lazyRow.toBinary();       // Converts and caches  
-const binary2 = lazyRow.toBinary();       // Returns cached result
+const binary1 = lazyRow.toBinary(); // Converts and caches
+const binary2 = lazyRow.toBinary(); // Returns cached result
 </code></pre>
 <h2 id="parsing-with-lazyrow"><a class="header" href="#parsing-with-lazyrow">Parsing with LazyRow</a></h2>
 <h3 id="csv-to-lazyrow"><a class="header" href="#csv-to-lazyrow">CSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
 
 const lazyRows = await read("data.csv")
   .transform(fromCsvToLazyRows())
@@ -250,17 +256,17 @@ const lazyRows = await read("data.csv")
 for (const row of lazyRows) {
   // Only parse the fields you actually use
   const id = row.getField(0);
-  
+
   if (id.startsWith("USER_")) {
-    const name = row.getField(1);    // Parse on demand
-    const email = row.getField(2);   // Parse on demand
+    const name = row.getField(1); // Parse on demand
+    const email = row.getField(2); // Parse on demand
     console.log(`User: ${name} &lt;${email}&gt;`);
   }
   // Fields 3+ are never parsed if not accessed
 }
 </code></pre>
 <h3 id="tsv-to-lazyrow"><a class="header" href="#tsv-to-lazyrow">TSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
 
 const lazyRows = await read("logs.tsv")
   .transform(fromTsvToLazyRows())
@@ -268,8 +274,8 @@ const lazyRows = await read("logs.tsv")
 
 // Efficient log processing
 for (const row of lazyRows) {
-  const level = row.getField(2);     // Parse log level
-  
+  const level = row.getField(2); // Parse log level
+
   if (level === "ERROR") {
     const timestamp = row.getField(0);
     const message = row.getField(3);
@@ -278,7 +284,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="record-to-lazyrow"><a class="header" href="#record-to-lazyrow">Record to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
 
 const lazyRows = await read("data.record")
   .transform(fromRecordToLazyRows())
@@ -303,7 +309,7 @@ const binary = lazyRow.toBinary();
 // Binary layout:
 // [0-3]:   0x00000003           // 3 fields
 // [4-7]:   0x00000005           // "Alice" = 5 bytes
-// [8-11]:  0x00000002           // "30" = 2 bytes  
+// [8-11]:  0x00000002           // "30" = 2 bytes
 // [12-15]: 0x00000008           // "Engineer" = 8 bytes
 // [16-20]: "Alice"              // UTF-8 data
 // [21-22]: "30"                 // UTF-8 data
@@ -317,7 +323,7 @@ const binary = lazyRow.toBinary();
   abstract getField(index: number): string;
   abstract toStringArray(): string[];
   abstract toBinary(): Uint8Array;
-  
+
   // Static factory methods
   static fromStringArray(fields: string[]): LazyRow;
   static fromBinary(data: Uint8Array): LazyRow;
@@ -342,14 +348,14 @@ const binary = lazyRow.toBinary();
 <pre><code class="language-typescript">// ✅ Efficient - only parse needed fields
 await read("large.csv")
   .transform(fromCsvToLazyRows())
-  .filter(row =&gt; {
-    const status = row.getField(5);  // Only parse field 5
+  .filter((row) =&gt; {
+    const status = row.getField(5); // Only parse field 5
     return status === "active";
   })
-  .map(row =&gt; ({
-    id: row.getField(0),             // Parse fields 0, 1, 2 on demand
+  .map((row) =&gt; ({
+    id: row.getField(0), // Parse fields 0, 1, 2 on demand
     name: row.getField(1),
-    email: row.getField(2)
+    email: row.getField(2),
     // Fields 3, 4, 6+ never parsed
   }))
   .collect();
@@ -364,7 +370,7 @@ const processRow = (row: LazyRow) =&gt; {
 
 // ❌ Less efficient - unnecessary conversion
 const processRow = (row: LazyRow) =&gt; {
-  const fields = row.toStringArray();  // Converts all fields
+  const fields = row.toStringArray(); // Converts all fields
   const name = fields[0];
   const age = parseInt(fields[1]);
   return age &gt;= 18 ? name : null;
@@ -373,14 +379,14 @@ const processRow = (row: LazyRow) =&gt; {
 <h3 id="batch-conversions"><a class="header" href="#batch-conversions">Batch Conversions</a></h3>
 <pre><code class="language-typescript">// When you need all fields, convert once
 const processAllFields = (row: LazyRow) =&gt; {
-  const fields = row.toStringArray();  // Convert once
-  
+  const fields = row.toStringArray(); // Convert once
+
   return {
     name: fields[0],
     age: parseInt(fields[1]),
     city: fields[2],
     country: fields[3],
-    email: fields[4]
+    email: fields[4],
   };
 };
 </code></pre>
@@ -392,19 +398,19 @@ let totalRequests = 0;
 
 await read("access.log.tsv")
   .transform(fromTsvToLazyRows())
-  .forEach(row =&gt; {
+  .forEach((row) =&gt; {
     totalRequests++;
-    
-    const statusCode = row.getField(6);  // Only parse status code
-    
+
+    const statusCode = row.getField(6); // Only parse status code
+
     if (statusCode.startsWith("4") || statusCode.startsWith("5")) {
       errorCount++;
-      
+
       // Only parse additional fields for errors
       const timestamp = row.getField(0);
       const path = row.getField(4);
       const userAgent = row.getField(8);
-      
+
       console.error(`${timestamp}: ${statusCode} ${path} - ${userAgent}`);
     }
   });
@@ -417,22 +423,22 @@ const errors: string[] = [];
 
 await read("users.csv")
   .transform(fromCsvToLazyRows())
-  .drop(1)  // Skip header
+  .drop(1) // Skip header
   .forEach((row, index) =&gt; {
-    const rowNum = index + 2;  // Account for header and 0-based index
-    
+    const rowNum = index + 2; // Account for header and 0-based index
+
     // Validate required fields exist
     if (row.columnCount &lt; 4) {
       errors.push(`Row ${rowNum}: Missing required fields`);
       return;
     }
-    
+
     // Validate email format (only parse if needed)
     const email = row.getField(2);
     if (!email.includes("@")) {
       errors.push(`Row ${rowNum}: Invalid email format: ${email}`);
     }
-    
+
     // Validate age (only parse if needed)
     const ageStr = row.getField(1);
     const age = parseInt(ageStr);
@@ -443,25 +449,25 @@ await read("users.csv")
 
 if (errors.length &gt; 0) {
   console.error(`Validation failed with ${errors.length} errors:`);
-  errors.forEach(error =&gt; console.error(`  ${error}`));
+  errors.forEach((error) =&gt; console.error(`  ${error}`));
 }
 </code></pre>
 <h3 id="format-conversion-with-filtering"><a class="header" href="#format-conversion-with-filtering">Format Conversion with Filtering</a></h3>
 <pre><code class="language-typescript">// Convert CSV to JSON, filtering and transforming data
 await read("products.csv")
   .transform(fromCsvToLazyRows())
-  .drop(1)  // Skip header
-  .filter(row =&gt; {
+  .drop(1) // Skip header
+  .filter((row) =&gt; {
     const price = parseFloat(row.getField(3));
-    return price &gt; 10.00;  // Only expensive products
+    return price &gt; 10.00; // Only expensive products
   })
-  .map(row =&gt; ({
+  .map((row) =&gt; ({
     id: row.getField(0),
     name: row.getField(1),
     category: row.getField(2),
     price: parseFloat(row.getField(3)),
     inStock: row.getField(4) === "true",
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
   }))
   .transform(toJson())
   .writeTo("expensive-products.jsonl");
@@ -472,19 +478,19 @@ const stats = {
   totalRows: 0,
   totalSales: 0,
   avgAge: 0,
-  ageSum: 0
+  ageSum: 0,
 };
 
 await read("sales-data.csv")
   .transform(fromCsvToLazyRows())
-  .drop(1)  // Skip header
-  .forEach(row =&gt; {
+  .drop(1) // Skip header
+  .forEach((row) =&gt; {
     stats.totalRows++;
-    
+
     // Only parse fields we need for calculations
     const saleAmount = parseFloat(row.getField(4));
     const customerAge = parseInt(row.getField(2));
-    
+
     stats.totalSales += saleAmount;
     stats.ageSum += customerAge;
   });
@@ -498,7 +504,7 @@ console.log(`Average customer age: ${stats.avgAge.toFixed(1)}`);
 <h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
 <h3 id="field-access-errors"><a class="header" href="#field-access-errors">Field Access Errors</a></h3>
 <pre><code class="language-typescript">try {
-  const value = row.getField(10);  // Index out of bounds
+  const value = row.getField(10); // Index out of bounds
 } catch (error) {
   console.error(`Field access error: ${error.message}`);
 }
@@ -536,7 +542,7 @@ const safeGetField = (row: LazyRow, index: number): string | null =&gt; {
 <pre><code class="language-typescript">// LazyRow → other formats
 await read("data.csv")
   .transform(fromCsvToLazyRows())
-  .map(row =&gt; row.toStringArray())  // Convert when needed
+  .map((row) =&gt; row.toStringArray()) // Convert when needed
   .transform(toTsv())
   .writeTo("data.tsv");
 </code></pre>
@@ -546,20 +552,20 @@ await read("data.csv")
 const UserSchema = z.object({
   name: z.string().min(1),
   age: z.number().min(0).max(150),
-  email: z.string().email()
+  email: z.string().email(),
 });
 
 await read("users.csv")
   .transform(fromCsvToLazyRows())
   .drop(1)
-  .map(row =&gt; {
+  .map((row) =&gt; {
     const user = {
       name: row.getField(0),
       age: parseInt(row.getField(1)),
-      email: row.getField(2)
+      email: row.getField(2),
     };
-    
-    return UserSchema.parse(user);  // Validates and throws on error
+
+    return UserSchema.parse(user); // Validates and throws on error
   })
   .transform(toJson())
   .writeTo("validated-users.jsonl");

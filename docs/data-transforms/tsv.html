@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,12 +179,17 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="tsv-transforms"><a class="header" href="#tsv-transforms">TSV Transforms</a></h1>
-<p>Fast, simple tab-separated value processing with excellent performance characteristics.</p>
+<p>Fast, simple tab-separated value processing with excellent performance
+characteristics.</p>
 <blockquote>
-<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: TSV transforms are under active development. API may change as we improve correctness and streaming performance. Test thoroughly with your data patterns.</p>
+<p>⚠️ <strong>Experimental (v0.24.0+)</strong>: TSV transforms are under active development.
+API may change as we improve correctness and streaming performance. Test
+thoroughly with your data patterns.</p>
 </blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>TSV (Tab-Separated Values) provides a good balance between human readability and processing speed. With no complex quoting rules like CSV, TSV parsing is significantly faster while remaining easy to read and edit.</p>
+<p>TSV (Tab-Separated Values) provides a good balance between human readability and
+processing speed. With no complex quoting rules like CSV, TSV parsing is
+significantly faster while remaining easy to read and edit.</p>
 <h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
 <div class="table-wrapper">
 <table>
@@ -199,12 +204,14 @@
 </table>
 </div>
 <blockquote>
-<p><strong>Performance Note</strong>: LazyRow shows mixed results with TSV - excellent for small and large datasets, but regular parsing can be faster for medium datasets with full field access.</p>
+<p><strong>Performance Note</strong>: LazyRow shows mixed results with TSV - excellent for
+small and large datasets, but regular parsing can be faster for medium
+datasets with full field access.</p>
 </blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-tsv-to-rows"><a class="header" href="#parsing-tsv-to-rows">Parsing TSV to Rows</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.2";
-import { fromTsvToRows } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
+import { fromTsvToRows } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // Parse TSV into string arrays
 const rows = await read("data.tsv")
@@ -216,7 +223,7 @@ const rows = await read("data.tsv")
 // rows[2] = ["Bob", "25", "London"]        // Data row
 </code></pre>
 <h3 id="parsing-tsv-to-lazyrow"><a class="header" href="#parsing-tsv-to-lazyrow">Parsing TSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // Parse TSV into optimized LazyRow format
 const lazyRows = await read("data.tsv")
@@ -228,18 +235,18 @@ for (const row of lazyRows) {
   const name = row.getField(0);
   const age = parseInt(row.getField(1));
   const city = row.getField(2);
-  
+
   console.log(`${name} (${age}) lives in ${city}`);
 }
 </code></pre>
 <h3 id="generating-tsv"><a class="header" href="#generating-tsv">Generating TSV</a></h3>
-<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.2/transforms";
+<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.3/transforms";
 
 // From string arrays
 const data = [
   ["Name", "Age", "City"],
   ["Alice", "30", "New York"],
-  ["Bob", "25", "London"]
+  ["Bob", "25", "London"],
 ];
 
 await enumerate(data)
@@ -272,16 +279,16 @@ await enumerate(data)
 <pre><code class="language-typescript">// Process web server access logs
 await read("access.log")
   .transform(fromTsvToLazyRows())
-  .filter(row =&gt; {
+  .filter((row) =&gt; {
     const statusCode = row.getField(6);
     return statusCode.startsWith("4") || statusCode.startsWith("5");
   })
-  .map(row =&gt; ({
+  .map((row) =&gt; ({
     timestamp: row.getField(0),
     method: row.getField(3),
     path: row.getField(4),
     status: row.getField(6),
-    userAgent: row.getField(8)
+    userAgent: row.getField(8),
   }))
   .transform(toJson())
   .writeTo("errors.jsonl");
@@ -290,16 +297,16 @@ await read("access.log")
 <pre><code class="language-typescript">// ETL pipeline: TSV → filter → transform → TSV
 await read("raw-data.tsv")
   .transform(fromTsvToLazyRows())
-  .drop(1)  // Skip header
-  .filter(row =&gt; {
+  .drop(1) // Skip header
+  .filter((row) =&gt; {
     const score = parseFloat(row.getField(3));
-    return score &gt;= 0.8;  // High-quality records only
+    return score &gt;= 0.8; // High-quality records only
   })
-  .map(row =&gt; [
-    row.getField(0),                    // ID
-    row.getField(1).toUpperCase(),      // Name (normalized)
-    row.getField(2).toLowerCase(),      // Email (normalized)
-    (parseFloat(row.getField(3)) * 100).toFixed(1)  // Score as percentage
+  .map((row) =&gt; [
+    row.getField(0), // ID
+    row.getField(1).toUpperCase(), // Name (normalized)
+    row.getField(2).toLowerCase(), // Email (normalized)
+    (parseFloat(row.getField(3)) * 100).toFixed(1), // Score as percentage
   ])
   .transform(toTsv())
   .writeTo("processed-data.tsv");
@@ -314,7 +321,7 @@ await read("data.csv")
 // Later processing is faster
 await read("data.tsv")
   .transform(fromTsvToRows())
-  .filter(row =&gt; row[0].startsWith("A"))
+  .filter((row) =&gt; row[0].startsWith("A"))
   .collect();
 </code></pre>
 <h3 id="streaming-analytics"><a class="header" href="#streaming-analytics">Streaming Analytics</a></h3>
@@ -325,19 +332,21 @@ const statusCodes = new Map&lt;string, number&gt;();
 
 await read("live-access.log")
   .transform(fromTsvToLazyRows())
-  .forEach(row =&gt; {
+  .forEach((row) =&gt; {
     requestCount++;
-    
+
     const statusCode = row.getField(6);
     statusCodes.set(statusCode, (statusCodes.get(statusCode) || 0) + 1);
-    
+
     if (statusCode.startsWith("4") || statusCode.startsWith("5")) {
       errorCount++;
     }
-    
+
     if (requestCount % 1000 === 0) {
       const errorRate = (errorCount / requestCount * 100).toFixed(2);
-      console.log(`Processed ${requestCount} requests, error rate: ${errorRate}%`);
+      console.log(
+        `Processed ${requestCount} requests, error rate: ${errorRate}%`,
+      );
     }
   });
 </code></pre>
@@ -346,7 +355,7 @@ await read("live-access.log")
 <pre><code class="language-typescript">// ✅ Use LazyRow for selective field access
 await read("wide-data.tsv")
   .transform(fromTsvToLazyRows())
-  .filter(row =&gt; {
+  .filter((row) =&gt; {
     // Only parse fields 0 and 5
     const id = row.getField(0);
     const status = row.getField(5);
@@ -357,7 +366,7 @@ await read("wide-data.tsv")
 // ✅ Use regular parsing for full field access
 await read("data.tsv")
   .transform(fromTsvToRows())
-  .map(row =&gt; {
+  .map((row) =&gt; {
     // Process all fields
     return processAllFields(row);
   })
@@ -372,7 +381,7 @@ await read("huge-data.tsv")
   .transform(fromTsvToRows())
   .forEach(async (row) =&gt; {
     batch.push(row);
-    
+
     if (batch.length &gt;= batchSize) {
       await processBatch(batch);
       batch = [];
@@ -394,38 +403,44 @@ await read("data.tsv")
   .transform(fromTsvToRows())
   .forEach((row, index) =&gt; {
     if (row.length !== expectedFields) {
-      errors.push(`Row ${index + 1}: Expected ${expectedFields} fields, got ${row.length}`);
+      errors.push(
+        `Row ${
+          index + 1
+        }: Expected ${expectedFields} fields, got ${row.length}`,
+      );
     }
   });
 
 if (errors.length &gt; 0) {
-  console.error(`Validation failed:\n${errors.join('\n')}`);
+  console.error(`Validation failed:\n${errors.join("\n")}`);
 }
 </code></pre>
 <h3 id="data-type-validation"><a class="header" href="#data-type-validation">Data Type Validation</a></h3>
 <pre><code class="language-typescript">// Validate data types during processing
 await read("metrics.tsv")
   .transform(fromTsvToLazyRows())
-  .drop(1)  // Skip header
+  .drop(1) // Skip header
   .map((row, index) =&gt; {
     const rowNum = index + 2;
-    
+
     // Validate timestamp
     const timestamp = row.getField(0);
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(timestamp)) {
       throw new Error(`Row ${rowNum}: Invalid timestamp format: ${timestamp}`);
     }
-    
+
     // Validate numeric value
     const value = parseFloat(row.getField(2));
     if (isNaN(value)) {
-      throw new Error(`Row ${rowNum}: Invalid numeric value: ${row.getField(2)}`);
+      throw new Error(
+        `Row ${rowNum}: Invalid numeric value: ${row.getField(2)}`,
+      );
     }
-    
+
     return {
       timestamp: new Date(timestamp),
       metric: row.getField(1),
-      value: value
+      value: value,
     };
   })
   .transform(toJson())
@@ -435,7 +450,8 @@ await read("metrics.tsv")
 <h3 id="tsv-to-database"><a class="header" href="#tsv-to-database">TSV to Database</a></h3>
 <pre><code class="language-typescript">// Load TSV data into database
 const insertBatch = async (rows: string[][]) =&gt; {
-  const values = rows.map(row =&gt; `('${row[0]}', '${row[1]}', ${row[2]})`).join(',');
+  const values = rows.map((row) =&gt; `('${row[0]}', '${row[1]}', ${row[2]})`)
+    .join(",");
   await db.execute(`INSERT INTO users (name, email, age) VALUES ${values}`);
 };
 
@@ -444,10 +460,10 @@ const batchSize = 1000;
 
 await read("users.tsv")
   .transform(fromTsvToRows())
-  .drop(1)  // Skip header
+  .drop(1) // Skip header
   .forEach(async (row) =&gt; {
     batch.push(row);
-    
+
     if (batch.length &gt;= batchSize) {
       await insertBatch(batch);
       batch = [];
@@ -462,28 +478,30 @@ if (batch.length &gt; 0) {
 <pre><code class="language-typescript">// Send TSV data to REST API
 await read("events.tsv")
   .transform(fromTsvToLazyRows())
-  .drop(1)  // Skip header
-  .map(row =&gt; ({
+  .drop(1) // Skip header
+  .map((row) =&gt; ({
     eventId: row.getField(0),
     timestamp: row.getField(1),
     userId: row.getField(2),
     action: row.getField(3),
-    metadata: JSON.parse(row.getField(4) || '{}')
+    metadata: JSON.parse(row.getField(4) || "{}"),
   }))
   .concurrentMap(async (event) =&gt; {
-    const response = await fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event)
+    const response = await fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
     });
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to send event ${event.eventId}: ${response.statusText}`);
+      throw new Error(
+        `Failed to send event ${event.eventId}: ${response.statusText}`,
+      );
     }
-    
+
     return response.json();
   }, { concurrency: 10 })
-  .forEach(result =&gt; console.log('Sent:', result.id));
+  .forEach((result) =&gt; console.log("Sent:", result.id));
 </code></pre>
 <h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
 <h3 id="malformed-data"><a class="header" href="#malformed-data">Malformed Data</a></h3>
@@ -501,7 +519,7 @@ await read("events.tsv")
 </code></pre>
 <h3 id="graceful-error-recovery"><a class="header" href="#graceful-error-recovery">Graceful Error Recovery</a></h3>
 <pre><code class="language-typescript">// Continue processing despite individual row errors
-const errors: Array&lt;{row: number, error: string}&gt; = [];
+const errors: Array&lt;{ row: number; error: string }&gt; = [];
 let successCount = 0;
 
 await read("data.tsv")
@@ -513,8 +531,8 @@ await read("data.tsv")
       successCount++;
     } catch (error) {
       errors.push({
-        row: index + 2,  // Account for header and 0-based index
-        error: error.message
+        row: index + 2, // Account for header and 0-based index
+        error: error.message,
       });
     }
   });
@@ -522,14 +540,15 @@ await read("data.tsv")
 console.log(`Successfully processed ${successCount} rows`);
 if (errors.length &gt; 0) {
   console.error(`${errors.length} rows had errors:`);
-  errors.forEach(({row, error}) =&gt; {
+  errors.forEach(({ row, error }) =&gt; {
     console.error(`  Row ${row}: ${error}`);
   });
 }
 </code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
-<li><strong>Use LazyRow selectively</strong> - great for small/large datasets with selective access</li>
+<li><strong>Use LazyRow selectively</strong> - great for small/large datasets with selective
+access</li>
 <li><strong>Validate field counts</strong> if your data requires consistent structure</li>
 <li><strong>Avoid tabs and newlines</strong> in your data fields</li>
 <li><strong>Use TSV for logs</strong> and structured data without complex formatting needs</li>

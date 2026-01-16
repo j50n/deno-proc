@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,30 +179,34 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="counting-words"><a class="header" href="#counting-words">Counting Words</a></h1>
-<p>Word counting demonstrates the elegance of process pipelines, showing how complex text analysis can be built from simple Unix tools chained together.</p>
+<p>Word counting demonstrates the elegance of process pipelines, showing how
+complex text analysis can be built from simple Unix tools chained together.</p>
 <h2 id="basic-word-counting"><a class="header" href="#basic-word-counting">Basic Word Counting</a></h2>
 <p>The simplest approach uses the <code>wc</code> command to count total words in a file:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
 
 const wordCount = await run("wc", "-w", "book.txt").lines.first;
 console.log(`Total words: ${wordCount}`);
 </code></pre>
 <h2 id="finding-unique-words"><a class="header" href="#finding-unique-words">Finding Unique Words</a></h2>
-<p>To count unique words, you need to extract individual words, normalize their case, and eliminate duplicates. This pipeline breaks text into words, converts everything to lowercase, sorts the results, and removes duplicates:</p>
+<p>To count unique words, you need to extract individual words, normalize their
+case, and eliminate duplicates. This pipeline breaks text into words, converts
+everything to lowercase, sorts the results, and removes duplicates:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const uniqueWords = await run("cat", "book.txt")
-  .run("tr", "-cs", "A-Za-z", "\n")  // Extract words
-  .run("tr", "A-Z", "a-z")            // Lowercase
-  .run("sort")                         // Sort
-  .run("uniq")                         // Unique
+  .run("tr", "-cs", "A-Za-z", "\n") // Extract words
+  .run("tr", "A-Z", "a-z") // Lowercase
+  .run("sort") // Sort
+  .run("uniq") // Unique
   .lines
   .count();
 
 console.log(`Unique words: ${uniqueWords}`);
 </code></pre>
 <h2 id="analyzing-word-frequency"><a class="header" href="#analyzing-word-frequency">Analyzing Word Frequency</a></h2>
-<p>For more sophisticated analysis, you can find the most frequently used words by adding frequency counting and sorting by occurrence:</p>
+<p>For more sophisticated analysis, you can find the most frequently used words by
+adding frequency counting and sorting by occurrence:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const topWords = await run("cat", "book.txt")
   .run("tr", "-cs", "A-Za-z", "\n")
@@ -215,17 +219,16 @@ console.log(`Unique words: ${uniqueWords}`);
   .collect();
 
 console.log("Top 10 words:");
-topWords.forEach(line =&gt; console.log(line));
+topWords.forEach((line) =&gt; console.log(line));
 </code></pre>
 <p>topWords.forEach(line =&gt; console.log(line));</p>
-<pre><code>
-## Pure JavaScript Version
+<pre><code>## Pure JavaScript Version
 
 Do it all in JavaScript:
 
 &lt;!-- NOT TESTED: Illustrative example --&gt;
 ```typescript
-import { read } from "jsr:@j50n/proc@0.24.2";
+import { read } from "jsr:@j50n/proc@0.24.3";
 
 const wordCounts = await read("book.txt")
   .lines
@@ -250,7 +253,7 @@ topWords.forEach(([word, count]) =&gt; {
 <pre><code class="language-typescript">const wordCount = await read("book.txt.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .flatMap(line =&gt; line.match(/\w+/g) || [])
+  .flatMap((line) =&gt; line.match(/\w+/g) || [])
   .count();
 
 console.log(`Total words: ${wordCount}`);
@@ -258,7 +261,7 @@ console.log(`Total words: ${wordCount}`);
 <h2 id="multiple-files"><a class="header" href="#multiple-files">Multiple Files</a></h2>
 <p>Count words across multiple files:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.2";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
 
 const files = ["book1.txt", "book2.txt", "book3.txt"];
 
@@ -266,7 +269,7 @@ const results = await enumerate(files)
   .concurrentMap(async (file) =&gt; {
     const words = await read(file)
       .lines
-      .flatMap(line =&gt; line.match(/\w+/g) || [])
+      .flatMap((line) =&gt; line.match(/\w+/g) || [])
       .count();
     return { file, words };
   }, { concurrency: 3 })
@@ -280,13 +283,23 @@ results.forEach(({ file, words }) =&gt; {
 <p>Exclude common words:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const stopWords = new Set([
-  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
 ]);
 
 const meaningfulWords = await read("book.txt")
   .lines
-  .flatMap(line =&gt; line.toLowerCase().match(/\w+/g) || [])
-  .filter(word =&gt; !stopWords.has(word))
+  .flatMap((line) =&gt; line.toLowerCase().match(/\w+/g) || [])
+  .filter((word) =&gt; !stopWords.has(word))
   .reduce((acc, word) =&gt; {
     acc[word] = (acc[word] || 0) + 1;
     return acc;
@@ -297,7 +310,7 @@ const meaningfulWords = await read("book.txt")
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const lengthDist = await read("book.txt")
   .lines
-  .flatMap(line =&gt; line.match(/\w+/g) || [])
+  .flatMap((line) =&gt; line.match(/\w+/g) || [])
   .reduce((acc, word) =&gt; {
     const len = word.length;
     acc[len] = (acc[len] || 0) + 1;
@@ -319,24 +332,26 @@ Object.entries(lengthDist)
   read("warandpeace.txt.gz")
     .transform(new DecompressionStream("gzip"))
     .lines
-    .flatMap(line =&gt; line.match(/\w+/g) || [])
+    .flatMap((line) =&gt; line.match(/\w+/g) || [])
     .count(),
-  
+
   // Unique words
   read("warandpeace.txt.gz")
     .transform(new DecompressionStream("gzip"))
     .lines
-    .flatMap(line =&gt; line.toLowerCase().match(/\w+/g) || [])
+    .flatMap((line) =&gt; line.toLowerCase().match(/\w+/g) || [])
     .reduce((acc, word) =&gt; {
       acc.add(word);
       return acc;
     }, new Set())
-    .then(set =&gt; set.size)
+    .then((set) =&gt; set.size),
 ]);
 
 console.log(`Total words: ${totalWords.toLocaleString()}`);
 console.log(`Unique words: ${uniqueWords.toLocaleString()}`);
-console.log(`Vocabulary richness: ${(uniqueWords / totalWords * 100).toFixed(1)}%`);
+console.log(
+  `Vocabulary richness: ${(uniqueWords / totalWords * 100).toFixed(1)}%`,
+);
 </code></pre>
 <h2 id="performance-comparison"><a class="header" href="#performance-comparison">Performance Comparison</a></h2>
 <h3 id="shell-pipeline-fast"><a class="header" href="#shell-pipeline-fast">Shell Pipeline (fast)</a></h3>
@@ -351,7 +366,7 @@ const count = await run("cat", "book.txt")
 <pre><code class="language-typescript">// More control, type-safe
 const count = await read("book.txt")
   .lines
-  .flatMap(line =&gt; line.match(/\w+/g) || [])
+  .flatMap((line) =&gt; line.match(/\w+/g) || [])
   .count();
 </code></pre>
 <h3 id="hybrid-best-of-both"><a class="header" href="#hybrid-best-of-both">Hybrid (best of both)</a></h3>
@@ -360,7 +375,7 @@ const count = await read("book.txt")
 const words = await run("cat", "book.txt")
   .run("tr", "-cs", "A-Za-z", "\n")
   .lines
-  .filter(word =&gt; word.length &gt; 5)  // JavaScript filter
+  .filter((word) =&gt; word.length &gt; 5) // JavaScript filter
   .count();
 </code></pre>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>

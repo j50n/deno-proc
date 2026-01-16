@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b2c0953.js";
+            window.path_to_searchindex_js = "../searchindex-2222309c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,9 +179,12 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h1>
-<p>Understanding async iteration performance and how proc optimizes for real-world usage.</p>
+<p>Understanding async iteration performance and how proc optimizes for real-world
+usage.</p>
 <h2 id="the-async-iteration-overhead"><a class="header" href="#the-async-iteration-overhead">The Async Iteration Overhead</a></h2>
-<p>Async generators create promises per iteration, which adds overhead for simple operations. <strong>This is built into the JavaScript language and V8 engine</strong>, not a limitation of this library:</p>
+<p>Async generators create promises per iteration, which adds overhead for simple
+operations. <strong>This is built into the JavaScript language and V8 engine</strong>, not a
+limitation of this library:</p>
 <pre><code class="language-typescript">// Benchmark: 10,000 items
 async function* double(items: AsyncIterable&lt;number&gt;) {
   for await (const item of items) {
@@ -194,18 +197,23 @@ async function* double(items: AsyncIterable&lt;number&gt;) {
 // TransformStream: 40µs (67x faster)
 // Raw array iteration: 39µs
 </code></pre>
-<p>The overhead grows with data size - at 100,000 items, the gap becomes 810x. <strong>This is fundamental to how <code>for await</code> loops work in JavaScript</strong>, not an implementation issue.</p>
+<p>The overhead grows with data size - at 100,000 items, the gap becomes 810x.
+<strong>This is fundamental to how <code>for await</code> loops work in JavaScript</strong>, not an
+implementation issue.</p>
 <blockquote>
-<p><strong>Note</strong>: JavaScript engines continue to optimize async iteration. These performance characteristics may improve in future V8 versions.</p>
+<p><strong>Note</strong>: JavaScript engines continue to optimize async iteration. These
+performance characteristics may improve in future V8 versions.</p>
 </blockquote>
 <h2 id="the-v8-optimization-cliff"><a class="header" href="#the-v8-optimization-cliff">The V8 Optimization Cliff</a></h2>
-<p><strong>TransformStream performance has a dramatic cliff</strong> - it looks extremely fast in microbenchmarks but can become orders of magnitude slower with minimal added complexity.</p>
+<p><strong>TransformStream performance has a dramatic cliff</strong> - it looks extremely fast
+in microbenchmarks but can become orders of magnitude slower with minimal added
+complexity.</p>
 <p><strong>Simple operations get heavily optimized:</strong></p>
 <pre><code class="language-typescript">// V8 can inline this entire pipeline
 const doubleStream = new TransformStream({
   transform(chunk, controller) {
     controller.enqueue(chunk * 2); // Becomes nearly native code
-  }
+  },
 });
 // Result: 750x faster than generators
 </code></pre>
@@ -215,28 +223,37 @@ function createRunningTotalStream() {
   let total = 0; // This breaks optimization
   return new TransformStream({
     transform(chunk, controller) {
-      total += chunk;              // Closure access overhead
-      controller.enqueue(total);   // Can't optimize with state
-    }
+      total += chunk; // Closure access overhead
+      controller.enqueue(total); // Can't optimize with state
+    },
   });
 }
 // Result: 6x slower than generators
 </code></pre>
 <p><strong>Why this happens:</strong></p>
 <ul>
-<li>V8 aggressively optimizes trivial TransformStream operations into native code paths</li>
-<li>Any closure variables, state dependencies, or complex logic breaks these optimizations</li>
-<li>Once optimization fails, the callback overhead makes TransformStream much slower</li>
+<li>V8 aggressively optimizes trivial TransformStream operations into native code
+paths</li>
+<li>Any closure variables, state dependencies, or complex logic breaks these
+optimizations</li>
+<li>Once optimization fails, the callback overhead makes TransformStream much
+slower</li>
 <li>Generators have consistent overhead regardless of complexity</li>
 </ul>
-<p><strong>Practical implication:</strong> TransformStream microbenchmarks are misleading - they show best-case performance that disappears in real-world usage.</p>
-<p><strong>The bottom line:</strong> JavaScript performance is notoriously difficult to predict. V8’s aggressive optimizations can make simple code incredibly fast, but these optimizations are fragile and break easily. If performance truly matters for your use case, profile your actual workload rather than relying on synthetic benchmarks.</p>
+<p><strong>Practical implication:</strong> TransformStream microbenchmarks are misleading - they
+show best-case performance that disappears in real-world usage.</p>
+<p><strong>The bottom line:</strong> JavaScript performance is notoriously difficult to predict.
+V8’s aggressive optimizations can make simple code incredibly fast, but these
+optimizations are fragile and break easily. If performance truly matters for
+your use case, profile your actual workload rather than relying on synthetic
+benchmarks.</p>
 <h2 id="the-chunking-solution"><a class="header" href="#the-chunking-solution">The Chunking Solution</a></h2>
-<p>proc uses <strong>chunking</strong> to amortize async iteration costs by processing multiple items per iteration:</p>
+<p>proc uses <strong>chunking</strong> to amortize async iteration costs by processing multiple
+items per iteration:</p>
 <pre><code class="language-typescript">// Instead of: 1 promise per line (expensive)
 async function* inefficientLines(bytes: AsyncIterable&lt;Uint8Array&gt;) {
   for await (const chunk of bytes) {
-    for (const line of decode(chunk).split('\n')) {
+    for (const line of decode(chunk).split("\n")) {
       yield line; // 1000 lines = 1000 promises
     }
   }
@@ -245,7 +262,7 @@ async function* inefficientLines(bytes: AsyncIterable&lt;Uint8Array&gt;) {
 // proc does: 1 promise per chunk of lines (efficient)
 export async function* toChunkedLines(bytes: AsyncIterable&lt;Uint8Array&gt;) {
   for await (const chunk of bytes) {
-    const lines = decode(chunk).split('\n');
+    const lines = decode(chunk).split("\n");
     if (lines.length &gt; 0) {
       yield lines; // 1000 lines in 10 chunks = 10 promises
     }
@@ -261,20 +278,21 @@ async function* toLines(bytes: AsyncIterable&lt;Uint8Array&gt;) {
 </code></pre>
 <p><strong>Result</strong>: 10x performance improvement for line processing.</p>
 <h2 id="when-complexity-flips-performance"><a class="header" href="#when-complexity-flips-performance">When Complexity Flips Performance</a></h2>
-<p>For complex operations, async generators become faster because TransformStream’s callback model creates overhead:</p>
+<p>For complex operations, async generators become faster because TransformStream’s
+callback model creates overhead:</p>
 <pre><code class="language-typescript">// Complex stateful processing
 async function* processLogs(lines: AsyncIterable&lt;string&gt;) {
   let errorCount = 0;
-  
+
   for await (const line of lines) {
     try {
       const entry = JSON.parse(line);
-      if (entry.level === 'error') {
+      if (entry.level === "error") {
         errorCount++;
         yield {
           ...entry,
           errorNumber: errorCount,
-          severity: entry.message.includes('critical') ? 'high' : 'medium'
+          severity: entry.message.includes("critical") ? "high" : "medium",
         };
       }
     } catch {
@@ -295,8 +313,11 @@ async function* processLogs(lines: AsyncIterable&lt;string&gt;) {
 <li>State management across items</li>
 <li>Error handling and recovery</li>
 </ul>
-<p><strong>The chunking strategy makes overhead negligible</strong> for typical data processing workloads.</p>
-<p><strong>TransformStream is available</strong> for the rare cases where simple, high-volume transformations need maximum performance, but the complexity trade-off usually isn’t worth it.</p>
+<p><strong>The chunking strategy makes overhead negligible</strong> for typical data processing
+workloads.</p>
+<p><strong>TransformStream is available</strong> for the rare cases where simple, high-volume
+transformations need maximum performance, but the complexity trade-off usually
+isn’t worth it.</p>
 
                     </main>
 
