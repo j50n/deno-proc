@@ -255,29 +255,6 @@ interface WasmExports {
   /** Finish streaming stringify and flush remaining data */
   finish_streaming_record: (id: number) => number;
 
-  /** Create a streaming delimiter replacer */
-  create_streaming_delimiter_replacer: (
-    inFieldSep: number,
-    inRecordSep: number,
-    outFieldSep: number,
-    outRecordSep: number,
-  ) => number;
-
-  /** Destroy a streaming delimiter replacer */
-  destroy_streaming_delimiter_replacer: (id: number) => void;
-
-  /** Replace delimiters in chunk. Returns 1 if output ready, 0 otherwise */
-  streaming_delimiter_replace: (id: number, len: number) => number;
-
-  /** Get streaming replacer output */
-  get_streaming_delimiter_output: (id: number) => number;
-
-  /** Clear streaming replacer output buffer */
-  clear_streaming_delimiter_output: (id: number) => void;
-
-  /** Finish streaming replace and flush remaining data */
-  finish_streaming_delimiter: (id: number) => number;
-
   /** Create a delimited parser instance (for streaming) */
   create_delimited_parser: (
     sep: number,
