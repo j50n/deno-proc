@@ -36,7 +36,7 @@ Enumerable, giving it Array-like methods.
 ## F
 
 **flatdata** : A WASM-powered CLI tool included with proc for high-performance
-CSV/TSV processing. Achieves ~330 MB/s throughput by offloading parsing to a
+CSV/TSV processing. Achieves excellent throughput by offloading parsing to a
 subprocess.
 
 ## L

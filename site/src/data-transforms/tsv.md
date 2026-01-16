@@ -1,7 +1,6 @@
 # TSV Transforms
 
-Fast, simple tab-separated value processing with excellent performance
-characteristics.
+Fast, simple tab-separated value processing.
 
 > ⚠️ **Experimental (v0.24.0+)**: TSV transforms are under active development.
 > API may change as we improve correctness and streaming performance. Test
@@ -10,20 +9,7 @@ characteristics.
 ## Overview
 
 TSV (Tab-Separated Values) provides a good balance between human readability and
-processing speed. With no complex quoting rules like CSV, TSV parsing is
-significantly faster while remaining easy to read and edit.
-
-## Performance Characteristics
-
-| Dataset Size | Regular Parsing | LazyRow Parsing | Improvement |
-| ------------ | --------------- | --------------- | ----------- |
-| Small (1K)   | 71.61 MB/s      | 104.09 MB/s     | **+45%**    |
-| Medium (10K) | 116.00 MB/s     | 81.59 MB/s      | **-30%**    |
-| Large (50K)  | 56.88 MB/s      | 88.25 MB/s      | **+55%**    |
-
-> **Performance Note**: LazyRow shows mixed results with TSV - excellent for
-> small and large datasets, but regular parsing can be faster for medium
-> datasets with full field access.
+processing speed. With no complex quoting rules like CSV, TSV parsing is simpler and faster.
 
 ## Basic Usage
 

@@ -7,28 +7,16 @@ and LazyRow optimization.
 > API may change as we improve correctness and streaming performance. Test
 > thoroughly with your data patterns.
 
-> **⚡ Need more speed?** Use `fromCsvToRowsFast()` for ~10x better performance.
+> **⚡ Need more speed?** Use `fromCsvToRowsFast()` for significantly better performance.
 > It uses the same WASM parser as flatdata CLI. See
 > [Fast CSV Parsing](#fast-csv-parsing-wasm) below.
 
 ## Overview
 
 CSV transforms provide robust parsing and generation of CSV files with proper
-handling of quoted fields, escaping, and edge cases. While CSV is the slowest
-format for parsing, LazyRow optimization provides significant performance
-improvements.
+handling of quoted fields, escaping, and edge cases.
 
-## Performance Characteristics
-
-| Dataset Size | Regular Parsing | LazyRow Parsing | Improvement |
-| ------------ | --------------- | --------------- | ----------- |
-| Small (1K)   | 9.82 MB/s       | 14.81 MB/s      | **1.51x**   |
-| Medium (10K) | 17.09 MB/s      | 19.14 MB/s      | **1.12x**   |
-| Large (50K)  | 27.29 MB/s      | 29.29 MB/s      | **1.07x**   |
-
-> **💡 Recommendation**: Always use LazyRow for CSV processing — it's
-> consistently faster with no downsides. For files over 100MB, consider
-> [flatdata](../utilities/flatdata.md) instead.
+**Tip**: Use LazyRow (`fromCsvToLazyRows()`) for better performance, especially when you only need to access a few fields from each row.
 
 ## Basic Usage
 
@@ -443,11 +431,11 @@ const lazyRows = await read("large-file.csv")
 
 **When to use which:**
 
-| Parser                | Throughput    | Use Case                            |
-| --------------------- | ------------- | ----------------------------------- |
-| `fromCsvToRows()`     | 10-30 MB/s    | Small files, simple scripts         |
-| `fromCsvToRowsFast()` | ~100-200 MB/s | Large files, performance-critical   |
-| `flatdata` CLI        | ~330 MB/s     | Maximum throughput, batch pipelines |
+| Parser                | Performance | Use Case                            |
+| --------------------- | ----------- | ----------------------------------- |
+| `fromCsvToRows()`     | Moderate    | Small files, simple scripts         |
+| `fromCsvToRowsFast()` | Fast        | Large files, performance-critical   |
+| `flatdata` CLI        | Fastest     | Maximum throughput, batch pipelines |
 
 ## See Also
 

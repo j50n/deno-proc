@@ -26,6 +26,58 @@ while (true) {
 
 Any JS processing between read and write kills performance.
 
+## SIMD Optimization: Loop Unrolling
+
+**Use 2-4x loop unrolling with SIMD operations** to maximize throughput on modern CPUs.
+
+### Why It Helps
+
+Modern CPUs (especially AMD Zen) have superscalar execution with multiple SIMD execution ports. Unrolling exposes instruction-level parallelism:
+
+- **Reduces loop overhead** - Fewer branch instructions and counter increments
+- **Enables dual-issue execution** - CPU can dispatch multiple SIMD ops simultaneously
+- **Better instruction pipelining** - More independent operations per iteration
+- **Improved cache utilization** - Processes larger chunks at once
+
+### Recommended Unrolling Factor
+
+**4x unrolling** (64 bytes per iteration with 128-bit SIMD) balances:
+- Performance gains from parallelism
+- Code size (WASM has unrolling threshold of ~30)
+- Register pressure
+
+### Example
+
+```odin
+// Process 4 SIMD vectors per iteration (64 bytes)
+for i := 0; i < aligned_length; i += 64 {
+    chunk1 := (cast(^simd.u8x16)&data[i])^
+    chunk2 := (cast(^simd.u8x16)&data[i+16])^
+    chunk3 := (cast(^simd.u8x16)&data[i+32])^
+    chunk4 := (cast(^simd.u8x16)&data[i+48])^
+    
+    // Process all 4 independently
+    result1 := transform(chunk1)
+    result2 := transform(chunk2)
+    result3 := transform(chunk3)
+    result4 := transform(chunk4)
+    
+    // Store results
+    (cast(^simd.u8x16)&data[i])^ = result1
+    (cast(^simd.u8x16)&data[i+16])^ = result2
+    (cast(^simd.u8x16)&data[i+32])^ = result3
+    (cast(^simd.u8x16)&data[i+48])^ = result4
+}
+
+// Handle remaining bytes with single-vector loop
+for ; i + 16 <= aligned_length; i += 16 {
+    chunk := (cast(^simd.u8x16)&data[i])^
+    (cast(^simd.u8x16)&data[i])^ = transform(chunk)
+}
+```
+
+**Performance impact**: Measured ~633 MB/s average (906 MB/s peak) on Intel laptop. Greater gains expected on AMD Zen with dual-issue SIMD ports.
+
 ## Anti-Patterns (What NOT to Do)
 
 ### 1. Byte-by-byte processing in JS

@@ -12,12 +12,12 @@ performance.
 
 proc offers several ways to process data. Here's how to choose:
 
-| Approach              | Best For                                     | Throughput |
-| --------------------- | -------------------------------------------- | ---------- |
-| **flatdata CLI**      | Large files (100MB+), batch processing       | ~330 MB/s  |
-| **Data Transforms**   | In-process conversion, filtering, enrichment | 10-93 MB/s |
-| **Process Pipelines** | Shell-like operations, text processing       | Varies     |
-| **Async Iterables**   | Custom logic, API data, any async source     | Varies     |
+| Approach              | Best For                                     | Performance    |
+| --------------------- | -------------------------------------------- | -------------- |
+| **flatdata CLI**      | Large files (100MB+), batch processing       | Highest        |
+| **Data Transforms**   | In-process conversion, filtering, enrichment | Good to High   |
+| **Process Pipelines** | Shell-like operations, text processing       | Varies         |
+| **Async Iterables**   | Custom logic, API data, any async source     | Varies         |
 
 **Decision guide:**
 
@@ -68,12 +68,11 @@ await read("data.csv")
 
 ## Key Benefits
 
-### 🚀 **High Performance**
+### 🚀 **Streaming & Performance**
 
-- **flatdata CLI**: WASM-powered parsing at ~330 MB/s
-- **LazyRow optimization**: Up to 1.7x faster parsing for CSV/TSV
 - **Streaming design**: Constant memory usage regardless of file size
-- **Optimized batching**: ~128KB chunks for maximum throughput
+- **LazyRow optimization**: Faster parsing for CSV/TSV when accessing selective fields
+- **flatdata CLI**: WASM-powered tool for very large files
 
 ### 📊 **Format Support**
 
@@ -87,20 +86,6 @@ await read("data.csv")
 - **Row arrays**: `string[][]` for simple tabular data
 - **LazyRow**: Optimized read-only access with lazy conversion
 - **Objects**: Full JSON object support with optional validation
-
-## Performance Comparison
-
-Based on comprehensive benchmarks across dataset sizes:
-
-| Method          | Throughput | Notes                                 |
-| --------------- | ---------- | ------------------------------------- |
-| **flatdata -w** | ~330 MB/s  | WASM subprocess, best for large files |
-| **Record**      | 60-93 MB/s | In-process, highest JS throughput     |
-| **JSON**        | 70-98 MB/s | Object structures                     |
-| **TSV**         | 57-72 MB/s | Human readable                        |
-| **CSV**         | 10-27 MB/s | Universal compatibility               |
-
-> **💡 Tip**: Use LazyRow with CSV for 1.05-1.7x performance improvement
 
 ## When to Use Each Format
 

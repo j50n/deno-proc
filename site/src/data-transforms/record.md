@@ -1,7 +1,6 @@
 # Record Format
 
-High-performance binary-safe format using ASCII control characters for maximum
-throughput.
+High-performance binary-safe format using ASCII control characters.
 
 > ⚠️ **Experimental (v0.24.0+)**: Record format transforms are under active
 > development. API may change as we improve correctness and streaming
@@ -9,22 +8,9 @@ throughput.
 
 ## Overview
 
-Record format is designed for **maximum performance** in data processing
-pipelines. It uses ASCII control characters (Record Separator and Field
+Record format is designed for **high-throughput data processing** pipelines. It uses ASCII control characters (Record Separator and Field
 Separator) to achieve reliable parsing while supporting any UTF-8 content in
 field values, including tabs and newlines.
-
-## Performance Characteristics
-
-| Dataset Size | Parsing Speed | Stringify Speed | Best Use Case          |
-| ------------ | ------------- | --------------- | ---------------------- |
-| Small (1K)   | 59.95 MB/s    | 188.16 MB/s     | Good baseline          |
-| Medium (10K) | 86.34 MB/s    | 89.86 MB/s      | Excellent scaling      |
-| Large (50K)  | 93.34 MB/s    | 220.38 MB/s     | **Highest throughput** |
-
-> **Performance Leader**: Record format provides the most consistent high
-> performance across all dataset sizes, making it ideal for high-throughput data
-> processing.
 
 ## Format Specification
 
@@ -157,10 +143,10 @@ Record format is optimized for speed:
 // Fastest format for high-throughput processing
 const startTime = Date.now();
 
-await read("large-dataset.record") // 93 MB/s parsing
+await read("large-dataset.record") // Fast parsing
   .transform(fromRecordToRows())
   .filter((row) => row[0].startsWith("A"))
-  .transform(toRecord()) // 220 MB/s stringify
+  .transform(toRecord()) // Fast stringify
   .writeTo("filtered.record");
 
 const duration = Date.now() - startTime;

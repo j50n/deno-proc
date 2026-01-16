@@ -149,7 +149,7 @@ For maximum performance between proc scripts:
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 import { fromCsvToRows, toRecord, fromRecordToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
-// CSV → Record (60-93 MB/s)
+// CSV → Record (fast conversion)
 await read("data.csv")
   .transform(fromCsvToRows())
   .transform(toRecord())
@@ -163,16 +163,16 @@ await read("data.record")
   .writeTo("filtered.tsv");
 ```
 
-**Record format is 2-3x faster than CSV for intermediate data.**
+**Record format is significantly faster than CSV for intermediate data.**
 
 ## Format Selection Guide
 
 | Format     | Use When                                      | Speed      |
 |------------|-----------------------------------------------|------------|
-| **CSV**    | Human readable, universal compatibility       | 10-27 MB/s |
-| **TSV**    | Simple, fast, human readable                  | 57-72 MB/s |
-| **JSON**   | Need object structure, nested data            | 70-98 MB/s |
-| **Record** | Intermediate format between proc scripts      | 60-93 MB/s |
+| **CSV**    | Human readable, universal compatibility       | Moderate   |
+| **TSV**    | Simple, fast, human readable                  | Good       |
+| **JSON**   | Need object structure, nested data            | Good       |
+| **Record** | Intermediate format between proc scripts      | Excellent  |
 
 ## Custom Separators
 

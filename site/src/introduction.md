@@ -57,7 +57,7 @@ output, handle errors gracefully.
 source. Process gigabyte files with constant memory.
 
 **Data Transforms** — Convert between CSV, TSV, JSON, and Record formats with
-streaming support. Or use the WASM-powered flatdata CLI for 330 MB/s throughput.
+streaming support. Or use the WASM-powered flatdata CLI for maximum throughput.
 
 ## A Taste of proc
 

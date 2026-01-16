@@ -164,12 +164,12 @@ With `always_quote` enabled, all fields are quoted regardless of content.
 
 | Metric               | Value              |
 | -------------------- | ------------------ |
-| Native throughput    | ~550 MB/s          |
-| WASM throughput      | ~330 MB/s          |
-| Memory overhead      | ~10% of input size |
+| Native throughput    | Fastest            |
+| WASM throughput      | Very Fast          |
+| Memory overhead      | Low                |
 | Streaming chunk size | 64 KB recommended  |
 
-Performance measured on 10-column CSV with average field length of 15 bytes.
+Performance characteristics based on typical CSV data with moderate field lengths.
 
 ## WebAssembly Integration
 

@@ -25,6 +25,13 @@ deallocate_simd_unrolled :: proc "c" (ptr: rawptr, size: int) {
 // Transform record format to TSV in-place using SIMD with 4x loop unrolling
 // Processes 64 bytes per iteration (4 × 16-byte SIMD vectors)
 // Assumes buffer is allocated with aligned size (multiple of 64)
+//
+// PERFORMANCE NOTE: Loop unrolling (2-4x) improves SIMD throughput on modern CPUs:
+// - Reduces loop overhead (fewer branches, counter increments)
+// - Exposes instruction-level parallelism for superscalar execution
+// - Enables dual-issue on AMD Zen processors with multiple SIMD execution ports
+// - Better instruction pipelining with more independent operations per iteration
+// - Recommended: 4x unrolling (64 bytes) balances performance vs code size
 @(export)
 record_to_tsv_simd_unrolled :: proc "c" (ptr: rawptr, length: int) {
 	context = runtime.default_context()
@@ -39,6 +46,8 @@ record_to_tsv_simd_unrolled :: proc "c" (ptr: rawptr, length: int) {
 	aligned_length := ((length + 63) / 64) * 64
 	data := slice.from_ptr(cast(^u8)ptr, aligned_length)
 	
+	// Main loop: 4x unrolled (64 bytes per iteration)
+	// Each vector operation is independent, allowing CPU to execute them in parallel
 	for i := 0; i < aligned_length; i += 64 {
 		// Process 4 × 16-byte vectors per iteration
 		

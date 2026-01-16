@@ -27,6 +27,11 @@ deallocate_simd :: proc "c" (ptr: rawptr, size: int) {
 // Replaces 0x1e (record separator) with 0x0a (newline)
 // Processes 16 bytes at a time with 128-bit SIMD vectors
 // Assumes buffer is allocated with aligned size (multiple of 16)
+//
+// NOTE: This is the basic SIMD version without loop unrolling.
+// For better performance on modern CPUs (especially AMD Zen with dual-issue SIMD ports),
+// see record2tsv-simd-unrolled.odin which uses 4x loop unrolling (64 bytes per iteration).
+// Loop unrolling exposes instruction-level parallelism and reduces loop overhead.
 @(export)
 record_to_tsv_simd :: proc "c" (ptr: rawptr, length: int) {
 	context = runtime.default_context()

@@ -43,19 +43,6 @@ The key insight: by converting CSV to a simple binary format (record),
 downstream processing becomes trivial string splits instead of complex CSV
 parsing.
 
-## Performance
-
-| Implementation  | Throughput |
-| --------------- | ---------- |
-| Native (Odin)   | ~550 MB/s  |
-| flatdata (WASM) | ~330 MB/s  |
-| Pure JavaScript | ~20 MB/s   |
-
-For a 1GB CSV file:
-
-- WASM: ~7 seconds
-- Pure JS: ~50 seconds
-
 ## Formats
 
 | Format      | Description                         | Use Case                      |

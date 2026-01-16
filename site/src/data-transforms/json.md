@@ -14,18 +14,6 @@ Unlike other formats, JSON preserves full object structure including nested
 objects, arrays, and all JSON data types. This makes it ideal for APIs,
 configuration data, and complex structured information.
 
-## Performance Characteristics
-
-| Dataset Size | Parsing Speed | Best Use Case                  |
-| ------------ | ------------- | ------------------------------ |
-| Small (1K)   | 98.20 MB/s    | **Fastest for small data**     |
-| Medium (10K) | 80.68 MB/s    | Good for structured data       |
-| Large (50K)  | 70.31 MB/s    | Performance degrades with size |
-
-> **Performance Note**: JSON is fastest for small datasets but performance
-> decreases with larger files. Use for rich object structures rather than simple
-> tabular data.
-
 ## Basic Usage
 
 ### Parsing JSON Lines
