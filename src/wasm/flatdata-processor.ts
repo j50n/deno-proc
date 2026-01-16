@@ -571,62 +571,6 @@ export class FlatdataProcessor {
    * @param write - Writer function for output chunks
    * @param separator - CSV field separator (default: comma)
    */
-  async csvToTsv(
-    input: ReadableStream<Uint8Array>,
-    write: Writer,
-    separator: number,
-  ): Promise<void> {
-    // CSV input with custom separator
-    // Output: \t for fields, \n for records
-    const parserId = this.exports.create_direct_parser(
-      separator,
-      0,
-      0x09,
-      0x0A,
-      0x0A,
-    );
-    const reader = input.getReader();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        for (
-          let off = 0;
-          off < value.length;
-          off += FlatdataProcessor.CHUNK_SIZE
-        ) {
-          const slice = value.subarray(
-            off,
-            Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length),
-          );
-          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(
-            slice,
-          );
-
-          const outLen = this.exports.parse_direct(parserId, slice.length);
-          if (outLen > 0) {
-            await write(
-              new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen),
-            );
-          }
-        }
-      }
-
-      const finalLen = this.exports.finish_direct(parserId);
-      if (finalLen > 0) {
-        await write(
-          new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen),
-        );
-      }
-    } finally {
-      this.exports.destroy_direct_parser(parserId);
-    }
-  }
-
-  /**
-   * Convert TSV directly to CSV.
   /**
    * Convert record format to delimited output (CSV/TSV).
    *
@@ -637,67 +581,6 @@ export class FlatdataProcessor {
    * @param write - Writer function for output chunks
    * @param separator - Output field separator (comma for CSV, tab for TSV)
    */
-  async recordToDelimited(
-    input: ReadableStream<Uint8Array>,
-    write: Writer,
-    separator: number,
-  ): Promise<void> {
-    // Record format has no quoting - just replace delimiters
-    const replacerId = this.exports.create_streaming_delimiter_replacer(
-      0x1F,
-      0x1E,
-      separator,
-      0x0A,
-    );
-    const reader = input.getReader();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        this.ensureInputBuffer(value.length);
-        new Uint8Array(this.memory.buffer, this.inputPtr, value.length).set(
-          value,
-        );
-
-        const ready = this.exports.streaming_delimiter_replace(
-          replacerId,
-          value.length,
-        );
-
-        if (ready) {
-          const outLen = this.exports.get_streaming_delimiter_output(
-            replacerId,
-          );
-          if (outLen > 0) {
-            await write(
-              new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen)
-                .slice(),
-            );
-            this.exports.clear_streaming_delimiter_output(replacerId);
-          }
-        }
-      }
-
-      const outLen = this.exports.finish_streaming_delimiter(replacerId);
-      if (outLen > 0) {
-        const finalOut = this.exports.get_streaming_delimiter_output(
-          replacerId,
-        );
-        if (finalOut > 0) {
-          await write(
-            new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalOut)
-              .slice(),
-          );
-        }
-      }
-    } finally {
-      this.exports.destroy_streaming_delimiter_replacer(replacerId);
-      reader.releaseLock();
-    }
-  }
-
   /**
    * Convert record format to CSV/TSV.
    *
@@ -1122,61 +1005,6 @@ export class FlatdataProcessor {
    * @param input - Readable stream of binary lazyrow bytes
    * @param write - Writer function for output chunks
    */
-  async lazyRowBinaryToRecord(
-    input: ReadableStream<Uint8Array>,
-    write: Writer,
-  ): Promise<void> {
-    // Use streaming decoder with record format separators
-    const decoderId = this.exports.create_streaming_lazyrow_decoder(0x1F, 0x1E);
-    const reader = input.getReader();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // Copy chunk to WASM input buffer
-        this.ensureInputBuffer(value.length);
-        new Uint8Array(this.memory.buffer, this.inputPtr, value.length).set(
-          value,
-        );
-
-        // Single WASM call processes entire chunk
-        const ready = this.exports.streaming_lazyrow_decode(
-          decoderId,
-          value.length,
-        );
-
-        // Write when threshold reached
-        if (ready) {
-          const outLen = this.exports.get_streaming_lazyrow_output(decoderId);
-          if (outLen > 0) {
-            await write(
-              new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen)
-                .slice(),
-            );
-            this.exports.clear_streaming_lazyrow_output(decoderId);
-          }
-        }
-      }
-
-      // Flush remaining output
-      const outLen = this.exports.finish_streaming_lazyrow(decoderId);
-      if (outLen > 0) {
-        const finalOut = this.exports.get_streaming_lazyrow_output(decoderId);
-        if (finalOut > 0) {
-          await write(
-            new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalOut)
-              .slice(),
-          );
-        }
-      }
-    } finally {
-      this.exports.destroy_streaming_lazyrow_decoder(decoderId);
-      reader.releaseLock();
-    }
-  }
-
   /**
    * Convert binary lazyrow format to CSV/TSV.
    *
@@ -1187,64 +1015,6 @@ export class FlatdataProcessor {
    * @param write - Writer function for output chunks
    * @param separator - Output field separator
    */
-  async lazyRowBinaryToDelimited(
-    input: ReadableStream<Uint8Array>,
-    write: Writer,
-    separator: number,
-  ): Promise<void> {
-    const decoderId = this.exports.create_streaming_lazyrow_decoder(
-      separator,
-      0x0A,
-    );
-    const reader = input.getReader();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // Copy chunk to WASM input buffer
-        this.ensureInputBuffer(value.length);
-        new Uint8Array(this.memory.buffer, this.inputPtr, value.length).set(
-          value,
-        );
-
-        // Single WASM call processes entire chunk
-        const ready = this.exports.streaming_lazyrow_decode(
-          decoderId,
-          value.length,
-        );
-
-        // Write when threshold reached
-        if (ready) {
-          const outLen = this.exports.get_streaming_lazyrow_output(decoderId);
-          if (outLen > 0) {
-            await write(
-              new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen)
-                .slice(),
-            );
-            this.exports.clear_streaming_lazyrow_output(decoderId);
-          }
-        }
-      }
-
-      // Flush remaining output
-      const outLen = this.exports.finish_streaming_lazyrow(decoderId);
-      if (outLen > 0) {
-        const finalOut = this.exports.get_streaming_lazyrow_output(decoderId);
-        if (finalOut > 0) {
-          await write(
-            new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalOut)
-              .slice(),
-          );
-        }
-      }
-    } finally {
-      this.exports.destroy_streaming_lazyrow_decoder(decoderId);
-      reader.releaseLock();
-    }
-  }
-
   // =============================================================================
   // Private Helper Methods
   // =============================================================================
