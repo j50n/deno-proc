@@ -786,12 +786,14 @@ stringify_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
         c := input[i]
         
         if c == field_sep || c == record_sep {
-            field := input[field_start:i]
-            
+            // Add separator before field (except for first field in row)
             if !first_field_in_row {
                 append(&output_buffer, out_sep)
             }
             first_field_in_row = false
+            
+            // Process the field
+            field := input[field_start:i]
             
             needs_quote := always_quote
             if !needs_quote {
@@ -820,6 +822,7 @@ stringify_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
                 }
             }
             
+            // Handle record separator
             if c == record_sep {
                 if line_ending == .CRLF {
                     append(&output_buffer, '\r')

@@ -783,26 +783,37 @@ export class FlatdataProcessor {
       0,
     );
     const reader = input.getReader();
+    let buffer = new Uint8Array(0);
+    const RECORD_SEP = 0x1E;
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        for (
-          let off = 0;
-          off < value.length;
-          off += FlatdataProcessor.CHUNK_SIZE
-        ) {
-          const slice = value.subarray(
-            off,
-            Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length),
-          );
-          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(
-            slice,
-          );
+        // Append to buffer
+        const newBuffer = new Uint8Array(buffer.length + value.length);
+        newBuffer.set(buffer);
+        newBuffer.set(value, buffer.length);
+        buffer = newBuffer;
 
-          this.exports.stringify_delimited(stringifierId, slice.length);
+        // Find last record separator
+        let lastRecordEnd = -1;
+        for (let i = buffer.length - 1; i >= 0; i--) {
+          if (buffer[i] === RECORD_SEP) {
+            lastRecordEnd = i + 1;
+            break;
+          }
+        }
+
+        // Process complete records
+        if (lastRecordEnd > 0) {
+          const completeRecords = buffer.slice(0, lastRecordEnd);
+          buffer = buffer.slice(lastRecordEnd);
+
+          this.ensureInputBuffer(completeRecords.length);
+          new Uint8Array(this.memory.buffer, this.inputPtr, completeRecords.length).set(completeRecords);
+          this.exports.stringify_delimited(stringifierId, completeRecords.length);
 
           const outLen = this.exports.get_stringify_output(stringifierId);
           if (outLen > 0) {
@@ -817,14 +828,21 @@ export class FlatdataProcessor {
         }
       }
 
-      const outLen = this.exports.get_stringify_output(stringifierId);
-      if (outLen > 0) {
-        const output = new Uint8Array(
-          this.memory.buffer,
-          this.getOutputPtr(),
-          outLen,
-        );
-        await write(output.slice());
+      // Process remaining data
+      if (buffer.length > 0) {
+        this.ensureInputBuffer(buffer.length);
+        new Uint8Array(this.memory.buffer, this.inputPtr, buffer.length).set(buffer);
+        this.exports.stringify_delimited(stringifierId, buffer.length);
+
+        const outLen = this.exports.get_stringify_output(stringifierId);
+        if (outLen > 0) {
+          const output = new Uint8Array(
+            this.memory.buffer,
+            this.getOutputPtr(),
+            outLen,
+          );
+          await write(output.slice());
+        }
       }
     } finally {
       this.exports.destroy_delimited_stringifier(stringifierId);
@@ -1536,11 +1554,55 @@ export class FlatdataProcessor {
       0,
     );
     try {
+      let buffer = new Uint8Array(0);
+      const RECORD_SEP = 0x1E;
+      
       for await (const chunk of input) {
         if (chunk.length === 0) continue;
 
-        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
-        this.exports.stringify_delimited(stringifierId, chunk.length);
+        // Append chunk to buffer
+        const newBuffer = new Uint8Array(buffer.length + chunk.length);
+        newBuffer.set(buffer);
+        newBuffer.set(chunk, buffer.length);
+        buffer = newBuffer;
+
+        // Find last record separator
+        let lastRecordEnd = -1;
+        for (let i = buffer.length - 1; i >= 0; i--) {
+          if (buffer[i] === RECORD_SEP) {
+            lastRecordEnd = i + 1;
+            break;
+          }
+        }
+
+        // Process complete records if found
+        if (lastRecordEnd > 0) {
+          const completeRecords = buffer.slice(0, lastRecordEnd);
+          buffer = buffer.slice(lastRecordEnd);
+
+          this.ensureInputBuffer(completeRecords.length);
+          new Uint8Array(this.memory.buffer, this.inputPtr, completeRecords.length).set(completeRecords);
+          this.exports.stringify_delimited(stringifierId, completeRecords.length);
+
+          const bytesWritten = this.exports.get_stringify_output(stringifierId);
+          if (bytesWritten > 0) {
+            const outputPtr = this.getOutputPtr();
+            const output = new Uint8Array(
+              this.memory.buffer,
+              outputPtr,
+              bytesWritten,
+            ).slice();
+            yield output;
+            this.exports.clear_stringify_output(stringifierId);
+          }
+        }
+      }
+
+      // Process any remaining data
+      if (buffer.length > 0) {
+        this.ensureInputBuffer(buffer.length);
+        new Uint8Array(this.memory.buffer, this.inputPtr, buffer.length).set(buffer);
+        this.exports.stringify_delimited(stringifierId, buffer.length);
 
         const bytesWritten = this.exports.get_stringify_output(stringifierId);
         if (bytesWritten > 0) {
@@ -1564,34 +1626,251 @@ export class FlatdataProcessor {
    * Replaces 0x1F (field separator) with tab and 0x1E (record separator) with newline.
    * Much faster than going through the CSV stringifier.
    */
-  async recordToTsvFast(
-    input: ReadableStream<Uint8Array>,
-    write: Writer,
-  ): Promise<void> {
-    const reader = input.getReader();
+  async *recordToTsvFast(
+    input: AsyncIterable<Uint8Array>,
+  ): AsyncGenerator<Uint8Array> {
+    for await (const chunk of input) {
+      if (chunk.length === 0) continue;
+
+      this.ensureInputBuffer(chunk.length);
+      new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+
+      const outputLen = this.exports.record_to_tsv(this.inputPtr, chunk.length);
+
+      yield new Uint8Array(this.memory.buffer, this.inputPtr, outputLen).slice();
+    }
+  }
+
+  // =============================================================================
+  // Async Generator Versions (for enumerate pattern)
+  // =============================================================================
+
+  async *csvToRecordStreaming(
+    input: AsyncIterable<Uint8Array>,
+    separator: number,
+  ): AsyncGenerator<Uint8Array> {
+    const parserId = this.exports.create_direct_parser(separator, 0, 0x1F, 0x1E, 0x0A);
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value.length === 0) continue;
+      for await (const chunk of input) {
+        for (let off = 0; off < chunk.length; off += FlatdataProcessor.CHUNK_SIZE) {
+          const slice = chunk.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, chunk.length));
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
 
-        // Copy to WASM memory
-        this.ensureInputBuffer(value.length);
-        new Uint8Array(this.memory.buffer, this.inputPtr, value.length).set(value);
+          const outLen = this.exports.parse_direct(parserId, slice.length);
+          if (outLen < 0) throw new Error("WASM memory allocation failed");
+          if (outLen > 0) {
+            yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+          }
+        }
+      }
 
-        // Transform in-place (0x1F→tab, 0x1E→newline)
-        const outputLen = this.exports.record_to_tsv(this.inputPtr, value.length);
-
-        // Write output
-        const output = new Uint8Array(
-          this.memory.buffer,
-          this.inputPtr,
-          outputLen,
-        );
-        await write(output);
+      const finalLen = this.exports.finish_direct(parserId);
+      if (finalLen < 0) throw new Error("WASM memory allocation failed");
+      if (finalLen > 0) {
+        yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen).slice();
       }
     } finally {
-      reader.releaseLock();
+      this.exports.destroy_direct_parser(parserId);
+    }
+  }
+
+  async *csvToTsvStreaming(
+    input: AsyncIterable<Uint8Array>,
+    separator: number,
+  ): AsyncGenerator<Uint8Array> {
+    const parserId = this.exports.create_direct_parser(separator, 0, 0x09, 0x0A, 0x0A);
+    try {
+      for await (const chunk of input) {
+        for (let off = 0; off < chunk.length; off += FlatdataProcessor.CHUNK_SIZE) {
+          const slice = chunk.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, chunk.length));
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+
+          const outLen = this.exports.parse_direct(parserId, slice.length);
+          if (outLen > 0) {
+            yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+          }
+        }
+      }
+
+      const finalLen = this.exports.finish_direct(parserId);
+      if (finalLen > 0) {
+        yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen).slice();
+      }
+    } finally {
+      this.exports.destroy_direct_parser(parserId);
+    }
+  }
+
+  async *tsvToCsvStreaming(
+    input: AsyncIterable<Uint8Array>,
+    separator: number,
+  ): AsyncGenerator<Uint8Array> {
+    const parserId = this.exports.create_direct_parser(0x09, 0, separator, 0x0A, 0x0A);
+    try {
+      for await (const chunk of input) {
+        for (let off = 0; off < chunk.length; off += FlatdataProcessor.CHUNK_SIZE) {
+          const slice = chunk.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, chunk.length));
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+
+          const outLen = this.exports.parse_direct(parserId, slice.length);
+          if (outLen > 0) {
+            yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+          }
+        }
+      }
+
+      const finalLen = this.exports.finish_direct(parserId);
+      if (finalLen > 0) {
+        yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen).slice();
+      }
+    } finally {
+      this.exports.destroy_direct_parser(parserId);
+    }
+  }
+
+  async *csvToLazyRowBinaryStreaming(
+    input: AsyncIterable<Uint8Array>,
+    separator: number,
+  ): AsyncGenerator<Uint8Array> {
+    const parserId = this.exports.create_lazyrow_direct_parser(separator, 0x0A);
+    try {
+      for await (const chunk of input) {
+        for (let off = 0; off < chunk.length; off += FlatdataProcessor.CHUNK_SIZE) {
+          const slice = chunk.subarray(off, Math.min(off + FlatdataProcessor.CHUNK_SIZE, chunk.length));
+          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(slice);
+
+          const outLen = this.exports.parse_to_lazyrow(parserId, slice.length);
+          if (outLen > 0) {
+            yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+          }
+        }
+      }
+
+      const finalLen = this.exports.finish_lazyrow_direct(parserId);
+      if (finalLen > 0) {
+        yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen).slice();
+      }
+    } finally {
+      this.exports.destroy_lazyrow_direct_parser(parserId);
+    }
+  }
+
+  async *lazyRowBinaryToDelimitedStreaming(
+    input: AsyncIterable<Uint8Array>,
+    separator: number,
+  ): AsyncGenerator<Uint8Array> {
+    const decoderId = this.exports.create_streaming_lazyrow_decoder(separator, 0x0A);
+    try {
+      for await (const chunk of input) {
+        this.ensureInputBuffer(chunk.length);
+        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+
+        const ready = this.exports.streaming_lazyrow_decode(decoderId, chunk.length);
+        if (ready) {
+          const outLen = this.exports.get_streaming_lazyrow_output(decoderId);
+          if (outLen > 0) {
+            yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+            this.exports.clear_streaming_lazyrow_output(decoderId);
+          }
+        }
+      }
+
+      const outLen = this.exports.finish_streaming_lazyrow(decoderId);
+      if (outLen > 0) {
+        const finalOut = this.exports.get_streaming_lazyrow_output(decoderId);
+        if (finalOut > 0) {
+          yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalOut).slice();
+        }
+      }
+    } finally {
+      this.exports.destroy_streaming_lazyrow_decoder(decoderId);
+    }
+  }
+
+  async *lazyRowBinaryToRecordStreaming(
+    input: AsyncIterable<Uint8Array>,
+  ): AsyncGenerator<Uint8Array> {
+    const decoderId = this.exports.create_streaming_lazyrow_decoder(0x1F, 0x1E);
+    try {
+      for await (const chunk of input) {
+        this.ensureInputBuffer(chunk.length);
+        new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+
+        const ready = this.exports.streaming_lazyrow_decode(decoderId, chunk.length);
+        if (ready) {
+          const outLen = this.exports.get_streaming_lazyrow_output(decoderId);
+          if (outLen > 0) {
+            yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+            this.exports.clear_streaming_lazyrow_output(decoderId);
+          }
+        }
+      }
+
+      const outLen = this.exports.finish_streaming_lazyrow(decoderId);
+      if (outLen > 0) {
+        const finalOut = this.exports.get_streaming_lazyrow_output(decoderId);
+        if (finalOut > 0) {
+          yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalOut).slice();
+        }
+      }
+    } finally {
+      this.exports.destroy_streaming_lazyrow_decoder(decoderId);
+    }
+  }
+
+  async *recordToLazyRowBinaryStreaming(
+    input: AsyncIterable<Uint8Array>,
+  ): AsyncGenerator<Uint8Array> {
+    let buffer = new Uint8Array(0);
+    const RECORD_SEP = 0x1E;
+
+    for await (const chunk of input) {
+      const newBuf = new Uint8Array(buffer.length + chunk.length);
+      newBuf.set(buffer);
+      newBuf.set(chunk, buffer.length);
+      buffer = newBuf;
+
+      let lastRecordEnd = -1;
+      for (let i = buffer.length - 1; i >= 0; i--) {
+        if (buffer[i] === RECORD_SEP) {
+          lastRecordEnd = i;
+          break;
+        }
+      }
+
+      if (lastRecordEnd >= 0) {
+        const completeData = buffer.subarray(0, lastRecordEnd + 1);
+        this.ensureInputBuffer(completeData.length);
+        new Uint8Array(this.memory.buffer, this.inputPtr, completeData.length).set(completeData);
+
+        const outLen = this.exports.record_to_lazyrow(completeData.length);
+        if (outLen > 0) {
+          yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+        }
+
+        buffer = buffer.subarray(lastRecordEnd + 1);
+      }
+    }
+
+    if (buffer.length > 0) {
+      let lastRecordEnd = -1;
+      for (let i = buffer.length - 1; i >= 0; i--) {
+        if (buffer[i] === RECORD_SEP) {
+          lastRecordEnd = i;
+          break;
+        }
+      }
+
+      if (lastRecordEnd >= 0) {
+        const completeData = buffer.subarray(0, lastRecordEnd + 1);
+        this.ensureInputBuffer(completeData.length);
+        new Uint8Array(this.memory.buffer, this.inputPtr, completeData.length).set(completeData);
+
+        const outLen = this.exports.record_to_lazyrow(completeData.length);
+        if (outLen > 0) {
+          yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
+        }
+      }
     }
   }
 }

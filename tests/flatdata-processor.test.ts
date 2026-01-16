@@ -18,12 +18,9 @@ Deno.test("FlatdataProcessor - recordToTsvFast - basic conversion", async () => 
   });
 
   const chunks: Uint8Array[] = [];
-  const write = (chunk: Uint8Array) => {
+  for await (const chunk of processor.recordToTsvFast(stream)) {
     chunks.push(chunk);
-    return Promise.resolve(chunk.length);
-  };
-
-  await processor.recordToTsvFast(stream, write);
+  }
 
   const output = new TextDecoder().decode(
     new Uint8Array(chunks.flatMap((c) => Array.from(c))),
@@ -44,12 +41,9 @@ Deno.test("FlatdataProcessor - recordToTsvFast - empty fields", async () => {
   });
 
   const chunks: Uint8Array[] = [];
-  const write = (chunk: Uint8Array) => {
+  for await (const chunk of processor.recordToTsvFast(stream)) {
     chunks.push(chunk);
-    return Promise.resolve(chunk.length);
-  };
-
-  await processor.recordToTsvFast(stream, write);
+  }
 
   const output = new TextDecoder().decode(
     new Uint8Array(chunks.flatMap((c) => Array.from(c))),
@@ -70,12 +64,9 @@ Deno.test("FlatdataProcessor - recordToTsvFast - single field", async () => {
   });
 
   const chunks: Uint8Array[] = [];
-  const write = (chunk: Uint8Array) => {
+  for await (const chunk of processor.recordToTsvFast(stream)) {
     chunks.push(chunk);
-    return Promise.resolve(chunk.length);
-  };
-
-  await processor.recordToTsvFast(stream, write);
+  }
 
   const output = new TextDecoder().decode(
     new Uint8Array(chunks.flatMap((c) => Array.from(c))),
@@ -96,12 +87,9 @@ Deno.test("FlatdataProcessor - recordToTsvFast - special characters", async () =
   });
 
   const chunks: Uint8Array[] = [];
-  const write = (chunk: Uint8Array) => {
+  for await (const chunk of processor.recordToTsvFast(stream)) {
     chunks.push(chunk);
-    return Promise.resolve(chunk.length);
-  };
-
-  await processor.recordToTsvFast(stream, write);
+  }
 
   const output = new TextDecoder().decode(
     new Uint8Array(chunks.flatMap((c) => Array.from(c))),

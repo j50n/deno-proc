@@ -29,46 +29,9 @@
  */
 
 import { Command } from "@cliffy/command";
+import { enumerate } from "../../mod.ts";
 import { FlatdataProcessor } from "../../src/wasm/flatdata-processor.ts";
 import denoJson from "../../deno.json" with { type: "json" };
-
-/** Writer function type for streaming output */
-type Writer = (data: Uint8Array) => Promise<number>;
-
-// =============================================================================
-// I/O Helpers
-// =============================================================================
-
-/**
- * Get input stream from file or stdin.
- * @param file - Optional file path; if omitted, uses stdin
- * @returns Readable stream of bytes
- */
-async function getInput(file?: string): Promise<ReadableStream<Uint8Array>> {
-  if (file) {
-    return (await Deno.open(file, { read: true })).readable;
-  }
-  return Deno.stdin.readable;
-}
-
-/**
- * Get output writer for file or stdout.
- * @param file - Optional file path; if omitted, uses stdout
- * @returns Writer object with write and close methods
- */
-async function getWriter(
-  file?: string,
-): Promise<{ write: Writer; close: () => void }> {
-  if (file) {
-    const f = await Deno.open(file, {
-      write: true,
-      create: true,
-      truncate: true,
-    });
-    return { write: (d) => f.write(d), close: () => f.close() };
-  }
-  return { write: (d) => Deno.stdout.write(d), close: () => {} };
-}
 
 // =============================================================================
 // CLI
@@ -84,10 +47,18 @@ const csv2record = new Command()
   .example("European CSV", "flatdata csv2record -d ';' -i euro.csv -o data.rec")
   .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.csvToRecord(stream, write, separator!.charCodeAt(0));
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) =>
+        processor.csvToRecordStreaming(input, separator!.charCodeAt(0))
+      );
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 const csv2lazyrow = new Command()
@@ -97,10 +68,18 @@ const csv2lazyrow = new Command()
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.csvToLazyRowBinary(stream, write, separator!.charCodeAt(0));
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) =>
+        processor.csvToLazyRowBinaryStreaming(input, separator!.charCodeAt(0))
+      );
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 const csv2tsv = new Command()
@@ -113,10 +92,18 @@ const csv2tsv = new Command()
   .example("Basic", "cat data.csv | flatdata csv2tsv > data.tsv")
   .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.csvToTsv(stream, write, separator!.charCodeAt(0));
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) =>
+        processor.csvToTsvStreaming(input, separator!.charCodeAt(0))
+      );
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 // TSV input commands
@@ -127,10 +114,16 @@ const tsv2record = new Command()
   .example("Basic", "cat data.tsv | flatdata tsv2record")
   .action(async ({ input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.csvToRecord(stream, write, 9);
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) => processor.csvToRecordStreaming(input, 9));
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 const tsv2lazyrow = new Command()
@@ -139,10 +132,16 @@ const tsv2lazyrow = new Command()
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.csvToLazyRowBinary(stream, write, 9);
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) => processor.csvToLazyRowBinaryStreaming(input, 9));
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 const tsv2csv = new Command()
@@ -155,10 +154,18 @@ const tsv2csv = new Command()
   .example("Basic", "cat data.tsv | flatdata tsv2csv > data.csv")
   .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.tsvToCsv(stream, write, separator!.charCodeAt(0));
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) =>
+        processor.tsvToCsvStreaming(input, separator!.charCodeAt(0))
+      );
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 // Record output commands
@@ -174,10 +181,18 @@ const record2csv = new Command()
   )
   .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.recordToDelimited(stream, write, separator!.charCodeAt(0));
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) =>
+        processor.recordToCsvStreaming(input, separator!.charCodeAt(0))
+      );
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 const record2tsv = new Command()
@@ -187,10 +202,16 @@ const record2tsv = new Command()
   .example("Basic", "flatdata record2tsv < data.rec > data.tsv")
   .action(async ({ input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.recordToTsvFast(stream, write);
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) => processor.recordToTsvFast(input));
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 // Lazyrow output commands (binary format)
@@ -201,14 +222,21 @@ const lazyrow2csv = new Command()
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ separator, input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.lazyRowBinaryToDelimited(
-      stream,
-      write,
-      separator!.charCodeAt(0),
-    );
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) =>
+        processor.lazyRowBinaryToDelimitedStreaming(
+          input,
+          separator!.charCodeAt(0),
+        )
+      );
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 const lazyrow2tsv = new Command()
@@ -217,10 +245,18 @@ const lazyrow2tsv = new Command()
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.lazyRowBinaryToDelimited(stream, write, 9);
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) =>
+        processor.lazyRowBinaryToDelimitedStreaming(input, 9)
+      );
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 // Record <-> Lazyrow conversion commands
@@ -230,10 +266,16 @@ const record2lazyrow = new Command()
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.recordToLazyRowBinary(stream, write);
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) => processor.recordToLazyRowBinaryStreaming(input));
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 const lazyrow2record = new Command()
@@ -242,10 +284,16 @@ const lazyrow2record = new Command()
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .action(async ({ input, output }) => {
     const processor = await FlatdataProcessor.create();
-    const stream = await getInput(input);
-    const { write, close } = await getWriter(output);
-    await processor.lazyRowBinaryToRecord(stream, write);
-    close();
+    const stream = input
+      ? (await Deno.open(input, { read: true })).readable
+      : Deno.stdin.readable;
+
+    const enumerated = enumerate(stream)
+      .transform((input) => processor.lazyRowBinaryToRecordStreaming(input));
+
+    await (output
+      ? enumerated.writeTo(output)
+      : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
   });
 
 // Main command

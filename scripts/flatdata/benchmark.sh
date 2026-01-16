@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(dirname "$0")"
+BENCH_DIR="$SCRIPT_DIR/../../benchmarks"
+
+cd "$BENCH_DIR"
 
 echo "Formatting benchmark code..."
 deno fmt flatdata-throughput.ts

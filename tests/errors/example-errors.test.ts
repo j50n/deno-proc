@@ -9,6 +9,12 @@ class BadNewsError extends Error {
   }
 }
 
+// KNOWN ISSUE: These tests are flaky due to a race condition in the Deno test runner
+// where unhandled promise rejections with null values occur intermittently.
+// The issue does not reproduce outside the test runner and does not affect library usage.
+// If a test fails with "error: null" from a dangling promise, it's this known issue.
+// See: FLAKY_TEST_ANALYSIS.md
+
 Deno.test(
   { name: "error processing from stderr #1", sanitizeResources: false },
   async () => {
