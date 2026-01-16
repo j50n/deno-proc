@@ -16,7 +16,7 @@ async function record2tsv(
   
   const chunks: Uint8Array[] = [];
   for await (
-    const chunk of processor.recordToTsvFast(
+    const chunk of processor.recordToTsv(
       (async function* () {
         yield encoder.encode(input);
       })(),

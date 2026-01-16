@@ -705,15 +705,15 @@ delimited_stringify :: proc(s: ^DelimitedStringifier, input: []u8) -> bool {
     return true
 }
 
-@(private)
-write_field :: proc(s: ^DelimitedStringifier, field: []u8) {
-    needs_quote := s.opts.always_quote
-    sep := s.opts.separator
+// Write a single CSV field with proper RFC 4180 quoting/escaping
+// Public helper for encoding individual fields
+write_csv_field :: proc(output: ^[dynamic]u8, field: []u8, separator: u8, always_quote := false) {
+    needs_quote := always_quote
     
     // Check if quoting needed
     if !needs_quote {
         for c in field {
-            if c == sep || c == '"' || c == '\n' || c == '\r' {
+            if c == separator || c == '"' || c == '\n' || c == '\r' {
                 needs_quote = true
                 break
             }
@@ -721,18 +721,23 @@ write_field :: proc(s: ^DelimitedStringifier, field: []u8) {
     }
     
     if needs_quote {
-        append(&s.output, '"')
+        append(output, '"')
         for c in field {
             if c == '"' {
-                append(&s.output, '"', '"')
+                append(output, '"', '"')
             } else {
-                append(&s.output, c)
+                append(output, c)
             }
         }
-        append(&s.output, '"')
+        append(output, '"')
     } else {
-        append(&s.output, ..field)
+        append(output, ..field)
     }
+}
+
+@(private)
+write_field :: proc(s: ^DelimitedStringifier, field: []u8) {
+    write_csv_field(&s.output, field, s.opts.separator, s.opts.always_quote)
 }
 
 /*
@@ -1192,6 +1197,7 @@ streaming_lazyrow_decode :: proc(d: ^StreamingLazyRowDecoder, input: []u8) -> in
     i := 0
     n := len(data)
     
+    rows_decoded := 0
     for i + 4 <= n {
         // Read row_length (little-endian u32)
         row_length := u32(data[i]) | (u32(data[i+1]) << 8) | (u32(data[i+2]) << 16) | (u32(data[i+3]) << 24)
@@ -1205,6 +1211,7 @@ streaming_lazyrow_decode :: proc(d: ^StreamingLazyRowDecoder, input: []u8) -> in
         // Decode this row directly to output
         row_data := data[i+4 : i+total_row_size]
         streaming_decode_row(d, row_data)
+        rows_decoded += 1
         
         i += total_row_size
     }

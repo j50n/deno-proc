@@ -31,7 +31,7 @@ cd "$HERE" && (
     deno lint $TS_FILES
     deno check $TS_FILES
 
-    deno test --reload --allow-read --allow-write=/tmp/ --allow-run=cat,deno,echo,false,git,grep,gunzip,gzip,ls,printf,sh,sort,tr,uniq,wc ./tests
+    deno test --reload --allow-read --allow-write=/tmp/ --allow-run=cat,deno,echo,false,git,grep,gunzip,gzip,ls,printf,sh,sort,tr,uniq,wc ./tests ./labs/wasm
 
     # Run performance benchmarks
     echo "Running performance benchmarks..."

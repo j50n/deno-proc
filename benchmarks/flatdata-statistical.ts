@@ -14,8 +14,8 @@ import { FlatdataProcessor } from "../src/wasm/flatdata-processor.ts";
 const TEMP_DIR = "/tmp/flatdata-bench";
 const NUM_RECORDS = 100_000;
 const NUM_COLUMNS = 20;
-const WARMUP_ITERATIONS = 30;
-const MEASURE_ITERATIONS = 50;
+const WARMUP_ITERATIONS = 20;
+const MEASURE_ITERATIONS = 10;
 
 async function generateTestData() {
   try {
@@ -178,7 +178,7 @@ async function runBenchmarks() {
     await benchmarkTransform(
       "tsv2record",
       `${TEMP_DIR}/test.tsv`,
-      (p, s) => p.csvToRecordStreaming(s, 9),
+      (p, s) => p.tsvToRecord(s),
     ),
   );
 
@@ -186,7 +186,7 @@ async function runBenchmarks() {
     await benchmarkTransform(
       "tsv2lazyrow",
       `${TEMP_DIR}/test.tsv`,
-      (p, s) => p.csvToLazyRowBinaryStreaming(s, 9),
+      (p, s) => p.tsvToLazyRow(s),
     ),
   );
 
@@ -194,7 +194,7 @@ async function runBenchmarks() {
     await benchmarkTransform(
       "tsv2csv",
       `${TEMP_DIR}/test.tsv`,
-      (p, s) => p.tsvToCsvStreaming(s, 44),
+      (p, s) => p.tsvToCsv(s, 44),
     ),
   );
 
@@ -211,7 +211,7 @@ async function runBenchmarks() {
     await benchmarkTransform(
       "record2tsv (SIMD)",
       `${TEMP_DIR}/test.rec`,
-      (p, s) => p.recordToTsvFast(s),
+      (p, s) => p.recordToTsv(s),
       false, // Use SIMD
     ),
   );
@@ -220,7 +220,7 @@ async function runBenchmarks() {
     await benchmarkTransform(
       "record2tsv (scalar)",
       `${TEMP_DIR}/test.rec`,
-      (p, s) => p.recordToTsvFast(s),
+      (p, s) => p.recordToTsv(s),
       true, // Force scalar
     ),
   );

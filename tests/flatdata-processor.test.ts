@@ -6,7 +6,7 @@
 import { assertEquals } from "@std/assert";
 import { FlatdataProcessor } from "../src/wasm/flatdata-processor.ts";
 
-Deno.test("FlatdataProcessor - recordToTsvFast - basic conversion", async () => {
+Deno.test("FlatdataProcessor - recordToTsv - basic conversion", async () => {
   const processor = await FlatdataProcessor.create();
 
   const input = new TextEncoder().encode("a\x1Fb\x1Fc\x1E1\x1F2\x1F3\x1E");
@@ -18,7 +18,7 @@ Deno.test("FlatdataProcessor - recordToTsvFast - basic conversion", async () => 
   });
 
   const chunks: Uint8Array[] = [];
-  for await (const chunk of processor.recordToTsvFast(stream)) {
+  for await (const chunk of processor.recordToTsv(stream)) {
     chunks.push(chunk);
   }
 
@@ -29,7 +29,7 @@ Deno.test("FlatdataProcessor - recordToTsvFast - basic conversion", async () => 
   assertEquals(output, "a\tb\tc\n1\t2\t3\n");
 });
 
-Deno.test("FlatdataProcessor - recordToTsvFast - empty fields", async () => {
+Deno.test("FlatdataProcessor - recordToTsv - empty fields", async () => {
   const processor = await FlatdataProcessor.create();
 
   const input = new TextEncoder().encode("a\x1F\x1Fc\x1E");
@@ -41,7 +41,7 @@ Deno.test("FlatdataProcessor - recordToTsvFast - empty fields", async () => {
   });
 
   const chunks: Uint8Array[] = [];
-  for await (const chunk of processor.recordToTsvFast(stream)) {
+  for await (const chunk of processor.recordToTsv(stream)) {
     chunks.push(chunk);
   }
 
@@ -52,7 +52,7 @@ Deno.test("FlatdataProcessor - recordToTsvFast - empty fields", async () => {
   assertEquals(output, "a\t\tc\n");
 });
 
-Deno.test("FlatdataProcessor - recordToTsvFast - single field", async () => {
+Deno.test("FlatdataProcessor - recordToTsv - single field", async () => {
   const processor = await FlatdataProcessor.create();
 
   const input = new TextEncoder().encode("value\x1E");
@@ -64,7 +64,7 @@ Deno.test("FlatdataProcessor - recordToTsvFast - single field", async () => {
   });
 
   const chunks: Uint8Array[] = [];
-  for await (const chunk of processor.recordToTsvFast(stream)) {
+  for await (const chunk of processor.recordToTsv(stream)) {
     chunks.push(chunk);
   }
 
@@ -75,7 +75,7 @@ Deno.test("FlatdataProcessor - recordToTsvFast - single field", async () => {
   assertEquals(output, "value\n");
 });
 
-Deno.test("FlatdataProcessor - recordToTsvFast - special characters", async () => {
+Deno.test("FlatdataProcessor - recordToTsv - special characters", async () => {
   const processor = await FlatdataProcessor.create();
 
   const input = new TextEncoder().encode("hello\x1Fworld!\x1F@#$\x1E");
@@ -87,7 +87,7 @@ Deno.test("FlatdataProcessor - recordToTsvFast - special characters", async () =
   });
 
   const chunks: Uint8Array[] = [];
-  for await (const chunk of processor.recordToTsvFast(stream)) {
+  for await (const chunk of processor.recordToTsv(stream)) {
     chunks.push(chunk);
   }
 

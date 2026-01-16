@@ -137,6 +137,26 @@ interface WasmExports {
   /** Convert record format to TSV (in-place, SIMD optimized) */
   record_to_tsv: (ptr: number, length: number) => number;
 
+  /** Convert TSV to record format (in-place, strips \r) */
+  tsv_to_record: (ptr: number, length: number) => number;
+
+  /** Convert TSV to CSV (separate buffers, handles quoting) */
+  tsv_to_csv: (
+    input_ptr: number,
+    input_len: number,
+    output_ptr: number,
+    output_capacity: number,
+    separator: number,
+  ) => number;
+
+  /** Convert TSV to lazyrow binary format (separate buffers) */
+  tsv_to_lazyrow: (
+    input_ptr: number,
+    input_len: number,
+    output_ptr: number,
+    output_capacity: number,
+  ) => number;
+
   /** Create a lazyrow encoder instance */
   create_lazyrow_encoder: () => number;
 
@@ -607,68 +627,6 @@ export class FlatdataProcessor {
 
   /**
    * Convert TSV directly to CSV.
-   *
-   * Fast direct conversion using WASM parser with comma output separator.
-   * Much faster than tsv→record→csv pipeline.
-   *
-   * @param input - Readable stream of TSV bytes
-   * @param write - Writer function for output chunks
-   * @param separator - CSV output field separator (default: comma)
-   */
-  async tsvToCsv(
-    input: ReadableStream<Uint8Array>,
-    write: Writer,
-    separator: number,
-  ): Promise<void> {
-    // TSV input: \t for fields, \n for records
-    // Output: custom separator for fields, \n for records
-    const parserId = this.exports.create_direct_parser(
-      0x09,
-      0,
-      separator,
-      0x0A,
-      0x0A,
-    );
-    const reader = input.getReader();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        for (
-          let off = 0;
-          off < value.length;
-          off += FlatdataProcessor.CHUNK_SIZE
-        ) {
-          const slice = value.subarray(
-            off,
-            Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length),
-          );
-          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(
-            slice,
-          );
-
-          const outLen = this.exports.parse_direct(parserId, slice.length);
-          if (outLen > 0) {
-            await write(
-              new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen),
-            );
-          }
-        }
-      }
-
-      const finalLen = this.exports.finish_direct(parserId);
-      if (finalLen > 0) {
-        await write(
-          new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen),
-        );
-      }
-    } finally {
-      this.exports.destroy_direct_parser(parserId);
-    }
-  }
-
   /**
    * Convert record format to delimited output (CSV/TSV).
    *
@@ -1627,7 +1585,7 @@ export class FlatdataProcessor {
    * Replaces 0x1F (field separator) with tab and 0x1E (record separator) with newline.
    * Much faster than going through the CSV stringifier.
    */
-  async *recordToTsvFast(
+  async *recordToTsv(
     input: AsyncIterable<Uint8Array>,
   ): AsyncGenerator<Uint8Array> {
     for await (const chunk of input) {
@@ -1639,6 +1597,144 @@ export class FlatdataProcessor {
       const outputLen = this.exports.record_to_tsv(this.inputPtr, chunk.length);
 
       yield new Uint8Array(this.memory.buffer, this.inputPtr, outputLen).slice();
+    }
+  }
+
+  /**
+   * Convert TSV to record format using optimized in-place transformation.
+   * Replaces tab with 0x1F (field separator), newline with 0x1E (record separator).
+   * Strips carriage returns. Much faster than using the CSV parser.
+   */
+  async *tsvToRecord(
+    input: AsyncIterable<Uint8Array>,
+  ): AsyncGenerator<Uint8Array> {
+    for await (const chunk of input) {
+      if (chunk.length === 0) continue;
+
+      this.ensureInputBuffer(chunk.length);
+      new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+
+      const outputLen = this.exports.tsv_to_record(this.inputPtr, chunk.length);
+
+      yield new Uint8Array(this.memory.buffer, this.inputPtr, outputLen).slice();
+    }
+  }
+
+  /**
+   * Convert TSV to CSV with proper RFC 4180 quoting.
+   * Handles fields containing separator, quotes, or newlines.
+   * Strips carriage returns. Much faster than using the CSV parser.
+   */
+  async *tsvToCsv(
+    input: AsyncIterable<Uint8Array>,
+    separator = 44, // comma
+  ): AsyncGenerator<Uint8Array> {
+    // Allocate output buffer (2x input for worst case quoting)
+    const outputCapacity = 256 * 1024;
+    const outputPtr = this.exports.alloc_output_buffer(outputCapacity);
+    
+    for await (const chunk of input) {
+      if (chunk.length === 0) continue;
+
+      this.ensureInputBuffer(chunk.length);
+      new Uint8Array(this.memory.buffer, this.inputPtr, chunk.length).set(chunk);
+
+      const outputLen = this.exports.tsv_to_csv(
+        this.inputPtr,
+        chunk.length,
+        outputPtr,
+        outputCapacity,
+        separator,
+      );
+
+      if (outputLen < 0) {
+        throw new Error("TSV to CSV conversion failed: output buffer too small");
+      }
+
+      yield new Uint8Array(this.memory.buffer, outputPtr, outputLen).slice();
+    }
+  }
+
+  /**
+   * Convert TSV directly to lazyrow binary format.
+   * Parses TSV and encodes to lazyrow in a single pass.
+   * Strips carriage returns. Much faster than using the CSV parser.
+   */
+  async *tsvToLazyRow(
+    input: AsyncIterable<Uint8Array>,
+  ): AsyncGenerator<Uint8Array> {
+    // Allocate output buffer (2MB to handle large fields + lazyrow overhead)
+    const outputCapacity = 2 * 1024 * 1024;
+    const outputPtr = this.exports.alloc_output_buffer(outputCapacity);
+    
+    // Buffer for incomplete rows
+    let carry = new Uint8Array(0);
+    
+    for await (const chunk of input) {
+      if (chunk.length === 0) continue;
+
+      // Combine carry with new chunk
+      const combined = new Uint8Array(carry.length + chunk.length);
+      combined.set(carry);
+      combined.set(chunk, carry.length);
+      
+      // Find the last newline to determine complete rows
+      let lastNewline = -1;
+      for (let i = combined.length - 1; i >= 0; i--) {
+        if (combined[i] === 0x0A) {  // newline
+          lastNewline = i;
+          break;
+        }
+      }
+      
+      if (lastNewline === -1) {
+        // No complete rows, save everything for next iteration
+        carry = combined;
+        continue;
+      }
+      
+      // Process complete rows (up to and including the last newline)
+      const completeData = combined.slice(0, lastNewline + 1);
+      carry = combined.slice(lastNewline + 1);
+      
+      this.ensureInputBuffer(completeData.length);
+      new Uint8Array(this.memory.buffer, this.inputPtr, completeData.length).set(completeData);
+
+      const outputLen = this.exports.tsv_to_lazyrow(
+        this.inputPtr,
+        completeData.length,
+        outputPtr,
+        outputCapacity,
+      );
+
+      if (outputLen < 0) {
+        throw new Error("TSV to lazyrow conversion failed: output buffer too small");
+      }
+
+      if (outputLen > 0) {
+        yield new Uint8Array(this.memory.buffer, outputPtr, outputLen).slice();
+      }
+    }
+    
+    // Process any remaining data in carry buffer
+    if (carry.length > 0) {
+      this.ensureInputBuffer(carry.length);
+      new Uint8Array(this.memory.buffer, this.inputPtr, carry.length).set(carry);
+
+      const outputLen = this.exports.tsv_to_lazyrow(
+        this.inputPtr,
+        carry.length,
+        outputPtr,
+        outputCapacity,
+      );
+
+      if (outputLen < 0) {
+        throw new Error("TSV to lazyrow conversion failed: output buffer too small");
+      }
+
+      if (outputLen > 0) {
+        yield new Uint8Array(this.memory.buffer, outputPtr, outputLen).slice();
+      }
     }
   }
 
@@ -1778,10 +1874,8 @@ export class FlatdataProcessor {
 
       const outLen = this.exports.finish_streaming_lazyrow(decoderId);
       if (outLen > 0) {
-        const finalOut = this.exports.get_streaming_lazyrow_output(decoderId);
-        if (finalOut > 0) {
-          yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalOut).slice();
-        }
+        this.exports.get_streaming_lazyrow_output(decoderId);
+        yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
       }
     } finally {
       this.exports.destroy_streaming_lazyrow_decoder(decoderId);
@@ -1809,10 +1903,8 @@ export class FlatdataProcessor {
 
       const outLen = this.exports.finish_streaming_lazyrow(decoderId);
       if (outLen > 0) {
-        const finalOut = this.exports.get_streaming_lazyrow_output(decoderId);
-        if (finalOut > 0) {
-          yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalOut).slice();
-        }
+        this.exports.get_streaming_lazyrow_output(decoderId);
+        yield new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen).slice();
       }
     } finally {
       this.exports.destroy_streaming_lazyrow_decoder(decoderId);
