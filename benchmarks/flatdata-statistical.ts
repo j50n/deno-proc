@@ -89,9 +89,8 @@ async function benchmarkTransform(
     processor: FlatdataProcessor,
     stream: ReadableStream<Uint8Array>,
   ) => AsyncIterable<Uint8Array>,
-  forceScalar = false,
 ) {
-  const processor = await FlatdataProcessor.create(forceScalar);
+  const processor = await FlatdataProcessor.create();
   const inputSize = (await Deno.stat(inputFile)).size;
 
   console.log(`\n${name}`);
@@ -209,19 +208,9 @@ async function runBenchmarks() {
 
   results.push(
     await benchmarkTransform(
-      "record2tsv (SIMD)",
+      "record2tsv",
       `${TEMP_DIR}/test.rec`,
       (p, s) => p.recordToTsv(s),
-      false, // Use SIMD
-    ),
-  );
-
-  results.push(
-    await benchmarkTransform(
-      "record2tsv (scalar)",
-      `${TEMP_DIR}/test.rec`,
-      (p, s) => p.recordToTsv(s),
-      true, // Force scalar
     ),
   );
 

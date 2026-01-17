@@ -397,15 +397,11 @@ export class FlatdataProcessor {
    * Loads the WASM module, initializes memory (256 pages = 16MB initial),
    * and allocates input/output buffers.
    *
-   * @param forceScalar - If true, use scalar WASM even if SIMD is available
    * @returns A ready-to-use processor instance
    * @throws Error if WASM module fails to load or initialize
    */
-  static async create(forceScalar = false): Promise<FlatdataProcessor> {
-    const { detectSimd } = await import("./simd-detect.ts");
-    const useSimd = !forceScalar && detectSimd();
-    const wasmFile = useSimd ? "flatdata-simd.wasm" : "flatdata-scalar.wasm";
-    const wasmUrl = new URL(`../../wasm/${wasmFile}`, import.meta.url);
+  static async create(): Promise<FlatdataProcessor> {
+    const wasmUrl = new URL(`../../wasm/flatdata.wasm`, import.meta.url);
     const wasmBytes = await Deno.readFile(wasmUrl);
     const memory = new WebAssembly.Memory({ initial: 256, maximum: 1024 });
 
