@@ -59,7 +59,11 @@ Deno.test(
 );
 
 Deno.test(
-  { name: "error processing from stderr #2", sanitizeResources: false },
+  {
+    name: "error processing from stderr #2",
+    sanitizeResources: false,
+    sanitizeOps: false,
+  },
   async () => {
     try {
       const cmd: Cmd = [
