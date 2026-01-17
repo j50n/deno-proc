@@ -1268,73 +1268,94 @@ record_to_lazyrow :: proc "c" (input_len: i32) -> i32 {
     context = runtime.default_context()
     
     input := input_buffer[:input_len]
-    clear(&output_buffer)
+    output := output_buffer[:]
+    output_capacity := len(output)
     
-    // Fixed-size buffers for current row
-    field_offsets: [MAX_FIELDS]int
-    field_lengths: [MAX_FIELDS]int
-    field_count := 0
+    FIELD_SEP :: 0x1F
+    RECORD_SEP :: 0x1E
+    
+    out_pos := 0
     field_start := 0
+    field_count := 0
+    field_starts: [1024]int
+    field_ends: [1024]int
     
-    for i := 0; i < int(input_len); i += 1 {
-        c := input[i]
+    for i := 0; i <= int(input_len); i += 1 {
+        is_field_sep := i < int(input_len) && input[i] == FIELD_SEP
+        is_record_sep := i < int(input_len) && input[i] == RECORD_SEP
+        is_end := i == int(input_len)
         
-        if c == csv.FIELD_SEP {
-            if field_count < MAX_FIELDS {
-                field_offsets[field_count] = field_start
-                field_lengths[field_count] = i - field_start
-                field_count += 1
-            }
-            field_start = i + 1
-        } else if c == csv.RECORD_SEP {
-            if field_count < MAX_FIELDS {
-                field_offsets[field_count] = field_start
-                field_lengths[field_count] = i - field_start
-                field_count += 1
+        if is_field_sep || is_record_sep || is_end {
+            // Skip if we're at end and field_start is beyond input
+            if is_end && field_start >= int(input_len) {
+                break
             }
             
-            data_size := 0
-            for j := 0; j < field_count; j += 1 {
-                data_size += field_lengths[j]
-            }
-            header_size := 4 + field_count * 4
-            row_length := u32(header_size + data_size)
+            // Record field boundaries
+            field_starts[field_count] = field_start
+            field_ends[field_count] = i
+            field_count += 1
             
-            // Write row_length
-            append(&output_buffer, u8(row_length))
-            append(&output_buffer, u8(row_length >> 8))
-            append(&output_buffer, u8(row_length >> 16))
-            append(&output_buffer, u8(row_length >> 24))
-            
-            // Write field_count
-            fc := u32(field_count)
-            append(&output_buffer, u8(fc))
-            append(&output_buffer, u8(fc >> 8))
-            append(&output_buffer, u8(fc >> 16))
-            append(&output_buffer, u8(fc >> 24))
-            
-            // Write field lengths
-            for j := 0; j < field_count; j += 1 {
-                flen := u32(field_lengths[j])
-                append(&output_buffer, u8(flen))
-                append(&output_buffer, u8(flen >> 8))
-                append(&output_buffer, u8(flen >> 16))
-                append(&output_buffer, u8(flen >> 24))
-            }
-            
-            // Write field data
-            for j := 0; j < field_count; j += 1 {
-                for k := 0; k < field_lengths[j]; k += 1 {
-                    append(&output_buffer, input[field_offsets[j] + k])
+            // End of row - encode to lazyrow
+            if is_record_sep || (is_end && field_count > 0) {
+                // Calculate field lengths
+                field_lens: [1024]int
+                data_size := 0
+                for k := 0; k < field_count; k += 1 {
+                    field_len := field_ends[k] - field_starts[k]
+                    field_lens[k] = field_len
+                    data_size += field_len
                 }
+                
+                // Row format: [row_length: u32][field_count: u32][field_lengths: u32[]...][field_data: bytes...]
+                row_length := u32(4 + 4 * field_count + data_size)
+                header_size := 4 + 4 + 4 * field_count
+                
+                if out_pos + header_size + data_size > output_capacity {
+                    return -1
+                }
+                
+                // Write row_length
+                output[out_pos] = u8(row_length)
+                output[out_pos + 1] = u8(row_length >> 8)
+                output[out_pos + 2] = u8(row_length >> 16)
+                output[out_pos + 3] = u8(row_length >> 24)
+                out_pos += 4
+                
+                // Write field_count
+                fc := u32(field_count)
+                output[out_pos] = u8(fc)
+                output[out_pos + 1] = u8(fc >> 8)
+                output[out_pos + 2] = u8(fc >> 16)
+                output[out_pos + 3] = u8(fc >> 24)
+                out_pos += 4
+                
+                // Write field lengths
+                for k := 0; k < field_count; k += 1 {
+                    fl := u32(field_lens[k])
+                    output[out_pos] = u8(fl)
+                    output[out_pos + 1] = u8(fl >> 8)
+                    output[out_pos + 2] = u8(fl >> 16)
+                    output[out_pos + 3] = u8(fl >> 24)
+                    out_pos += 4
+                }
+                
+                // Write field data
+                for k := 0; k < field_count; k += 1 {
+                    for j := field_starts[k]; j < field_ends[k]; j += 1 {
+                        output[out_pos] = input[j]
+                        out_pos += 1
+                    }
+                }
+                
+                field_count = 0
             }
             
-            field_count = 0
             field_start = i + 1
         }
     }
     
-    return i32(len(output_buffer))
+    return i32(out_pos)
 }
 
 
