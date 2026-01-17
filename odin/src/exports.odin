@@ -252,6 +252,8 @@ DirectParser :: struct {
     field_sep: u8,       // Output field separator (default \x1F)
     record_sep: u8,      // Output record separator (default \x1E)
     input_record_sep: u8, // Input record separator (default \n)
+    work_buffer: [2 * 1024 * 1024]u8,  // Fixed buffer for accumulating output
+    work_len: int,       // Current length in work_buffer
 }
 
 direct_parsers: map[i32]^DirectParser
@@ -309,12 +311,8 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     
     input := input_buffer[:input_len]
     
-    // Clear output and track length via dynamic array
-    clear(&output_buffer)
-    
-    write_byte :: proc(b: u8) {
-        append(&output_buffer, b)
-    }
+    // Reset work buffer
+    p.work_len = 0
     
     sep := p.opts.separator
     field_sep := p.field_sep
@@ -323,11 +321,14 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
     
     // First, flush any carried data
     for b in p.carry {
-        write_byte(b)
+        if p.work_len < len(p.work_buffer) {
+            p.work_buffer[p.work_len] = b
+            p.work_len += 1
+        }
     }
     clear(&p.carry)
     
-    record_start := 0  // Start of current record in output
+    record_start := 0  // Start of current record in work buffer
     
     for i := 0; i < int(input_len); i += 1 {
         c := input[i]
@@ -335,33 +336,54 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
         switch p.state {
         case .FieldStart:
             if c == '"' {
-                if p.row_started { write_byte(field_sep) }
+                if p.row_started && p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = field_sep
+                    p.work_len += 1
+                }
                 p.row_started = true
                 p.state = .Quoted
             } else if c == sep {
-                if p.row_started { write_byte(field_sep) }
+                if p.row_started && p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = field_sep
+                    p.work_len += 1
+                }
                 p.row_started = true
                 p.fields_in_row += 1
             } else if c == '\r' {
                 if p.row_started {
-                    write_byte(field_sep)
+                    if p.work_len < len(p.work_buffer) {
+                        p.work_buffer[p.work_len] = field_sep
+                        p.work_len += 1
+                    }
                     p.fields_in_row += 1
                 }
                 p.state = .RecordEnd
             } else if c == input_rec_sep {
                 if p.row_started {
-                    write_byte(field_sep)
+                    if p.work_len < len(p.work_buffer) {
+                        p.work_buffer[p.work_len] = field_sep
+                        p.work_len += 1
+                    }
                     p.fields_in_row += 1
-                    write_byte(record_sep)
+                    if p.work_len < len(p.work_buffer) {
+                        p.work_buffer[p.work_len] = record_sep
+                        p.work_len += 1
+                    }
                 }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
-                record_start = len(output_buffer)
+                record_start = p.work_len
             } else {
-                if p.row_started { write_byte(field_sep) }
+                if p.row_started && p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = field_sep
+                    p.work_len += 1
+                }
                 p.row_started = true
-                write_byte(c)
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = c
+                    p.work_len += 1
+                }
                 p.state = .Unquoted
             }
             
@@ -374,26 +396,38 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
                 p.state = .RecordEnd
             } else if c == input_rec_sep {
                 p.fields_in_row += 1
-                write_byte(record_sep)
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = record_sep
+                    p.work_len += 1
+                }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
                 p.state = .FieldStart
-                record_start = len(output_buffer)
+                record_start = p.work_len
             } else {
-                write_byte(c)
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = c
+                    p.work_len += 1
+                }
             }
             
         case .Quoted:
             if c == '"' {
                 p.state = .QuoteInQuoted
             } else {
-                write_byte(c)
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = c
+                    p.work_len += 1
+                }
             }
             
         case .QuoteInQuoted:
             if c == '"' {
-                write_byte('"')
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = '"'
+                    p.work_len += 1
+                }
                 p.state = .Quoted
             } else if c == sep {
                 p.fields_in_row += 1
@@ -403,12 +437,15 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
                 p.state = .RecordEnd
             } else if c == input_rec_sep {
                 p.fields_in_row += 1
-                write_byte(record_sep)
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = record_sep
+                    p.work_len += 1
+                }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
                 p.state = .FieldStart
-                record_start = len(output_buffer)
+                record_start = p.work_len
             } else {
                 p.error = csv.CsvError{.InvalidCharAfterQuote, p.row, 0}
                 return 0
@@ -416,31 +453,39 @@ parse_direct :: proc "c" (id: i32, input_len: i32) -> i32 {
             
         case .RecordEnd:
             if c == input_rec_sep {
-                write_byte(record_sep)
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = record_sep
+                    p.work_len += 1
+                }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
                 p.state = .FieldStart
-                record_start = len(output_buffer)
+                record_start = p.work_len
             } else {
-                write_byte(record_sep)
+                if p.work_len < len(p.work_buffer) {
+                    p.work_buffer[p.work_len] = record_sep
+                    p.work_len += 1
+                }
                 p.row += 1
                 p.fields_in_row = 0
                 p.row_started = false
                 p.state = .FieldStart
-                record_start = len(output_buffer)
+                record_start = p.work_len
                 i -= 1
             }
         }
     }
     
+    // Copy complete records to output_buffer
+    clear(&output_buffer)
+    reserve(&output_buffer, record_start)
+    append(&output_buffer, ..p.work_buffer[:record_start])
+    
     // Carry incomplete record to next call
-    out_len := len(output_buffer)
-    if record_start < out_len {
-        for j := record_start; j < out_len; j += 1 {
-            append(&p.carry, output_buffer[j])
-        }
-        resize(&output_buffer, record_start)
+    clear(&p.carry)
+    if record_start < p.work_len {
+        append(&p.carry, ..p.work_buffer[record_start:p.work_len])
     }
     
     return i32(len(output_buffer))

@@ -18,6 +18,7 @@ Performance benchmarks for deno-proc transforms.
 ### 1. Flatdata Statistical (`flatdata-statistical.ts`)
 
 Statistical analysis of WASM-based flatdata transforms:
+
 - CSV, TSV, Record, JSON parsing and generation
 - Warmup phase (20 iterations) for VM optimization
 - Measurement phase (10 iterations)
@@ -27,6 +28,7 @@ Statistical analysis of WASM-based flatdata transforms:
 **Run time:** ~2-3 minutes
 
 **Example output:**
+
 ```
 csv2record
 ============================================================
@@ -43,6 +45,7 @@ Results:
 ### 2. Transform Throughput (`transforms-throughput.ts`)
 
 Quick throughput comparison of all in-process transforms:
+
 - CSV, TSV, Record, JSON formats
 - LazyRow binary format
 - WASM-accelerated CSV parsing
@@ -52,6 +55,7 @@ Quick throughput comparison of all in-process transforms:
 **Run time:** ~30 seconds
 
 **Example output:**
+
 ```
 SUMMARY
 ============================================================

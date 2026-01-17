@@ -8,7 +8,7 @@ test_tsv_to_csv :: proc(t: ^testing.T, input: string, separator: u8, expected: s
 	output := make([]u8, 10000)
 	defer delete(output)
 	
-	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), separator)
+	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), separator, 0, 0)
 	
 	if result_len < 0 {
 		testing.expectf(t, false, "%s: tsv_to_csv failed (buffer too small)", msg)
@@ -146,7 +146,7 @@ test_tsv2csv_buffer_too_small :: proc(t: ^testing.T) {
 	defer delete(output)
 	
 	input := "a\tb\tc\n"
-	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',')
+	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',', 0, 0)
 	
 	testing.expect_value(t, result_len, -1)
 }
@@ -157,7 +157,7 @@ test_tsv2csv_exact_capacity :: proc(t: ^testing.T) {
 	defer delete(output)
 	
 	input := "a\tb\tc\n"
-	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',')
+	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',', 0, 0)
 	
 	testing.expect_value(t, result_len, 6)
 	testing.expect(t, slice.equal(output[:result_len], transmute([]u8)string("a,b,c\n")), "output matches")
@@ -174,7 +174,7 @@ test_tsv2csv_length_reduction :: proc(t: ^testing.T) {
 	defer delete(output)
 	
 	input := "a\r\tb\r\n"  // 6 bytes
-	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',')
+	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',', 0, 0)
 	
 	testing.expect_value(t, result_len, 4)  // "a,b\n"
 }
@@ -186,7 +186,7 @@ test_tsv2csv_no_length_change :: proc(t: ^testing.T) {
 	defer delete(output)
 	
 	input := "a\tb\n"  // 4 bytes
-	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',')
+	result_len := tsv_to_csv(raw_data(transmute([]u8)input), len(input), raw_data(output), len(output), ',', 0, 0)
 	
 	testing.expect_value(t, result_len, 4)  // "a,b\n"
 }
@@ -209,7 +209,7 @@ test_tsv2csv_many_fields :: proc(t: ^testing.T) {
 		append(&expected, 'x')
 		if i < 99 {
 			append(&input, '\t')
-			append(&expected, ',')
+			append(&expected, ',', 0, 0)
 		}
 	}
 	append(&input, '\n')
@@ -218,7 +218,7 @@ test_tsv2csv_many_fields :: proc(t: ^testing.T) {
 	output := make([]u8, 10000)
 	defer delete(output)
 	
-	result_len := tsv_to_csv(raw_data(input), len(input), raw_data(output), len(output), ',')
+	result_len := tsv_to_csv(raw_data(input), len(input), raw_data(output), len(output), ',', 0, 0)
 	
 	testing.expect_value(t, result_len, len(expected))
 	testing.expect(t, slice.equal(output[:result_len], expected[:]), "output matches")
@@ -240,7 +240,7 @@ test_tsv2csv_many_rows :: proc(t: ^testing.T) {
 	output := make([]u8, 100000)
 	defer delete(output)
 	
-	result_len := tsv_to_csv(raw_data(input), len(input), raw_data(output), len(output), ',')
+	result_len := tsv_to_csv(raw_data(input), len(input), raw_data(output), len(output), ',', 0, 0)
 	
 	// Each row: "a,b\n" = 4 bytes × 1000 = 4000 bytes
 	testing.expect_value(t, result_len, 4000)

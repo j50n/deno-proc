@@ -124,13 +124,15 @@ export async function tsv2csv(
   input?: string,
   output?: string,
   separator = ",",
+  alwaysQuote = false,
+  crlf = false,
 ): Promise<void> {
   const processor = await FlatdataProcessor.create();
   const stream = input
     ? (await Deno.open(input, { read: true })).readable
     : Deno.stdin.readable;
   const enumerated = enumerate(stream).transform((input) =>
-    processor.tsvToCsv(input, separator.charCodeAt(0))
+    processor.tsvToCsv(input, separator.charCodeAt(0), alwaysQuote, crlf)
   );
   await (output
     ? enumerated.writeTo(output)
@@ -141,13 +143,15 @@ export async function record2csv(
   input?: string,
   output?: string,
   separator = ",",
+  alwaysQuote = false,
+  crlf = false,
 ): Promise<void> {
   const processor = await FlatdataProcessor.create();
   const stream = input
     ? (await Deno.open(input, { read: true })).readable
     : Deno.stdin.readable;
   const enumerated = enumerate(stream).transform((input) =>
-    processor.recordToCsvStreaming(input, separator.charCodeAt(0))
+    processor.recordToCsv(input, separator.charCodeAt(0), alwaysQuote, crlf)
   );
   await (output
     ? enumerated.writeTo(output)
@@ -228,7 +232,7 @@ export async function lazyrow2record(
     ? (await Deno.open(input, { read: true })).readable
     : Deno.stdin.readable;
   const enumerated = enumerate(stream).transform((input) =>
-    processor.lazyRowBinaryToRecordStreaming(input)
+    processor.lazyRowToRecord(input)
   );
   await (output
     ? enumerated.writeTo(output)
@@ -291,30 +295,49 @@ const tsv2lazyrowCmd = new Command()
   });
 
 const tsv2csvCmd = new Command()
-  .description("Convert TSV to CSV")
+  .description("Convert TSV to CSV with RFC 4180 quoting")
   .option("-d, --separator <char:string>", "CSV field separator", {
     default: ",",
   })
+  .option("--always-quote", "Quote all fields (default: only when needed)")
+  .option("--crlf", "Use CRLF line endings (default: LF)")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.tsv | flatdata tsv2csv > data.csv")
-  .action(async ({ separator, input, output }) => {
-    await tsv2csv(input, output, separator);
+  .example("Always quote", "flatdata tsv2csv --always-quote < data.tsv")
+  .example("Windows format", "flatdata tsv2csv --crlf -d ';' < data.tsv")
+  .action(async ({ separator, alwaysQuote, crlf, input, output }) => {
+    await tsv2csv(
+      input,
+      output,
+      separator,
+      !!alwaysQuote,
+      !!crlf,
+    );
   });
 
 // Record output commands
 const record2csvCmd = new Command()
-  .description("Convert record format to CSV")
+  .description("Convert record format to CSV with RFC 4180 quoting")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
+  .option("--always-quote", "Quote all fields (default: only when needed)")
+  .option("--crlf", "Use CRLF line endings (default: LF)")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "flatdata record2csv < data.rec > data.csv")
+  .example("Always quote", "flatdata record2csv --always-quote < data.rec")
   .example(
     "Pipeline",
     "cat huge.csv | flatdata csv2record | process | flatdata record2csv",
   )
-  .action(async ({ separator, input, output }) => {
-    await record2csv(input, output, separator);
+  .action(async ({ separator, alwaysQuote, crlf, input, output }) => {
+    await record2csv(
+      input,
+      output,
+      separator,
+      !!alwaysQuote,
+      !!crlf,
+    );
   });
 
 const record2tsvCmd = new Command()

@@ -252,11 +252,9 @@ Deno.test("tsv2csv - basic conversion", async () => {
 });
 
 Deno.test("tsv2csv - fields needing quotes", async () => {
-  // Note: Direct WASM conversion doesn't add CSV quoting
-  // Fields with commas will not be quoted, which may cause ambiguity
-  // For proper CSV quoting, use: tsv2record | record2csv
+  // Fields with commas should be quoted per RFC 4180
   const out = await run(["tsv2csv"], "hello, world\ttest\n");
-  assertEquals(out, "hello, world,test\n");
+  assertEquals(out, '"hello, world",test\n');
 });
 
 Deno.test("tsv2csv - custom separator", async () => {
@@ -270,10 +268,9 @@ Deno.test("tsv2csv - empty fields", async () => {
 });
 
 Deno.test("tsv2csv - quotes in field", async () => {
-  // Direct WASM conversion doesn't escape quotes for CSV
-  // For proper CSV escaping, use: tsv2record | record2csv
+  // Quotes should be escaped per RFC 4180
   const out = await run(["tsv2csv"], 'say "hi"\tok\n');
-  assertEquals(out, 'say "hi",ok\n');
+  assertEquals(out, '"say ""hi""",ok\n');
 });
 
 Deno.test("tsv2csv - newlines in field", async () => {
@@ -500,14 +497,13 @@ Deno.test("round-trip: csv -> record -> csv", async () => {
 });
 
 Deno.test("round-trip: csv -> tsv -> csv", async () => {
-  // Note: Direct csv2tsv/tsv2csv conversions don't preserve CSV quoting
-  // This is a trade-off for 300x+ performance improvement
-  // For lossless round-trips, use: csv2record -> record2tsv -> tsv2record -> record2csv
+  // TSV doesn't have quoting, but tsv2csv will add quotes per RFC 4180
+  // when fields contain commas
   const csv = 'name,value\n"hello, world",123\n';
   const tsv = await run(["csv2tsv"], csv);
   const back = await run(["tsv2csv"], tsv);
-  // The comma in "hello, world" is no longer quoted, making it ambiguous
-  assertEquals(back, "name,value\nhello, world,123\n");
+  // Quotes are re-added because the field contains a comma
+  assertEquals(back, 'name,value\n"hello, world",123\n');
 });
 
 Deno.test("round-trip: csv -> lazyrow -> csv", async () => {

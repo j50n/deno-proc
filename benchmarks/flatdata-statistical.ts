@@ -203,7 +203,7 @@ async function runBenchmarks() {
     await benchmarkTransform(
       "record2csv",
       `${TEMP_DIR}/test.rec`,
-      (p, s) => p.recordToCsvStreaming(s, 44, false),
+      (p, s) => p.recordToCsv(s, 44, false, false),
     ),
   );
 
