@@ -1071,6 +1071,27 @@ lazyrow_to_csv :: proc "c" (
     return i32(result)
 }
 
+// Convert binary lazyrow format directly to TSV.
+// Input: binary lazyrow in input buffer
+// Output: TSV in output buffer
+// Returns: number of bytes written to output buffer, or -1 on error
+@(export)
+lazyrow_to_tsv :: proc "c" (
+    input_ptr: i32,
+    input_len: i32,
+    output_ptr: i32,
+    output_capacity: i32,
+) -> i32 {
+    context = runtime.default_context()
+    
+    input := ([^]u8)(uintptr(input_ptr))[:input_len]
+    output := ([^]u8)(uintptr(output_ptr))[:output_capacity]
+    
+    result := csv.lazyrow_to_tsv(input, output)
+    
+    return i32(result)
+}
+
 
 /*
 Direct CSV-to-LazyRow Parser

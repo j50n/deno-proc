@@ -104,8 +104,6 @@ export abstract class LazyRow {
 }
 
 class StringArrayLazyRow extends LazyRow {
-  private binaryCache?: Uint8Array;
-
   constructor(private fields: string[]) {
     super();
   }
@@ -130,7 +128,6 @@ class StringArrayLazyRow extends LazyRow {
       );
     }
     this.fields[index] = value;
-    this.binaryCache = undefined;
   }
 
   toStringArray(): string[] {
@@ -142,10 +139,6 @@ class StringArrayLazyRow extends LazyRow {
   }
 
   toBinary(): Uint8Array {
-    if (this.binaryCache) {
-      return this.binaryCache;
-    }
-
     // Create binary format: field_count + field_lengths + field_data
     const fieldBytes = this.fields.map((field) => encoder.encode(field));
     const totalDataSize = fieldBytes.reduce(
@@ -169,13 +162,11 @@ class StringArrayLazyRow extends LazyRow {
       offset += fieldData.length;
     }
 
-    this.binaryCache = buffer;
     return buffer;
   }
 }
 
 class BinaryLazyRow extends LazyRow {
-  private stringCache?: string[];
   private fieldCache = new Map<number, string>();
   private fieldBoundaries: number[];
   private modifications?: Map<number, string>;
@@ -246,21 +237,14 @@ class BinaryLazyRow extends LazyRow {
       this.modifications = new Map();
     }
     this.modifications.set(index, value);
-    this.stringCache = undefined;
   }
 
   toStringArray(): string[] {
-    if (this.stringCache) {
-      return [...this.stringCache];
-    }
-
     const fields: string[] = [];
     for (let i = 0; i < this.fieldBoundaries.length; i++) {
       fields.push(this.getField(i));
     }
-
-    this.stringCache = fields;
-    return [...fields];
+    return fields;
   }
 
   isBinaryBacked(): boolean {

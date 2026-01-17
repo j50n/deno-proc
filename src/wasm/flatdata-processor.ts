@@ -310,6 +310,14 @@ interface WasmExports {
     separator: number,
     crlf: number,
   ) => number;
+
+  /** Convert binary lazyrow format directly to TSV */
+  lazyrow_to_tsv: (
+    input_ptr: number,
+    input_len: number,
+    output_ptr: number,
+    output_capacity: number,
+  ) => number;
 }
 
 /**
@@ -1919,6 +1927,38 @@ export class FlatdataProcessor {
 
     if (outputLen < 0) {
       throw new Error("lazyrow_to_csv failed: output buffer too small");
+    }
+
+    return new Uint8Array(this.memory.buffer, this.getOutputPtr(), outputLen)
+      .slice();
+  }
+
+  /**
+   * Convert record format data directly to CSV in one shot.
+   * Much faster than streaming for batched data.
+   *
+   * @param binaryData - Binary lazyrow data with row_length prefixes
+   * @returns TSV data as Uint8Array
+   */
+  lazyRowBinaryToTsvDirect(
+    binaryData: Uint8Array,
+  ): Uint8Array {
+    this.ensureInputBuffer(binaryData.length);
+    this.ensureOutputBuffer(binaryData.length * 2); // Estimate 2x for TSV overhead
+
+    new Uint8Array(this.memory.buffer, this.inputPtr, binaryData.length).set(
+      binaryData,
+    );
+
+    const outputLen = this.exports.lazyrow_to_tsv(
+      this.inputPtr,
+      binaryData.length,
+      this.getOutputPtr(),
+      this.outputSize,
+    );
+
+    if (outputLen < 0) {
+      throw new Error("lazyrow_to_tsv failed: output buffer too small");
     }
 
     return new Uint8Array(this.memory.buffer, this.getOutputPtr(), outputLen)

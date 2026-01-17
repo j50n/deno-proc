@@ -1,9 +1,11 @@
 import { BATCH_SIZE_BYTES } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
+import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
+import { concat } from "../utility.ts";
+import { writeUint32LE } from "./common.ts";
 
 const decoder = new TextDecoder("utf-8", { fatal: true });
-const encoder = new TextEncoder();
 
 /**
  * Parse TSV bytes into batches of string arrays.
@@ -172,43 +174,102 @@ export function toTsv() {
     data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
     let rowNumber = 0;
+    const encode = (() => {
+      const encoder = new TextEncoder();
+      return encoder.encode.bind(encoder);
+    })();
+    const processor = await FlatdataProcessor.create();
+
+    const handleRow = (row: Row): Uint8Array => {
+      rowNumber++;
+      validateTsvFields(row, rowNumber);
+      return encode(row.join("\t") + "\n");
+    };
+
+    const handleRowArray = (rows: Row[]): Uint8Array => {
+      const lines = rows.map((row) => {
+        rowNumber++;
+        validateTsvFields(row, rowNumber);
+        return row.join("\t");
+      });
+      return encode(lines.join("\n") + "\n");
+    };
+
+    const handleBinaryLazyRow = (row: LazyRow): Uint8Array => {
+      rowNumber++;
+      const rowData = row.toBinary();
+      return processor.lazyRowBinaryToTsvDirect(
+        concat([writeUint32LE(rowData.length), rowData]),
+      );
+    };
+
+    const handleStringLazyRow = (row: LazyRow): Uint8Array => {
+      rowNumber++;
+      const fields = row.toStringArray();
+      validateTsvFields(fields, rowNumber);
+      return encode(fields.join("\t") + "\n");
+    };
+
+    const handleBinaryLazyRowArray = (rows: LazyRow[]): Uint8Array => {
+      const chunks = new Array(rows.length * 2);
+      let idx = 0;
+
+      for (let i = 0; i < rows.length; i++) {
+        const rowData = rows[i].toBinary();
+        chunks[idx++] = writeUint32LE(rowData.length);
+        chunks[idx++] = rowData;
+      }
+
+      rowNumber += rows.length;
+      return processor.lazyRowBinaryToTsvDirect(concat(chunks));
+    };
+
+    const handleStringLazyRowArray = (rows: LazyRow[]): Uint8Array => {
+      const lines = rows.map((row) => {
+        rowNumber++;
+        const fields = row.toStringArray();
+        validateTsvFields(fields, rowNumber);
+        return fields.join("\t");
+      });
+      return encode(lines.join("\n") + "\n");
+    };
+
+    // deno-lint-ignore no-explicit-any
+    let handler: (item: any) => Uint8Array = (item: any) => {
+      if (Array.isArray(item) && item.length === 0) {
+        return new Uint8Array(0);
+      }
+
+      if (
+        Array.isArray(item) && item.length > 0 &&
+        item[0] instanceof LazyRow && item[0].isBinaryBacked()
+      ) {
+        handler = handleBinaryLazyRowArray;
+      } else if (
+        Array.isArray(item) && item.length > 0 && item[0] instanceof LazyRow
+      ) {
+        handler = handleStringLazyRowArray;
+      } else if (item instanceof LazyRow && item.isBinaryBacked()) {
+        handler = handleBinaryLazyRow;
+      } else if (item instanceof LazyRow) {
+        handler = handleStringLazyRow;
+      } else if (
+        Array.isArray(item) && item.length > 0 && Array.isArray(item[0])
+      ) {
+        handler = handleRowArray;
+      } else if (Array.isArray(item)) {
+        handler = handleRow;
+      } else {
+        throw new TypeError(
+          `Unsupported input type for toTsv: expected Row, Row[], LazyRow, or LazyRow[], got ${typeof item}`,
+        );
+      }
+
+      return handler(item);
+    };
 
     for await (const item of data) {
-      if (Array.isArray(item)) {
-        if (item.length === 0) continue;
-
-        const first = item[0];
-
-        if (Array.isArray(first)) {
-          // Row[]
-          const lines = (item as Row[]).map((row) => {
-            rowNumber++;
-            validateTsvFields(row, rowNumber);
-            return row.join("\t");
-          });
-          yield encoder.encode(lines.join("\n") + "\n");
-        } else if (first instanceof LazyRow) {
-          // LazyRow[]
-          const lines = (item as LazyRow[]).map((row) => {
-            rowNumber++;
-            const fields = row.toStringArray();
-            validateTsvFields(fields, rowNumber);
-            return fields.join("\t");
-          });
-          yield encoder.encode(lines.join("\n") + "\n");
-        } else {
-          // Row (single string[])
-          rowNumber++;
-          validateTsvFields(item as Row, rowNumber);
-          yield encoder.encode((item as Row).join("\t") + "\n");
-        }
-      } else if (item instanceof LazyRow) {
-        // Single LazyRow
-        rowNumber++;
-        const fields = item.toStringArray();
-        validateTsvFields(fields, rowNumber);
-        yield encoder.encode(fields.join("\t") + "\n");
-      }
+      yield handler(item);
     }
   };
 }
