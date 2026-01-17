@@ -1084,31 +1084,42 @@ lazyrow_direct_emit :: proc(p: ^LazyRowDirectParser) {
     field_count := u32(p.field_count)
     header_size := 4 + int(field_count) * 4
     row_length := u32(header_size + p.data_len)
+    total_size := 4 + header_size + p.data_len
+    
+    // Reserve space in output buffer
+    old_len := len(output_buffer)
+    resize(&output_buffer, old_len + total_size)
+    
+    out_pos := old_len
     
     // Write row_length (little-endian u32)
-    append(&output_buffer, u8(row_length))
-    append(&output_buffer, u8(row_length >> 8))
-    append(&output_buffer, u8(row_length >> 16))
-    append(&output_buffer, u8(row_length >> 24))
+    output_buffer[out_pos] = u8(row_length)
+    output_buffer[out_pos + 1] = u8(row_length >> 8)
+    output_buffer[out_pos + 2] = u8(row_length >> 16)
+    output_buffer[out_pos + 3] = u8(row_length >> 24)
+    out_pos += 4
     
     // Write field_count (little-endian u32)
-    append(&output_buffer, u8(field_count))
-    append(&output_buffer, u8(field_count >> 8))
-    append(&output_buffer, u8(field_count >> 16))
-    append(&output_buffer, u8(field_count >> 24))
+    output_buffer[out_pos] = u8(field_count)
+    output_buffer[out_pos + 1] = u8(field_count >> 8)
+    output_buffer[out_pos + 2] = u8(field_count >> 16)
+    output_buffer[out_pos + 3] = u8(field_count >> 24)
+    out_pos += 4
     
     // Write field lengths
     for i := 0; i < p.field_count; i += 1 {
         flen := p.field_lengths[i]
-        append(&output_buffer, u8(flen))
-        append(&output_buffer, u8(flen >> 8))
-        append(&output_buffer, u8(flen >> 16))
-        append(&output_buffer, u8(flen >> 24))
+        output_buffer[out_pos] = u8(flen)
+        output_buffer[out_pos + 1] = u8(flen >> 8)
+        output_buffer[out_pos + 2] = u8(flen >> 16)
+        output_buffer[out_pos + 3] = u8(flen >> 24)
+        out_pos += 4
     }
     
     // Write field data
     for i := 0; i < p.data_len; i += 1 {
-        append(&output_buffer, p.field_data[i])
+        output_buffer[out_pos] = p.field_data[i]
+        out_pos += 1
     }
     
     lazyrow_direct_reset_row(p)
