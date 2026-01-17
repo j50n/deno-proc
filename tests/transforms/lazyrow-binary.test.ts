@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import {
   fromLazyRowBinary,
   toLazyRowBinary,
@@ -25,6 +25,16 @@ Deno.test("lazyrow-binary - round-trip string arrays", async () => {
   assertEquals(rows[1].toStringArray(), ["d", "e", "f"]);
 });
 
+Deno.test("lazyrow-binary - round-trip single string array", async () => {
+  const input = [["a", "b", "c"], ["d", "e", "f"]];
+  const binary = await collect(toLazyRowBinary()(toAsync(input)));
+  const output = await collect(fromLazyRowBinary()(toAsync(binary)));
+  const rows = output.flat();
+  assertEquals(rows.length, 2);
+  assertEquals(rows[0].toStringArray(), ["a", "b", "c"]);
+  assertEquals(rows[1].toStringArray(), ["d", "e", "f"]);
+});
+
 Deno.test("lazyrow-binary - round-trip LazyRow", async () => {
   const input = [[
     LazyRow.fromStringArray(["x", "y"]),
@@ -38,10 +48,57 @@ Deno.test("lazyrow-binary - round-trip LazyRow", async () => {
   assertEquals(rows[1].toStringArray(), ["z", "w"]);
 });
 
+Deno.test("lazyrow-binary - round-trip binary-backed LazyRow", async () => {
+  // First create binary-backed LazyRows by parsing binary data
+  const stringInput = [[["x", "y"], ["z", "w"]]];
+  const firstBinary = await collect(toLazyRowBinary()(toAsync(stringInput)));
+  const binaryBackedRows = await collect(
+    fromLazyRowBinary()(toAsync(firstBinary)),
+  );
+
+  // Verify they are binary-backed
+  assertEquals(binaryBackedRows[0][0].isBinaryBacked(), true);
+
+  // Now convert them back to binary (this should use handleBinaryLazyRowArray)
+  const secondBinary = await collect(
+    toLazyRowBinary()(toAsync(binaryBackedRows)),
+  );
+  const finalOutput = await collect(fromLazyRowBinary()(toAsync(secondBinary)));
+  const rows = finalOutput.flat();
+
+  assertEquals(rows.length, 2);
+  assertEquals(rows[0].toStringArray(), ["x", "y"]);
+  assertEquals(rows[1].toStringArray(), ["z", "w"]);
+});
+
+Deno.test("lazyrow-binary - round-trip single LazyRow", async () => {
+  const input = [
+    LazyRow.fromStringArray(["x", "y"]),
+    LazyRow.fromStringArray(["z", "w"]),
+  ];
+  const binary = await collect(toLazyRowBinary()(toAsync(input)));
+  const output = await collect(fromLazyRowBinary()(toAsync(binary)));
+  const rows = output.flat();
+  assertEquals(rows.length, 2);
+  assertEquals(rows[0].toStringArray(), ["x", "y"]);
+  assertEquals(rows[1].toStringArray(), ["z", "w"]);
+});
+
 Deno.test("lazyrow-binary - empty batch", async () => {
   const input: string[][][] = [[]];
   const binary = await collect(toLazyRowBinary()(toAsync(input)));
-  assertEquals(binary.length, 0);
+  assertEquals(binary.length, 1);
+  assertEquals(binary[0].length, 0);
+});
+
+Deno.test("lazyrow-binary - empty batch followed by data", async () => {
+  const input: string[][][] = [[], [["a", "b"], ["c", "d"]]];
+  const binary = await collect(toLazyRowBinary()(toAsync(input)));
+  const output = await collect(fromLazyRowBinary()(toAsync(binary)));
+  const rows = output.flat();
+  assertEquals(rows.length, 2);
+  assertEquals(rows[0].toStringArray(), ["a", "b"]);
+  assertEquals(rows[1].toStringArray(), ["c", "d"]);
 });
 
 Deno.test("lazyrow-binary - empty fields", async () => {

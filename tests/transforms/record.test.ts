@@ -56,6 +56,55 @@ Deno.test("Record - stringify from RowData", async () => {
   assertEquals(output, expected);
 });
 
+Deno.test("Record - stringify from single row", async () => {
+  const data = [
+    ["Alice", "30", "NYC"],
+    ["Bob", "25", "LA"],
+  ];
+
+  const result = await enumerate(data)
+    .transform(toRecord())
+    .collect();
+
+  const output = result.map((b) => new TextDecoder().decode(b)).join("");
+  const expected =
+    `Alice${FIELD_SEPARATOR}30${FIELD_SEPARATOR}NYC${RECORD_SEPARATOR}Bob${FIELD_SEPARATOR}25${FIELD_SEPARATOR}LA${RECORD_SEPARATOR}`;
+  assertEquals(output, expected);
+});
+
+Deno.test("Record - stringify from LazyRow batch", async () => {
+  const recordData =
+    `Alice${FIELD_SEPARATOR}30${RECORD_SEPARATOR}Bob${FIELD_SEPARATOR}25${RECORD_SEPARATOR}`;
+
+  const lazyRows = await enumerate([new TextEncoder().encode(recordData)])
+    .transform(fromRecordToLazyRows())
+    .collect();
+
+  const result = await enumerate(lazyRows)
+    .transform(toRecord())
+    .collect();
+
+  const output = new TextDecoder().decode(result[0]);
+  assertEquals(output, recordData);
+});
+
+Deno.test("Record - stringify from single LazyRow", async () => {
+  const recordData =
+    `Alice${FIELD_SEPARATOR}30${RECORD_SEPARATOR}Bob${FIELD_SEPARATOR}25${RECORD_SEPARATOR}`;
+
+  const lazyRows = await enumerate([new TextEncoder().encode(recordData)])
+    .transform(fromRecordToLazyRows())
+    .flatMap((batch) => batch)
+    .collect();
+
+  const result = await enumerate(lazyRows)
+    .transform(toRecord())
+    .collect();
+
+  const output = result.map((b) => new TextDecoder().decode(b)).join("");
+  assertEquals(output, recordData);
+});
+
 Deno.test("Record - round trip", async () => {
   const originalData =
     `name${FIELD_SEPARATOR}age${RECORD_SEPARATOR}Alice${FIELD_SEPARATOR}30${RECORD_SEPARATOR}Bob${FIELD_SEPARATOR}25${RECORD_SEPARATOR}`;

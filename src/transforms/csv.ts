@@ -1,5 +1,7 @@
 import { LazyRow } from "./lazy-row.ts";
 import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
+import type { Row } from "./types.ts";
+import { rowsToRecord, rowToRecord } from "./common.ts";
 
 /**
  * Options for parsing CSV data.
@@ -55,9 +57,9 @@ export function fromCsvToRows(parseOptions?: CsvParseOptions) {
     const processor = await FlatdataProcessor.create();
     const separator = parseOptions?.separator?.charCodeAt(0) ?? 44;
     const lazyRowStream = processor.csvToLazyRowsStreaming(bytes, separator);
-    
+
     for await (const batch of lazyRowStream) {
-      yield batch.map(row => row.toStringArray());
+      yield batch.map((row) => row.toStringArray());
     }
   };
 }
@@ -131,43 +133,111 @@ export function fromCsvToLazyRows(parseOptions?: CsvParseOptions) {
  */
 export function toCsv(stringifyOptions?: CsvStringifyOptions) {
   return async function* (
-    data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
+    data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
     const processor = await FlatdataProcessor.create();
-    
-    async function* toRecordFormat() {
-      const encoder = new TextEncoder();
-      for await (const item of data) {
-        const rows = normalizeRows(item);
-        const parts: string[] = [];
-        for (const row of rows) {
-          parts.push(row.join(String.fromCharCode(0x1F)));
-          parts.push(String.fromCharCode(0x1E));
-        }
-        yield encoder.encode(parts.join(""));
-      }
-    }
-    
     const separator = stringifyOptions?.separator?.charCodeAt(0) ?? 44;
     const crlf = stringifyOptions?.crlf ?? false;
-    yield* processor.recordToCsvStreaming(toRecordFormat(), separator, crlf);
-  };
-}
+    const encode = (() => {
+      const encoder = new TextEncoder();
+      return encoder.encode.bind(encoder);
+    })();
+    const FS = String.fromCharCode(0x1F);
+    const RS = String.fromCharCode(0x1E);
 
-function normalizeRows(
-  item: string[] | string[][] | LazyRow | LazyRow[],
-): string[][] {
-  if (item instanceof LazyRow) {
-    return [item.toStringArray()];
-  }
-  if (Array.isArray(item) && item.length > 0) {
-    if (item[0] instanceof LazyRow) {
-      return (item as LazyRow[]).map((r) => r.toStringArray());
+    // Handler functions for each input type
+    function handleBinaryLazyRowArray(rows: LazyRow[]): Uint8Array {
+      // Calculate total size needed
+      let totalSize = 0;
+      for (const row of rows) {
+        const rowData = row.toBinary();
+        totalSize += 4 + rowData.length; // 4 bytes for length prefix + row data
+      }
+
+      // Allocate once and copy directly
+      const binaryData = new Uint8Array(totalSize);
+      const view = new DataView(binaryData.buffer);
+      let offset = 0;
+
+      for (const row of rows) {
+        const rowData = row.toBinary();
+        view.setUint32(offset, rowData.length, true);
+        offset += 4;
+        binaryData.set(rowData, offset);
+        offset += rowData.length;
+      }
+
+      // Convert binary lazyrow → CSV directly via WASM (single shot)
+      return processor.lazyRowBinaryToCsvDirect(binaryData, separator, crlf);
     }
-    if (Array.isArray(item[0])) {
-      return item as string[][];
+
+    function handleStringLazyRowArray(rows: LazyRow[]): Uint8Array {
+      const record = encode(
+        rows.map((row) => row.toStringArray().join(FS)).join(RS) + RS,
+      );
+      return processor.recordToCsvDirect(record, separator, crlf);
     }
-    return [item as string[]];
-  }
-  return [];
+
+    function handleBinaryLazyRow(row: LazyRow): Uint8Array {
+      const rowData = row.toBinary();
+      const binaryData = new Uint8Array(4 + rowData.length);
+      new DataView(binaryData.buffer).setUint32(0, rowData.length, true);
+      binaryData.set(rowData, 4);
+      return processor.lazyRowBinaryToCsvDirect(binaryData, separator, crlf);
+    }
+
+    function handleStringLazyRow(row: LazyRow): Uint8Array {
+      const record = encode(rowToRecord(row.toStringArray()));
+      return processor.recordToCsvDirect(record, separator, crlf);
+    }
+
+    function handleRowArray(rows: Row[]): Uint8Array {
+      const record = encode(rowsToRecord(rows));
+      return processor.recordToCsvDirect(record, separator, crlf);
+    }
+
+    function handleRow(row: Row): Uint8Array {
+      const record = encode(rowToRecord(row));
+      return processor.recordToCsvDirect(record, separator, crlf);
+    }
+
+    // Select handler on first iteration
+    // deno-lint-ignore no-explicit-any
+    let handler: (item: any) => Uint8Array = (item: any) => {
+      if (Array.isArray(item) && item.length === 0) {
+        return new Uint8Array(0);
+      }
+
+      if (
+        Array.isArray(item) && item.length > 0 &&
+        item[0] instanceof LazyRow && item[0].isBinaryBacked()
+      ) {
+        handler = handleBinaryLazyRowArray;
+      } else if (
+        Array.isArray(item) && item.length > 0 && item[0] instanceof LazyRow
+      ) {
+        handler = handleStringLazyRowArray;
+      } else if (item instanceof LazyRow && item.isBinaryBacked()) {
+        handler = handleBinaryLazyRow;
+      } else if (item instanceof LazyRow) {
+        handler = handleStringLazyRow;
+      } else if (
+        Array.isArray(item) && item.length > 0 && Array.isArray(item[0])
+      ) {
+        handler = handleRowArray;
+      } else if (Array.isArray(item)) {
+        handler = handleRow;
+      } else {
+        throw new TypeError(
+          `Unsupported input type for toCsv: expected Row, Row[], LazyRow, or LazyRow[], got ${typeof item}`,
+        );
+      }
+
+      return handler(item);
+    };
+
+    for await (const item of data) {
+      yield handler(item);
+    }
+  };
 }

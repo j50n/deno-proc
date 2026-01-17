@@ -160,9 +160,6 @@ export interface WasmExports {
   /** Parse lazyrow binary directly (no CSV parsing) */
   parse_lazyrow_binary: (len: number) => number;
 
-  /** Finish parsing and flush remaining lazyrow data */
-  finish_lazyrow_direct: (id: number) => number;
-
   /** Encode record format directly to lazyrow binary */
   record_to_lazyrow: (len: number) => number;
 

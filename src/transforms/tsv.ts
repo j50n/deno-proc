@@ -1,17 +1,15 @@
 import { BATCH_SIZE_BYTES } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
-
-type Row = Record<string, string>;
+import type { Row } from "./types.ts";
 
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const encoder = new TextEncoder();
 
 /**
- * Parse TSV bytes into batches of row objects.
+ * Parse TSV bytes into batches of string arrays.
  *
  * Streams TSV data efficiently, yielding batches of parsed rows (~128KB each).
- * The first line is treated as headers, and subsequent rows become objects
- * with header names as keys.
+ * All rows are treated as data - no special header handling.
  *
  * **Performance**: TSV parsing is faster than CSV (72 MB/s vs 27 MB/s) because
  * it doesn't need to handle quoted fields or escaped characters.
@@ -25,7 +23,7 @@ const encoder = new TextEncoder();
  *   .transform(fromTsvToRows())
  *   .flatten()
  *   .collect();
- * // Record<string, string>[] - objects with header keys
+ * // string[][] - arrays of field values
  * ```
  *
  * @example Filter by field
@@ -33,8 +31,8 @@ const encoder = new TextEncoder();
  * await read("users.tsv")
  *   .transform(fromTsvToRows())
  *   .flatten()
- *   .filter(row => row.status === "active")
- *   .forEach(row => console.log(row.name));
+ *   .filter(row => row[2] === "active")
+ *   .forEach(row => console.log(row[0]));
  * ```
  *
  * @returns A transformer function for use with `.transform()`.
@@ -46,7 +44,6 @@ export function fromTsvToRows() {
     let buffer = "";
     let currentBatch: Row[] = [];
     let currentBatchSize = 0;
-    let headers: string[] | null = null;
 
     for await (const chunk of bytes) {
       buffer += decoder.decode(chunk, { stream: true });
@@ -58,18 +55,7 @@ export function fromTsvToRows() {
         if (!line.trim()) continue;
 
         const fields = line.split("\t");
-
-        if (headers === null) {
-          headers = fields;
-          continue;
-        }
-
-        const row: Row = {};
-        for (let i = 0; i < headers.length; i++) {
-          row[headers[i]] = fields[i] || "";
-        }
-
-        currentBatch.push(row);
+        currentBatch.push(fields);
         currentBatchSize += line.length;
 
         if (currentBatchSize >= BATCH_SIZE_BYTES) {
@@ -83,15 +69,7 @@ export function fromTsvToRows() {
     buffer += decoder.decode();
     if (buffer.trim()) {
       const fields = buffer.split("\t");
-      if (headers === null) {
-        headers = fields;
-      } else {
-        const row: Row = {};
-        for (let i = 0; i < headers.length; i++) {
-          row[headers[i]] = fields[i] || "";
-        }
-        currentBatch.push(row);
-      }
+      currentBatch.push(fields);
     }
 
     if (currentBatch.length > 0) {
@@ -191,35 +169,46 @@ export function fromTsvToLazyRows() {
  */
 export function toTsv() {
   return async function* (
-    data: AsyncIterable<Row[] | LazyRow[]>,
+    data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
     let rowNumber = 0;
 
-    for await (const batch of data) {
-      if (batch.length === 0) continue;
+    for await (const item of data) {
+      if (Array.isArray(item)) {
+        if (item.length === 0) continue;
 
-      let lines: string[];
+        const first = item[0];
 
-      if (batch[0] instanceof LazyRow) {
-        const lazyRows = batch as LazyRow[];
-        lines = lazyRows.map((row) => {
+        if (Array.isArray(first)) {
+          // Row[]
+          const lines = (item as Row[]).map((row) => {
+            rowNumber++;
+            validateTsvFields(row, rowNumber);
+            return row.join("\t");
+          });
+          yield encoder.encode(lines.join("\n") + "\n");
+        } else if (first instanceof LazyRow) {
+          // LazyRow[]
+          const lines = (item as LazyRow[]).map((row) => {
+            rowNumber++;
+            const fields = row.toStringArray();
+            validateTsvFields(fields, rowNumber);
+            return fields.join("\t");
+          });
+          yield encoder.encode(lines.join("\n") + "\n");
+        } else {
+          // Row (single string[])
           rowNumber++;
-          const fields = row.toStringArray();
-          validateTsvFields(fields, rowNumber);
-          return fields.join("\t");
-        });
-      } else {
-        const rows = batch as Row[];
-        lines = rows.map((row) => {
-          rowNumber++;
-          const fields = Object.values(row);
-          validateTsvFields(fields, rowNumber);
-          return fields.join("\t");
-        });
+          validateTsvFields(item as Row, rowNumber);
+          yield encoder.encode((item as Row).join("\t") + "\n");
+        }
+      } else if (item instanceof LazyRow) {
+        // Single LazyRow
+        rowNumber++;
+        const fields = item.toStringArray();
+        validateTsvFields(fields, rowNumber);
+        yield encoder.encode(fields.join("\t") + "\n");
       }
-
-      const tsv = lines.join("\n") + "\n";
-      yield encoder.encode(tsv);
     }
   };
 }

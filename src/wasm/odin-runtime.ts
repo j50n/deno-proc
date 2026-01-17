@@ -1,9 +1,9 @@
 /**
  * Odin runtime environment for WebAssembly.
- * 
+ *
  * Provides required imports for Odin-compiled WASM modules.
  * Most functions are stubs since they're not used in CSV processing.
- * 
+ *
  * @module
  */
 
@@ -19,7 +19,9 @@
  * @param memory - WebAssembly memory instance
  * @returns Import object for WASM instantiation
  */
-export function createOdinRuntime(memory: WebAssembly.Memory): WebAssembly.Imports {
+export function createOdinRuntime(
+  memory: WebAssembly.Memory,
+): WebAssembly.Imports {
   return {
     env: { memory },
     odin_env: {

@@ -16,7 +16,7 @@
  * @module
  */
 
-import { assertEquals, assertThrows } from "jsr:@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { LazyRow } from "../../src/transforms/lazy-row.ts";
 
 // =============================================================================

@@ -10,7 +10,7 @@ async function tsv2record(input: string): Promise<string> {
   const processor = await FlatdataProcessor.create();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  
+
   const chunks: Uint8Array[] = [];
   for await (
     const chunk of processor.tsvToRecord(
@@ -21,7 +21,7 @@ async function tsv2record(input: string): Promise<string> {
   ) {
     chunks.push(chunk);
   }
-  
+
   const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
   const result = new Uint8Array(totalLength);
   let offset = 0;
@@ -29,7 +29,7 @@ async function tsv2record(input: string): Promise<string> {
     result.set(chunk, offset);
     offset += chunk.length;
   }
-  
+
   return decoder.decode(result);
 }
 
@@ -113,8 +113,8 @@ Deno.test("tsv2record - special ASCII characters", async () => {
 });
 
 Deno.test("tsv2record - quotes and commas (no escaping needed)", async () => {
-  const result = await tsv2record('a"b\tc,d\te\'f\n');
-  assertEquals(result, 'a"b\x1Fc,d\x1Fe\'f\x1E');
+  const result = await tsv2record("a\"b\tc,d\te'f\n");
+  assertEquals(result, "a\"b\x1Fc,d\x1Fe'f\x1E");
 });
 
 Deno.test("tsv2record - null bytes", async () => {
@@ -139,7 +139,8 @@ Deno.test("tsv2record - many records (5000 records)", async () => {
   const records = Array.from({ length: 5000 }, (_, i) => `a${i}\tb${i}`);
   const input = records.join("\n") + "\n";
   const result = await tsv2record(input);
-  const expected = records.map(r => r.replace(/\t/g, "\x1F")).join("\x1E") + "\x1E";
+  const expected = records.map((r) => r.replace(/\t/g, "\x1F")).join("\x1E") +
+    "\x1E";
   assertEquals(result, expected);
 });
 

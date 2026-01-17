@@ -70,6 +70,12 @@ export abstract class LazyRow {
   abstract toBinary(): Uint8Array;
 
   /**
+   * Check if this LazyRow is backed by binary data.
+   * @returns true if backed by binary, false if backed by string array.
+   */
+  abstract isBinaryBacked(): boolean;
+
+  /**
    * Create a LazyRow from a string array.
    *
    * Use this when you have parsed data and want to wrap it for
@@ -129,6 +135,10 @@ class StringArrayLazyRow extends LazyRow {
 
   toStringArray(): string[] {
     return [...this.fields];
+  }
+
+  isBinaryBacked(): boolean {
+    return false;
   }
 
   toBinary(): Uint8Array {
@@ -251,6 +261,10 @@ class BinaryLazyRow extends LazyRow {
 
     this.stringCache = fields;
     return [...fields];
+  }
+
+  isBinaryBacked(): boolean {
+    return true;
   }
 
   toBinary(): Uint8Array {

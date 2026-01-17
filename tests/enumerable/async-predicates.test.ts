@@ -6,13 +6,13 @@ import { assertEquals } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
 
 // Helper: async predicate that returns true after a delay
-const asyncTrue = async () => {
+const _asyncTrue = async () => {
   await new Promise((r) => setTimeout(r, 10));
   return true;
 };
 
 // Helper: async predicate that returns false after a delay
-const asyncFalse = async () => {
+const _asyncFalse = async () => {
   await new Promise((r) => setTimeout(r, 10));
   return false;
 };

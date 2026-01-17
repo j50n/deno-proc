@@ -9,7 +9,7 @@ async function record2tsv(input: string): Promise<string> {
   const processor = await FlatdataProcessor.create();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  
+
   const chunks: Uint8Array[] = [];
   for await (
     const chunk of processor.recordToTsv(
@@ -20,7 +20,7 @@ async function record2tsv(input: string): Promise<string> {
   ) {
     chunks.push(chunk);
   }
-  
+
   return decoder.decode(
     new Uint8Array(chunks.reduce((acc, c) => acc + c.length, 0)).map((_, i) => {
       let offset = 0;
@@ -114,9 +114,9 @@ Deno.test("record2tsv - spaces and punctuation", async () => {
 });
 
 Deno.test("record2tsv - quotes and backslashes", async () => {
-  const input = 'a"b\x1Fc\\d\x1Fe\'f\x1E';
+  const input = "a\"b\x1Fc\\d\x1Fe'f\x1E";
   const result = await record2tsv(input);
-  assertEquals(result, 'a"b\tc\\d\te\'f\n');
+  assertEquals(result, "a\"b\tc\\d\te'f\n");
 });
 
 // Pathological cases

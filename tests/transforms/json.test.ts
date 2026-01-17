@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
 import { fromJsonToRows, toJson } from "../../src/transforms/json.ts";
 
@@ -112,7 +112,7 @@ Deno.test("JSON - invalid JSON throws", async () => {
   try {
     const result = enumerate([new TextEncoder().encode(jsonlData)])
       .transform(fromJsonToRows());
-    for await (const batch of result) {
+    for await (const _batch of result) {
       // Should throw
     }
     throw new Error("Expected error to be thrown");

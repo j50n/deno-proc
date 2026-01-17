@@ -2,10 +2,11 @@ import {
   BATCH_SIZE_BYTES,
   FIELD_SEPARATOR,
   RECORD_SEPARATOR,
+  rowsToRecord,
+  rowToRecord,
 } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
-
-type Row = string[];
+import type { Row } from "./types.ts";
 
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const encoder = new TextEncoder();
@@ -160,25 +161,29 @@ export function fromRecordToLazyRows() {
  */
 export function toRecord() {
   return async function* (
-    data: AsyncIterable<Row[] | LazyRow[]>,
+    data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
-    for await (const batch of data) {
-      if (batch.length === 0) continue;
+    for await (const item of data) {
+      if (Array.isArray(item)) {
+        if (item.length === 0) continue;
 
-      let records: string[];
+        const first = item[0];
 
-      if (batch[0] instanceof LazyRow) {
-        const lazyRows = batch as LazyRow[];
-        records = lazyRows.map((row) =>
-          row.toStringArray().join(FIELD_SEPARATOR)
-        );
-      } else {
-        const rows = batch as Row[];
-        records = rows.map((row) => row.join(FIELD_SEPARATOR));
+        if (Array.isArray(first)) {
+          // Row[]
+          yield encoder.encode(rowsToRecord(item as Row[]));
+        } else if (first instanceof LazyRow) {
+          // LazyRow[]
+          const rows = (item as LazyRow[]).map((row) => row.toStringArray());
+          yield encoder.encode(rowsToRecord(rows));
+        } else {
+          // Row (single string[])
+          yield encoder.encode(rowToRecord(item as Row));
+        }
+      } else if (item instanceof LazyRow) {
+        // Single LazyRow
+        yield encoder.encode(rowToRecord(item.toStringArray()));
       }
-
-      const recordData = records.join(RECORD_SEPARATOR) + RECORD_SEPARATOR;
-      yield encoder.encode(recordData);
     }
   };
 }

@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
 import {
   fromTsvToLazyRows,
@@ -15,8 +15,9 @@ Deno.test("TSV - basic parsing to rows", async () => {
 
   assertEquals(result, [
     [
-      { name: "Alice", age: "30", city: "NYC" },
-      { name: "Bob", age: "25", city: "LA" },
+      ["name", "age", "city"],
+      ["Alice", "30", "NYC"],
+      ["Bob", "25", "LA"],
     ],
   ]);
 });
@@ -29,7 +30,7 @@ Deno.test("TSV - basic parsing to LazyRows", async () => {
     .collect();
 
   assertEquals(result.length, 1);
-  assertEquals(result[0].length, 3); // header + 2 data rows
+  assertEquals(result[0].length, 3);
   assertEquals(result[0][0].toStringArray(), ["name", "age", "city"]);
   assertEquals(result[0][1].toStringArray(), ["Alice", "30", "NYC"]);
   assertEquals(result[0][2].toStringArray(), ["Bob", "25", "LA"]);
@@ -44,8 +45,9 @@ Deno.test("TSV - chunked input", async () => {
 
   assertEquals(result, [
     [
-      { name: "Alice", age: "30" },
-      { name: "Bob", age: "25" },
+      ["name", "age"],
+      ["Alice", "30"],
+      ["Bob", "25"],
     ],
   ]);
 });
@@ -59,8 +61,9 @@ Deno.test("TSV - empty fields", async () => {
 
   assertEquals(result, [
     [
-      { name: "Alice", age: "", city: "NYC" },
-      { name: "Bob", age: "25", city: "" },
+      ["name", "age", "city"],
+      ["Alice", "", "NYC"],
+      ["Bob", "25", ""],
     ],
   ]);
 });
@@ -68,8 +71,8 @@ Deno.test("TSV - empty fields", async () => {
 Deno.test("TSV - stringify from rows", async () => {
   const data = [
     [
-      { name: "Alice", age: "30" },
-      { name: "Bob", age: "25" },
+      ["Alice", "30"],
+      ["Bob", "25"],
     ],
   ];
 
@@ -78,6 +81,20 @@ Deno.test("TSV - stringify from rows", async () => {
     .collect();
 
   const tsvText = new TextDecoder().decode(result[0]);
+  assertEquals(tsvText, "Alice\t30\nBob\t25\n");
+});
+
+Deno.test("TSV - stringify from single row", async () => {
+  const data = [
+    ["Alice", "30"],
+    ["Bob", "25"],
+  ];
+
+  const result = await enumerate(data)
+    .transform(toTsv())
+    .collect();
+
+  const tsvText = result.map((b) => new TextDecoder().decode(b)).join("");
   assertEquals(tsvText, "Alice\t30\nBob\t25\n");
 });
 
@@ -98,6 +115,24 @@ Deno.test("TSV - stringify from LazyRows", async () => {
   assertEquals(tsvText, "Alice\t30\nBob\t25\n");
 });
 
+Deno.test("TSV - stringify from single LazyRow", async () => {
+  const tsvData = "Alice\t30\nBob\t25";
+
+  // Parse to LazyRows and flatten
+  const lazyRows = await enumerate([new TextEncoder().encode(tsvData)])
+    .transform(fromTsvToLazyRows())
+    .flatMap((batch) => batch)
+    .collect();
+
+  // Stringify individual LazyRows
+  const result = await enumerate(lazyRows)
+    .transform(toTsv())
+    .collect();
+
+  const tsvText = result.map((b) => new TextDecoder().decode(b)).join("");
+  assertEquals(tsvText, "Alice\t30\nBob\t25\n");
+});
+
 Deno.test("TSV - round trip rows", async () => {
   const originalTsv = "name\tage\tcity\nAlice\t30\tNYC\nBob\t25\tLA";
 
@@ -112,8 +147,8 @@ Deno.test("TSV - round trip rows", async () => {
     .collect();
 
   const resultTsv = new TextDecoder().decode(tsvBytes[0]);
-  // Note: We lose headers in Row conversion, so we only check data rows
-  assertEquals(resultTsv, "Alice\t30\tNYC\nBob\t25\tLA\n");
+  // All rows including header are preserved
+  assertEquals(resultTsv, "name\tage\tcity\nAlice\t30\tNYC\nBob\t25\tLA\n");
 });
 
 Deno.test("TSV - multi-byte UTF-8 handling", async () => {
@@ -125,8 +160,9 @@ Deno.test("TSV - multi-byte UTF-8 handling", async () => {
 
   assertEquals(result, [
     [
-      { name: "北京", city: "中国", emoji: "🏙️" },
-      { name: "Tokyo", city: "日本", emoji: "🗾" },
+      ["name", "city", "emoji"],
+      ["北京", "中国", "🏙️"],
+      ["Tokyo", "日本", "🗾"],
     ],
   ]);
 });
@@ -144,7 +180,10 @@ Deno.test("TSV - multi-byte UTF-8 chunked at boundaries", async () => {
     .collect();
 
   assertEquals(result, [
-    [{ name: "北京", city: "中国" }],
+    [
+      ["name", "city"],
+      ["北京", "中国"],
+    ],
   ]);
 });
 
@@ -163,7 +202,9 @@ Deno.test("TSV - only headers", async () => {
     .transform(fromTsvToRows())
     .collect();
 
-  assertEquals(result, []);
+  assertEquals(result, [
+    [["name", "age", "city"]],
+  ]);
 });
 
 // Error handling tests
@@ -172,7 +213,7 @@ Deno.test("TSV - invalid UTF-8 throws", async () => {
 
   try {
     const result = enumerate([invalidUtf8]).transform(fromTsvToRows());
-    for await (const batch of result) {
+    for await (const _batch of result) {
       // Should throw before we get here
     }
     throw new Error("Expected error to be thrown");
@@ -184,14 +225,14 @@ Deno.test("TSV - invalid UTF-8 throws", async () => {
 Deno.test("TSV - data with embedded tabs throws error", async () => {
   const data = [
     [
-      { name: "Alice", description: "Has\ttabs" },
-      { name: "Bob", description: "Normal" },
+      ["Alice", "Has\ttabs"],
+      ["Bob", "Normal"],
     ],
   ];
 
   try {
     const result = enumerate(data).transform(toTsv());
-    for await (const chunk of result) {
+    for await (const _chunk of result) {
       // Should throw before we get here
     }
     throw new Error("Expected error to be thrown");
@@ -207,13 +248,13 @@ Deno.test("TSV - data with embedded tabs throws error", async () => {
 Deno.test("TSV - data with embedded CR throws error", async () => {
   const data = [
     [
-      { name: "Alice", description: "Has\rCR" },
+      ["Alice", "Has\rCR"],
     ],
   ];
 
   try {
     const result = enumerate(data).transform(toTsv());
-    for await (const chunk of result) {
+    for await (const _chunk of result) {
       // Should throw before we get here
     }
     throw new Error("Expected error to be thrown");
@@ -228,13 +269,13 @@ Deno.test("TSV - data with embedded CR throws error", async () => {
 Deno.test("TSV - data with embedded LF throws error", async () => {
   const data = [
     [
-      { name: "Alice", description: "Has\nLF" },
+      ["Alice", "Has\nLF"],
     ],
   ];
 
   try {
     const result = enumerate(data).transform(toTsv());
-    for await (const chunk of result) {
+    for await (const _chunk of result) {
       // Should throw before we get here
     }
     throw new Error("Expected error to be thrown");
@@ -257,10 +298,12 @@ Deno.test("TSV - LazyRow selective access", async () => {
   const rows = result[0];
 
   // Test selective access - only get name and city (indices 0 and 2)
-  assertEquals(rows[1].getField(0), "Alice"); // name
-  assertEquals(rows[1].getField(2), "NYC"); // city
-  assertEquals(rows[2].getField(0), "Bob"); // name
-  assertEquals(rows[2].getField(2), "LA"); // city
+  assertEquals(rows[0].getField(0), "name");
+  assertEquals(rows[0].getField(2), "city");
+  assertEquals(rows[1].getField(0), "Alice");
+  assertEquals(rows[1].getField(2), "NYC");
+  assertEquals(rows[2].getField(0), "Bob");
+  assertEquals(rows[2].getField(2), "LA");
 });
 
 // =============================================================================
@@ -286,9 +329,10 @@ Deno.test("TSV pathological - 1MB field", async () => {
     .transform(fromTsvToRows())
     .collect();
 
-  assertEquals(result[0][0].header1, "small");
-  assertEquals(result[0][0].header2, hugeField);
-  assertEquals(result[0][0].header3, "end");
+  assertEquals(result[0][0][0], "header1");
+  assertEquals(result[0][1][0], "small");
+  assertEquals(result[0][1][1], hugeField);
+  assertEquals(result[0][1][2], "end");
 });
 
 Deno.test("TSV pathological - many fields (100 columns)", async () => {
@@ -300,9 +344,10 @@ Deno.test("TSV pathological - many fields (100 columns)", async () => {
     .transform(fromTsvToRows())
     .collect();
 
-  assertEquals(Object.keys(result[0][0]).length, 100);
-  assertEquals(result[0][0].h0, "v0");
-  assertEquals(result[0][0].h99, "v99");
+  assertEquals(result[0][0].length, 100);
+  assertEquals(result[0][1].length, 100);
+  assertEquals(result[0][1][0], "v0");
+  assertEquals(result[0][1][99], "v99");
 });
 
 Deno.test("TSV pathological - many rows (10000 rows)", async () => {
@@ -315,9 +360,10 @@ Deno.test("TSV pathological - many rows (10000 rows)", async () => {
     .collect();
 
   const allRows = result.flat();
-  assertEquals(allRows.length, 10000);
-  assertEquals(allRows[0].a, "a0");
-  assertEquals(allRows[9999].a, "a9999");
+  assertEquals(allRows.length, 10001); // header + 10000 data rows
+  assertEquals(allRows[0][0], "a");
+  assertEquals(allRows[1][0], "a0");
+  assertEquals(allRows[10000][0], "a9999");
 });
 
 Deno.test("TSV pathological - 1MB field to LazyRow", async () => {
@@ -346,8 +392,9 @@ Deno.test("TSV pathological - chunk boundary in middle of field", async () => {
     .transform(fromTsvToRows())
     .collect();
 
-  assertEquals(result[0][0].h1, field);
-  assertEquals(result[0][0].h2, field);
+  assertEquals(result[0][0][0], "h1");
+  assertEquals(result[0][1][0], field);
+  assertEquals(result[0][1][1], field);
 });
 
 Deno.test("TSV pathological - many small chunks", async () => {
@@ -381,5 +428,5 @@ Deno.test("TSV pathological - round-trip with 1MB field", async () => {
     .collect();
 
   const resultTsv = new TextDecoder().decode(tsvBytes[0]);
-  assertEquals(resultTsv, `small\t${hugeField}\n`);
+  assertEquals(resultTsv, `h1\th2\nsmall\t${hugeField}\n`);
 });

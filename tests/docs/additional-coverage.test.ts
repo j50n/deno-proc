@@ -12,6 +12,7 @@ Deno.test("concurrentMap - handles errors in mapFn", async () => {
     async () => {
       await range({ to: 5 })
         .concurrentMap(async (n) => {
+          await Promise.resolve();
           if (n === 2) throw new Error("test error");
           return n * 2;
         })
@@ -27,6 +28,7 @@ Deno.test("concurrentUnorderedMap - handles errors in mapFn", async () => {
     async () => {
       await range({ to: 5 })
         .concurrentUnorderedMap(async (n) => {
+          await Promise.resolve();
           if (n === 2) throw new Error("test error");
           return n * 2;
         })
@@ -39,14 +41,20 @@ Deno.test("concurrentUnorderedMap - handles errors in mapFn", async () => {
 
 Deno.test("concurrentMap - empty iterable", async () => {
   const result = await enumerate([])
-    .concurrentMap(async (n: number) => n * 2)
+    .concurrentMap(async (n: number) => {
+      await Promise.resolve();
+      return n * 2;
+    })
     .collect();
   assertEquals(result, []);
 });
 
 Deno.test("concurrentMap - single item", async () => {
   const result = await enumerate([5])
-    .concurrentMap(async (n) => n * 2)
+    .concurrentMap(async (n) => {
+      await Promise.resolve();
+      return n * 2;
+    })
     .collect();
   assertEquals(result, [10]);
 });

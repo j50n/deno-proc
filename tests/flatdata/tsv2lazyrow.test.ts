@@ -9,7 +9,7 @@ import { FlatdataProcessor } from "../../src/wasm/flatdata-processor.ts";
 async function tsv2lazyrow(input: string): Promise<Uint8Array> {
   const processor = await FlatdataProcessor.create();
   const encoder = new TextEncoder();
-  
+
   const chunks: Uint8Array[] = [];
   for await (
     const chunk of processor.tsvToLazyRow(
@@ -20,7 +20,7 @@ async function tsv2lazyrow(input: string): Promise<Uint8Array> {
   ) {
     chunks.push(chunk);
   }
-  
+
   const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
   const result = new Uint8Array(totalLength);
   let offset = 0;
@@ -28,7 +28,7 @@ async function tsv2lazyrow(input: string): Promise<Uint8Array> {
     result.set(chunk, offset);
     offset += chunk.length;
   }
-  
+
   return result;
 }
 
@@ -37,23 +37,23 @@ function decodeLazyrow(data: Uint8Array): string[][] {
   const rows: string[][] = [];
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   let offset = 0;
-  
+
   while (offset < data.length) {
     // Read row_length
-    const rowLength = view.getUint32(offset, true);
+    const _rowLength = view.getUint32(offset, true);
     offset += 4;
-    
+
     // Read field_count
     const fieldCount = view.getUint32(offset, true);
     offset += 4;
-    
+
     // Read field lengths
     const fieldLengths: number[] = [];
     for (let i = 0; i < fieldCount; i++) {
       fieldLengths.push(view.getUint32(offset, true));
       offset += 4;
     }
-    
+
     // Read field data
     const fields: string[] = [];
     for (const len of fieldLengths) {
@@ -61,10 +61,10 @@ function decodeLazyrow(data: Uint8Array): string[][] {
       fields.push(new TextDecoder().decode(fieldData));
       offset += len;
     }
-    
+
     rows.push(fields);
   }
-  
+
   return rows;
 }
 
@@ -115,7 +115,7 @@ Deno.test("tsv2lazyrow - only tab", async () => {
 Deno.test("tsv2lazyrow - only newline", async () => {
   const result = await tsv2lazyrow("\n");
   const rows = decodeLazyrow(result);
-  assertEquals(rows, [[""]]); 
+  assertEquals(rows, [[""]]);
 });
 
 Deno.test("tsv2lazyrow - consecutive tabs", async () => {
@@ -163,9 +163,9 @@ Deno.test("tsv2lazyrow - special ASCII characters", async () => {
 });
 
 Deno.test("tsv2lazyrow - quotes and commas (preserved)", async () => {
-  const result = await tsv2lazyrow('a"b\tc,d\te\'f\n');
+  const result = await tsv2lazyrow("a\"b\tc,d\te'f\n");
   const rows = decodeLazyrow(result);
-  assertEquals(rows, [['a"b', 'c,d', "e'f"]]);
+  assertEquals(rows, [['a"b', "c,d", "e'f"]]);
 });
 
 Deno.test("tsv2lazyrow - null bytes", async () => {
@@ -224,19 +224,23 @@ Deno.test("tsv2lazyrow - multiple records no trailing newline", async () => {
 // Binary format validation
 Deno.test("tsv2lazyrow - binary format structure", async () => {
   const result = await tsv2lazyrow("ab\tcd\n");
-  const view = new DataView(result.buffer, result.byteOffset, result.byteLength);
-  
+  const view = new DataView(
+    result.buffer,
+    result.byteOffset,
+    result.byteLength,
+  );
+
   // Row length (4 + 4*2 + 2 + 2 = 16 bytes)
   // Format: field_count (4) + field_lengths (4*2) + field_data (2+2)
   assertEquals(view.getUint32(0, true), 16);
-  
+
   // Field count
   assertEquals(view.getUint32(4, true), 2);
-  
+
   // Field lengths
   assertEquals(view.getUint32(8, true), 2); // "ab"
   assertEquals(view.getUint32(12, true), 2); // "cd"
-  
+
   // Field data
   assertEquals(new TextDecoder().decode(result.slice(16, 18)), "ab");
   assertEquals(new TextDecoder().decode(result.slice(18, 20)), "cd");
@@ -246,10 +250,10 @@ Deno.test("tsv2lazyrow - binary format structure", async () => {
 Deno.test("tsv2lazyrow - round-trip to record format", async () => {
   const processor = await FlatdataProcessor.create();
   const input = "a\tb\tc\n1\t2\t3\n";
-  
+
   // TSV → lazyrow
   const lazyrow = await tsv2lazyrow(input);
-  
+
   // lazyrow → record
   const chunks: Uint8Array[] = [];
   for await (
@@ -261,7 +265,7 @@ Deno.test("tsv2lazyrow - round-trip to record format", async () => {
   ) {
     chunks.push(chunk);
   }
-  
+
   const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
   const result = new Uint8Array(totalLength);
   let offset = 0;
@@ -269,7 +273,7 @@ Deno.test("tsv2lazyrow - round-trip to record format", async () => {
     result.set(chunk, offset);
     offset += chunk.length;
   }
-  
+
   const record = new TextDecoder().decode(result);
   assertEquals(record, "a\x1Fb\x1Fc\x1E1\x1F2\x1F3\x1E");
 });

@@ -21,7 +21,7 @@ process data streams without loading everything into memory.
 ### Row
 
 ```typescript
-type Row = Record<string, string>; // Object with string keys and values
+type Row = string[]; // Array of field values
 ```
 
 ### LazyRow Format

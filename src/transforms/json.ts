@@ -79,7 +79,7 @@ export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
     let currentBatch: T[] = [];
     let currentBatchSize = 0;
     let processedCount = 0;
-    let shouldValidate = options?.schema &&
+    const shouldValidate = options?.schema &&
       (options.sampleSize === undefined || options.sampleSize > 0);
 
     for await (const chunk of bytes) {

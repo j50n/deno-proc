@@ -1564,3 +1564,118 @@ Streaming Delimiter Replacer
 Ultra-fast streaming converter that just replaces delimiters.
 No quoting logic - use only when output format doesn't require quoting.
 */
+
+
+// Convert binary lazyrow format directly to CSV.
+// Decodes lazyrow binary and stringifies to CSV in one pass.
+// Returns number of bytes written to output, or -1 if output buffer too small.
+lazyrow_to_csv :: proc(input: []u8, output: []u8, separator: u8, crlf: bool) -> int {
+    out_pos := 0
+    in_pos := 0
+    
+    for in_pos < len(input) {
+        // Read row_length prefix
+        if in_pos + 4 > len(input) do return -1
+        
+        row_length := int(input[in_pos]) | 
+                     (int(input[in_pos+1]) << 8) |
+                     (int(input[in_pos+2]) << 16) |
+                     (int(input[in_pos+3]) << 24)
+        in_pos += 4
+        
+        if in_pos + row_length > len(input) do return -1
+        
+        row_end := in_pos + row_length
+        
+        // Read field_count
+        if in_pos + 4 > row_end do return -1
+        field_count := int(input[in_pos]) |
+                      (int(input[in_pos+1]) << 8) |
+                      (int(input[in_pos+2]) << 16) |
+                      (int(input[in_pos+3]) << 24)
+        in_pos += 4
+        
+        // Read field lengths
+        field_lengths := make([]int, field_count, context.temp_allocator)
+        for i in 0..<field_count {
+            if in_pos + 4 > row_end do return -1
+            field_lengths[i] = int(input[in_pos]) |
+                              (int(input[in_pos+1]) << 8) |
+                              (int(input[in_pos+2]) << 16) |
+                              (int(input[in_pos+3]) << 24)
+            in_pos += 4
+        }
+        
+        // Process each field
+        for field_idx in 0..<field_count {
+            field_len := field_lengths[field_idx]
+            if in_pos + field_len > row_end do return -1
+            
+            field := input[in_pos:in_pos+field_len]
+            in_pos += field_len
+            
+            // Add separator between fields
+            if field_idx > 0 {
+                if out_pos >= len(output) do return -1
+                output[out_pos] = separator
+                out_pos += 1
+            }
+            
+            // Check if field needs quoting
+            needs_quote := false
+            for b in field {
+                if b == separator || b == '"' || b == '\n' || b == '\r' {
+                    needs_quote = true
+                    break
+                }
+            }
+            
+            if needs_quote {
+                // Write quoted field
+                if out_pos >= len(output) do return -1
+                output[out_pos] = '"'
+                out_pos += 1
+                
+                for b in field {
+                    if b == '"' {
+                        // Escape quote with double quote
+                        if out_pos + 2 > len(output) do return -1
+                        output[out_pos] = '"'
+                        output[out_pos+1] = '"'
+                        out_pos += 2
+                    } else {
+                        if out_pos >= len(output) do return -1
+                        output[out_pos] = b
+                        out_pos += 1
+                    }
+                }
+                
+                if out_pos >= len(output) do return -1
+                output[out_pos] = '"'
+                out_pos += 1
+            } else {
+                // Write unquoted field
+                if out_pos + field_len > len(output) do return -1
+                copy(output[out_pos:], field)
+                out_pos += field_len
+            }
+        }
+        
+        // Add line ending
+        if crlf {
+            if out_pos + 2 > len(output) do return -1
+            output[out_pos] = '\r'
+            output[out_pos+1] = '\n'
+            out_pos += 2
+        } else {
+            if out_pos >= len(output) do return -1
+            output[out_pos] = '\n'
+            out_pos += 1
+        }
+        
+        // Move to next row
+        in_pos = row_end
+    }
+    
+    return out_pos
+}

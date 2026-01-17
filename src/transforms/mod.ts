@@ -8,6 +8,9 @@
  * @module
  */
 
+// Core types
+export type { Row } from "./types.ts";
+
 // Transform functions for data format conversion
 export { LazyRow } from "./lazy-row.ts";
 export {
@@ -29,7 +32,7 @@ export {
 export { fromTsvToLazyRows, fromTsvToRows, toTsv } from "./tsv.ts";
 
 // Record transformers
-export { fromRecordToRows, fromRecordToLazyRows, toRecord } from "./record.ts";
+export { fromRecordToLazyRows, fromRecordToRows, toRecord } from "./record.ts";
 
 // Binary LazyRow transformers
 export { fromLazyRowBinary, toLazyRowBinary } from "./lazyrow-binary.ts";

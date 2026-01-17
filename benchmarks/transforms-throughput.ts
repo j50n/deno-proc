@@ -73,6 +73,26 @@ async function drainBytes(iter: AsyncIterable<Uint8Array>): Promise<number> {
   return size;
 }
 
+async function* _flattenRows<T>(
+  iter: AsyncIterable<T[] | T>,
+): AsyncIterable<T> {
+  for await (const item of iter) {
+    if (Array.isArray(item)) {
+      for (const row of item) yield row;
+    } else {
+      yield item;
+    }
+  }
+}
+
+async function* _toStringBackedLazyRows(
+  iter: AsyncIterable<string[][]>,
+): AsyncIterable<LazyRow[]> {
+  for await (const batch of iter) {
+    yield batch.map((row) => LazyRow.fromStringArray(row));
+  }
+}
+
 interface BenchResult {
   name: string;
   throughput: number;
@@ -91,12 +111,61 @@ async function bench(
   return { name, throughput, time };
 }
 
-async function main() {
-  console.log(
-    `Generating test data: ${NUM_RECORDS} records × ${NUM_COLUMNS} columns...\n`,
-  );
+async function benchToCsv(
+  name: string,
+  dataGen: () => AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
+  sizeMB: number,
+): Promise<BenchResult> {
+  // Warmup
+  await drainBytes(toCsv()(dataGen()));
 
+  // Measure
+  const start = performance.now();
+  await drainBytes(toCsv()(dataGen()));
+  const time = (performance.now() - start) / 1000;
+  return { name, throughput: sizeMB / time, time };
+}
+
+async function benchToTsv(
+  name: string,
+  dataGen: () => AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
+  sizeMB: number,
+): Promise<BenchResult> {
+  await drainBytes(toTsv()(dataGen()));
+  const start = performance.now();
+  await drainBytes(toTsv()(dataGen()));
+  const time = (performance.now() - start) / 1000;
+  return { name, throughput: sizeMB / time, time };
+}
+
+async function benchToRecord(
+  name: string,
+  dataGen: () => AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
+  sizeMB: number,
+): Promise<BenchResult> {
+  await drainBytes(toRecord()(dataGen()));
+  const start = performance.now();
+  await drainBytes(toRecord()(dataGen()));
+  const time = (performance.now() - start) / 1000;
+  return { name, throughput: sizeMB / time, time };
+}
+
+async function benchToLazyRowBinary(
+  name: string,
+  dataGen: () => AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
+  sizeMB: number,
+): Promise<BenchResult> {
+  await drainBytes(toLazyRowBinary()(dataGen()));
+  const start = performance.now();
+  await drainBytes(toLazyRowBinary()(dataGen()));
+  const time = (performance.now() - start) / 1000;
+  return { name, throughput: sizeMB / time, time };
+}
+
+async function main() {
   const rows = generateRows();
+
+  // Calculate all sizes upfront
   const csvData = generateCsv(rows);
   const tsvData = generateTsv(rows);
   const recData = generateRecord(rows);
@@ -107,15 +176,15 @@ async function main() {
   const recSize = new TextEncoder().encode(recData).length / 1024 / 1024;
   const jsonSize = new TextEncoder().encode(jsonData).length / 1024 / 1024;
 
-  console.log(`  CSV:    ${csvSize.toFixed(2)} MB`);
-  console.log(`  TSV:    ${tsvSize.toFixed(2)} MB`);
-  console.log(`  Record: ${recSize.toFixed(2)} MB`);
-  console.log(`  JSON:   ${jsonSize.toFixed(2)} MB\n`);
-
-  // Pre-generate binary lazyrow data
+  // Pre-generate binary lazyrow data for toLazyRowBinary benchmarks
   const lazyRows = rows.map((r) => LazyRow.fromStringArray(r));
   const binaryChunks: Uint8Array[] = [];
-  for await (const chunk of toLazyRowBinary()(toAsync([lazyRows]))) {
+  // Process in batches to avoid huge WASM buffer allocation
+  const lazyRowBatches: LazyRow[][] = [];
+  for (let i = 0; i < lazyRows.length; i += 1000) {
+    lazyRowBatches.push(lazyRows.slice(i, i + 1000));
+  }
+  for await (const chunk of toLazyRowBinary()(toAsync(lazyRowBatches))) {
     binaryChunks.push(chunk);
   }
   const binaryData = new Uint8Array(
@@ -127,12 +196,213 @@ async function main() {
     pos += c.length;
   }
   const binarySize = binaryData.length / 1024 / 1024;
-  console.log(`  Binary: ${binarySize.toFixed(2)} MB\n`);
+
+  // Pre-generate actual binary-backed LazyRows for benchmarking
+  const actualBinaryLazyRows: LazyRow[] = [];
+  for await (const batch of fromLazyRowBinary()(toAsync([binaryData]))) {
+    actualBinaryLazyRows.push(...batch);
+  }
+
+  // Create batches of binary-backed LazyRows
+  const actualBinaryLazyRowBatches: LazyRow[][] = [];
+  for (let i = 0; i < actualBinaryLazyRows.length; i += 1000) {
+    actualBinaryLazyRowBatches.push(actualBinaryLazyRows.slice(i, i + 1000));
+  }
 
   const results: BenchResult[] = [];
 
+  // toCsv (from string[][])
+  const batches: string[][][] = [];
+  for (let i = 0; i < rows.length; i += 1000) {
+    batches.push(rows.slice(i, i + 1000));
+  }
+  results.push(
+    await benchToCsv(
+      "toCsv (from string[][])",
+      () => toAsync(batches),
+      csvSize,
+    ),
+  );
+
+  // toCsv (from string[])
+  results.push(
+    await benchToCsv("toCsv (from string[])", () => toAsync(rows), csvSize),
+  );
+
+  // toCsv (from LazyRow[] binary)
+  results.push(
+    await benchToCsv(
+      "toCsv (from LazyRow[] binary)",
+      () => toAsync(actualBinaryLazyRowBatches),
+      csvSize,
+    ),
+  );
+
+  // toCsv (from LazyRow binary)
+  results.push(
+    await benchToCsv(
+      "toCsv (from LazyRow binary)",
+      () => toAsync(actualBinaryLazyRows),
+      csvSize,
+    ),
+  );
+
+  // toCsv (from LazyRow[] string)
+  const stringLazyRowBatches: LazyRow[][] = [];
+  for (let i = 0; i < rows.length; i += 1000) {
+    stringLazyRowBatches.push(
+      rows.slice(i, i + 1000).map((r) => LazyRow.fromStringArray(r)),
+    );
+  }
+  results.push(
+    await benchToCsv(
+      "toCsv (from LazyRow[] string)",
+      () => toAsync(stringLazyRowBatches),
+      csvSize,
+    ),
+  );
+
+  // toCsv (from LazyRow string)
+  const stringLazyRows: LazyRow[] = rows.map((r) => LazyRow.fromStringArray(r));
+  results.push(
+    await benchToCsv(
+      "toCsv (from LazyRow string)",
+      () => toAsync(stringLazyRows),
+      csvSize,
+    ),
+  );
+
+  // toTsv benchmarks
+  results.push(
+    await benchToTsv(
+      "toTsv (from string[][])",
+      () => toAsync(batches),
+      tsvSize,
+    ),
+  );
+  results.push(
+    await benchToTsv("toTsv (from string[])", () => toAsync(rows), tsvSize),
+  );
+  results.push(
+    await benchToTsv(
+      "toTsv (from LazyRow[] binary)",
+      () => toAsync(actualBinaryLazyRowBatches),
+      tsvSize,
+    ),
+  );
+  results.push(
+    await benchToTsv(
+      "toTsv (from LazyRow binary)",
+      () => toAsync(actualBinaryLazyRows),
+      tsvSize,
+    ),
+  );
+  results.push(
+    await benchToTsv(
+      "toTsv (from LazyRow[] string)",
+      () => toAsync(stringLazyRowBatches),
+      tsvSize,
+    ),
+  );
+  results.push(
+    await benchToTsv(
+      "toTsv (from LazyRow string)",
+      () => toAsync(stringLazyRows),
+      tsvSize,
+    ),
+  );
+
+  // toRecord benchmarks
+  results.push(
+    await benchToRecord(
+      "toRecord (from string[][])",
+      () => toAsync(batches),
+      recSize,
+    ),
+  );
+  results.push(
+    await benchToRecord(
+      "toRecord (from string[])",
+      () => toAsync(rows),
+      recSize,
+    ),
+  );
+  results.push(
+    await benchToRecord(
+      "toRecord (from LazyRow[] binary)",
+      () => toAsync(actualBinaryLazyRowBatches),
+      recSize,
+    ),
+  );
+  results.push(
+    await benchToRecord(
+      "toRecord (from LazyRow binary)",
+      () => toAsync(actualBinaryLazyRows),
+      recSize,
+    ),
+  );
+  results.push(
+    await benchToRecord(
+      "toRecord (from LazyRow[] string)",
+      () => toAsync(stringLazyRowBatches),
+      recSize,
+    ),
+  );
+  results.push(
+    await benchToRecord(
+      "toRecord (from LazyRow string)",
+      () => toAsync(stringLazyRows),
+      recSize,
+    ),
+  );
+
+  // toLazyRowBinary benchmarks (use csvSize for fair comparison)
+  results.push(
+    await benchToLazyRowBinary(
+      "toLazyRowBinary (from string[][])",
+      () => toAsync(batches),
+      csvSize,
+    ),
+  );
+  results.push(
+    await benchToLazyRowBinary(
+      "toLazyRowBinary (from string[])",
+      () => toAsync(rows),
+      csvSize,
+    ),
+  );
+  results.push(
+    await benchToLazyRowBinary(
+      "toLazyRowBinary (from LazyRow[] binary)",
+      () => toAsync(actualBinaryLazyRowBatches),
+      csvSize,
+    ),
+  );
+  results.push(
+    await benchToLazyRowBinary(
+      "toLazyRowBinary (from LazyRow binary)",
+      () => toAsync(actualBinaryLazyRows),
+      csvSize,
+    ),
+  );
+  results.push(
+    await benchToLazyRowBinary(
+      "toLazyRowBinary (from LazyRow[] string)",
+      () => toAsync(stringLazyRowBatches),
+      csvSize,
+    ),
+  );
+  results.push(
+    await benchToLazyRowBinary(
+      "toLazyRowBinary (from LazyRow string)",
+      () => toAsync(stringLazyRows),
+      csvSize,
+    ),
+  );
+
+  // Other transforms
+
   // CSV benchmarks
-  console.log("CSV transforms:");
   results.push(
     await bench("fromCsvToRows", csvSize, async () => {
       await drain(fromCsvToRows()(bytesFrom(csvData)));
@@ -143,14 +413,8 @@ async function main() {
       await drain(fromCsvToLazyRows()(bytesFrom(csvData)));
     }),
   );
-  results.push(
-    await bench("toCsv", csvSize, async () => {
-      await drainBytes(toCsv()(fromCsvToRows()(bytesFrom(csvData))));
-    }),
-  );
 
   // TSV benchmarks
-  console.log("\nTSV transforms:");
   results.push(
     await bench("fromTsvToRows", tsvSize, async () => {
       await drain(fromTsvToRows()(bytesFrom(tsvData)));
@@ -161,14 +425,8 @@ async function main() {
       await drain(fromTsvToLazyRows()(bytesFrom(tsvData)));
     }),
   );
-  results.push(
-    await bench("toTsv", tsvSize, async () => {
-      await drainBytes(toTsv()(fromTsvToRows()(bytesFrom(tsvData))));
-    }),
-  );
 
   // Record benchmarks
-  console.log("\nRecord transforms:");
   results.push(
     await bench("fromRecordToRows", recSize, async () => {
       await drain(fromRecordToRows()(bytesFrom(recData)));
@@ -179,14 +437,8 @@ async function main() {
       await drain(fromRecordToLazyRows()(bytesFrom(recData)));
     }),
   );
-  results.push(
-    await bench("toRecord", recSize, async () => {
-      await drainBytes(toRecord()(fromRecordToRows()(bytesFrom(recData))));
-    }),
-  );
 
   // JSON benchmarks
-  console.log("\nJSON transforms:");
   results.push(
     await bench("fromJsonToRows", jsonSize, async () => {
       await drain(fromJsonToRows()(bytesFrom(jsonData)));
@@ -199,15 +451,9 @@ async function main() {
   );
 
   // LazyRow binary benchmarks
-  console.log("\nLazyRow binary transforms:");
   results.push(
     await bench("fromLazyRowBinary", binarySize, async () => {
       await drain(fromLazyRowBinary()(toAsync([binaryData])));
-    }),
-  );
-  results.push(
-    await bench("toLazyRowBinary", binarySize, async () => {
-      await drainBytes(toLazyRowBinary()(toAsync([lazyRows])));
     }),
   );
 
@@ -216,12 +462,12 @@ async function main() {
   console.log("SUMMARY");
   console.log("=".repeat(60));
   console.log(
-    `${"Transform".padEnd(30)} ${"MB/s".padStart(10)} ${"Time".padStart(12)}`,
+    `${"Transform".padEnd(40)} ${"MB/s".padStart(10)} ${"Time".padStart(12)}`,
   );
   console.log("-".repeat(60));
   for (const r of results) {
     console.log(
-      `${r.name.padEnd(30)} ${r.throughput.toFixed(1).padStart(10)} ${
+      `${r.name.padEnd(40)} ${r.throughput.toFixed(1).padStart(10)} ${
         (r.time * 1000).toFixed(0).padStart(9)
       } ms`,
     );
@@ -229,7 +475,7 @@ async function main() {
 
   const avg = results.reduce((s, r) => s + r.throughput, 0) / results.length;
   console.log("-".repeat(60));
-  console.log(`${"Average".padEnd(30)} ${avg.toFixed(1).padStart(10)} MB/s`);
+  console.log(`${"Average".padEnd(40)} ${avg.toFixed(1).padStart(10)} MB/s`);
   console.log("=".repeat(60));
 }
 

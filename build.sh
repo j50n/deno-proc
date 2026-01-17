@@ -18,7 +18,7 @@ cd "$HERE" && (
     # Update Deno
     deno update --latest
 
-    TS_FILES="benchmarks/*.ts scripts/*/*.ts site/*.ts src/*.ts tests/*.ts tools/*.ts"
+    TS_FILES="benchmarks/*.ts scripts/*/*.ts site/*.ts src/**/*.ts tests/**/*.ts tools/*.ts"
 
     deno fmt **/*.md
     deno fmt $TS_FILES
