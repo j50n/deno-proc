@@ -388,6 +388,126 @@ test_delimited_chunk_mid_crlf :: proc(t: ^testing.T) {
     testing.expect_value(t, rows, u32(2))
 }
 
+@(test)
+test_delimited_chunk_quoted_field_multipart :: proc(t: ^testing.T) {
+    p := delimited_init()
+    defer delimited_destroy(&p)
+    
+    // Split a quoted field with newline across 3 chunks
+    rows, ok := delimited_parse(&p, transmute([]u8)string("\"line1"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(0))
+    
+    rows, ok = delimited_parse(&p, transmute([]u8)string("\nline2"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(0))
+    
+    rows, ok = delimited_parse(&p, transmute([]u8)string("\",b\n"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(1))
+    expect_bytes(t, p.output[:], "line1\nline2\x1Fb\x1E")
+}
+
+@(test)
+test_delimited_chunk_escape_boundary :: proc(t: ^testing.T) {
+    p := delimited_init()
+    defer delimited_destroy(&p)
+    
+    // Split between two quotes in "" escape sequence
+    rows, ok := delimited_parse(&p, transmute([]u8)string("\"a\"\""))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(0))
+    
+    rows, ok = delimited_parse(&p, transmute([]u8)string("\",b\n"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(1))
+    expect_bytes(t, p.output[:], "a\"\x1Fb\x1E")
+}
+
+@(test)
+test_delimited_chunk_multiple_incomplete :: proc(t: ^testing.T) {
+    p := delimited_init()
+    defer delimited_destroy(&p)
+    
+    // Feed multiple incomplete chunks before completing
+    rows, ok := delimited_parse(&p, transmute([]u8)string("a"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(0))
+    
+    rows, ok = delimited_parse(&p, transmute([]u8)string("b"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(0))
+    
+    rows, ok = delimited_parse(&p, transmute([]u8)string("c"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(0))
+    
+    rows, ok = delimited_parse(&p, transmute([]u8)string(",d\n"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(1))
+    expect_bytes(t, p.output[:], "abc\x1Fd\x1E")
+}
+
+@(test)
+test_delimited_chunk_output_grows :: proc(t: ^testing.T) {
+    p := delimited_init()
+    defer delimited_destroy(&p)
+    
+    // Feed many rows to test output buffer growth
+    for i := 0; i < 100; i += 1 {
+        rows, ok := delimited_parse(&p, transmute([]u8)string("a,b,c\n"))
+        testing.expect(t, ok, "parse should succeed")
+        testing.expect_value(t, rows, u32(1))
+    }
+    
+    testing.expect(t, len(p.output) > 0, "should have output")
+}
+
+@(test)
+test_delimited_finish_unclosed_quote_strict :: proc(t: ^testing.T) {
+    p := delimited_init(CsvOptions{strict = true})
+    defer delimited_destroy(&p)
+    
+    rows, ok := delimited_parse(&p, transmute([]u8)string("\"unclosed"))
+    testing.expect(t, ok, "parse should succeed")
+    
+    rows, ok = delimited_finish(&p)
+    testing.expect(t, !ok, "finish should fail on unclosed quote")
+    testing.expect_value(t, p.error.kind, CsvErrorKind.UnclosedQuote)
+}
+
+@(test)
+test_delimited_finish_preserves_incomplete :: proc(t: ^testing.T) {
+    p := delimited_init()
+    defer delimited_destroy(&p)
+    
+    // Feed incomplete record
+    rows, ok := delimited_parse(&p, transmute([]u8)string("a,b,c"))
+    testing.expect(t, ok, "parse should succeed")
+    testing.expect_value(t, rows, u32(0))
+    
+    // Finish should emit the incomplete record
+    rows, ok = delimited_finish(&p)
+    testing.expect(t, ok, "finish should succeed")
+    testing.expect_value(t, rows, u32(1))
+    expect_bytes(t, p.output[:], "a\x1Fb\x1Fc\x1E")
+}
+
+@(test)
+test_delimited_error_after_quote_chunk :: proc(t: ^testing.T) {
+    p := delimited_init()
+    defer delimited_destroy(&p)
+    
+    // Feed quoted field
+    rows, ok := delimited_parse(&p, transmute([]u8)string("\"a\""))
+    testing.expect(t, ok, "parse should succeed")
+    
+    // Feed invalid char after quote
+    rows, ok = delimited_parse(&p, transmute([]u8)string("x,b\n"))
+    testing.expect(t, !ok, "parse should fail")
+    testing.expect_value(t, p.error.kind, CsvErrorKind.InvalidCharAfterQuote)
+}
+
 // =============================================================================
 // Edge Cases
 // =============================================================================
