@@ -1,28 +1,36 @@
-# CSV SIMD Parser
+# CSV SIMD Parser (Native)
 
-Exploring SIMD techniques for high-performance CSV parsing, inspired by simdjson.
+Research and future implementation of SIMD-accelerated CSV parsing for native platforms (x86-64/ARM).
 
-## Goal
+## Status
 
-Improve CSV parsing performance from current 10-27 MB/s to 40-100+ MB/s using vectorized operations.
+**Research complete. Implementation deferred.**
 
-## Approach
+SIMD techniques are well-understood and documented, but not worth implementing in WebAssembly due to:
+- 128-bit vector limitation (vs 256-bit AVX2)
+- Missing `pclmulqdq` instruction (the key to efficient quote detection)
+- Marginal gains (1.3-2x) don't justify complexity
 
-Apply simdjson's proven techniques to CSV parsing:
+## Goal (Native Implementation)
 
-1. **Vectorized quote detection** - Track "inside/outside quotes" for 32 bytes in parallel using bitset operations
-2. **Vectorized delimiter detection** - Find all commas, newlines, tabs simultaneously using shuffle-as-lookup
-3. **Branchless processing** - Eliminate branch mispredictions in quote/delimiter handling
-4. **Single-pass architecture** - Process CSV in one pass (no two-stage like JSON)
+Achieve 100-200+ MB/s CSV parsing using native SIMD:
 
-## Current Status
+1. **Vectorized quote detection** - Track "inside/outside quotes" for 32 bytes in parallel using `pclmulqdq`
+2. **Vectorized delimiter detection** - Find all commas, newlines, tabs simultaneously using `vpshufb`
+3. **Branchless processing** - Eliminate branch mispredictions
+4. **Single-pass architecture** - Process CSV in one pass (no two-stage)
 
-Research phase - evaluating techniques and planning implementation.
+## Platform Requirements
+
+- **x86-64**: AVX2 + `pclmulqdq` (Intel Haswell+ 2013, AMD Zen+ 2017)
+- **ARM**: NEON + `PMULL` (requires different implementation)
 
 ## Key Insight
 
-CSV's main bottleneck is quote state tracking. simdjson's carry-less multiplication technique (`pclmulqdq`) can compute quote state for entire vectors at once, eliminating the character-by-character state machine.
+CSV's main bottleneck is quote state tracking. The `pclmulqdq` instruction computes XOR prefix-sum in one operation, giving you "inside/outside quotes" for 32 bytes simultaneously. This eliminates the character-by-character state machine.
+
+**Without `pclmulqdq` (WASM)**: Must compute manually (~10-20 instructions) - not worth it.
 
 ## References
 
-See [SIMD_RESEARCH.md](./SIMD_RESEARCH.md) for detailed analysis.
+See [SIMD_RESEARCH.md](./SIMD_RESEARCH.md) for detailed analysis and techniques.

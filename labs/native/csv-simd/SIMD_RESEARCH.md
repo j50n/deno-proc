@@ -358,6 +358,66 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 
 ### Recommendation
 
-**Yes, pursue SIMD for CSV parsing.** The 3-7x performance gap vs JSON suggests real opportunity, and the techniques are proven. Start with quote detection (biggest bottleneck), add vectorized delimiter finding, keep it single-pass.
+**For native code (x86-64/ARM)**: Yes, pursue SIMD for CSV parsing. The 3-7x performance gap vs JSON suggests real opportunity, and the techniques are proven. Start with quote detection (biggest bottleneck), add vectorized delimiter finding, keep it single-pass.
+
+**For WebAssembly**: No, not worth the complexity. See WASM limitations below.
 
 **Don't pursue** for simple transformations (record→TSV) - already fast enough.
+
+---
+
+## WebAssembly SIMD Limitations
+
+### Why WASM SIMD is Not Worth It for CSV
+
+**128-bit vectors only**
+- WASM SIMD: 128-bit (16 bytes at a time)
+- Native AVX2: 256-bit (32 bytes at a time)
+- Half the throughput per operation
+
+**Missing the magic instruction**
+- `pclmulqdq` (carry-less multiplication) is NOT in WASM SIMD spec
+- This is the key instruction that makes quote detection elegant and fast
+- Without it, must compute XOR prefix-sum manually (~10-20 instructions vs 1)
+
+**Reduced speedup**
+- Native with AVX2 + pclmulqdq: 2-4x faster
+- WASM with 128-bit + manual XOR: 1.3-2x faster (estimate)
+- Not worth the complexity increase
+
+**What WASM SIMD has**:
+- ✅ `i8x16.eq` - Vector comparisons (find quotes, commas)
+- ✅ `v128.and/or/xor/not` - Bitwise operations
+- ✅ `i8x16.swizzle` - Shuffle/classify (like `vpshufb`)
+- ✅ `i8x16.bitmask` - Extract bitmask from vector
+- ❌ `pclmulqdq` - Carry-less multiplication (THE KEY INSTRUCTION)
+
+### Decision: Remove SIMD from WASM Implementation
+
+**Reasons**:
+1. Marginal gains (1.3-2x) don't justify complexity
+2. Missing `pclmulqdq` makes implementation inelegant
+3. Current scalar performance (10-27 MB/s) is acceptable
+4. CSV parsing likely not the bottleneck in real usage
+5. Better to optimize scalar code than add complex SIMD
+
+**Better approach**:
+- Optimize scalar CSV parser (minimize branches, better algorithms)
+- Focus on correctness and features
+- If speed becomes critical, build native CLI tool (like flatdata)
+
+### Native Implementation Path (Future)
+
+If CSV parsing becomes a proven bottleneck:
+1. Build native CLI tool with full AVX2 support
+2. Use 256-bit vectors (32 bytes at a time)
+3. Use `pclmulqdq` for elegant quote detection
+4. Target 100-200+ MB/s throughput
+5. Provide as optional high-performance alternative
+
+**Platform support**:
+- ✅ Intel (Haswell+, 2013+): AVX2 + `pclmulqdq`
+- ✅ AMD Zen (all generations, 2017+): AVX2 + `pclmulqdq`
+- ⚠️ ARM Graviton: NEON (128-bit) + `PMULL` (similar but different)
+
+This research documents the techniques for future native implementation.
