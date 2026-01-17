@@ -715,3 +715,353 @@ test_roundtrip_multi_row :: proc(t: ^testing.T) {
     testing.expect(t, ok, "stringify should succeed")
     expect_bytes(t, s.output[:], input)
 }
+
+// =============================================================================
+// LazyRow Encoder Tests
+// =============================================================================
+
+@(test)
+test_lazyrow_encode_basic :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    // Single row: "a", "b", "c"
+    input := transmute([]u8)string("a\x1Fb\x1Fc\x1E")
+    written := lazyrow_encode(&e, input)
+    
+    testing.expect(t, written > 0, "should write data")
+    
+    // Verify format: row_length(4) + field_count(4) + 3*field_len(12) + data(3) = 23 bytes total
+    testing.expect_value(t, len(e.output), 23)
+}
+
+@(test)
+test_lazyrow_encode_empty_fields :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    // Row with empty fields: "", "b", ""
+    input := transmute([]u8)string("\x1Fb\x1F\x1E")
+    written := lazyrow_encode(&e, input)
+    
+    testing.expect(t, written > 0, "should write data")
+    
+    // field_count=3, field_lens=[0,1,0], data="b"
+    // row_length = 4 + 3*4 + 1 = 17, total = 4 + 17 = 21
+    testing.expect_value(t, len(e.output), 21)
+}
+
+@(test)
+test_lazyrow_encode_multi_row :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    // Two rows
+    input := transmute([]u8)string("a\x1Fb\x1Ec\x1Fd\x1E")
+    written := lazyrow_encode(&e, input)
+    
+    testing.expect(t, written > 0, "should write data")
+    
+    // Should have two row_length headers
+    testing.expect(t, len(e.output) > 8, "should have at least 2 row headers")
+}
+
+@(test)
+test_lazyrow_encode_empty_input :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    written := lazyrow_encode(&e, []u8{})
+    testing.expect_value(t, written, 0)
+    testing.expect_value(t, len(e.output), 0)
+}
+
+@(test)
+test_lazyrow_encode_single_field :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    input := transmute([]u8)string("hello\x1E")
+    written := lazyrow_encode(&e, input)
+    
+    testing.expect(t, written > 0, "should write data")
+    
+    // field_count=1, field_len=5, data="hello"
+    // row_length = 4 + 1*4 + 5 = 13, total = 4 + 13 = 17
+    testing.expect_value(t, len(e.output), 17)
+}
+
+@(test)
+test_lazyrow_encode_unicode :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    input := transmute([]u8)string("hello\x1F世界\x1E")
+    written := lazyrow_encode(&e, input)
+    
+    testing.expect(t, written > 0, "should write data")
+    testing.expect(t, len(e.output) > 0, "should encode unicode")
+}
+
+// =============================================================================
+// LazyRow Decoder Tests
+// =============================================================================
+
+@(test)
+test_lazyrow_decode_basic :: proc(t: ^testing.T) {
+    // Encode first
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    input := transmute([]u8)string("a\x1Fb\x1Fc\x1E")
+    lazyrow_encode(&e, input)
+    
+    // Decode
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    written := lazyrow_decode(&d, e.output[:])
+    testing.expect(t, written > 0, "should decode data")
+    expect_bytes(t, d.output[:], "a\x1Fb\x1Fc\x1E")
+}
+
+@(test)
+test_lazyrow_decode_empty_fields :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    input := transmute([]u8)string("\x1Fb\x1F\x1E")
+    lazyrow_encode(&e, input)
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    written := lazyrow_decode(&d, e.output[:])
+    testing.expect(t, written > 0, "should decode data")
+    expect_bytes(t, d.output[:], "\x1Fb\x1F\x1E")
+}
+
+@(test)
+test_lazyrow_decode_multi_row :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    input := transmute([]u8)string("a\x1Fb\x1Ec\x1Fd\x1E")
+    lazyrow_encode(&e, input)
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    written := lazyrow_decode(&d, e.output[:])
+    testing.expect(t, written > 0, "should decode data")
+    expect_bytes(t, d.output[:], "a\x1Fb\x1Ec\x1Fd\x1E")
+}
+
+@(test)
+test_lazyrow_decode_incomplete_header :: proc(t: ^testing.T) {
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    // Only 3 bytes - not enough for row_length
+    written := lazyrow_decode(&d, []u8{1, 2, 3})
+    testing.expect_value(t, written, 0)
+    testing.expect_value(t, d.consumed, 0)
+}
+
+@(test)
+test_lazyrow_decode_incomplete_row :: proc(t: ^testing.T) {
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    // row_length=100 but only provide 10 bytes total
+    input := []u8{100, 0, 0, 0, 1, 2, 3, 4, 5, 6}
+    written := lazyrow_decode(&d, input)
+    
+    testing.expect_value(t, written, 0)
+    testing.expect_value(t, d.consumed, 0)
+}
+
+@(test)
+test_lazyrow_decode_single_field :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    input := transmute([]u8)string("hello\x1E")
+    lazyrow_encode(&e, input)
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    written := lazyrow_decode(&d, e.output[:])
+    testing.expect(t, written > 0, "should decode data")
+    expect_bytes(t, d.output[:], "hello\x1E")
+}
+
+@(test)
+test_lazyrow_decode_unicode :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    input := transmute([]u8)string("hello\x1F世界\x1E")
+    lazyrow_encode(&e, input)
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    written := lazyrow_decode(&d, e.output[:])
+    testing.expect(t, written > 0, "should decode data")
+    expect_bytes(t, d.output[:], "hello\x1F世界\x1E")
+}
+
+// =============================================================================
+// LazyRow Round-trip Tests
+// =============================================================================
+
+@(test)
+test_lazyrow_roundtrip_basic :: proc(t: ^testing.T) {
+    input := transmute([]u8)string("a\x1Fb\x1Fc\x1E")
+    
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, input)
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    lazyrow_decode(&d, e.output[:])
+    
+    expect_bytes(t, d.output[:], "a\x1Fb\x1Fc\x1E")
+}
+
+@(test)
+test_lazyrow_roundtrip_empty_fields :: proc(t: ^testing.T) {
+    input := transmute([]u8)string("\x1F\x1F\x1E")
+    
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, input)
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    lazyrow_decode(&d, e.output[:])
+    
+    expect_bytes(t, d.output[:], "\x1F\x1F\x1E")
+}
+
+@(test)
+test_lazyrow_roundtrip_multi_row :: proc(t: ^testing.T) {
+    input := transmute([]u8)string("a\x1Fb\x1Ec\x1Fd\x1Ee\x1Ff\x1E")
+    
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, input)
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    lazyrow_decode(&d, e.output[:])
+    
+    expect_bytes(t, d.output[:], "a\x1Fb\x1Ec\x1Fd\x1Ee\x1Ff\x1E")
+}
+
+@(test)
+test_lazyrow_roundtrip_large_fields :: proc(t: ^testing.T) {
+    // Create a large field
+    large := make([dynamic]u8)
+    defer delete(large)
+    for i := 0; i < 1000; i += 1 {
+        append(&large, 'x')
+    }
+    append(&large, FIELD_SEP)
+    append(&large, 'y')
+    append(&large, RECORD_SEP)
+    
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, large[:])
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    lazyrow_decode(&d, e.output[:])
+    
+    testing.expect(t, slice.equal(d.output[:], large[:]), "roundtrip should preserve data")
+}
+
+@(test)
+test_lazyrow_roundtrip_many_fields :: proc(t: ^testing.T) {
+    // Create row with 100 fields
+    many := make([dynamic]u8)
+    defer delete(many)
+    for i := 0; i < 100; i += 1 {
+        append(&many, 'a')
+        if i < 99 {
+            append(&many, FIELD_SEP)
+        }
+    }
+    append(&many, RECORD_SEP)
+    
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, many[:])
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    lazyrow_decode(&d, e.output[:])
+    
+    testing.expect(t, slice.equal(d.output[:], many[:]), "roundtrip should preserve data")
+}
+
+// =============================================================================
+// LazyRow Streaming Tests
+// =============================================================================
+
+@(test)
+test_lazyrow_decode_partial_then_complete :: proc(t: ^testing.T) {
+    // Encode two rows
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1Ec\x1Fd\x1E"))
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    // Feed partial data (just first row header)
+    written := lazyrow_decode(&d, e.output[:10])
+    testing.expect_value(t, written, 0)
+    
+    // Feed complete data
+    lazyrow_decoder_reset(&d)
+    written = lazyrow_decode(&d, e.output[:])
+    testing.expect(t, written > 0, "should decode complete data")
+    expect_bytes(t, d.output[:], "a\x1Fb\x1Ec\x1Fd\x1E")
+}
+
+@(test)
+test_lazyrow_encode_reset :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1E"))
+    first_len := len(e.output)
+    
+    lazyrow_encoder_reset(&e)
+    testing.expect_value(t, len(e.output), 0)
+    
+    lazyrow_encode(&e, transmute([]u8)string("c\x1Fd\x1E"))
+    testing.expect_value(t, len(e.output), first_len)
+}
+
+@(test)
+test_lazyrow_decode_reset :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1E"))
+    
+    d := lazyrow_decoder_init()
+    defer lazyrow_decoder_destroy(&d)
+    
+    lazyrow_decode(&d, e.output[:])
+    testing.expect(t, len(d.output) > 0, "should have output")
+    
+    lazyrow_decoder_reset(&d)
+    testing.expect_value(t, len(d.output), 0)
+    testing.expect_value(t, d.consumed, 0)
+}
