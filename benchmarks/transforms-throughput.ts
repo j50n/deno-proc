@@ -3,15 +3,13 @@
  * Transform Throughput Benchmark
  *
  * Measures throughput (MB/s) of all in-process transforms.
- * Tests: CSV, TSV, Record, JSON, LazyRow binary, WASM-accelerated CSV
+ * Tests: CSV, TSV, Record, JSON, LazyRow binary
  * Data: 100,000 records × 20 columns (~25MB)
  */
 
 import {
   fromCsvToLazyRows,
-  fromCsvToLazyRowsFast,
   fromCsvToRows,
-  fromCsvToRowsFast,
   fromJsonToRows,
   fromLazyRowBinary,
   fromRecordToLazyRows,
@@ -20,7 +18,6 @@ import {
   fromTsvToRows,
   LazyRow,
   toCsv,
-  toCsvFast,
   toJson,
   toLazyRowBinary,
   toRecord,
@@ -213,28 +210,6 @@ async function main() {
       await drainBytes(toLazyRowBinary()(toAsync([lazyRows])));
     }),
   );
-
-  // csv-fast WASM benchmarks
-  console.log("\ncsv-fast (WASM) transforms:");
-  try {
-    results.push(
-      await bench("fromCsvToRowsFast", csvSize, async () => {
-        await drain(fromCsvToRowsFast()(bytesFrom(csvData)));
-      }),
-    );
-    results.push(
-      await bench("fromCsvToLazyRowsFast", csvSize, async () => {
-        await drain(fromCsvToLazyRowsFast()(bytesFrom(csvData)));
-      }),
-    );
-    results.push(
-      await bench("toCsvFast", csvSize, async () => {
-        await drainBytes(toCsvFast()(fromCsvToRowsFast()(bytesFrom(csvData))));
-      }),
-    );
-  } catch (_e) {
-    console.log("  (skipped - WASM memory limit exceeded for this data size)");
-  }
 
   // Summary
   console.log("\n" + "=".repeat(60));
