@@ -1753,3 +1753,75 @@ lazyrow_to_tsv :: proc(input: []u8, output: []u8) -> int {
     
     return out_pos
 }
+
+// Convert binary LazyRow format to Record format (US/RS separators).
+// Record format: fields separated by 0x1F (US), records terminated by 0x1E (RS).
+// Returns number of bytes written to output, or -1 if output buffer too small.
+lazyrow_to_record :: proc(input: []u8, output: []u8) -> int {
+    out_pos := 0
+    in_pos := 0
+    
+    for in_pos < len(input) {
+        // Read row_length prefix
+        if in_pos + 4 > len(input) do return -1
+        
+        row_length := int(input[in_pos]) | 
+                     (int(input[in_pos+1]) << 8) |
+                     (int(input[in_pos+2]) << 16) |
+                     (int(input[in_pos+3]) << 24)
+        in_pos += 4
+        
+        if in_pos + row_length > len(input) do return -1
+        
+        row_end := in_pos + row_length
+        
+        // Read field_count
+        if in_pos + 4 > row_end do return -1
+        field_count := int(input[in_pos]) |
+                      (int(input[in_pos+1]) << 8) |
+                      (int(input[in_pos+2]) << 16) |
+                      (int(input[in_pos+3]) << 24)
+        in_pos += 4
+        
+        // Calculate where field data starts (after all field length headers)
+        field_data_start := in_pos + (field_count * 4)
+        if field_data_start > row_end do return -1
+        
+        // Process each field
+        field_data_pos := field_data_start
+        for field_idx in 0..<field_count {
+            // Read field length
+            if in_pos + 4 > field_data_start do return -1
+            field_len := int(input[in_pos]) |
+                        (int(input[in_pos+1]) << 8) |
+                        (int(input[in_pos+2]) << 16) |
+                        (int(input[in_pos+3]) << 24)
+            in_pos += 4
+            
+            if field_data_pos + field_len > row_end do return -1
+            
+            // Add US separator between fields
+            if field_idx > 0 {
+                if out_pos >= len(output) do return -1
+                output[out_pos] = 0x1F
+                out_pos += 1
+            }
+            
+            // Copy field data directly
+            if out_pos + field_len > len(output) do return -1
+            copy(output[out_pos:], input[field_data_pos:field_data_pos+field_len])
+            out_pos += field_len
+            field_data_pos += field_len
+        }
+        
+        // Add RS terminator
+        if out_pos >= len(output) do return -1
+        output[out_pos] = 0x1E
+        out_pos += 1
+        
+        // Move to next row
+        in_pos = row_end
+    }
+    
+    return out_pos
+}

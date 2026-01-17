@@ -1,7 +1,13 @@
 /**
- * Run child processes and work with async iterables in Deno—with the fluent Array API you already know.
+ * **Unlock Deno's secret AsyncIterable superpowers!**
  *
- * 📚 **[Full Documentation](https://j50n.github.io/deno-proc/)**
+ * A simpler, saner alternative to JavaScript streams. Built on async iterables—a more standard JavaScript
+ * primitive—proc eliminates backpressure problems, produces cleaner code, and is easier to work with. Run
+ * processes, transform data between formats, and use Array methods on async iterables.
+ *
+ * 📚 **[Full Documentation](https://j50n.github.io/deno-proc/)** | 🚀
+ * **[Quick Start](https://j50n.github.io/deno-proc/getting-started/quick-start.html)** | 📊
+ * **[Performance Guide](https://j50n.github.io/deno-proc/data-transforms/performance.html)**
  *
  * @example Quick start
  * ```ts
@@ -27,14 +33,22 @@
  *
  * ## Why proc?
  *
- * **Errors that just work** — Errors propagate through pipelines naturally, just like data. No edge cases,
- * no separate error channels, no callbacks. One try-catch at the end handles everything.
+ * **Simpler than streams** — Async iterables are a standard JavaScript primitive (more standard than streams).
+ * Pull-based iteration is easier to reason about than push-based streams. No complex coordination, no buffering
+ * logic, no backpressure headaches.
  *
- * **Powerful process management** — Run commands, pipe between processes, capture output, and control
- * execution with a clean, composable API.
+ * **Backpressure solved** — Traditional streams require careful coordination between producers and consumers.
+ * Async iterators eliminate this entirely—the consumer pulls when ready. No memory pressure, no dropped data,
+ * no complexity.
  *
- * **Async iterables that feel like Arrays** — Use `map`, `filter`, `reduce`, `flatMap`, `take`, `drop`,
- * and more on any async iterable. No more wrestling with streams.
+ * **Cleaner, more intuitive code** — Use `map`, `filter`, `reduce`, `flatMap`, `take`, `drop` and more—just
+ * like Arrays. Errors propagate naturally through pipelines. One try-catch at the end handles everything.
+ *
+ * **WASM-powered data transforms** — Convert between CSV, TSV, JSON, and Record formats with
+ * WebAssembly-accelerated parsing. For maximum throughput, use the flatdata CLI for multi-process streaming.
+ *
+ * **Powerful process management** — Run commands, pipe between processes, capture output, and control execution
+ * with a clean, composable API. Shell-like pipelines with proper error handling.
  *
  * **Type-safe and ergonomic** — Full TypeScript support with intuitive APIs that guide you toward correct usage.
  *

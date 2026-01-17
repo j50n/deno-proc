@@ -1092,6 +1092,25 @@ lazyrow_to_tsv :: proc "c" (
     return i32(result)
 }
 
+// Convert binary LazyRow format to Record format (US/RS separators).
+// Returns: number of bytes written to output buffer, or -1 on error
+@(export)
+lazyrow_to_record :: proc "c" (
+    input_ptr: i32,
+    input_len: i32,
+    output_ptr: i32,
+    output_capacity: i32,
+) -> i32 {
+    context = runtime.default_context()
+    
+    input := ([^]u8)(uintptr(input_ptr))[:input_len]
+    output := ([^]u8)(uintptr(output_ptr))[:output_capacity]
+    
+    result := csv.lazyrow_to_record(input, output)
+    
+    return i32(result)
+}
+
 
 /*
 Direct CSV-to-LazyRow Parser

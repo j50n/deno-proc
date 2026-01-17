@@ -1,6 +1,6 @@
 {
   "name": "@j50n/proc",
-  "version": "0.24.4",
+  "version": "0.24.5",
   "publish": { 
     "exclude": [
       "**/warandpeace.txt.gz",

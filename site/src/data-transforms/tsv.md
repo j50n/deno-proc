@@ -73,7 +73,6 @@ await enumerate(data)
 - **Fast parsing**: No complex quoting rules
 - **Human readable**: Easy to view and edit
 - **Simple format**: Minimal edge cases
-- **Good performance**: 2-10x faster than CSV
 
 ### Limitations
 
@@ -416,7 +415,6 @@ if (errors.length > 0) {
 
 ### TSV vs CSV
 
-- **Speed**: TSV is 2-10x faster than CSV
 - **Simplicity**: No complex quoting/escaping rules
 - **Limitations**: Cannot handle tabs or newlines in data
 - **Compatibility**: Less universal than CSV

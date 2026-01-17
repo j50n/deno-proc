@@ -1,7 +1,6 @@
 # LazyRow Guide
 
-Optimized read-only data access with lazy evaluation and caching for maximum
-performance.
+Optimized read-only data access with lazy evaluation and caching.
 
 > ⚠️ **Experimental (v0.24.0+)**: LazyRow is under active development. API may
 > change as we improve correctness and streaming performance. Test thoroughly
@@ -9,28 +8,16 @@ performance.
 
 ## Overview
 
-LazyRow is a high-performance data structure designed for efficient field access
-in tabular data. It uses **lazy evaluation** and **caching** to minimize parsing
-overhead while providing a clean, simple API.
+LazyRow is a data structure designed for efficient field access in tabular data.
+It uses **lazy evaluation** and **caching** to minimize parsing overhead while
+providing a clean, simple API.
 
 ## Key Benefits
 
 - **Zero conversion cost**: Choose optimal backing based on source data
 - **Lazy evaluation**: Parse fields only when accessed
 - **Automatic caching**: Repeated access uses cached results
-- **Performance**: 1.05-1.7x faster than regular parsing
 - **Memory efficient**: Minimal overhead for conversion caching
-
-## Performance Improvements
-
-| Dataset Size | CSV Performance  | TSV Performance  | Record Performance |
-| ------------ | ---------------- | ---------------- | ------------------ |
-| Small (1K)   | **1.51x** faster | **1.45x** faster | **1.72x** faster   |
-| Medium (10K) | **1.12x** faster | **1.09x** faster | **0.93x** faster   |
-| Large (50K)  | **1.07x** faster | **1.55x** faster | **0.83x** faster   |
-
-> **Best Use Cases**: LazyRow excels with CSV and large TSV datasets. For Record
-> format, benefits vary by dataset size.
 
 ## Basic Usage
 

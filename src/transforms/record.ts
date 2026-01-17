@@ -4,12 +4,14 @@ import {
   RECORD_SEPARATOR,
   rowsToRecord,
   rowToRecord,
+  writeUint32LE,
 } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
+import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
+import { concat } from "../utility.ts";
 
 const decoder = new TextDecoder("utf-8", { fatal: true });
-const encoder = new TextEncoder();
 
 /**
  * Parse Record format bytes into batches of string arrays.
@@ -163,27 +165,85 @@ export function toRecord() {
   return async function* (
     data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
-    for await (const item of data) {
-      if (Array.isArray(item)) {
-        if (item.length === 0) continue;
+    const encode = (() => {
+      const encoder = new TextEncoder();
+      return encoder.encode.bind(encoder);
+    })();
+    const processor = await FlatdataProcessor.create();
 
-        const first = item[0];
+    const handleRow = (row: Row): Uint8Array => {
+      return encode(rowToRecord(row));
+    };
 
-        if (Array.isArray(first)) {
-          // Row[]
-          yield encoder.encode(rowsToRecord(item as Row[]));
-        } else if (first instanceof LazyRow) {
-          // LazyRow[]
-          const rows = (item as LazyRow[]).map((row) => row.toStringArray());
-          yield encoder.encode(rowsToRecord(rows));
-        } else {
-          // Row (single string[])
-          yield encoder.encode(rowToRecord(item as Row));
-        }
-      } else if (item instanceof LazyRow) {
-        // Single LazyRow
-        yield encoder.encode(rowToRecord(item.toStringArray()));
+    const handleRowArray = (rows: Row[]): Uint8Array => {
+      return encode(rowsToRecord(rows));
+    };
+
+    const handleBinaryLazyRow = (row: LazyRow): Uint8Array => {
+      const rowData = row.toBinary();
+      return processor.lazyRowBinaryToRecordDirect(
+        concat([writeUint32LE(rowData.length), rowData]),
+      );
+    };
+
+    const handleStringLazyRow = (row: LazyRow): Uint8Array => {
+      return encode(rowToRecord(row.toStringArray()));
+    };
+
+    const handleBinaryLazyRowArray = (rows: LazyRow[]): Uint8Array => {
+      const chunks = new Array(rows.length * 2);
+      let idx = 0;
+
+      for (let i = 0; i < rows.length; i++) {
+        const rowData = rows[i].toBinary();
+        chunks[idx++] = writeUint32LE(rowData.length);
+        chunks[idx++] = rowData;
       }
+
+      return processor.lazyRowBinaryToRecordDirect(concat(chunks));
+    };
+
+    const handleStringLazyRowArray = (rows: LazyRow[]): Uint8Array => {
+      const stringRows = rows.map((row) => row.toStringArray());
+      return encode(rowsToRecord(stringRows));
+    };
+
+    // deno-lint-ignore no-explicit-any
+    let handler: (item: any) => Uint8Array = (item: any) => {
+      if (Array.isArray(item) && item.length === 0) {
+        return new Uint8Array(0);
+      }
+
+      if (
+        Array.isArray(item) && item.length > 0 &&
+        item[0] instanceof LazyRow && item[0].isBinaryBacked()
+      ) {
+        handler = handleBinaryLazyRowArray;
+      } else if (
+        Array.isArray(item) && item.length > 0 && item[0] instanceof LazyRow
+      ) {
+        handler = handleStringLazyRowArray;
+      } else if (item instanceof LazyRow && item.isBinaryBacked()) {
+        handler = handleBinaryLazyRow;
+      } else if (item instanceof LazyRow) {
+        handler = handleStringLazyRow;
+      } else if (
+        Array.isArray(item) && item.length > 0 && Array.isArray(item[0])
+      ) {
+        handler = handleRowArray;
+      } else if (Array.isArray(item)) {
+        handler = handleRow;
+      } else {
+        throw new TypeError(
+          `Unsupported input type for toRecord: expected Row, Row[], LazyRow, or LazyRow[], got ${typeof item}`,
+        );
+      }
+
+      return handler(item);
+    };
+
+    for await (const item of data) {
+      yield handler(item);
     }
   };
 }

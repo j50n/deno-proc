@@ -189,9 +189,9 @@ await read("slow-data.csv")
   .transform(toRecord())
   .writeTo("fast-data.record");
 
-console.log("Conversion complete. Subsequent processing will be 3-5x faster.");
+console.log("Conversion complete.");
 
-// Later processing benefits from Record format speed
+// Later processing benefits from Record format
 await read("fast-data.record")
   .transform(fromRecordToRows())
   .filter((row) => row[2] === "target")
@@ -522,8 +522,8 @@ if (errors.length > 0) {
 2. **Leverage binary safety** - no need to escape special characters
 3. **Choose LazyRow based on access patterns** - selective vs full field access
 4. **Validate field counts** if your data requires consistent structure
-5. **Use for high-throughput pipelines** - fastest format for large datasets
-6. **Convert from other formats** for repeated processing performance gains
+5. **Use for high-throughput pipelines** - efficient format for large datasets
+6. **Convert from other formats** for repeated processing
 7. **Handle UTF-8 properly** - ensure proper encoding throughout pipeline
 8. **Batch large datasets** to control memory usage in processing
 
@@ -531,17 +531,15 @@ if (errors.length > 0) {
 
 ### Record vs CSV
 
-- **Speed**: Record is 3-5x faster than CSV
 - **Safety**: No escaping needed for special characters
 - **Readability**: CSV is human-readable, Record is binary
 - **Compatibility**: CSV is universal, Record is specialized
 
 ### Record vs TSV
 
-- **Speed**: Record is consistently faster, especially for large data
 - **Content**: Record handles tabs/newlines safely, TSV cannot
 - **Simplicity**: TSV is simpler and human-readable
-- **Performance**: Record scales better with dataset size
+- **Performance**: Record scales well with dataset size
 
 ### Record vs JSON
 

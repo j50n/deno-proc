@@ -7,7 +7,7 @@ and LazyRow optimization.
 > API may change as we improve correctness and streaming performance. Test
 > thoroughly with your data patterns.
 
-> **⚡ Need more speed?** Use `fromCsvToRowsFast()` for significantly better performance.
+> **⚡ WASM-powered**: CSV parsing uses WebAssembly for high performance.
 > It uses the same WASM parser as flatdata CLI. See
 > [Fast CSV Parsing](#fast-csv-parsing-wasm) below.
 
@@ -348,16 +348,16 @@ if (batch.length > 0) {
 }
 ```
 
-### Convert to Faster Formats
+### Convert to Other Formats
 
 ```typescript
-// Convert CSV to Record format for faster subsequent processing
+// Convert CSV to Record format for efficient processing
 await read("data.csv")
   .transform(fromCsvToRows())
   .transform(toRecord())
   .writeTo("data.record");
 
-// Later processing is 3-10x faster
+// Later processing uses the optimized format
 await read("data.record")
   .transform(fromRecordToRows())
   .filter((row) => row[1] === "target")
@@ -390,56 +390,51 @@ await read("data.csv")
 
 ## Best Practices
 
-1. **Use `fromCsvToRowsFast()` for large files** — 10x faster than the standard
-   parser
-2. **Use LazyRow** for CSV processing when you don't need all fields
-3. **Handle headers explicitly** — they're treated as regular data rows
-4. **Validate field counts** if your data requires consistent structure
-5. **Use streaming processing** for large files to maintain constant memory
+1. **Use LazyRow** for CSV processing when you don't need all fields
+3. **Validate field counts** if your data requires consistent structure
+4. **Use streaming processing** for large files to maintain constant memory
    usage
-6. **Convert to faster formats** for repeated processing of the same data
+5. **Convert to other formats** for repeated processing of the same data
 
-## Fast CSV Parsing (WASM)
+## WASM-Powered Parsing
 
-For maximum in-process performance, use the WASM-powered transforms:
+CSV parsing uses WebAssembly for high performance:
 
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 import {
-  fromCsvToLazyRowsFast,
-  fromCsvToRowsFast,
+  fromCsvToLazyRows,
+  fromCsvToRows,
 } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
-// ~10x faster than fromCsvToRows()
+// WASM-powered parsing (batched output)
 const rows = await read("large-file.csv")
-  .transform(fromCsvToRowsFast())
+  .transform(fromCsvToRows())
   .flatMap((batch) => batch) // Flatten batches
   .collect();
 
 // Or with LazyRow
 const lazyRows = await read("large-file.csv")
-  .transform(fromCsvToLazyRowsFast())
+  .transform(fromCsvToLazyRows())
   .flatMap((batch) => batch)
   .collect();
 ```
 
-**Key differences from standard parser:**
+**Key differences:**
 
 - Returns batches of rows (`string[][]`) instead of individual rows
-- Uses the same WASM engine as flatdata CLI
-- Same RFC 4180 compliance and options
+- Uses WASM engine for parsing
 
 **When to use which:**
 
-| Parser                | Performance | Use Case                            |
-| --------------------- | ----------- | ----------------------------------- |
-| `fromCsvToRows()`     | Moderate    | Small files, simple scripts         |
-| `fromCsvToRowsFast()` | Fast        | Large files, performance-critical   |
-| `flatdata` CLI        | Fastest     | Maximum throughput, batch pipelines |
+| Parser             | Use Case                            |
+| ------------------ | ----------------------------------- |
+| `fromCsvToRows()`  | In-process parsing with WASM        |
+| `flatdata` CLI     | Maximum throughput, batch pipelines |
 
 ## See Also
 
-- [TSV Transforms](./tsv.md) — Faster tab-separated processing
+- [TSV Transforms](./tsv.md) — Tab-separated processing
 - [LazyRow Guide](./lazyrow.md) — Detailed LazyRow usage patterns
 - [Performance Guide](./performance.md) — Optimization strategies
-- [flatdata CLI](../utilities/flatdata.md) — Maximum throughput via subprocess
+- [flatdata CLI](../utilities/flatdata.md) — Multi-process streaming

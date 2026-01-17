@@ -1,11 +1,11 @@
 # proc
 
-**The complete toolkit for process management, async iterables, and
-high-performance data transforms in Deno.**
+**Unlock Deno's secret AsyncIterable superpowers!**
 
-Run child processes with a fluent API. Transform data between formats at 330
-MB/s. Work with async iterables using the Array methods you already know. All
-with error handling that actually makes sense.
+A simpler, saner alternative to JavaScript streams. Built on async iterables—a
+more standard JavaScript primitive—proc eliminates backpressure problems,
+produces cleaner code, and is easier to work with. Run processes, transform data
+between formats, and use Array methods on async iterables.
 
 📚 **[Full Documentation](https://j50n.github.io/deno-proc/)** | 🚀
 **[Quick Start](https://j50n.github.io/deno-proc/getting-started/quick-start.html)**
@@ -25,7 +25,7 @@ const result = await run("cat", "data.txt")
   .run("wc", "-l")
   .lines.first;
 
-// Transform data between formats at high speed
+// Transform data between formats
 await read("sales.csv")
   .transform(fromCsvToRows())
   .filter((row) => parseFloat(row[3]) > 1000)
@@ -53,25 +53,26 @@ try {
 
 ## Why proc?
 
-**Solves backpressure by design** — Traditional streams require complex
-coordination between producers and consumers. proc uses async iterators
-(pull-based) instead of streams (push-based), eliminating backpressure entirely.
-No buffering, no coordination, no memory pressure.
+**Simpler than streams** — Async iterables are a standard JavaScript primitive
+(more standard than streams). Pull-based iteration is easier to reason about
+than push-based streams. No complex coordination, no buffering logic, no
+backpressure headaches.
 
-**Errors that just work** — Errors propagate through pipelines naturally, just
-like data. No edge cases, no separate error channels, no callbacks. One
-try-catch at the end handles everything.
+**Backpressure solved** — Traditional streams require careful coordination
+between producers and consumers. Async iterators eliminate this entirely—the
+consumer pulls when ready. No memory pressure, no dropped data, no complexity.
 
-**Async iterables that feel like Arrays** — Use `map`, `filter`, `reduce`,
-`flatMap`, `take`, `drop`, and more on any async iterable. No more wrestling
-with streams.
+**Cleaner, more intuitive code** — Use `map`, `filter`, `reduce`, `flatMap`,
+`take`, `drop` and more—just like Arrays. Errors propagate naturally through
+pipelines. One try-catch at the end handles everything.
+
+**WASM-powered data transforms** — Convert between CSV, TSV, JSON, and Record
+formats with WebAssembly-accelerated parsing. For maximum throughput, use the
+flatdata CLI for multi-process streaming.
 
 **Powerful process management** — Run commands, pipe between processes, capture
-output, and control execution with a clean, composable API.
-
-**High-performance data transforms** — Convert between CSV, TSV, JSON, and
-Record formats with streaming support. Or use the WASM-powered flatdata CLI for
-330 MB/s throughput (7x faster than pure JavaScript).
+output, and control execution with a clean, composable API. Shell-like pipelines
+with proper error handling.
 
 **Type-safe and ergonomic** — Full TypeScript support with intuitive APIs that
 guide you toward correct usage.
@@ -98,16 +99,8 @@ guide you toward correct usage.
 
 - **Format conversion** — CSV ↔ TSV ↔ JSON ↔ Record
 - **Streaming processing** — Constant memory usage for any file size
-- **LazyRow optimization** — Up to 1.7x faster parsing
-- **flatdata CLI** — WASM-powered tool for 330 MB/s throughput
-
-### ⚡ Performance
-
-- **flatdata CLI**: ~330 MB/s (WASM subprocess)
-- **Record format**: 60-93 MB/s (in-process)
-- **JSON transforms**: 70-98 MB/s
-- **TSV transforms**: 57-72 MB/s
-- **CSV transforms**: 10-27 MB/s (with LazyRow: 1.05-1.7x faster)
+- **LazyRow optimization** — Faster parsing with binary backing
+- **flatdata CLI** — WASM-powered tool for multi-process streaming
 
 ## Installation
 

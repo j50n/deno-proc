@@ -161,7 +161,6 @@ for (const row of lazyRows) {
 - **Zero conversion cost**: Choose optimal backing based on source
 - **Lazy evaluation**: Parse fields only when accessed
 - **Caching**: Repeated access uses cached results
-- **Performance**: 1.05-1.7x faster than regular parsing
 
 ## Real-World Examples
 
@@ -185,13 +184,11 @@ await read("sales.csv")
 ### Format Conversion
 
 ```typescript
-// Convert legacy CSV to high-performance Record format
+// Convert legacy CSV to Record format for efficient processing
 await read("legacy.csv")
   .transform(fromCsvToRows())
   .transform(toRecord())
   .writeTo("optimized.record");
-
-// 3-10x faster processing on subsequent reads!
 ```
 
 ### Log Processing

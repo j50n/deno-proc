@@ -1934,7 +1934,7 @@ export class FlatdataProcessor {
   }
 
   /**
-   * Convert record format data directly to CSV in one shot.
+   * Convert binary lazyrow data directly to TSV in one shot.
    * Much faster than streaming for batched data.
    *
    * @param binaryData - Binary lazyrow data with row_length prefixes
@@ -1959,6 +1959,38 @@ export class FlatdataProcessor {
 
     if (outputLen < 0) {
       throw new Error("lazyrow_to_tsv failed: output buffer too small");
+    }
+
+    return new Uint8Array(this.memory.buffer, this.getOutputPtr(), outputLen)
+      .slice();
+  }
+
+  /**
+   * Convert binary lazyrow data directly to Record format in one shot.
+   * Much faster than streaming for batched data.
+   *
+   * @param binaryData - Binary lazyrow data with row_length prefixes
+   * @returns Record format data as Uint8Array
+   */
+  lazyRowBinaryToRecordDirect(
+    binaryData: Uint8Array,
+  ): Uint8Array {
+    this.ensureInputBuffer(binaryData.length);
+    this.ensureOutputBuffer(binaryData.length * 2); // Estimate 2x for Record overhead
+
+    new Uint8Array(this.memory.buffer, this.inputPtr, binaryData.length).set(
+      binaryData,
+    );
+
+    const outputLen = this.exports.lazyrow_to_record(
+      this.inputPtr,
+      binaryData.length,
+      this.getOutputPtr(),
+      this.outputSize,
+    );
+
+    if (outputLen < 0) {
+      throw new Error("lazyrow_to_record failed: output buffer too small");
     }
 
     return new Uint8Array(this.memory.buffer, this.getOutputPtr(), outputLen)
