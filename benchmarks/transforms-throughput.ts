@@ -1,9 +1,10 @@
 #!/usr/bin/env -S deno run --allow-read
 /**
- * Benchmark throughput of all in-process transforms.
+ * Transform Throughput Benchmark
  *
- * Tests: CSV, TSV, Record, JSON, LazyRow binary, csv-fast (WASM)
- * Data: 100,000 records × 20 columns (~10MB)
+ * Measures throughput (MB/s) of all in-process transforms.
+ * Tests: CSV, TSV, Record, JSON, LazyRow binary, WASM-accelerated CSV
+ * Data: 100,000 records × 20 columns (~25MB)
  */
 
 import {
@@ -236,24 +237,25 @@ async function main() {
   }
 
   // Summary
-  console.log("\n" + "=".repeat(50));
+  console.log("\n" + "=".repeat(60));
   console.log("SUMMARY");
-  console.log("=".repeat(50));
+  console.log("=".repeat(60));
   console.log(
-    `${"Transform".padEnd(25)} ${"MB/s".padStart(10)} ${"Time".padStart(10)}`,
+    `${"Transform".padEnd(30)} ${"MB/s".padStart(10)} ${"Time".padStart(12)}`,
   );
-  console.log("-".repeat(50));
+  console.log("-".repeat(60));
   for (const r of results) {
     console.log(
-      `${r.name.padEnd(25)} ${r.throughput.toFixed(1).padStart(10)} ${
-        (r.time * 1000).toFixed(0).padStart(7)
+      `${r.name.padEnd(30)} ${r.throughput.toFixed(1).padStart(10)} ${
+        (r.time * 1000).toFixed(0).padStart(9)
       } ms`,
     );
   }
 
   const avg = results.reduce((s, r) => s + r.throughput, 0) / results.length;
-  console.log("-".repeat(50));
-  console.log(`${"Average".padEnd(25)} ${avg.toFixed(1).padStart(10)} MB/s`);
+  console.log("-".repeat(60));
+  console.log(`${"Average".padEnd(30)} ${avg.toFixed(1).padStart(10)} MB/s`);
+  console.log("=".repeat(60));
 }
 
 main();

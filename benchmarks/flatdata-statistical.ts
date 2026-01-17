@@ -1,11 +1,12 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 /**
- * Statistical benchmark for flatdata transformations.
+ * Flatdata Statistical Benchmark
  *
- * Tests transformation functions directly (not via subprocess) with:
- * - Warmup phase to allow VM optimization
- * - 100 measurement iterations
- * - Statistical analysis: mean, median, variance, quartiles
+ * Measures WASM-based flatdata transforms with statistical analysis.
+ * - Warmup phase (20 iterations) for VM optimization
+ * - Measurement phase (10 iterations)
+ * - Statistics: mean, median, std dev, quartiles, throughput (MB/s)
+ * Data: 100,000 records × 20 columns (~25MB)
  */
 
 import { enumerate } from "../mod.ts";

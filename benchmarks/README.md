@@ -17,25 +17,56 @@ Performance benchmarks for deno-proc transforms.
 
 ### 1. Flatdata Statistical (`flatdata-statistical.ts`)
 
-Statistical analysis of WASM-based flatdata transforms with multiple runs:
-- CSV parsing (rows, LazyRow)
-- TSV parsing (rows, LazyRow)
-- Record format conversions
-- JSON parsing
-- Outputs: mean, median, std dev, min, max, throughput (MB/s)
+Statistical analysis of WASM-based flatdata transforms:
+- CSV, TSV, Record, JSON parsing and generation
+- Warmup phase (20 iterations) for VM optimization
+- Measurement phase (10 iterations)
+- Statistics: mean, median, std dev, quartiles, throughput (MB/s)
+- Data: 100,000 records × 20 columns (~25MB)
 
 **Run time:** ~2-3 minutes
 
+**Example output:**
+```
+csv2record
+============================================================
+Results:
+  Time (ms):
+    Mean:     393.35
+    Median:   394.98
+    Std Dev:  16.48
+  Throughput (MB/s):
+    Mean:     64.9
+    Median:   64.7
+```
+
 ### 2. Transform Throughput (`transforms-throughput.ts`)
 
-Throughput comparison of all in-process transforms:
+Quick throughput comparison of all in-process transforms:
 - CSV, TSV, Record, JSON formats
 - LazyRow binary format
 - WASM-accelerated CSV parsing
-- Tests with 100K records × 20 columns (~10MB)
+- Single-run measurements
+- Data: 100,000 records × 20 columns (~25MB)
 
-**Run time:** ~1-2 minutes
+**Run time:** ~30 seconds
 
-## Legacy Benchmarks
+**Example output:**
+```
+SUMMARY
+============================================================
+Transform                            MB/s         Time
+------------------------------------------------------------
+fromCsvToRows                        26.2       974 ms
+fromTsvToLazyRows                   178.7       143 ms
+fromLazyRowBinary                   713.6        45 ms
+------------------------------------------------------------
+Average                             147.5 MB/s
+```
 
-The `transforms/` directory contains older benchmarks that may have lint errors or be outdated. Use the main benchmarks above for current performance testing.
+## Notes
+
+- Both benchmarks use the same test data size for consistency
+- Flatdata benchmark provides statistical rigor for detailed analysis
+- Throughput benchmark provides quick performance overview
+- Results vary based on CPU, memory, and system load
