@@ -1,44 +1,41 @@
-# Transform Performance Benchmarks
+# Benchmarks
 
-This directory contains performance benchmarks for the transform functions
-library.
-
-## Structure
-
-- `transforms/` - Transform function benchmarks with detailed specification
-- `data/` - Test datasets of various sizes
-- `README.md` - This overview document
+Performance benchmarks for deno-proc transforms.
 
 ## Quick Start
 
 ```bash
-# Run comprehensive analysis
-deno run --allow-read benchmarks/transforms/comparative_analysis.ts
+# Run all benchmarks
+./benchmarks/run-benchmarks.sh
 
-# Generate test data
-cd benchmarks/data && ./generate_test_data.ts
-
-# Run individual benchmarks
-deno run --allow-read benchmarks/transforms/csv_performance.ts
-deno run --allow-read benchmarks/transforms/lazy_row_performance.ts
+# Run specific benchmark
+./benchmarks/run-benchmarks.sh 1  # Flatdata statistical
+./benchmarks/run-benchmarks.sh 2  # Transform throughput
 ```
 
-## Documentation
+## Available Benchmarks
 
-See `transforms/README.md` for detailed benchmark specifications, performance
-targets, and methodology.
+### 1. Flatdata Statistical (`flatdata-statistical.ts`)
 
-## Test Data
+Statistical analysis of WASM-based flatdata transforms with multiple runs:
+- CSV parsing (rows, LazyRow)
+- TSV parsing (rows, LazyRow)
+- Record format conversions
+- JSON parsing
+- Outputs: mean, median, std dev, min, max, throughput (MB/s)
 
-- `small.csv` - 1KB dataset for micro-benchmarks
-- `medium.csv` - 1MB dataset for typical workloads (generated)
-- `large.csv` - 100MB dataset for stress testing (generated)
+**Run time:** ~2-3 minutes
 
-## Metrics
+### 2. Transform Throughput (`transforms-throughput.ts`)
 
-Benchmarks measure:
+Throughput comparison of all in-process transforms:
+- CSV, TSV, Record, JSON formats
+- LazyRow binary format
+- WASM-accelerated CSV parsing
+- Tests with 100K records × 20 columns (~10MB)
 
-- **Throughput** - MB/s processing rate
-- **Memory usage** - Peak RSS during processing
-- **Latency** - Time to first result (streaming)
-- **CPU efficiency** - Processing time vs wall time
+**Run time:** ~1-2 minutes
+
+## Legacy Benchmarks
+
+The `transforms/` directory contains older benchmarks that may have lint errors or be outdated. Use the main benchmarks above for current performance testing.
