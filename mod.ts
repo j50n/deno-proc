@@ -11,7 +11,15 @@
  *
  * @example Quick start
  * ```ts
- * import { run } from "@j50n/proc";
+ * import { read, run } from "@j50n/proc";
+ * import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
+ *
+ * // Transform data between formats - CSV to TSV with filtering
+ * await read("sales.csv")
+ *   .transform(fromCsvToRows())
+ *   .filter((row) => parseFloat(row[3]) > 1000)
+ *   .transform(toTsv())
+ *   .writeTo("high-value.tsv");
  *
  * // Run processes and capture output
  * const lines = await run("ls", "-la").lines.collect();
@@ -33,9 +41,9 @@
  *
  * ## Why proc?
  *
- * **Simpler than streams** — AsyncIterables are a standard JavaScript primitive (more standard than streams).
- * Pull-based iteration is easier to reason about than push-based streams. No complex coordination, no buffering
- * logic, no backpressure headaches.
+ * **Simpler than streams** — AsyncIterables are a standard JavaScript primitive, more standard than the
+ * Streams API. Pull-based iteration is easier to reason about than push-based streams. No complex coordination,
+ * no buffering logic, no backpressure headaches.
  *
  * **Backpressure solved** — Traditional streams require careful coordination between producers and consumers.
  * Async iterators eliminate this entirely—the consumer pulls when ready. No memory pressure, no dropped data,

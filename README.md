@@ -16,6 +16,13 @@ between formats, and use Array methods on async iterables.
 import { enumerate, read, run } from "jsr:@j50n/proc";
 import { fromCsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
 
+// Transform data between formats - CSV to TSV with filtering
+await read("sales.csv")
+  .transform(fromCsvToRows())
+  .filter((row) => parseFloat(row[3]) > 1000)
+  .transform(toTsv())
+  .writeTo("high-value.tsv");
+
 // Run processes and capture output
 const lines = await run("ls", "-la").lines.collect();
 
@@ -24,13 +31,6 @@ const result = await run("cat", "data.txt")
   .run("grep", "error")
   .run("wc", "-l")
   .lines.first;
-
-// Transform data between formats
-await read("sales.csv")
-  .transform(fromCsvToRows())
-  .filter((row) => parseFloat(row[3]) > 1000)
-  .transform(toTsv())
-  .writeTo("high-value.tsv");
 
 // Work with async iterables using familiar Array methods
 const commits = await run("git", "log", "--oneline")
@@ -53,8 +53,8 @@ try {
 
 ## Why proc?
 
-**Simpler than streams** — AsyncIterables are a standard JavaScript primitive
-(more standard than streams). Pull-based iteration is easier to reason about
+**Simpler than streams** — AsyncIterables are a standard JavaScript primitive,
+more standard than the Streams API. Pull-based iteration is easier to reason about
 than push-based streams. No complex coordination, no buffering logic, no
 backpressure headaches.
 
