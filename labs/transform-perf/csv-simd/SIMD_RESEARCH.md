@@ -143,6 +143,107 @@ Only if:
 
 ---
 
+## The Key Insight: Quote State as Parallel Toggles
+
+### The Problem: Quote State is Expensive
+
+When parsing CSV, you need to know "am I inside quotes?" for every single character:
+
+```
+a,"b,c",d
+  ↑   ↑
+  Start quote, so this comma is DATA not a delimiter
+      End quote, so next comma IS a delimiter
+```
+
+**Traditional approach** (slow):
+```
+inside_quotes = false
+for each character:
+    if character == '"':
+        inside_quotes = !inside_quotes  // flip the state
+    if character == ',' and not inside_quotes:
+        // found a real delimiter
+```
+
+You check EVERY character one at a time. For a 1 MB file, that's 1 million checks.
+
+### The Insight: Quotes Toggle Like Light Switches
+
+Think of quotes like light switches:
+- First quote: light ON (inside quotes)
+- Second quote: light OFF (outside quotes)  
+- Third quote: light ON again
+- Fourth quote: light OFF again
+
+This is called **XOR** (exclusive OR) or "toggle":
+```
+State: OFF
+See quote → toggle → ON
+See quote → toggle → OFF
+See quote → toggle → ON
+```
+
+### The Magic: Compute All Toggles at Once
+
+Instead of processing one character at a time, process 32 characters together:
+
+**Step 1: Find all the quotes**
+```
+Input:  a,"b,c",d,"e,f",g
+Quotes: 00100001001000010  (1 = quote, 0 = not quote)
+```
+
+**Step 2: Compute "running toggle" for all 32 positions**
+
+This is where the magic happens. There's a CPU instruction called `pclmulqdq` (carry-less multiplication) that can compute this pattern:
+
+```
+Quotes: 00100001001000010
+Result: 00111110001111100
+        ↑↑    ↑↑↑    ↑↑
+        These positions are "inside quotes"
+```
+
+It's like flipping 32 light switches simultaneously and seeing which ones end up ON.
+
+**Step 3: Use the result**
+```
+Commas:  01000010001000001  (where commas are)
+Inside:  00111110001111100  (inside quotes)
+Outside: 11000001110000011  (flip the bits)
+Real:    01000000001000001  (commas AND outside = real delimiters)
+                ↑       ↑
+                These are the actual delimiters!
+```
+
+### Why This is Fast
+
+**Before (traditional):**
+- Process 32 characters: 32 checks, 32 branches
+- CPU can't predict the pattern (quoted vs unquoted is random)
+- ~32-64 CPU cycles
+
+**After (SIMD):**
+- Process 32 characters: ~5-10 instructions total
+- No branches (no guessing)
+- ~5-10 CPU cycles
+
+**That's 3-6x faster just for quote tracking**, and quote tracking is the main bottleneck in CSV parsing.
+
+### The "AHA" Moment
+
+You don't need to track state character-by-character. You can:
+1. Find all quotes in a chunk (1 instruction)
+2. Compute "inside/outside" for the whole chunk (1 instruction)
+3. Find real delimiters (1 instruction)
+
+**32 characters processed in 3 instructions instead of 32-64.**
+
+That's the key insight from simdjson applied to CSV.
+
+---
+
 ## Analysis: SIMD for CSV Parsing
 
 ### Why CSV is Hard to Parse Fast
