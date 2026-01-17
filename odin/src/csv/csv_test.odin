@@ -1065,3 +1065,306 @@ test_lazyrow_decode_reset :: proc(t: ^testing.T) {
     testing.expect_value(t, len(d.output), 0)
     testing.expect_value(t, d.consumed, 0)
 }
+
+// =============================================================================
+// Streaming LazyRow Decoder Tests
+// =============================================================================
+
+@(test)
+test_streaming_lazyrow_basic :: proc(t: ^testing.T) {
+    // Encode some data first
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1Ec\x1Fd\x1E"))
+    
+    // Decode with streaming decoder
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    written := streaming_lazyrow_decode(&d, e.output[:])
+    testing.expect(t, written > 0, "should decode data")
+    expect_bytes(t, d.output[:], "a,b\nc,d\n")
+}
+
+@(test)
+test_streaming_lazyrow_incomplete_header :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1E"))
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    // Feed only 3 bytes (incomplete row_length header)
+    written := streaming_lazyrow_decode(&d, e.output[:3])
+    testing.expect_value(t, written, 0)
+    testing.expect_value(t, len(d.carry), 3)
+    
+    // Feed rest of data
+    written = streaming_lazyrow_decode(&d, e.output[3:])
+    testing.expect(t, written > 0, "should decode after completing header")
+    expect_bytes(t, d.output[:], "a,b\n")
+}
+
+@(test)
+test_streaming_lazyrow_incomplete_row :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1E"))
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    // Feed only half the data
+    half := len(e.output) / 2
+    written := streaming_lazyrow_decode(&d, e.output[:half])
+    testing.expect_value(t, written, 0)
+    testing.expect(t, len(d.carry) > 0, "should buffer incomplete row")
+    
+    // Feed rest
+    written = streaming_lazyrow_decode(&d, e.output[half:])
+    testing.expect(t, written > 0, "should decode complete row")
+    expect_bytes(t, d.output[:], "a,b\n")
+}
+
+@(test)
+test_streaming_lazyrow_multi_chunk :: proc(t: ^testing.T) {
+    // Encode multiple rows
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1Ec\x1Fd\x1Ee\x1Ff\x1E"))
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    // Feed in small chunks
+    chunk_size := 10
+    for i := 0; i < len(e.output); i += chunk_size {
+        end := min(i + chunk_size, len(e.output))
+        streaming_lazyrow_decode(&d, e.output[i:end])
+    }
+    
+    expect_bytes(t, d.output[:], "a,b\nc,d\ne,f\n")
+}
+
+@(test)
+test_streaming_lazyrow_empty_fields :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("\x1Fb\x1F\x1E"))
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    streaming_lazyrow_decode(&d, e.output[:])
+    expect_bytes(t, d.output[:], ",b,\n")
+}
+
+@(test)
+test_streaming_lazyrow_custom_separators :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1Fc\x1E"))
+    
+    d := streaming_lazyrow_decoder_init('\t', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    streaming_lazyrow_decode(&d, e.output[:])
+    expect_bytes(t, d.output[:], "a\tb\tc\n")
+}
+
+@(test)
+test_streaming_lazyrow_clear_output :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1E"))
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    streaming_lazyrow_decode(&d, e.output[:])
+    testing.expect(t, len(d.output) > 0, "should have output")
+    
+    streaming_lazyrow_clear_output(&d)
+    testing.expect_value(t, len(d.output), 0)
+}
+
+@(test)
+test_streaming_lazyrow_output_len :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1E"))
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    testing.expect_value(t, streaming_lazyrow_output_len(&d), 0)
+    
+    streaming_lazyrow_decode(&d, e.output[:])
+    testing.expect(t, streaming_lazyrow_output_len(&d) > 0, "should have output")
+}
+
+@(test)
+test_streaming_lazyrow_finish :: proc(t: ^testing.T) {
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, transmute([]u8)string("a\x1Fb\x1Ec\x1Fd\x1E"))
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    // Feed incomplete data
+    half := len(e.output) / 2
+    streaming_lazyrow_decode(&d, e.output[:half])
+    
+    // Finish should process remaining complete rows
+    output_len := streaming_lazyrow_finish(&d)
+    testing.expect(t, output_len >= 0, "finish should return output length")
+}
+
+@(test)
+test_streaming_lazyrow_large_row :: proc(t: ^testing.T) {
+    // Create a large field
+    large := make([dynamic]u8)
+    defer delete(large)
+    for i := 0; i < 1000; i += 1 {
+        append(&large, 'x')
+    }
+    append(&large, FIELD_SEP)
+    append(&large, 'y')
+    append(&large, RECORD_SEP)
+    
+    e := lazyrow_encoder_init()
+    defer lazyrow_encoder_destroy(&e)
+    lazyrow_encode(&e, large[:])
+    
+    d := streaming_lazyrow_decoder_init(',', '\n')
+    defer streaming_lazyrow_decoder_destroy(&d)
+    
+    // Feed in small chunks
+    chunk_size := 50
+    for i := 0; i < len(e.output); i += chunk_size {
+        end := min(i + chunk_size, len(e.output))
+        streaming_lazyrow_decode(&d, e.output[i:end])
+    }
+    
+    testing.expect(t, len(d.output) > 1000, "should decode large field")
+}
+
+// =============================================================================
+// Streaming Record Stringifier Tests
+// =============================================================================
+
+@(test)
+test_streaming_stringify_basic :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    input := transmute([]u8)string("a\x1Fb\x1Fc\x1E")
+    written := streaming_record_stringify(&s, input)
+    
+    testing.expect(t, written > 0, "should write data")
+    expect_bytes(t, s.output[:], "a,b,c\n")
+}
+
+@(test)
+test_streaming_stringify_incomplete_record :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    // Feed incomplete record (no RECORD_SEP)
+    written := streaming_record_stringify(&s, transmute([]u8)string("a\x1Fb"))
+    testing.expect_value(t, written, 0)
+    testing.expect(t, len(s.carry) > 0, "should buffer incomplete record")
+    
+    // Complete the record
+    written = streaming_record_stringify(&s, transmute([]u8)string("\x1Fc\x1E"))
+    testing.expect(t, written > 0, "should output complete record")
+    expect_bytes(t, s.output[:], "a,b,c\n")
+}
+
+@(test)
+test_streaming_stringify_multi_chunk :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    // Feed data in chunks
+    streaming_record_stringify(&s, transmute([]u8)string("a\x1Fb\x1E"))
+    streaming_record_stringify(&s, transmute([]u8)string("c\x1Fd\x1E"))
+    
+    expect_bytes(t, s.output[:], "a,b\nc,d\n")
+}
+
+@(test)
+test_streaming_stringify_quote_comma :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("a,b\x1Fc\x1E"))
+    expect_bytes(t, s.output[:], "\"a,b\",c\n")
+}
+
+@(test)
+test_streaming_stringify_quote_newline :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("a\nb\x1Fc\x1E"))
+    expect_bytes(t, s.output[:], "\"a\nb\",c\n")
+}
+
+@(test)
+test_streaming_stringify_escape_quote :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("a\"b\x1Fc\x1E"))
+    expect_bytes(t, s.output[:], "\"a\"\"b\",c\n")
+}
+
+@(test)
+test_streaming_stringify_always_quote :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, true)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("a\x1Fb\x1E"))
+    expect_bytes(t, s.output[:], "\"a\",\"b\"\n")
+}
+
+@(test)
+test_streaming_stringify_crlf :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, true, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("a\x1Fb\x1E"))
+    expect_bytes(t, s.output[:], "a,b\r\n")
+}
+
+@(test)
+test_streaming_stringify_custom_sep :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init('\t', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("a\x1Fb\x1Fc\x1E"))
+    expect_bytes(t, s.output[:], "a\tb\tc\n")
+}
+
+@(test)
+test_streaming_stringify_empty_fields :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("\x1Fb\x1F\x1E"))
+    expect_bytes(t, s.output[:], ",b,\n")
+}
+
+@(test)
+test_streaming_stringify_output_len :: proc(t: ^testing.T) {
+    s := streaming_record_stringifier_init(',', FIELD_SEP, RECORD_SEP, false, false)
+    defer streaming_record_stringifier_destroy(&s)
+    
+    testing.expect_value(t, streaming_record_output_len(&s), 0)
+    
+    streaming_record_stringify(&s, transmute([]u8)string("a\x1Fb\x1E"))
+    testing.expect(t, streaming_record_output_len(&s) > 0, "should have output")
+}
