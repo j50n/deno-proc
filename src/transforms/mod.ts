@@ -25,19 +25,11 @@ export {
   toCsv,
 } from "./csv.ts";
 
-// High-performance WASM CSV transformers
-export {
-  CsvParseError,
-  fromCsvToLazyRowsFast,
-  fromCsvToRowsFast,
-  toCsvFast,
-} from "./csv-fast.ts";
-
 // TSV transformers
 export { fromTsvToLazyRows, fromTsvToRows, toTsv } from "./tsv.ts";
 
 // Record transformers
-export { fromRecordToLazyRows, fromRecordToRows, toRecord } from "./record.ts";
+export { fromRecordToRows, fromRecordToLazyRows, toRecord } from "./record.ts";
 
 // Binary LazyRow transformers
 export { fromLazyRowBinary, toLazyRowBinary } from "./lazyrow-binary.ts";

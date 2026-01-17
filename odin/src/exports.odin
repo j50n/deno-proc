@@ -1202,11 +1202,8 @@ parse_to_lazyrow :: proc "c" (id: i32, input_len: i32) -> i32 {
                 p.current_field_start = p.data_len
                 p.row_started = true
             } else if c == '\r' {
-                if p.row_started && p.field_count < MAX_FIELDS {
-                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
-                    p.field_count += 1
-                }
-                p.state = .RecordEnd
+                // Skip \r - will be handled by next state if needed
+                // Don't transition to RecordEnd from FieldStart
             } else if c == rec_sep {
                 if p.row_started {
                     lazyrow_direct_emit(p)
@@ -1230,10 +1227,7 @@ parse_to_lazyrow :: proc "c" (id: i32, input_len: i32) -> i32 {
                 p.current_field_start = p.data_len
                 p.state = .FieldStart
             } else if c == '\r' {
-                if p.field_count < MAX_FIELDS {
-                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
-                    p.field_count += 1
-                }
+                // Don't increment field_count here - RecordEnd will handle it
                 p.state = .RecordEnd
             } else if c == rec_sep {
                 lazyrow_direct_emit(p)
@@ -1270,10 +1264,7 @@ parse_to_lazyrow :: proc "c" (id: i32, input_len: i32) -> i32 {
                 p.current_field_start = p.data_len
                 p.state = .FieldStart
             } else if c == '\r' {
-                if p.field_count < MAX_FIELDS {
-                    p.field_lengths[p.field_count] = u32(p.data_len - p.current_field_start)
-                    p.field_count += 1
-                }
+                // Don't increment field_count here - RecordEnd will handle it
                 p.state = .RecordEnd
             } else if c == rec_sep {
                 lazyrow_direct_emit(p)
@@ -1284,13 +1275,18 @@ parse_to_lazyrow :: proc "c" (id: i32, input_len: i32) -> i32 {
             }
             
         case .RecordEnd:
+            // We're here because we saw \r - now check if \n follows
             if c == rec_sep {
+                // \r\n - proper CRLF line ending
+                // Don't end field here - lazyrow_direct_emit will do it
                 lazyrow_direct_emit(p)
                 p.state = .FieldStart
             } else {
+                // Standalone \r (not followed by \n) - treat as line ending
+                // Don't end field here - lazyrow_direct_emit will do it
                 lazyrow_direct_emit(p)
                 p.state = .FieldStart
-                i -= 1
+                i -= 1  // Reprocess current character
             }
         }
     }

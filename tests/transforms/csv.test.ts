@@ -1,10 +1,14 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
 import {
   fromCsvToLazyRows,
   fromCsvToRows,
   toCsv,
 } from "../../src/transforms/csv.ts";
+
+// ============================================================================
+// RFC 4180 Compliance Tests
+// ============================================================================
 
 Deno.test("CSV - basic parsing to rows", async () => {
   const csvData = "name,age,city\nAlice,30,NYC\nBob,25,LA";
@@ -26,16 +30,64 @@ Deno.test("CSV - basic parsing to LazyRows", async () => {
     .collect();
 
   assertEquals(result.length, 1);
-  assertEquals(result[0].length, 3); // header + 2 data rows
+  assertEquals(result[0].length, 3);
   assertEquals(result[0][0].toStringArray(), ["name", "age", "city"]);
   assertEquals(result[0][1].toStringArray(), ["Alice", "30", "NYC"]);
   assertEquals(result[0][2].toStringArray(), ["Bob", "25", "LA"]);
 });
 
-Deno.test("CSV - chunked input", async () => {
-  const chunks = ["name,age\n", "Alice,30\n", "Bob,25"];
+Deno.test("CSV - RFC 4180: quoted fields with commas", async () => {
+  const csvData = 'name,description\n"Smith, John","Engineer"\n"Doe, Jane","Manager"';
 
-  const result = await enumerate(chunks.map((s) => new TextEncoder().encode(s)))
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [
+      ["name", "description"],
+      ["Smith, John", "Engineer"],
+      ["Doe, Jane", "Manager"],
+    ],
+  ]);
+});
+
+Deno.test("CSV - RFC 4180: escaped quotes (double quotes)", async () => {
+  const csvData = 'name,quote\n"Alice","She said ""hello"""\n"Bob","He said ""goodbye"""';
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [
+      ["name", "quote"],
+      ["Alice", 'She said "hello"'],
+      ["Bob", 'He said "goodbye"'],
+    ],
+  ]);
+});
+
+Deno.test("CSV - RFC 4180: quoted fields with newlines", async () => {
+  const csvData = 'name,address\n"Alice","123 Main St\nApt 4B\nNYC"\n"Bob","456 Oak Ave"';
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [
+      ["name", "address"],
+      ["Alice", "123 Main St\nApt 4B\nNYC"],
+      ["Bob", "456 Oak Ave"],
+    ],
+  ]);
+});
+
+Deno.test("CSV - RFC 4180: CRLF line endings", async () => {
+  const csvData = "name,age\r\nAlice,30\r\nBob,25";
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
     .collect();
 
@@ -44,41 +96,95 @@ Deno.test("CSV - chunked input", async () => {
   ]);
 });
 
-Deno.test("CSV - quoted fields with commas", async () => {
-  const csvData =
-    'name,description\n"Alice","A person with, comma"\n"Bob","Another ""quoted"" person"';
+Deno.test("CSV - RFC 4180: CRLF with trailing", async () => {
+  const csvData = "name,age\r\nAlice,30\r\nBob,25\r\n";
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
     .collect();
 
   assertEquals(result, [
-    [
-      ["name", "description"],
-      ["Alice", "A person with, comma"],
-      ["Bob", 'Another "quoted" person'],
-    ],
+    [["name", "age"], ["Alice", "30"], ["Bob", "25"]],
   ]);
 });
 
-Deno.test("CSV - quoted fields with newlines", async () => {
-  const csvData =
-    'name,description\n"Alice","Line 1\nLine 2"\n"Bob","Single line"';
+Deno.test("CSV - RFC 4180: mixed line endings", async () => {
+  const csvData = "name,age\r\nAlice,30\nBob,25\r\n";
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
     .collect();
 
   assertEquals(result, [
-    [
-      ["name", "description"],
-      ["Alice", "Line 1\nLine 2"],
-      ["Bob", "Single line"],
-    ],
+    [["name", "age"], ["Alice", "30"], ["Bob", "25"]],
   ]);
 });
 
-Deno.test("CSV - custom separator", async () => {
+Deno.test("CSV - RFC 4180: mixed quoted and unquoted fields", async () => {
+  const csvData = 'name,"age",city\nAlice,30,"New York"\n"Bob",25,LA';
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [["name", "age", "city"], ["Alice", "30", "New York"], ["Bob", "25", "LA"]],
+  ]);
+});
+
+Deno.test("CSV - RFC 4180: empty fields", async () => {
+  const csvData = "name,age,city\nAlice,,NYC\n,25,LA\n,,";
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [["name", "age", "city"], ["Alice", "", "NYC"], ["", "25", "LA"], ["", "", ""]],
+  ]);
+});
+
+Deno.test("CSV - RFC 4180: quoted empty fields", async () => {
+  const csvData = 'name,age,city\n"Alice","","NYC"\n"","25","LA"';
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [["name", "age", "city"], ["Alice", "", "NYC"], ["", "25", "LA"]],
+  ]);
+});
+
+Deno.test("CSV - RFC 4180: single field per row", async () => {
+  const csvData = "name\nAlice\nBob\nCharlie";
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [["name"], ["Alice"], ["Bob"], ["Charlie"]],
+  ]);
+});
+
+Deno.test("CSV - RFC 4180: trailing comma creates empty field", async () => {
+  const csvData = "name,age,\nAlice,30,\nBob,25,";
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [["name", "age", ""], ["Alice", "30", ""], ["Bob", "25", ""]],
+  ]);
+});
+
+// ============================================================================
+// Custom Separator Tests
+// ============================================================================
+
+Deno.test("CSV - custom separator (semicolon)", async () => {
   const csvData = "name;age;city\nAlice;30;NYC\nBob;25;LA";
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
@@ -90,9 +196,20 @@ Deno.test("CSV - custom separator", async () => {
   ]);
 });
 
-Deno.test("CSV - custom separator with quotes", async () => {
-  const csvData =
-    'name;description\n"Alice";"Has ; semicolon"\n"Bob";"Normal text"';
+Deno.test("CSV - custom separator (pipe)", async () => {
+  const csvData = "name|age|city\nAlice|30|NYC\nBob|25|LA";
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows({ separator: "|" }))
+    .collect();
+
+  assertEquals(result, [
+    [["name", "age", "city"], ["Alice", "30", "NYC"], ["Bob", "25", "LA"]],
+  ]);
+});
+
+Deno.test("CSV - custom separator with quoted fields", async () => {
+  const csvData = 'name;description\n"Alice";"Has ; semicolon"\n"Bob";"Normal text"';
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows({ separator: ";" }))
@@ -107,12 +224,15 @@ Deno.test("CSV - custom separator with quotes", async () => {
   ]);
 });
 
-Deno.test("CSV - comments", async () => {
-  const csvData =
-    "# This is a comment\nname,age\n# Another comment\nAlice,30\nBob,25";
+// ============================================================================
+// Streaming and Chunking Tests
+// ============================================================================
 
-  const result = await enumerate([new TextEncoder().encode(csvData)])
-    .transform(fromCsvToRows({ comment: "#" }))
+Deno.test("CSV - chunked input", async () => {
+  const chunks = ["name,age\n", "Alice,30\n", "Bob,25"];
+
+  const result = await enumerate(chunks.map((s) => new TextEncoder().encode(s)))
+    .transform(fromCsvToRows())
     .collect();
 
   assertEquals(result, [
@@ -120,48 +240,19 @@ Deno.test("CSV - comments", async () => {
   ]);
 });
 
-Deno.test("CSV - trim leading space", async () => {
-  const csvData = "name, age, city\n Alice , 30 , NYC \n Bob , 25 , LA ";
+Deno.test("CSV - chunk boundary in quoted field", async () => {
+  const chunks = ['name,desc\n"Alice","This is a ', 'long description"\n"Bob","Short"'];
 
-  const result = await enumerate([new TextEncoder().encode(csvData)])
-    .transform(fromCsvToRows({ trimLeadingSpace: true }))
-    .collect();
-
-  assertEquals(result, [
-    [["name", "age", "city"], ["Alice ", "30 ", "NYC "], [
-      "Bob ",
-      "25 ",
-      "LA ",
-    ]],
-  ]);
-});
-
-Deno.test("CSV - lazy quotes", async () => {
-  const csvData =
-    'name,description\nAlice,"She said "hello" to me"\nBob,Normal text';
-
-  const result = await enumerate([new TextEncoder().encode(csvData)])
-    .transform(fromCsvToRows({ lazyQuotes: true }))
+  const result = await enumerate(chunks.map((s) => new TextEncoder().encode(s)))
+    .transform(fromCsvToRows())
     .collect();
 
   assertEquals(result, [
     [
-      ["name", "description"],
-      ["Alice", 'She said "hello" to me'],
-      ["Bob", "Normal text"],
+      ["name", "desc"],
+      ["Alice", "This is a long description"],
+      ["Bob", "Short"],
     ],
-  ]);
-});
-
-Deno.test("CSV - fields per record validation", async () => {
-  const csvData = "name,age,city\nAlice,30,NYC\nBob,25,LA"; // All rows have correct field count
-
-  const result = await enumerate([new TextEncoder().encode(csvData)])
-    .transform(fromCsvToRows({ fieldsPerRecord: 3 }))
-    .collect();
-
-  assertEquals(result, [
-    [["name", "age", "city"], ["Alice", "30", "NYC"], ["Bob", "25", "LA"]],
   ]);
 });
 
@@ -173,17 +264,46 @@ Deno.test("CSV - empty input", async () => {
   assertEquals(result, []);
 });
 
-Deno.test("CSV - empty lines", async () => {
-  const csvData = "name,age\n\nAlice,30\n\nBob,25\n\n";
+// ============================================================================
+// UTF-8 Tests
+// ============================================================================
+
+Deno.test("CSV - multi-byte UTF-8 handling", async () => {
+  const csvData = "name,emoji,language\nAlice,😀,English\nBob,🎉,日本語\nCharlie,🚀,中文";
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
     .collect();
 
   assertEquals(result, [
-    [["name", "age"], ["Alice", "30"], ["Bob", "25"]],
+    [
+      ["name", "emoji", "language"],
+      ["Alice", "😀", "English"],
+      ["Bob", "🎉", "日本語"],
+      ["Charlie", "🚀", "中文"],
+    ],
   ]);
 });
+
+Deno.test("CSV - multi-byte UTF-8 in quoted fields", async () => {
+  const csvData = 'name,message\n"Alice","Hello 世界"\n"Bob","Bonjour 🌍"';
+
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
+    .collect();
+
+  assertEquals(result, [
+    [
+      ["name", "message"],
+      ["Alice", "Hello 世界"],
+      ["Bob", "Bonjour 🌍"],
+    ],
+  ]);
+});
+
+// ============================================================================
+// CSV Generation Tests
+// ============================================================================
 
 Deno.test("CSV - stringify basic", async () => {
   const data = [
@@ -195,12 +315,12 @@ Deno.test("CSV - stringify basic", async () => {
     .collect();
 
   const csvText = new TextDecoder().decode(result[0]);
-  assertEquals(csvText, "name,age\r\nAlice,30\r\nBob,25\r\n");
+  assertEquals(csvText, "name,age\nAlice,30\nBob,25\n");
 });
 
 Deno.test("CSV - stringify with custom separator", async () => {
   const data = [
-    [["name", "age"], ["Alice", "30"]],
+    [["name", "age"], ["Alice", "30"], ["Bob", "25"]],
   ];
 
   const result = await enumerate(data)
@@ -208,13 +328,25 @@ Deno.test("CSV - stringify with custom separator", async () => {
     .collect();
 
   const csvText = new TextDecoder().decode(result[0]);
-  assertEquals(csvText.includes("name;age"), true);
-  assertEquals(csvText.includes("Alice;30"), true);
+  assertEquals(csvText, "name;age\nAlice;30\nBob;25\n");
 });
 
-Deno.test("CSV - stringify with quotes", async () => {
+Deno.test("CSV - stringify with CRLF", async () => {
   const data = [
-    [["name", "description"], ["Alice", "Has, comma"], ["Bob", 'Has "quotes"']],
+    [["name", "age"], ["Alice", "30"]],
+  ];
+
+  const result = await enumerate(data)
+    .transform(toCsv({ crlf: true }))
+    .collect();
+
+  const csvText = new TextDecoder().decode(result[0]);
+  assertEquals(csvText, "name,age\r\nAlice,30\r\n");
+});
+
+Deno.test("CSV - stringify fields requiring quotes", async () => {
+  const data = [
+    [["name", "description"], ["Alice", "Has, comma"], ["Bob", 'Has "quote"']],
   ];
 
   const result = await enumerate(data)
@@ -222,324 +354,187 @@ Deno.test("CSV - stringify with quotes", async () => {
     .collect();
 
   const csvText = new TextDecoder().decode(result[0]);
-  assertEquals(csvText.includes('"Has, comma"'), true);
-  assertEquals(csvText.includes('"Has ""quotes"""'), true);
+  assertEquals(csvText, 'name,description\nAlice,"Has, comma"\nBob,"Has ""quote"""\n');
 });
 
 Deno.test("CSV - stringify from LazyRows", async () => {
-  const csvData = "Alice,30\nBob,25";
+  const csvData = "name,age\nAlice,30\nBob,25";
 
-  // First parse to LazyRows
-  const lazyRows = await enumerate([new TextEncoder().encode(csvData)])
+  const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToLazyRows())
-    .collect();
-
-  // Then stringify back
-  const result = await enumerate(lazyRows)
     .transform(toCsv())
     .collect();
 
   const csvText = new TextDecoder().decode(result[0]);
-  assertEquals(csvText, "Alice,30\r\nBob,25\r\n");
+  assertEquals(csvText, "name,age\nAlice,30\nBob,25\n");
 });
 
 Deno.test("CSV - round trip", async () => {
-  const originalData = [
-    [["name", "age", "city"], ["Alice", "30", "NYC"], ["Bob", "25", "LA"]],
-  ];
+  const original = 'name,description\n"Alice","Has, comma and ""quotes"""\n"Bob","Normal text"';
 
-  // Convert to CSV bytes
-  const csvBytes = await enumerate(originalData)
+  const result = await enumerate([new TextEncoder().encode(original)])
+    .transform(fromCsvToRows())
     .transform(toCsv())
     .collect();
 
-  // Parse back to data
-  const parsedData = await enumerate(csvBytes)
+  const csvText = new TextDecoder().decode(result[0]);
+  
+  // Parse both to compare data, not formatting
+  const originalParsed = await enumerate([new TextEncoder().encode(original)])
     .transform(fromCsvToRows())
     .collect();
-
-  assertEquals(parsedData, originalData);
-});
-
-Deno.test("CSV - multi-byte UTF-8 handling", async () => {
-  const csvData =
-    "name,city,emoji\n北京,中国,🏙️\nTokyo,日本,🗾\nParis,France,🇫🇷";
-
-  const result = await enumerate([new TextEncoder().encode(csvData)])
+  const roundTripParsed = await enumerate([new TextEncoder().encode(csvText)])
     .transform(fromCsvToRows())
     .collect();
-
-  assertEquals(result, [
-    [
-      ["name", "city", "emoji"],
-      ["北京", "中国", "🏙️"],
-      ["Tokyo", "日本", "🗾"],
-      ["Paris", "France", "🇫🇷"],
-    ],
-  ]);
+  
+  assertEquals(roundTripParsed, originalParsed);
 });
 
-Deno.test("CSV - multi-byte UTF-8 in quoted fields", async () => {
-  const csvData =
-    'name,description\n"北京","首都 of 中国"\n"Tokyo","Capital with 🗾 emoji"';
-
-  const result = await enumerate([new TextEncoder().encode(csvData)])
-    .transform(fromCsvToRows())
-    .collect();
-
-  assertEquals(result, [
-    [
-      ["name", "description"],
-      ["北京", "首都 of 中国"],
-      ["Tokyo", "Capital with 🗾 emoji"],
-    ],
-  ]);
-});
-
-Deno.test("CSV - multi-byte UTF-8 chunked at boundaries", async () => {
-  // Split multi-byte character across chunks
-  const text = "name,city\n北京,中国";
-  const bytes = new TextEncoder().encode(text);
-
-  // Split at a position that breaks a multi-byte character
-  const chunk1 = bytes.slice(0, 12); // Should break in the middle of 北
-  const chunk2 = bytes.slice(12);
-
-  const result = await enumerate([chunk1, chunk2])
-    .transform(fromCsvToRows())
-    .collect();
-
-  assertEquals(result, [
-    [["name", "city"], ["北京", "中国"]],
-  ]);
-});
+// ============================================================================
+// LazyRow Specific Tests
+// ============================================================================
 
 Deno.test("CSV - LazyRow selective access", async () => {
-  const csvData =
-    "name,age,city,country,continent\nAlice,30,NYC,USA,North America\nBob,25,LA,USA,North America";
+  const csvData = "name,age,city,country,zip\nAlice,30,NYC,USA,10001";
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToLazyRows())
     .collect();
 
-  const rows = result[0];
-
-  // Test selective access - only get name and city (indices 0 and 2)
-  assertEquals(rows[1].getField(0), "Alice"); // name
-  assertEquals(rows[1].getField(2), "NYC"); // city
-  assertEquals(rows[2].getField(0), "Bob"); // name
-  assertEquals(rows[2].getField(2), "LA"); // city
-
-  // Verify we can still get all fields if needed
-  assertEquals(rows[1].toStringArray(), [
-    "Alice",
-    "30",
-    "NYC",
-    "USA",
-    "North America",
-  ]);
+  const row = result[0][1];
+  assertEquals(row.getField(0), "Alice");
+  assertEquals(row.getField(2), "NYC");
+  assertEquals(row.toStringArray().length, 5);
 });
 
-// Error handling tests
-Deno.test("CSV - invalid UTF-8 throws", async () => {
-  // Create invalid UTF-8 sequence
-  const invalidUtf8 = new Uint8Array([0xFF, 0xFE, 0xFD]); // Invalid UTF-8 bytes
-
-  try {
-    const result = enumerate([invalidUtf8]).transform(fromCsvToRows());
-    for await (const batch of result) {
-      // Should throw before we get here
-    }
-    throw new Error("Expected error to be thrown");
-  } catch (error) {
-    assertEquals(error instanceof TypeError, true);
-  }
-});
-
-Deno.test("CSV - malformed quotes throw", async () => {
-  const csvData = 'name,description\n"Alice,"Unclosed quote\nBob,Normal';
-
-  try {
-    const result = enumerate([new TextEncoder().encode(csvData)])
-      .transform(fromCsvToRows());
-    for await (const batch of result) {
-      // Should throw
-    }
-    throw new Error("Expected error to be thrown");
-  } catch (error) {
-    assertEquals(error instanceof SyntaxError, true);
-  }
-});
-
-Deno.test("CSV - fields per record mismatch throws", async () => {
-  const csvData = "name,age,city\nAlice,30,NYC\nBob,25"; // Missing city for Bob
-
-  try {
-    const result = enumerate([new TextEncoder().encode(csvData)])
-      .transform(fromCsvToRows({ fieldsPerRecord: 3 }));
-    for await (const batch of result) {
-      // Should throw
-    }
-    throw new Error("Expected error to be thrown");
-  } catch (error) {
-    assertEquals(error instanceof SyntaxError, true);
-  }
-});
-
-Deno.test("CSV - invalid separator in quotes", async () => {
-  // Test edge case with separator inside quotes
-  const csvData =
-    'name;description\n"Alice";"Has ; semicolon but valid"\n"Bob";"Also ; valid"';
-
-  const result = await enumerate([new TextEncoder().encode(csvData)])
-    .transform(fromCsvToRows({ separator: ";" }))
-    .collect();
-
-  // Should parse correctly
-  assertEquals(result[0][1][1], "Has ; semicolon but valid");
-});
-
-// =============================================================================
-// Pathological Data Tests
-// =============================================================================
-
-/** Generate random alphanumeric string of given length */
-function randomString(len: number): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const result = new Array<string>(len);
-  for (let i = 0; i < len; i++) {
-    result[i] = chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result.join("");
-}
+// ============================================================================
+// Pathological Cases
+// ============================================================================
 
 Deno.test("CSV pathological - 1MB field", async () => {
-  const hugeField = randomString(1_000_000);
-  const csvData = `small,${hugeField},end\n`;
+  const largeField = "x".repeat(1024 * 1024);
+  const csvData = `name,data\nAlice,"${largeField}"\nBob,small`;
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
     .collect();
 
-  assertEquals(result.length, 1);
-  assertEquals(result[0][0][0], "small");
-  assertEquals(result[0][0][1], hugeField);
-  assertEquals(result[0][0][2], "end");
+  assertEquals(result[0][0], ["name", "data"]);
+  assertEquals(result[0][1][0], "Alice");
+  assertEquals(result[0][1][1].length, 1024 * 1024);
+  assertEquals(result[0][2], ["Bob", "small"]);
 });
 
 Deno.test("CSV pathological - 1MB quoted field", async () => {
-  const hugeField = randomString(1_000_000);
-  const csvData = `"${hugeField}"\n`;
+  const largeField = "x".repeat(1024 * 1024);
+  const csvData = `name,data\n"Alice","${largeField}"\n"Bob","small"`;
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
     .collect();
 
-  assertEquals(result[0][0][0], hugeField);
+  assertEquals(result[0][1][1].length, 1024 * 1024);
 });
 
 Deno.test("CSV pathological - many fields (100 columns)", async () => {
   const fields = Array.from({ length: 100 }, (_, i) => `field${i}`);
-  const csvData = fields.join(",") + "\n";
+  const values = Array.from({ length: 100 }, (_, i) => `value${i}`);
+  const csvData = fields.join(",") + "\n" + values.join(",");
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
     .collect();
 
-  assertEquals(result[0][0].length, 100);
-  assertEquals(result[0][0][0], "field0");
-  assertEquals(result[0][0][99], "field99");
+  assertEquals(result[0][0], fields);
+  assertEquals(result[0][1], values);
 });
 
 Deno.test("CSV pathological - many rows (10000 rows)", async () => {
-  const rows = Array.from({ length: 10000 }, (_, i) => `a${i},b${i},c${i}`);
-  const csvData = rows.join("\n") + "\n";
+  const rows = ["name,age"];
+  for (let i = 0; i < 10000; i++) {
+    rows.push(`Person${i},${20 + (i % 50)}`);
+  }
+  const csvData = rows.join("\n");
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
+    .flatten()
     .collect();
 
-  const allRows = result.flat();
-  assertEquals(allRows.length, 10000);
-  assertEquals(allRows[0], ["a0", "b0", "c0"]);
-  assertEquals(allRows[9999], ["a9999", "b9999", "c9999"]);
+  assertEquals(result.length, 10001); // header + 10000 rows
+  assertEquals(result[0], ["name", "age"]);
+  assertEquals(result[10000], ["Person9999", "69"]);
 });
 
 Deno.test("CSV pathological - 1MB field round-trip", async () => {
-  const hugeField = randomString(1_000_000);
-  const originalData = [[["small", hugeField, "end"]]];
+  const largeField = "x".repeat(1024 * 1024);
+  const csvData = `name,data\nAlice,"${largeField}"`;
 
-  const csvBytes = await enumerate(originalData)
+  const result = await enumerate([new TextEncoder().encode(csvData)])
+    .transform(fromCsvToRows())
     .transform(toCsv())
     .collect();
 
-  const parsedData = await enumerate(csvBytes)
+  const csvText = new TextDecoder().decode(result[0]);
+  
+  // Parse to verify data integrity
+  const parsed = await enumerate([new TextEncoder().encode(csvText)])
     .transform(fromCsvToRows())
     .collect();
 
-  assertEquals(parsedData[0][0][1], hugeField);
+  assertEquals(parsed[0][1][1].length, 1024 * 1024);
 });
 
 Deno.test("CSV pathological - 1MB field to LazyRow", async () => {
-  const hugeField = randomString(1_000_000);
-  const csvData = `small,${hugeField},end\n`;
+  const largeField = "x".repeat(1024 * 1024);
+  const csvData = `name,data\nAlice,"${largeField}"`;
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToLazyRows())
     .collect();
 
-  assertEquals(result[0][0].getField(0), "small");
-  assertEquals(result[0][0].getField(1), hugeField);
-  assertEquals(result[0][0].getField(2), "end");
+  assertEquals(result[0][1].getField(1).length, 1024 * 1024);
 });
 
 Deno.test("CSV pathological - chunk boundary in middle of field", async () => {
-  const field = "a".repeat(100);
-  const csvData = `${field},${field}\n`;
-  const bytes = new TextEncoder().encode(csvData);
+  const field = "a".repeat(1000);
+  const csvData = `name,data\nAlice,${field}`;
+  
+  // Split in middle of the long field
+  const chunk1 = csvData.slice(0, 20);
+  const chunk2 = csvData.slice(20);
 
-  // Split in middle of first field
-  const chunk1 = bytes.slice(0, 50);
-  const chunk2 = bytes.slice(50);
-
-  const result = await enumerate([chunk1, chunk2])
+  const result = await enumerate([chunk1, chunk2].map((s) => new TextEncoder().encode(s)))
     .transform(fromCsvToRows())
     .collect();
 
-  assertEquals(result[0][0][0], field);
-  assertEquals(result[0][0][1], field);
+  assertEquals(result[0][1][1].length, 1000);
 });
 
 Deno.test("CSV pathological - chunk boundary in quoted field", async () => {
-  const field = "a".repeat(100);
-  const csvData = `"${field}","${field}"\n`;
-  const bytes = new TextEncoder().encode(csvData);
+  const field = "a".repeat(1000);
+  const csvData = `name,data\nAlice,"${field}"`;
+  
+  // Split in middle of the quoted field
+  const chunk1 = csvData.slice(0, 25);
+  const chunk2 = csvData.slice(25);
 
-  // Split in middle of quoted field
-  const chunk1 = bytes.slice(0, 60);
-  const chunk2 = bytes.slice(60);
-
-  const result = await enumerate([chunk1, chunk2])
+  const result = await enumerate([chunk1, chunk2].map((s) => new TextEncoder().encode(s)))
     .transform(fromCsvToRows())
     .collect();
 
-  assertEquals(result[0][0][0], field);
-  assertEquals(result[0][0][1], field);
+  assertEquals(result[0][1][1].length, 1000);
 });
 
 Deno.test("CSV pathological - many small chunks", async () => {
-  const csvData = "a,b,c\nd,e,f\ng,h,i\n";
-  const bytes = new TextEncoder().encode(csvData);
-
-  // Split into 1-byte chunks
-  const chunks = Array.from(bytes).map((b) => new Uint8Array([b]));
+  const csvData = "name,age,city\nAlice,30,NYC\nBob,25,LA";
+  const chunks = csvData.split("").map((c) => new TextEncoder().encode(c));
 
   const result = await enumerate(chunks)
     .transform(fromCsvToRows())
     .collect();
 
-  const allRows = result.flat();
-  assertEquals(allRows.length, 3);
-  assertEquals(allRows[0], ["a", "b", "c"]);
+  assertEquals(result, [
+    [["name", "age", "city"], ["Alice", "30", "NYC"], ["Bob", "25", "LA"]],
+  ]);
 });

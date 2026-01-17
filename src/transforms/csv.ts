@@ -1,22 +1,12 @@
-import { parse, stringify } from "jsr:@std/csv";
-import { BATCH_SIZE_BYTES } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
+import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
 
 /**
  * Options for parsing CSV data.
- * @see https://jsr.io/@std/csv for full documentation
  */
 export interface CsvParseOptions {
   /** Field separator character. Defaults to comma. */
   separator?: string;
-  /** Comment character. Lines starting with this are skipped. */
-  comment?: string;
-  /** Trim leading whitespace from fields. */
-  trimLeadingSpace?: boolean;
-  /** Allow quotes to appear in unquoted fields. */
-  lazyQuotes?: boolean;
-  /** Expected number of fields per record. Use 0 for variable. */
-  fieldsPerRecord?: number;
 }
 
 /**
@@ -27,20 +17,13 @@ export interface CsvStringifyOptions {
   separator?: string;
   /** Use CRLF line endings instead of LF. */
   crlf?: boolean;
-  /** Quote character. Defaults to double quote. */
-  quote?: string;
-  /** Quote all fields, not just those requiring it. */
-  quotedFields?: boolean;
 }
-
-const decoder = new TextDecoder("utf-8", { fatal: true });
-const encoder = new TextEncoder();
 
 /**
  * Parse CSV bytes into batches of string arrays.
  *
- * Streams CSV data efficiently, yielding batches of parsed rows (~128KB each).
- * Handles RFC 4180 compliant CSV including quoted fields and embedded newlines.
+ * Uses high-performance WebAssembly parser with RFC 4180 compliance.
+ * Streams CSV data efficiently, yielding batches of parsed rows.
  *
  * @example Basic CSV parsing
  * ```typescript
@@ -69,41 +52,12 @@ export function fromCsvToRows(parseOptions?: CsvParseOptions) {
   return async function* (
     bytes: AsyncIterable<Uint8Array>,
   ): AsyncIterable<string[][]> {
-    let buffer = "";
-    let currentBatch: string[][] = [];
-    let currentBatchSize = 0;
-
-    for await (const chunk of bytes) {
-      buffer += decoder.decode(chunk, { stream: true });
-
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      if (lines.length > 0) {
-        const text = lines.join("\n") + "\n";
-        const records = parse(text, { skipFirstRow: false, ...parseOptions });
-
-        for (const record of records) {
-          currentBatch.push(record);
-          currentBatchSize += record.join(",").length;
-
-          if (currentBatchSize >= BATCH_SIZE_BYTES) {
-            yield currentBatch;
-            currentBatch = [];
-            currentBatchSize = 0;
-          }
-        }
-      }
-    }
-
-    buffer += decoder.decode();
-    if (buffer.trim()) {
-      const records = parse(buffer, { skipFirstRow: false, ...parseOptions });
-      currentBatch.push(...records);
-    }
-
-    if (currentBatch.length > 0) {
-      yield currentBatch;
+    const processor = await FlatdataProcessor.create();
+    const separator = parseOptions?.separator?.charCodeAt(0) ?? 44;
+    const lazyRowStream = processor.csvToLazyRowsStreaming(bytes, separator);
+    
+    for await (const batch of lazyRowStream) {
+      yield batch.map(row => row.toStringArray());
     }
   };
 }
@@ -111,9 +65,9 @@ export function fromCsvToRows(parseOptions?: CsvParseOptions) {
 /**
  * Parse CSV bytes into batches of LazyRow objects.
  *
- * Like {@link fromCsvToRows} but returns {@link LazyRow} objects for better
- * performance when you only need to access specific fields. LazyRow defers
- * string conversion until fields are accessed.
+ * Uses high-performance WebAssembly parser with RFC 4180 compliance.
+ * Returns {@link LazyRow} objects for better performance when you only
+ * need to access specific fields.
  *
  * **Performance**: Up to 1.7x faster than `fromCsvToRows` for large datasets
  * when accessing only a subset of fields.
@@ -137,53 +91,18 @@ export function fromCsvToLazyRows(parseOptions?: CsvParseOptions) {
   return async function* (
     bytes: AsyncIterable<Uint8Array>,
   ): AsyncIterable<LazyRow[]> {
-    let buffer = "";
-    let currentBatch: LazyRow[] = [];
-    let currentBatchSize = 0;
-
-    for await (const chunk of bytes) {
-      buffer += decoder.decode(chunk, { stream: true });
-
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      if (lines.length > 0) {
-        const text = lines.join("\n") + "\n";
-        const records = parse(text, { skipFirstRow: false, ...parseOptions });
-
-        for (const record of records) {
-          const row = LazyRow.fromStringArray(record);
-          currentBatch.push(row);
-          currentBatchSize += record.join(",").length;
-
-          if (currentBatchSize >= BATCH_SIZE_BYTES) {
-            yield currentBatch;
-            currentBatch = [];
-            currentBatchSize = 0;
-          }
-        }
-      }
-    }
-
-    buffer += decoder.decode();
-    if (buffer.trim()) {
-      const records = parse(buffer, { skipFirstRow: false, ...parseOptions });
-      for (const record of records) {
-        currentBatch.push(LazyRow.fromStringArray(record));
-      }
-    }
-
-    if (currentBatch.length > 0) {
-      yield currentBatch;
-    }
+    const processor = await FlatdataProcessor.create();
+    const separator = parseOptions?.separator?.charCodeAt(0) ?? 44;
+    yield* processor.csvToLazyRowsStreaming(bytes, separator);
   };
 }
 
 /**
  * Convert row data to CSV bytes.
  *
- * Accepts string arrays, batches of string arrays, LazyRow objects, or batches
- * of LazyRow objects. Produces RFC 4180 compliant CSV output.
+ * Uses high-performance WebAssembly with RFC 4180 compliance.
+ * Accepts string arrays, batches of string arrays, LazyRow objects,
+ * or batches of LazyRow objects.
  *
  * @example Write CSV file
  * ```typescript
@@ -199,8 +118,7 @@ export function fromCsvToLazyRows(parseOptions?: CsvParseOptions) {
  * @example Convert TSV to CSV
  * ```typescript
  * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToLazyRows } from "jsr:@j50n/proc/transforms";
- * import { toCsv } from "jsr:@j50n/proc/transforms";
+ * import { fromTsvToLazyRows, toCsv } from "jsr:@j50n/proc/transforms";
  *
  * await read("data.tsv")
  *   .transform(fromTsvToLazyRows())
@@ -215,32 +133,41 @@ export function toCsv(stringifyOptions?: CsvStringifyOptions) {
   return async function* (
     data: AsyncIterable<string[] | string[][] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
-    for await (const item of data) {
-      let batch: string[][];
-
-      if (Array.isArray(item)) {
-        if (item.length > 0 && Array.isArray(item[0])) {
-          // string[][]
-          batch = item as string[][];
-        } else if (item.length > 0 && item[0] instanceof LazyRow) {
-          // LazyRow[]
-          batch = (item as LazyRow[]).map((row) => row.toStringArray());
-        } else {
-          // string[]
-          batch = [item as string[]];
+    const processor = await FlatdataProcessor.create();
+    
+    async function* toRecordFormat() {
+      const encoder = new TextEncoder();
+      for await (const item of data) {
+        const rows = normalizeRows(item);
+        const parts: string[] = [];
+        for (const row of rows) {
+          parts.push(row.join(String.fromCharCode(0x1F)));
+          parts.push(String.fromCharCode(0x1E));
         }
-      } else if (item instanceof LazyRow) {
-        // Single LazyRow
-        batch = [item.toStringArray()];
-      } else {
-        // Single string[] (shouldn't happen with current types, but safe fallback)
-        batch = [item as string[]];
-      }
-
-      if (batch.length > 0) {
-        const csv = stringify(batch, stringifyOptions);
-        yield encoder.encode(csv);
+        yield encoder.encode(parts.join(""));
       }
     }
+    
+    const separator = stringifyOptions?.separator?.charCodeAt(0) ?? 44;
+    const crlf = stringifyOptions?.crlf ?? false;
+    yield* processor.recordToCsvStreaming(toRecordFormat(), separator, crlf);
   };
+}
+
+function normalizeRows(
+  item: string[] | string[][] | LazyRow | LazyRow[],
+): string[][] {
+  if (item instanceof LazyRow) {
+    return [item.toStringArray()];
+  }
+  if (Array.isArray(item) && item.length > 0) {
+    if (item[0] instanceof LazyRow) {
+      return (item as LazyRow[]).map((r) => r.toStringArray());
+    }
+    if (Array.isArray(item[0])) {
+      return item as string[][];
+    }
+    return [item as string[]];
+  }
+  return [];
 }
