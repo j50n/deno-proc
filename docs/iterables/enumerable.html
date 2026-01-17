@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -186,7 +186,7 @@ and provides Array-like methods for working with async data streams.</p>
 methods like <code>map</code>, <code>filter</code>, and <code>reduce</code>—but for data that arrives over time
 rather than all at once:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.5";
 
 // Wrap any iterable
 const nums = enumerate([1, 2, 3, 4, 5]);
@@ -246,14 +246,14 @@ const nums = enumerate(generate());
 </code></pre>
 <h3 id="from-process-output"><a class="header" href="#from-process-output">From Process Output</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.5";
 
 const lines = run("ls", "-la").lines;
 // lines is already an Enumerable&lt;string&gt;
 </code></pre>
 <h3 id="from-files"><a class="header" href="#from-files">From Files</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
 
 const bytes = read("file.txt");
 // bytes is Enumerable&lt;Uint8Array&gt;
@@ -387,7 +387,7 @@ processing capabilities.</p>
 to store results for replay, which is particularly useful for expensive
 computations or when you need to iterate over the same data multiple times:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { cache, enumerate } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { cache, enumerate } from "jsr:@j50n/proc@0.24.5";
 
 const expensive = enumerate(data)
   .map(expensiveOperation);
@@ -409,7 +409,7 @@ is expensive enough to justify the memory usage.</p>
 <p>Create async iterables you can write to programmatically, which bridges the gap
 between push-based and pull-based data models:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.5";
 
 const writable = new WritableIterable&lt;string&gt;();
 

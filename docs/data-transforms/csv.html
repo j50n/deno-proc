@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -187,37 +187,18 @@ API may change as we improve correctness and streaming performance. Test
 thoroughly with your data patterns.</p>
 </blockquote>
 <blockquote>
-<p><strong>⚡ Need more speed?</strong> Use <code>fromCsvToRowsFast()</code> for ~10x better performance.
+<p><strong>⚡ WASM-powered</strong>: CSV parsing uses WebAssembly for high performance.
 It uses the same WASM parser as flatdata CLI. See
 <a href="#fast-csv-parsing-wasm">Fast CSV Parsing</a> below.</p>
 </blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>CSV transforms provide robust parsing and generation of CSV files with proper
-handling of quoted fields, escaping, and edge cases. While CSV is the slowest
-format for parsing, LazyRow optimization provides significant performance
-improvements.</p>
-<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dataset Size</th><th>Regular Parsing</th><th>LazyRow Parsing</th><th>Improvement</th></tr>
-</thead>
-<tbody>
-<tr><td>Small (1K)</td><td>9.82 MB/s</td><td>14.81 MB/s</td><td><strong>1.51x</strong></td></tr>
-<tr><td>Medium (10K)</td><td>17.09 MB/s</td><td>19.14 MB/s</td><td><strong>1.12x</strong></td></tr>
-<tr><td>Large (50K)</td><td>27.29 MB/s</td><td>29.29 MB/s</td><td><strong>1.07x</strong></td></tr>
-</tbody>
-</table>
-</div>
-<blockquote>
-<p><strong>💡 Recommendation</strong>: Always use LazyRow for CSV processing — it’s
-consistently faster with no downsides. For files over 100MB, consider
-<a href="../utilities/flatdata.html">flatdata</a> instead.</p>
-</blockquote>
+handling of quoted fields, escaping, and edge cases.</p>
+<p><strong>Tip</strong>: Use LazyRow (<code>fromCsvToLazyRows()</code>) for better performance, especially when you only need to access a few fields from each row.</p>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-csv-to-rows"><a class="header" href="#parsing-csv-to-rows">Parsing CSV to Rows</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
-import { fromCsvToRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+import { fromCsvToRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Parse CSV into string arrays
 const rows = await read("data.csv")
@@ -229,7 +210,7 @@ const rows = await read("data.csv")
 // rows[2] = ["Bob", "25", "London"]        // Data row
 </code></pre>
 <h3 id="parsing-csv-to-lazyrow-recommended"><a class="header" href="#parsing-csv-to-lazyrow-recommended">Parsing CSV to LazyRow (Recommended)</a></h3>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Parse CSV into optimized LazyRow format
 const lazyRows = await read("data.csv")
@@ -248,7 +229,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="generating-csv"><a class="header" href="#generating-csv">Generating CSV</a></h3>
-<pre><code class="language-typescript">import { toCsv } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { toCsv } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // From string arrays
 const data = [
@@ -352,7 +333,7 @@ await read("messy-data.csv")
   .writeTo("cleaned-data.csv");
 </code></pre>
 <h3 id="csv-to-json-conversion"><a class="header" href="#csv-to-json-conversion">CSV to JSON Conversion</a></h3>
-<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Convert CSV to JSON with headers
 const csvData = await read("employees.csv")
@@ -487,14 +468,14 @@ if (batch.length &gt; 0) {
   await processBatch(batch);
 }
 </code></pre>
-<h3 id="convert-to-faster-formats"><a class="header" href="#convert-to-faster-formats">Convert to Faster Formats</a></h3>
-<pre><code class="language-typescript">// Convert CSV to Record format for faster subsequent processing
+<h3 id="convert-to-other-formats"><a class="header" href="#convert-to-other-formats">Convert to Other Formats</a></h3>
+<pre><code class="language-typescript">// Convert CSV to Record format for efficient processing
 await read("data.csv")
   .transform(fromCsvToRows())
   .transform(toRecord())
   .writeTo("data.record");
 
-// Later processing is 3-10x faster
+// Later processing uses the optimized format
 await read("data.record")
   .transform(fromRecordToRows())
   .filter((row) =&gt; row[1] === "target")
@@ -502,7 +483,7 @@ await read("data.record")
 </code></pre>
 <h2 id="integration-with-other-formats"><a class="header" href="#integration-with-other-formats">Integration with Other Formats</a></h2>
 <h3 id="csv--tsv"><a class="header" href="#csv--tsv">CSV → TSV</a></h3>
-<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.5/transforms";
 
 await read("data.csv")
   .transform(fromCsvToRows())
@@ -510,7 +491,7 @@ await read("data.csv")
   .writeTo("data.tsv");
 </code></pre>
 <h3 id="csv--record"><a class="header" href="#csv--record">CSV → Record</a></h3>
-<pre><code class="language-typescript">import { toRecord } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { toRecord } from "jsr:@j50n/proc@0.24.5/transforms";
 
 await read("data.csv")
   .transform(fromCsvToRows())
@@ -519,60 +500,55 @@ await read("data.csv")
 </code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
-<li><strong>Use <code>fromCsvToRowsFast()</code> for large files</strong> — 10x faster than the standard
-parser</li>
 <li><strong>Use LazyRow</strong> for CSV processing when you don’t need all fields</li>
-<li><strong>Handle headers explicitly</strong> — they’re treated as regular data rows</li>
 <li><strong>Validate field counts</strong> if your data requires consistent structure</li>
 <li><strong>Use streaming processing</strong> for large files to maintain constant memory
 usage</li>
-<li><strong>Convert to faster formats</strong> for repeated processing of the same data</li>
+<li><strong>Convert to other formats</strong> for repeated processing of the same data</li>
 </ol>
-<h2 id="fast-csv-parsing-wasm"><a class="header" href="#fast-csv-parsing-wasm">Fast CSV Parsing (WASM)</a></h2>
-<p>For maximum in-process performance, use the WASM-powered transforms:</p>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
+<h2 id="wasm-powered-parsing"><a class="header" href="#wasm-powered-parsing">WASM-Powered Parsing</a></h2>
+<p>CSV parsing uses WebAssembly for high performance:</p>
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
 import {
-  fromCsvToLazyRowsFast,
-  fromCsvToRowsFast,
-} from "jsr:@j50n/proc@0.24.3/transforms";
+  fromCsvToLazyRows,
+  fromCsvToRows,
+} from "jsr:@j50n/proc@0.24.5/transforms";
 
-// ~10x faster than fromCsvToRows()
+// WASM-powered parsing (batched output)
 const rows = await read("large-file.csv")
-  .transform(fromCsvToRowsFast())
+  .transform(fromCsvToRows())
   .flatMap((batch) =&gt; batch) // Flatten batches
   .collect();
 
 // Or with LazyRow
 const lazyRows = await read("large-file.csv")
-  .transform(fromCsvToLazyRowsFast())
+  .transform(fromCsvToLazyRows())
   .flatMap((batch) =&gt; batch)
   .collect();
 </code></pre>
-<p><strong>Key differences from standard parser:</strong></p>
+<p><strong>Key differences:</strong></p>
 <ul>
 <li>Returns batches of rows (<code>string[][]</code>) instead of individual rows</li>
-<li>Uses the same WASM engine as flatdata CLI</li>
-<li>Same RFC 4180 compliance and options</li>
+<li>Uses WASM engine for parsing</li>
 </ul>
 <p><strong>When to use which:</strong></p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Parser</th><th>Throughput</th><th>Use Case</th></tr>
+<tr><th>Parser</th><th>Use Case</th></tr>
 </thead>
 <tbody>
-<tr><td><code>fromCsvToRows()</code></td><td>10-30 MB/s</td><td>Small files, simple scripts</td></tr>
-<tr><td><code>fromCsvToRowsFast()</code></td><td>~100-200 MB/s</td><td>Large files, performance-critical</td></tr>
-<tr><td><code>flatdata</code> CLI</td><td>~330 MB/s</td><td>Maximum throughput, batch pipelines</td></tr>
+<tr><td><code>fromCsvToRows()</code></td><td>In-process parsing with WASM</td></tr>
+<tr><td><code>flatdata</code> CLI</td><td>Maximum throughput, batch pipelines</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
-<li><a href="./tsv.html">TSV Transforms</a> — Faster tab-separated processing</li>
+<li><a href="./tsv.html">TSV Transforms</a> — Tab-separated processing</li>
 <li><a href="./lazyrow.html">LazyRow Guide</a> — Detailed LazyRow usage patterns</li>
 <li><a href="./performance.html">Performance Guide</a> — Optimization strategies</li>
-<li><a href="../utilities/flatdata.html">flatdata CLI</a> — Maximum throughput via subprocess</li>
+<li><a href="../utilities/flatdata.html">flatdata CLI</a> — Multi-process streaming</li>
 </ul>
 
                     </main>

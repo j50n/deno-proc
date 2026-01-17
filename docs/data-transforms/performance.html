@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -178,412 +178,110 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="performance-guide"><a class="header" href="#performance-guide">Performance Guide</a></h1>
-<p>Comprehensive benchmarks, optimization strategies, and format selection guidance
-for data transforms.</p>
+                        <h1 id="format-selection-guide"><a class="header" href="#format-selection-guide">Format Selection Guide</a></h1>
+<p>Guidance for choosing the right data format for your use case.</p>
 <blockquote>
 <p>⚠️ <strong>Experimental (v0.24.0+)</strong>: Data transforms are under active development.
-Performance numbers reflect current implementation but may change. API
-stability is not guaranteed as we improve correctness and streaming
+API stability is not guaranteed as we improve correctness and streaming
 performance.</p>
 </blockquote>
-<h2 id="performance-overview"><a class="header" href="#performance-overview">Performance Overview</a></h2>
-<p>All performance data is based on comprehensive benchmarks across multiple
-dataset sizes and configurations. Tests include realistic data with special
-characters (café, naïve, 🚀, 東京, москва) to ensure real-world applicability.</p>
-<h2 id="format-performance-comparison"><a class="header" href="#format-performance-comparison">Format Performance Comparison</a></h2>
-<h3 id="parsing-throughput-mbs"><a class="header" href="#parsing-throughput-mbs">Parsing Throughput (MB/s)</a></h3>
+<h2 id="quick-format-comparison"><a class="header" href="#quick-format-comparison">Quick Format Comparison</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Format</th><th>Small (1K)</th><th>Medium (10K)</th><th>Large (50K)</th><th>Best Use Case</th></tr>
+<tr><th>Format</th><th>Best For</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Record</strong></td><td>59.95</td><td>86.34</td><td>93.34</td><td>Maximum throughput</td></tr>
-<tr><td><strong>JSON</strong></td><td>98.20</td><td>80.68</td><td>70.31</td><td>Rich object structures</td></tr>
-<tr><td><strong>TSV</strong></td><td>71.61</td><td>116.00</td><td>56.88</td><td>Human readable + fast</td></tr>
-<tr><td><strong>CSV</strong></td><td>9.82</td><td>17.09</td><td>27.29</td><td>Universal compatibility</td></tr>
+<tr><td><strong>CSV</strong></td><td>Universal compatibility</td><td>Use LazyRow for better speed</td></tr>
+<tr><td><strong>TSV</strong></td><td>Balance of speed &amp; readability</td><td>Simpler than CSV</td></tr>
+<tr><td><strong>JSON</strong></td><td>Rich object structures</td><td>Best for small-medium datasets</td></tr>
+<tr><td><strong>Record</strong></td><td>Maximum throughput</td><td>Internal processing only</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="stringify-throughput-mbs"><a class="header" href="#stringify-throughput-mbs">Stringify Throughput (MB/s)</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Format</th><th>Small (1K)</th><th>Medium (10K)</th><th>Large (50K)</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>JSON</strong></td><td>318.54</td><td>224.10</td><td>185.42</td></tr>
-<tr><td><strong>Record</strong></td><td>188.16</td><td>89.86</td><td>220.38</td></tr>
-<tr><td><strong>TSV</strong></td><td>156.83</td><td>166.69</td><td>145.24</td></tr>
-<tr><td><strong>CSV</strong></td><td>44.40</td><td>56.78</td><td>71.09</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="lazyrow-performance-benefits"><a class="header" href="#lazyrow-performance-benefits">LazyRow Performance Benefits</a></h2>
-<h3 id="csv-with-lazyrow"><a class="header" href="#csv-with-lazyrow">CSV with LazyRow</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dataset Size</th><th>Regular</th><th>LazyRow</th><th>Improvement</th></tr>
-</thead>
-<tbody>
-<tr><td>Small (1K)</td><td>9.82 MB/s</td><td>14.81 MB/s</td><td><strong>+51%</strong></td></tr>
-<tr><td>Medium (10K)</td><td>17.09 MB/s</td><td>19.14 MB/s</td><td><strong>+12%</strong></td></tr>
-<tr><td>Large (50K)</td><td>27.29 MB/s</td><td>29.29 MB/s</td><td><strong>+7%</strong></td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="tsv-with-lazyrow"><a class="header" href="#tsv-with-lazyrow">TSV with LazyRow</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dataset Size</th><th>Regular</th><th>LazyRow</th><th>Improvement</th></tr>
-</thead>
-<tbody>
-<tr><td>Small (1K)</td><td>71.61 MB/s</td><td>104.09 MB/s</td><td><strong>+45%</strong></td></tr>
-<tr><td>Medium (10K)</td><td>116.00 MB/s</td><td>81.59 MB/s</td><td><strong>-30%</strong></td></tr>
-<tr><td>Large (50K)</td><td>56.88 MB/s</td><td>88.25 MB/s</td><td><strong>+55%</strong></td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="record-with-lazyrow"><a class="header" href="#record-with-lazyrow">Record with LazyRow</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dataset Size</th><th>Regular</th><th>LazyRow</th><th>Improvement</th></tr>
-</thead>
-<tbody>
-<tr><td>Small (1K)</td><td>59.95 MB/s</td><td>102.96 MB/s</td><td><strong>+72%</strong></td></tr>
-<tr><td>Medium (10K)</td><td>86.34 MB/s</td><td>64.23 MB/s</td><td><strong>-26%</strong></td></tr>
-<tr><td>Large (50K)</td><td>93.34 MB/s</td><td>77.02 MB/s</td><td><strong>-17%</strong></td></tr>
-</tbody>
-</table>
-</div>
-<blockquote>
-<p><strong>Key Insight</strong>: LazyRow excels with CSV (always faster) and shows mixed
-results with TSV/Record depending on dataset size and access patterns.</p>
-</blockquote>
-<h2 id="format-selection-guide"><a class="header" href="#format-selection-guide">Format Selection Guide</a></h2>
-<h3 id="choose-csv-when"><a class="header" href="#choose-csv-when">Choose CSV When:</a></h3>
-<ul>
-<li><strong>Compatibility is critical</strong> (Excel, legacy systems)</li>
-<li><strong>Human readability matters</strong></li>
-<li><strong>Data contains complex quoting/escaping</strong></li>
-<li><strong>Always use LazyRow</strong> for performance</li>
-</ul>
-<pre><code class="language-typescript">// Best practice for CSV
+<h2 id="choosing-a-format"><a class="header" href="#choosing-a-format">Choosing a Format</a></h2>
+<h3 id="csv---universal-compatibility"><a class="header" href="#csv---universal-compatibility">CSV - Universal Compatibility</a></h3>
+<p>Use when you need compatibility with Excel, legacy systems, or when human readability matters.</p>
+<pre><code class="language-typescript">// Best practice: Use LazyRow with CSV
 await read("data.csv")
-  .transform(fromCsvToLazyRows()) // Always use LazyRow
+  .transform(fromCsvToLazyRows())
   .filter((row) =&gt; row.getField(0).startsWith("A"))
   .collect();
 </code></pre>
-<h3 id="choose-tsv-when"><a class="header" href="#choose-tsv-when">Choose TSV When:</a></h3>
-<ul>
-<li><strong>Balance of speed and readability</strong> needed</li>
-<li><strong>Data doesn’t contain tabs or newlines</strong></li>
-<li><strong>Processing medium-large datasets</strong></li>
-<li><strong>Use LazyRow selectively</strong> based on access patterns</li>
-</ul>
-<pre><code class="language-typescript">// TSV with selective LazyRow usage
-if (datasetSize &gt; 10000 &amp;&amp; accessPattern === "selective") {
-  // Use LazyRow for large datasets with selective access
-  await read("data.tsv").transform(fromTsvToLazyRows());
-} else {
-  // Use regular parsing for smaller datasets or full access
-  await read("data.tsv").transform(fromTsvToRows());
-}
-</code></pre>
-<h3 id="choose-json-when"><a class="header" href="#choose-json-when">Choose JSON When:</a></h3>
-<ul>
-<li><strong>Rich object structures</strong> required</li>
-<li><strong>Nested data</strong> or <strong>arrays</strong> in fields</li>
-<li><strong>API integration</strong> or <strong>configuration data</strong></li>
-<li><strong>Small to medium datasets</strong> (performance degrades on large data)</li>
-</ul>
-<pre><code class="language-typescript">// JSON for complex structures
-await read("events.jsonl")
-  .transform(fromJsonToRows&lt;EventData&gt;({
-    schema: EventSchema,
-    sampleSize: 1000, // Validate first 1000 rows only
-  }))
+<h3 id="tsv---simple-and-fast"><a class="header" href="#tsv---simple-and-fast">TSV - Simple and Fast</a></h3>
+<p>Use when you want a balance of speed and readability, and your data doesn’t contain tabs or newlines.</p>
+<pre><code class="language-typescript">await read("data.tsv")
+  .transform(fromTsvToRows())
+  .filter((row) =&gt; row[0].startsWith("A"))
   .collect();
 </code></pre>
-<h3 id="choose-record-when"><a class="header" href="#choose-record-when">Choose Record When:</a></h3>
-<ul>
-<li><strong>Maximum throughput</strong> is critical</li>
-<li><strong>Internal processing</strong> (not human-readable)</li>
-<li><strong>Binary-safe data</strong> (any UTF-8 content)</li>
-<li><strong>Large datasets</strong> with <strong>full field access</strong></li>
-</ul>
-<pre><code class="language-typescript">// Record for maximum performance
-await read("data.record")
+<h3 id="json---rich-structures"><a class="header" href="#json---rich-structures">JSON - Rich Structures</a></h3>
+<p>Use when you need full object structures, nested data, or arrays in fields.</p>
+<pre><code class="language-typescript">await read("events.jsonl")
+  .transform(fromJsonToRows&lt;EventData&gt;())
+  .collect();
+</code></pre>
+<h3 id="record---maximum-throughput"><a class="header" href="#record---maximum-throughput">Record - Maximum Throughput</a></h3>
+<p>Use for internal processing when you need maximum throughput and don’t need human readability.</p>
+<pre><code class="language-typescript">await read("data.record")
   .transform(fromRecordToRows())
-  .map(processAllFields) // Process all fields efficiently
+  .map(processAllFields)
   .collect();
 </code></pre>
-<h2 id="optimization-strategies"><a class="header" href="#optimization-strategies">Optimization Strategies</a></h2>
-<h3 id="1-streaming-processing"><a class="header" href="#1-streaming-processing">1. Streaming Processing</a></h3>
-<p>Always use streaming for large datasets:</p>
-<pre><code class="language-typescript">// ✅ Constant memory usage
-await read("10gb-file.csv")
-  .transform(fromCsvToLazyRows())
-  .filter((row) =&gt; row.getField(0) === "target")
-  .transform(toRecord())
-  .writeTo("filtered.record");
-
-// ❌ Memory explosion
-const allData = await read("10gb-file.csv")
+<h2 id="key-optimization-tips"><a class="header" href="#key-optimization-tips">Key Optimization Tips</a></h2>
+<h3 id="1-always-stream-large-files"><a class="header" href="#1-always-stream-large-files">1. Always Stream Large Files</a></h3>
+<pre><code class="language-typescript">// ✅ Good: Constant memory usage
+await read("large-file.csv")
   .transform(fromCsvToRows())
-  .collect(); // Loads entire file into memory!
+  .filter((row) =&gt; row[0] === "target")
+  .writeTo("filtered.csv");
+
+// ❌ Bad: Loads entire file into memory
+const allData = await read("large-file.csv")
+  .transform(fromCsvToRows())
+  .collect();
 </code></pre>
-<h3 id="2-format-conversion-for-repeated-processing"><a class="header" href="#2-format-conversion-for-repeated-processing">2. Format Conversion for Repeated Processing</a></h3>
-<p>Convert slow formats to fast formats for repeated use:</p>
+<h3 id="2-use-lazyrow-for-selective-field-access"><a class="header" href="#2-use-lazyrow-for-selective-field-access">2. Use LazyRow for Selective Field Access</a></h3>
+<p>Only parse the fields you actually need:</p>
+<pre><code class="language-typescript">// Only parses fields 0 and 5
+await read("wide-data.csv")
+  .transform(fromCsvToLazyRows())
+  .filter((row) =&gt; {
+    const id = row.getField(0);
+    const status = row.getField(5);
+    return id.startsWith("A") &amp;&amp; status === "active";
+  })
+  .collect();
+</code></pre>
+<h3 id="3-filter-early-in-the-pipeline"><a class="header" href="#3-filter-early-in-the-pipeline">3. Filter Early in the Pipeline</a></h3>
+<pre><code class="language-typescript">// ✅ Good: Filter before expensive operations
+await read("data.csv")
+  .transform(fromCsvToRows())
+  .filter((row) =&gt; row[0] === "target")
+  .map((row) =&gt; expensiveProcessing(row))
+  .collect();
+</code></pre>
+<h3 id="4-convert-formats-for-repeated-processing"><a class="header" href="#4-convert-formats-for-repeated-processing">4. Convert Formats for Repeated Processing</a></h3>
+<p>If you’re processing the same data multiple times, convert to a faster format first:</p>
 <pre><code class="language-typescript">// One-time conversion
-await read("data.csv") // 27 MB/s
+await read("data.csv")
   .transform(fromCsvToRows())
   .transform(toRecord())
   .writeTo("data.record");
 
-// Subsequent processing is 3x faster
-await read("data.record") // 93 MB/s
+// Subsequent processing is faster
+await read("data.record")
   .transform(fromRecordToRows())
   .filter((row) =&gt; row[1] === "target")
   .collect();
 </code></pre>
-<h3 id="3-selective-field-access-with-lazyrow"><a class="header" href="#3-selective-field-access-with-lazyrow">3. Selective Field Access with LazyRow</a></h3>
-<p>Only parse fields you actually use:</p>
-<pre><code class="language-typescript">// ✅ Efficient - only parses field 0 and 5
-await read("wide-data.csv")
-  .transform(fromCsvToLazyRows())
-  .filter((row) =&gt; {
-    const id = row.getField(0); // Parse field 0
-    const status = row.getField(5); // Parse field 5
-    return id.startsWith("A") &amp;&amp; status === "active";
-    // Fields 1-4, 6+ never parsed
-  })
-  .collect();
-
-// ❌ Less efficient - parses all fields
-await read("wide-data.csv")
-  .transform(fromCsvToRows())
-  .filter((row) =&gt; {
-    return row[0].startsWith("A") &amp;&amp; row[5] === "active";
-    // All fields parsed upfront
-  })
-  .collect();
-</code></pre>
-<h3 id="4-early-filtering"><a class="header" href="#4-early-filtering">4. Early Filtering</a></h3>
-<p>Filter data as early as possible in the pipeline:</p>
-<pre><code class="language-typescript">// ✅ Filter first, then process
-await read("data.csv")
-  .transform(fromCsvToLazyRows())
-  .filter((row) =&gt; row.getField(0) === "target") // Fast filter
-  .map((row) =&gt; expensiveProcessing(row)) // Expensive operation
-  .collect();
-
-// ❌ Process first, then filter
-await read("data.csv")
-  .transform(fromCsvToLazyRows())
-  .map((row) =&gt; expensiveProcessing(row)) // Runs on everything
-  .filter((result) =&gt; result.type === "target") // Then filters
-  .collect();
-</code></pre>
-<h3 id="5-batch-processing-for-memory-control"><a class="header" href="#5-batch-processing-for-memory-control">5. Batch Processing for Memory Control</a></h3>
-<p>Process large datasets in controlled batches:</p>
-<pre><code class="language-typescript">const batchSize = 10000;
-let batch: LazyRow[] = [];
-let processedCount = 0;
-
-await read("huge-dataset.csv")
-  .transform(fromCsvToLazyRows())
-  .forEach(async (row) =&gt; {
-    batch.push(row);
-
-    if (batch.length &gt;= batchSize) {
-      await processBatch(batch);
-      processedCount += batch.length;
-      console.log(`Processed ${processedCount} rows`);
-      batch = [];
-    }
-  });
-
-// Process remaining rows
-if (batch.length &gt; 0) {
-  await processBatch(batch);
-}
-</code></pre>
-<h2 id="memory-usage-patterns"><a class="header" href="#memory-usage-patterns">Memory Usage Patterns</a></h2>
-<h3 id="streaming-memory-usage"><a class="header" href="#streaming-memory-usage">Streaming Memory Usage</a></h3>
-<p>All transforms maintain constant memory usage:</p>
-<pre><code class="language-typescript">// Memory usage remains ~128KB regardless of file size
-await read("1gb-file.csv") // ~128KB memory
-  .transform(fromCsvToRows())
-  .filter((row) =&gt; row[0] === "A")
-  .collect();
-
-await read("100gb-file.csv") // Still ~128KB memory
-  .transform(fromCsvToRows())
-  .filter((row) =&gt; row[0] === "A")
-  .collect();
-</code></pre>
-<h3 id="lazyrow-caching-overhead"><a class="header" href="#lazyrow-caching-overhead">LazyRow Caching Overhead</a></h3>
-<p>LazyRow caching adds minimal memory overhead:</p>
-<pre><code class="language-typescript">const lazyRow = LazyRow.fromStringArray(["Alice", "30", "Engineer"]);
-
-// Initial: ~50 bytes (string array)
-const binary = lazyRow.toBinary();
-// After binary conversion: ~80 bytes (string array + cached binary)
-
-const fields = lazyRow.toStringArray();
-// No additional memory (returns original string array)
-</code></pre>
-<h2 id="benchmark-methodology"><a class="header" href="#benchmark-methodology">Benchmark Methodology</a></h2>
-<h3 id="test-data-characteristics"><a class="header" href="#test-data-characteristics">Test Data Characteristics</a></h3>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
-<li><strong>Special characters</strong>: café, naïve, 🚀, 東京, москва</li>
-<li><strong>Realistic field sizes</strong>: Names, emails, addresses, descriptions</li>
-<li><strong>Proper UTF-8 encoding</strong>: Multi-byte character handling</li>
-<li><strong>Various column counts</strong>: 10-column and 100-column datasets</li>
-<li><strong>Multiple sizes</strong>: 1K, 10K, 50K, 200K rows</li>
-</ul>
-<h3 id="dataset-configurations"><a class="header" href="#dataset-configurations">Dataset Configurations</a></h3>
-<pre><code class="language-typescript">// Small datasets (quick tests)
-small_10col:   1,000 rows × 10 columns  (~40KB)
-small_100col:    100 rows × 100 columns (~40KB)
-
-// Medium datasets (realistic workloads)  
-medium_10col:  50,000 rows × 10 columns  (~2MB)
-medium_100col: 10,000 rows × 100 columns (~4MB)
-
-// Large datasets (stress tests)
-large_10col:  200,000 rows × 10 columns  (~8MB)
-</code></pre>
-<h3 id="measurement-methodology"><a class="header" href="#measurement-methodology">Measurement Methodology</a></h3>
-<ul>
-<li><strong>Throughput</strong>: Measured in MB/s of input data processed</li>
-<li><strong>Multiple runs</strong>: Each test runs 5 iterations, reports average</li>
-<li><strong>Warm-up</strong>: First iteration discarded to account for JIT compilation</li>
-<li><strong>Memory measurement</strong>: Peak memory usage during processing</li>
-<li><strong>Error handling</strong>: Proper file cleanup and error propagation</li>
-</ul>
-<h2 id="real-world-performance-examples"><a class="header" href="#real-world-performance-examples">Real-World Performance Examples</a></h2>
-<h3 id="log-processing-pipeline"><a class="header" href="#log-processing-pipeline">Log Processing Pipeline</a></h3>
-<pre><code class="language-typescript">// Process 1GB of web server logs
-const startTime = Date.now();
-let errorCount = 0;
-
-await read("access.log.tsv") // 1GB file
-  .transform(fromTsvToLazyRows())
-  .filter((row) =&gt; {
-    const status = row.getField(6);
-    return status.startsWith("4") || status.startsWith("5");
-  })
-  .forEach((row) =&gt; {
-    errorCount++;
-    // Process error details
-  });
-
-const duration = Date.now() - startTime;
-const throughput = (1024 / (duration / 1000)).toFixed(2);
-console.log(`Processed 1GB in ${duration}ms (${throughput} MB/s)`);
-console.log(`Found ${errorCount} errors`);
-</code></pre>
-<h3 id="data-migration-performance"><a class="header" href="#data-migration-performance">Data Migration Performance</a></h3>
-<pre><code class="language-typescript">// Migrate 10M records from CSV to Record format
-const startTime = Date.now();
-let recordCount = 0;
-
-await read("legacy-data.csv") // 2GB CSV file
-  .transform(fromCsvToLazyRows())
-  .drop(1) // Skip header
-  .map((row) =&gt; {
-    recordCount++;
-    if (recordCount % 100000 === 0) {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const rate = (recordCount / elapsed).toFixed(0);
-      console.log(`Migrated ${recordCount} records (${rate} records/sec)`);
-    }
-    return row.toStringArray();
-  })
-  .transform(toRecord())
-  .writeTo("optimized-data.record");
-
-const totalTime = (Date.now() - startTime) / 1000;
-console.log(`Migration complete: ${recordCount} records in ${totalTime}s`);
-</code></pre>
-<h2 id="performance-troubleshooting"><a class="header" href="#performance-troubleshooting">Performance Troubleshooting</a></h2>
-<h3 id="identifying-bottlenecks"><a class="header" href="#identifying-bottlenecks">Identifying Bottlenecks</a></h3>
-<pre><code class="language-typescript">// Add timing to identify slow operations
-const timings: Record&lt;string, number&gt; = {};
-
-const timeOperation = async &lt;T&gt;(
-  name: string,
-  operation: () =&gt; Promise&lt;T&gt;,
-): Promise&lt;T&gt; =&gt; {
-  const start = Date.now();
-  const result = await operation();
-  timings[name] = Date.now() - start;
-  return result;
-};
-
-await timeOperation(
-  "parse",
-  () =&gt; read("data.csv").transform(fromCsvToRows()).collect(),
-);
-
-await timeOperation(
-  "filter",
-  () =&gt; enumerate(data).filter((row) =&gt; row[0] === "target").collect(),
-);
-
-await timeOperation(
-  "stringify",
-  () =&gt; enumerate(filteredData).transform(toCsv()).writeTo("output.csv"),
-);
-
-console.log("Timings:", timings);
-</code></pre>
-<h3 id="memory-usage-monitoring"><a class="header" href="#memory-usage-monitoring">Memory Usage Monitoring</a></h3>
-<pre><code class="language-typescript">// Monitor memory usage during processing
-const logMemoryUsage = () =&gt; {
-  if (typeof Deno !== "undefined" &amp;&amp; Deno.memoryUsage) {
-    const usage = Deno.memoryUsage();
-    console.log(`Memory: ${(usage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-  }
-};
-
-let processedRows = 0;
-await read("large-file.csv")
-  .transform(fromCsvToRows())
-  .forEach((row) =&gt; {
-    processedRows++;
-    if (processedRows % 10000 === 0) {
-      logMemoryUsage();
-    }
-  });
-</code></pre>
-<h2 id="best-practices-summary"><a class="header" href="#best-practices-summary">Best Practices Summary</a></h2>
-<ol>
-<li><strong>Choose the right format</strong> based on your use case and performance
-requirements</li>
-<li><strong>Use LazyRow with CSV</strong> - it’s always faster</li>
-<li><strong>Use LazyRow selectively</strong> with TSV/Record based on dataset size and access
-patterns</li>
-<li><strong>Stream large datasets</strong> - never load everything into memory</li>
-<li><strong>Filter early</strong> in the pipeline to reduce processing overhead</li>
-<li><strong>Convert formats</strong> for repeated processing of the same data</li>
-<li><strong>Access fields selectively</strong> with LazyRow to minimize parsing</li>
-<li><strong>Monitor performance</strong> in production to identify bottlenecks</li>
-<li><strong>Use batching</strong> for memory-constrained environments</li>
-<li><strong>Handle errors gracefully</strong> with proper cleanup</li>
-</ol>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li><a href="./csv.html">CSV Transforms</a> - Detailed CSV optimization</li>
-<li><a href="./lazyrow.html">LazyRow Guide</a> - Advanced LazyRow patterns</li>
-<li><a href="./record.html">Record Format</a> - Maximum performance format</li>
-<li><a href="./json.html">JSON Transforms</a> - Object structure handling</li>
+<li><a href="./csv.html">CSV Transforms</a> - CSV parsing and generation</li>
+<li><a href="./tsv.html">TSV Transforms</a> - TSV processing</li>
+<li><a href="./json.html">JSON Transforms</a> - JSON Lines handling</li>
+<li><a href="./record.html">Record Format</a> - High-performance format</li>
+<li><a href="./lazyrow.html">LazyRow Guide</a> - Optimized field access</li>
 </ul>
 
                     </main>

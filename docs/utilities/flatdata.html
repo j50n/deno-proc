@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -184,11 +184,11 @@ tabular data formats. It’s distributed as part of proc and uses WebAssembly fo
 near-native parsing speed.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-bash"># Install globally with required permissions
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.3/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.5/flatdata
 </code></pre>
 <p>This installs <code>flatdata</code> globally, making it available from any terminal.</p>
 <p>For pipeline-only use (stdin/stdout), you can install without file permissions:</p>
-<pre><code class="language-bash">deno install -g -n flatdata jsr:@j50n/proc@0.24.3/flatdata
+<pre><code class="language-bash">deno install -g -n flatdata jsr:@j50n/proc@0.24.5/flatdata
 </code></pre>
 <p>This restricts flatdata to streaming mode—no direct file reading or writing.</p>
 <p>To verify the installation:</p>
@@ -208,24 +208,6 @@ speed</li>
 <p>The key insight: by converting CSV to a simple binary format (record),
 downstream processing becomes trivial string splits instead of complex CSV
 parsing.</p>
-<h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Implementation</th><th>Throughput</th></tr>
-</thead>
-<tbody>
-<tr><td>Native (Odin)</td><td>~550 MB/s</td></tr>
-<tr><td>flatdata (WASM)</td><td>~330 MB/s</td></tr>
-<tr><td>Pure JavaScript</td><td>~20 MB/s</td></tr>
-</tbody>
-</table>
-</div>
-<p>For a 1GB CSV file:</p>
-<ul>
-<li>WASM: ~7 seconds</li>
-<li>Pure JS: ~50 seconds</li>
-</ul>
 <h2 id="formats"><a class="header" href="#formats">Formats</a></h2>
 <div class="table-wrapper">
 <table>

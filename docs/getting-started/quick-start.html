@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="your-first-process"><a class="header" href="#your-first-process">Your First Process</a></h2>
 <p>Create a file called <code>hello.ts</code>:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: basic run and capture" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.5";
 
 // Run a command and capture output
 const lines = await run("echo", "Hello, proc!").lines.collect();
@@ -201,7 +201,7 @@ console.log(lines); // ["Hello, proc!"]
 <h2 id="chaining-processes"><a class="header" href="#chaining-processes">Chaining Processes</a></h2>
 <p>Let’s chain commands together, like shell pipes:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: chain processes" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.5";
 
 const result = await run("echo", "HELLO WORLD")
   .run("tr", "A-Z", "a-z") // Convert to lowercase
@@ -213,7 +213,7 @@ console.log(result); // "hello world"
 <h2 id="working-with-files"><a class="header" href="#working-with-files">Working with Files</a></h2>
 <p>Process a file line by line:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: process file" -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
 
 const errorCount = await read("app.log")
   .lines
@@ -225,7 +225,7 @@ console.log(`Found ${errorCount} errors`);
 <h2 id="handling-errors"><a class="header" href="#handling-errors">Handling Errors</a></h2>
 <p>Errors propagate naturally—catch them once at the end:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: handle errors" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.5";
 
 try {
   await run("false") // This command exits with code 1
@@ -240,7 +240,7 @@ catch them once. For details, see <a href="../core/error-handling.html">Error Ha
 <h2 id="using-array-methods"><a class="header" href="#using-array-methods">Using Array Methods</a></h2>
 <p>Work with async data using familiar Array methods:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: enumerate with indices" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.5";
 
 const data = ["apple", "banana", "cherry"];
 
@@ -255,7 +255,7 @@ console.log(numbered);
 <h2 id="a-real-example"><a class="header" href="#a-real-example">A Real Example</a></h2>
 <p>Let’s find the 5 most recent commits that mention “fix”:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "quick-start: git log example" -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.5";
 
 const commits = await run("git", "log", "--oneline")
   .lines
@@ -271,8 +271,8 @@ complex examples, see <a href="../recipes/counting-words.html">Recipes</a>.</p>
 <p>Need to work with CSV, TSV, JSON, or Record formats? Import the transforms
 module:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
-import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Convert CSV to TSV
 await read("data.csv")

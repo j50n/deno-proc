@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2222309c.js";
+            window.path_to_searchindex_js = "searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9208c6f.js"></script>
@@ -206,7 +206,7 @@ await run("ls").lines.forEach(console.log);
 </code></pre>
 <h3 id="process-exits-with-unexpected-code"><a class="header" href="#process-exits-with-unexpected-code">Process exits with unexpected code</a></h3>
 <p><strong>Cause</strong>: The command failed. Check the error for details.</p>
-<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@0.24.3";
+<pre><code class="language-typescript">import { ExitCodeError } from "jsr:@j50n/proc@0.24.5";
 
 try {
   await run("grep", "pattern", "missing-file.txt").lines.collect();
@@ -240,7 +240,7 @@ run("ls").lines.collect();
 <h3 id="cannot-find-module-for-transforms"><a class="header" href="#cannot-find-module-for-transforms">“Cannot find module” for transforms</a></h3>
 <p><strong>Cause</strong>: Data transforms are a separate import.</p>
 <pre><code class="language-typescript">// ❌ Wrong - transforms not in main module
-import { fromCsvToRows } from "jsr:@j50n/proc@0.24.3";
+import { fromCsvToRows } from "jsr:@j50n/proc@0.24.5";
 
 // ✅ Correct - use /transforms subpath
 import { fromCsvToRows } from "jsr:@j50n/proc/transforms";
@@ -286,7 +286,7 @@ await read("huge.csv")
 </code></pre>
 <h3 id="flatdata-command-not-found"><a class="header" href="#flatdata-command-not-found">flatdata command not found</a></h3>
 <p><strong>Cause</strong>: flatdata CLI not installed globally.</p>
-<pre><code class="language-bash">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.3/flatdata
+<pre><code class="language-bash">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.24.5/flatdata
 </code></pre>
 <h2 id="performance-issues"><a class="header" href="#performance-issues">Performance Issues</a></h2>
 <h3 id="processing-is-slower-than-expected"><a class="header" href="#processing-is-slower-than-expected">Processing is slower than expected</a></h3>

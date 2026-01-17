@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -191,28 +191,10 @@ thoroughly with your data patterns.</p>
 Unlike other formats, JSON preserves full object structure including nested
 objects, arrays, and all JSON data types. This makes it ideal for APIs,
 configuration data, and complex structured information.</p>
-<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dataset Size</th><th>Parsing Speed</th><th>Best Use Case</th></tr>
-</thead>
-<tbody>
-<tr><td>Small (1K)</td><td>98.20 MB/s</td><td><strong>Fastest for small data</strong></td></tr>
-<tr><td>Medium (10K)</td><td>80.68 MB/s</td><td>Good for structured data</td></tr>
-<tr><td>Large (50K)</td><td>70.31 MB/s</td><td>Performance degrades with size</td></tr>
-</tbody>
-</table>
-</div>
-<blockquote>
-<p><strong>Performance Note</strong>: JSON is fastest for small datasets but performance
-decreases with larger files. Use for rich object structures rather than simple
-tabular data.</p>
-</blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-json-lines"><a class="header" href="#parsing-json-lines">Parsing JSON Lines</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
-import { fromJsonToRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+import { fromJsonToRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Parse JSONL into objects
 const objects = await read("events.jsonl")
@@ -224,7 +206,7 @@ const objects = await read("events.jsonl")
 // objects[1] = { id: "evt_124", type: "view", metadata: [1, 2, 3] }
 </code></pre>
 <h3 id="generating-json-lines"><a class="header" href="#generating-json-lines">Generating JSON Lines</a></h3>
-<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // From objects
 const events = [

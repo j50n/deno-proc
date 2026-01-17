@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,45 +179,26 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="lazyrow-guide"><a class="header" href="#lazyrow-guide">LazyRow Guide</a></h1>
-<p>Optimized read-only data access with lazy evaluation and caching for maximum
-performance.</p>
+<p>Optimized read-only data access with lazy evaluation and caching.</p>
 <blockquote>
 <p>⚠️ <strong>Experimental (v0.24.0+)</strong>: LazyRow is under active development. API may
 change as we improve correctness and streaming performance. Test thoroughly
 with your data patterns.</p>
 </blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>LazyRow is a high-performance data structure designed for efficient field access
-in tabular data. It uses <strong>lazy evaluation</strong> and <strong>caching</strong> to minimize parsing
-overhead while providing a clean, simple API.</p>
+<p>LazyRow is a data structure designed for efficient field access in tabular data.
+It uses <strong>lazy evaluation</strong> and <strong>caching</strong> to minimize parsing overhead while
+providing a clean, simple API.</p>
 <h2 id="key-benefits"><a class="header" href="#key-benefits">Key Benefits</a></h2>
 <ul>
 <li><strong>Zero conversion cost</strong>: Choose optimal backing based on source data</li>
 <li><strong>Lazy evaluation</strong>: Parse fields only when accessed</li>
 <li><strong>Automatic caching</strong>: Repeated access uses cached results</li>
-<li><strong>Performance</strong>: 1.05-1.7x faster than regular parsing</li>
 <li><strong>Memory efficient</strong>: Minimal overhead for conversion caching</li>
 </ul>
-<h2 id="performance-improvements"><a class="header" href="#performance-improvements">Performance Improvements</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dataset Size</th><th>CSV Performance</th><th>TSV Performance</th><th>Record Performance</th></tr>
-</thead>
-<tbody>
-<tr><td>Small (1K)</td><td><strong>1.51x</strong> faster</td><td><strong>1.45x</strong> faster</td><td><strong>1.72x</strong> faster</td></tr>
-<tr><td>Medium (10K)</td><td><strong>1.12x</strong> faster</td><td><strong>1.09x</strong> faster</td><td><strong>0.93x</strong> faster</td></tr>
-<tr><td>Large (50K)</td><td><strong>1.07x</strong> faster</td><td><strong>1.55x</strong> faster</td><td><strong>0.83x</strong> faster</td></tr>
-</tbody>
-</table>
-</div>
-<blockquote>
-<p><strong>Best Use Cases</strong>: LazyRow excels with CSV and large TSV datasets. For Record
-format, benefits vary by dataset size.</p>
-</blockquote>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="creating-lazyrow"><a class="header" href="#creating-lazyrow">Creating LazyRow</a></h3>
-<pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // From string array (zero cost)
 const lazyRow1 = LazyRow.fromStringArray(['Alice', '30', 'Engineer']);
@@ -246,7 +227,7 @@ const binary2 = lazyRow.toBinary(); // Returns cached result
 </code></pre>
 <h2 id="parsing-with-lazyrow"><a class="header" href="#parsing-with-lazyrow">Parsing with LazyRow</a></h2>
 <h3 id="csv-to-lazyrow"><a class="header" href="#csv-to-lazyrow">CSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 const lazyRows = await read("data.csv")
   .transform(fromCsvToLazyRows())
@@ -266,7 +247,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="tsv-to-lazyrow"><a class="header" href="#tsv-to-lazyrow">TSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 const lazyRows = await read("logs.tsv")
   .transform(fromTsvToLazyRows())
@@ -284,7 +265,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="record-to-lazyrow"><a class="header" href="#record-to-lazyrow">Record to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { fromRecordToLazyRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 const lazyRows = await read("data.record")
   .transform(fromRecordToLazyRows())

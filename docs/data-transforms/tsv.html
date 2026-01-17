@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -179,8 +179,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="tsv-transforms"><a class="header" href="#tsv-transforms">TSV Transforms</a></h1>
-<p>Fast, simple tab-separated value processing with excellent performance
-characteristics.</p>
+<p>Fast, simple tab-separated value processing.</p>
 <blockquote>
 <p>⚠️ <strong>Experimental (v0.24.0+)</strong>: TSV transforms are under active development.
 API may change as we improve correctness and streaming performance. Test
@@ -188,30 +187,11 @@ thoroughly with your data patterns.</p>
 </blockquote>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>TSV (Tab-Separated Values) provides a good balance between human readability and
-processing speed. With no complex quoting rules like CSV, TSV parsing is
-significantly faster while remaining easy to read and edit.</p>
-<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dataset Size</th><th>Regular Parsing</th><th>LazyRow Parsing</th><th>Improvement</th></tr>
-</thead>
-<tbody>
-<tr><td>Small (1K)</td><td>71.61 MB/s</td><td>104.09 MB/s</td><td><strong>+45%</strong></td></tr>
-<tr><td>Medium (10K)</td><td>116.00 MB/s</td><td>81.59 MB/s</td><td><strong>-30%</strong></td></tr>
-<tr><td>Large (50K)</td><td>56.88 MB/s</td><td>88.25 MB/s</td><td><strong>+55%</strong></td></tr>
-</tbody>
-</table>
-</div>
-<blockquote>
-<p><strong>Performance Note</strong>: LazyRow shows mixed results with TSV - excellent for
-small and large datasets, but regular parsing can be faster for medium
-datasets with full field access.</p>
-</blockquote>
+processing speed. With no complex quoting rules like CSV, TSV parsing is simpler and faster.</p>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-tsv-to-rows"><a class="header" href="#parsing-tsv-to-rows">Parsing TSV to Rows</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.3";
-import { fromTsvToRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+import { fromTsvToRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Parse TSV into string arrays
 const rows = await read("data.tsv")
@@ -223,7 +203,7 @@ const rows = await read("data.tsv")
 // rows[2] = ["Bob", "25", "London"]        // Data row
 </code></pre>
 <h3 id="parsing-tsv-to-lazyrow"><a class="header" href="#parsing-tsv-to-lazyrow">Parsing TSV to LazyRow</a></h3>
-<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { fromTsvToLazyRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Parse TSV into optimized LazyRow format
 const lazyRows = await read("data.tsv")
@@ -240,7 +220,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="generating-tsv"><a class="header" href="#generating-tsv">Generating TSV</a></h3>
-<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // From string arrays
 const data = [
@@ -259,7 +239,6 @@ await enumerate(data)
 <li><strong>Fast parsing</strong>: No complex quoting rules</li>
 <li><strong>Human readable</strong>: Easy to view and edit</li>
 <li><strong>Simple format</strong>: Minimal edge cases</li>
-<li><strong>Good performance</strong>: 2-10x faster than CSV</li>
 </ul>
 <h3 id="limitations"><a class="header" href="#limitations">Limitations</a></h3>
 <ul>
@@ -560,7 +539,6 @@ access</li>
 <h2 id="comparison-with-other-formats"><a class="header" href="#comparison-with-other-formats">Comparison with Other Formats</a></h2>
 <h3 id="tsv-vs-csv"><a class="header" href="#tsv-vs-csv">TSV vs CSV</a></h3>
 <ul>
-<li><strong>Speed</strong>: TSV is 2-10x faster than CSV</li>
 <li><strong>Simplicity</strong>: No complex quoting/escaping rules</li>
 <li><strong>Limitations</strong>: Cannot handle tabs or newlines in data</li>
 <li><strong>Compatibility</strong>: Less universal than CSV</li>

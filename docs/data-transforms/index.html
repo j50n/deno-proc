@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2222309c.js";
+            window.path_to_searchindex_js = "../searchindex-d567d202.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -192,11 +192,11 @@ Production use should include thorough testing of your specific data patterns.</
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Approach</th><th>Best For</th><th>Throughput</th></tr>
+<tr><th>Approach</th><th>Best For</th><th>Performance</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>flatdata CLI</strong></td><td>Large files (100MB+), batch processing</td><td>~330 MB/s</td></tr>
-<tr><td><strong>Data Transforms</strong></td><td>In-process conversion, filtering, enrichment</td><td>10-93 MB/s</td></tr>
+<tr><td><strong>flatdata CLI</strong></td><td>Large files (100MB+), batch processing</td><td>Highest</td></tr>
+<tr><td><strong>Data Transforms</strong></td><td>In-process conversion, filtering, enrichment</td><td>Good to High</td></tr>
 <tr><td><strong>Process Pipelines</strong></td><td>Shell-like operations, text processing</td><td>Varies</td></tr>
 <tr><td><strong>Async Iterables</strong></td><td>Custom logic, API data, any async source</td><td>Varies</td></tr>
 </tbody>
@@ -241,12 +241,11 @@ await read("data.csv")
   .writeTo("data.tsv");
 </code></pre>
 <h2 id="key-benefits"><a class="header" href="#key-benefits">Key Benefits</a></h2>
-<h3 id="-high-performance"><a class="header" href="#-high-performance">🚀 <strong>High Performance</strong></a></h3>
+<h3 id="-streaming--performance"><a class="header" href="#-streaming--performance">🚀 <strong>Streaming &amp; Performance</strong></a></h3>
 <ul>
-<li><strong>flatdata CLI</strong>: WASM-powered parsing at ~330 MB/s</li>
-<li><strong>LazyRow optimization</strong>: Up to 1.7x faster parsing for CSV/TSV</li>
 <li><strong>Streaming design</strong>: Constant memory usage regardless of file size</li>
-<li><strong>Optimized batching</strong>: ~128KB chunks for maximum throughput</li>
+<li><strong>LazyRow optimization</strong>: Faster parsing for CSV/TSV when accessing selective fields</li>
+<li><strong>flatdata CLI</strong>: WASM-powered tool for very large files</li>
 </ul>
 <h3 id="-format-support"><a class="header" href="#-format-support">📊 <strong>Format Support</strong></a></h3>
 <ul>
@@ -261,25 +260,6 @@ await read("data.csv")
 <li><strong>LazyRow</strong>: Optimized read-only access with lazy conversion</li>
 <li><strong>Objects</strong>: Full JSON object support with optional validation</li>
 </ul>
-<h2 id="performance-comparison"><a class="header" href="#performance-comparison">Performance Comparison</a></h2>
-<p>Based on comprehensive benchmarks across dataset sizes:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Method</th><th>Throughput</th><th>Notes</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>flatdata -w</strong></td><td>~330 MB/s</td><td>WASM subprocess, best for large files</td></tr>
-<tr><td><strong>Record</strong></td><td>60-93 MB/s</td><td>In-process, highest JS throughput</td></tr>
-<tr><td><strong>JSON</strong></td><td>70-98 MB/s</td><td>Object structures</td></tr>
-<tr><td><strong>TSV</strong></td><td>57-72 MB/s</td><td>Human readable</td></tr>
-<tr><td><strong>CSV</strong></td><td>10-27 MB/s</td><td>Universal compatibility</td></tr>
-</tbody>
-</table>
-</div>
-<blockquote>
-<p><strong>💡 Tip</strong>: Use LazyRow with CSV for 1.05-1.7x performance improvement</p>
-</blockquote>
 <h2 id="when-to-use-each-format"><a class="header" href="#when-to-use-each-format">When to Use Each Format</a></h2>
 <h3 id="csv---universal-compatibility"><a class="header" href="#csv---universal-compatibility">CSV - Universal Compatibility</a></h3>
 <pre><code class="language-typescript">// Best for: Compatibility, Excel integration, legacy systems
@@ -315,7 +295,7 @@ await read("big-data.record")
 <h2 id="lazyrow-optimized-data-access"><a class="header" href="#lazyrow-optimized-data-access">LazyRow: Optimized Data Access</a></h2>
 <p>LazyRow provides a read-only interface optimized for field access without
 upfront parsing costs:</p>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.3/transforms";
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.5/transforms";
 
 // Parse CSV into LazyRow format
 const lazyRows = await read("data.csv")
@@ -337,7 +317,6 @@ for (const row of lazyRows) {
 <li><strong>Zero conversion cost</strong>: Choose optimal backing based on source</li>
 <li><strong>Lazy evaluation</strong>: Parse fields only when accessed</li>
 <li><strong>Caching</strong>: Repeated access uses cached results</li>
-<li><strong>Performance</strong>: 1.05-1.7x faster than regular parsing</li>
 </ul>
 <h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
 <h3 id="data-pipeline"><a class="header" href="#data-pipeline">Data Pipeline</a></h3>
@@ -355,13 +334,11 @@ await read("sales.csv")
   .writeTo("high-value-sales.jsonl");
 </code></pre>
 <h3 id="format-conversion"><a class="header" href="#format-conversion">Format Conversion</a></h3>
-<pre><code class="language-typescript">// Convert legacy CSV to high-performance Record format
+<pre><code class="language-typescript">// Convert legacy CSV to Record format for efficient processing
 await read("legacy.csv")
   .transform(fromCsvToRows())
   .transform(toRecord())
   .writeTo("optimized.record");
-
-// 3-10x faster processing on subsequent reads!
 </code></pre>
 <h3 id="log-processing"><a class="header" href="#log-processing">Log Processing</a></h3>
 <pre><code class="language-typescript">// Parse structured logs and extract errors
