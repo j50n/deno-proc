@@ -4,7 +4,7 @@ Create your own transforms to process data in ways the built-in transforms don't
 
 ## Transform Signature
 
-A transform is a function that takes an async iterable and returns an async iterable:
+A transform is a function that takes an AsyncIterable and returns an AsyncIterable:
 
 ```typescript
 function myTransform<T, U>(iterable: AsyncIterable<T>): AsyncIterable<U> {

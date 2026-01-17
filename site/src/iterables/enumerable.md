@@ -1,6 +1,6 @@
 # Understanding Enumerable
 
-Enumerable is the core of proc's async iterable support. It wraps any iterable
+Enumerable is the core of proc's AsyncIterable support. It wraps any iterable
 and provides Array-like methods for working with async data streams.
 
 ## What is Enumerable?

@@ -52,7 +52,7 @@ export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
   : never;
 
 /**
- * Create an Enumerable from any iterable or async iterable.
+ * Create an Enumerable from any iterable or AsyncIterable.
  *
  * This is the factory function for creating Enumerable instances. It provides
  * a fluent API for working with async data streams, making it easy to chain
