@@ -15,7 +15,7 @@ import { FlatdataProcessor } from "../src/wasm/flatdata-processor.ts";
 const TEMP_DIR = "/tmp/flatdata-bench";
 const NUM_RECORDS = 100_000;
 const NUM_COLUMNS = 20;
-const WARMUP_ITERATIONS = 20;
+const WARMUP_ITERATIONS = 3;
 const MEASURE_ITERATIONS = 10;
 
 async function generateTestData() {
@@ -94,22 +94,16 @@ async function benchmarkTransform(
   const processor = await FlatdataProcessor.create();
   const inputSize = (await Deno.stat(inputFile)).size;
 
-  console.log(`\n${name}`);
-  console.log("=".repeat(60));
-
   // Warmup
-  console.log(`Warmup (${WARMUP_ITERATIONS} iterations)...`);
   for (let i = 0; i < WARMUP_ITERATIONS; i++) {
     const file = await Deno.open(inputFile, { read: true });
     let bytes = 0;
     for await (const chunk of transform(processor, file.readable)) {
       bytes += chunk.length;
     }
-    if (i % 10 === 0) console.log(`  Iteration ${i + 1}/${WARMUP_ITERATIONS}`);
   }
 
   // Measure
-  console.log(`\nMeasuring (${MEASURE_ITERATIONS} iterations)...`);
   const times: number[] = [];
   for (let i = 0; i < MEASURE_ITERATIONS; i++) {
     const file = await Deno.open(inputFile, { read: true });
@@ -120,25 +114,11 @@ async function benchmarkTransform(
     }
     const elapsed = performance.now() - start;
     times.push(elapsed);
-    if (i % 25 === 0) console.log(`  Iteration ${i + 1}/${MEASURE_ITERATIONS}`);
   }
 
   const stats = calculateStats(times);
   const throughputMean = (inputSize / 1024 / 1024) / (stats.mean / 1000);
   const throughputMedian = (inputSize / 1024 / 1024) / (stats.median / 1000);
-
-  console.log("\nResults:");
-  console.log(`  Time (ms):`);
-  console.log(`    Mean:     ${stats.mean.toFixed(2)}`);
-  console.log(`    Median:   ${stats.median.toFixed(2)}`);
-  console.log(`    Std Dev:  ${stats.stddev.toFixed(2)}`);
-  console.log(`    Min:      ${stats.min.toFixed(2)}`);
-  console.log(`    Max:      ${stats.max.toFixed(2)}`);
-  console.log(`    Q1:       ${stats.q1.toFixed(2)}`);
-  console.log(`    Q3:       ${stats.q3.toFixed(2)}`);
-  console.log(`  Throughput (MB/s):`);
-  console.log(`    Mean:     ${throughputMean.toFixed(1)}`);
-  console.log(`    Median:   ${throughputMedian.toFixed(1)}`);
 
   return { name, stats, throughputMean, throughputMedian };
 }
