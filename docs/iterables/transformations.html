@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-afe56446.js";
+            window.path_to_searchindex_js = "../searchindex-0b0fa714.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -185,7 +185,7 @@ methods that work seamlessly with async data streams.</p>
 <p>The <code>map()</code> method transforms each item in your stream, applying a function to
 every element and returning a new stream with the transformed values:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.6";
 
 const doubled = await enumerate([1, 2, 3])
   .map((n) =&gt; n * 2)
@@ -282,7 +282,7 @@ everything else:</p>
 <p>The <code>transform()</code> method lets you apply any TransformStream to your data, which
 is particularly useful for built-in transformations like compression:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 
 const decompressed = await read("file.gz")
   .transform(new DecompressionStream("gzip"))

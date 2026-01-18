@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-afe56446.js";
+            window.path_to_searchindex_js = "../searchindex-0b0fa714.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -183,7 +183,7 @@
 <h2 id="reading-files"><a class="header" href="#reading-files">Reading Files</a></h2>
 <h3 id="read-as-bytes"><a class="header" href="#read-as-bytes">Read as Bytes</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 
 const bytes = await read("file.bin").collect();
 // Uint8Array[]
@@ -253,7 +253,7 @@ await Deno.writeTextFile("output.txt", content);
 </code></pre>
 <h3 id="stream-to-file"><a class="header" href="#stream-to-file">Stream to File</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { concat } from "jsr:@j50n/proc@0.24.6";
 
 const bytes = await read("input.txt")
   .lines
@@ -301,7 +301,7 @@ for (const file of files) {
 </code></pre>
 <h3 id="concurrent-processing"><a class="header" href="#concurrent-processing">Concurrent Processing</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.6";
 
 const results = await enumerate(files)
   .concurrentMap(async (file) =&gt; {

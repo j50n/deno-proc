@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-afe56446.js";
+            window.path_to_searchindex_js = "../searchindex-0b0fa714.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -206,7 +206,7 @@ can transform and pipe:</p>
 <p>The most common way to provide input is piping output from one process directly
 to another. This creates efficient data flows without intermediate storage:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.6";
 
 await run("echo", "hello")
   .run("tr", "a-z", "A-Z") // Receives "hello" as stdin
@@ -217,7 +217,7 @@ await run("echo", "hello")
 <p>When you have data in memory that you want to send to a process, <code>enumerate()</code>
 makes any iterable pipeable to processes:</p>
 <!-- TESTED: tests/mdbook_examples.test.ts - "input: pipe from enumerable" -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.6";
 
 const data = ["line 1", "line 2", "line 3"];
 
@@ -230,7 +230,7 @@ await enumerate(data)
 <p>For file input, <code>read()</code> creates a stream directly from the file system,
 allowing you to process files of any size efficiently:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 
 await read("input.txt")
   .run("grep", "pattern")
@@ -255,7 +255,7 @@ await read("input.txt")
 </code></pre>
 <h3 id="generate-and-process"><a class="header" href="#generate-and-process">Generate and Process</a></h3>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { range } from "jsr:@j50n/proc@0.24.6";
 
 await range({ to: 100 })
   .map((n) =&gt; n.toString())

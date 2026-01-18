@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-afe56446.js";
+            window.path_to_searchindex_js = "searchindex-0b0fa714.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9208c6f.js"></script>
@@ -226,7 +226,7 @@ source. Process gigabyte files with constant memory.</p>
 streaming support. Or use the WASM-powered flatdata CLI for maximum throughput.</p>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
 <p>Count lines in a compressed file—streaming, constant memory:</p>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 
 const count = await read("logs.txt.gz")
   .transform(new DecompressionStream("gzip"))
@@ -234,7 +234,7 @@ const count = await read("logs.txt.gz")
   .count();
 </code></pre>
 <p>Chain processes like shell pipes:</p>
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.6";
 
 const errors = await run("cat", "app.log")
   .run("grep", "ERROR")
@@ -242,7 +242,7 @@ const errors = await run("cat", "app.log")
   .lines.first;
 </code></pre>
 <p>Transform async data with familiar methods:</p>
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.6";
 
 const results = await enumerate(urls)
   .concurrentMap(fetch, { concurrency: 5 })
@@ -267,7 +267,7 @@ minutes</li>
 understand</li>
 </ol>
 <hr>
-<p><strong>Version:</strong> 0.24.5 | <strong>License:</strong> MIT | <strong>Status:</strong> Production-ready</p>
+<p><strong>Version:</strong> 0.24.6 | <strong>License:</strong> MIT | <strong>Status:</strong> Production-ready</p>
 <p><a href="https://github.com/j50n/deno-proc">GitHub</a> ·
 <a href="https://github.com/j50n/deno-proc/issues">Issues</a> · <a href="./faq.html">FAQ</a></p>
 

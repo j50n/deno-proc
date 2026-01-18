@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-afe56446.js";
+            window.path_to_searchindex_js = "../searchindex-0b0fa714.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -197,7 +197,7 @@ can’t easily convert callbacks to an AsyncIterable… until now.</p>
 allowing them to operate at different speeds.</p>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - basic write and read" -->
-<pre><code class="language-typescript">import { sleep, WritableIterable } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { sleep, WritableIterable } from "jsr:@j50n/proc@0.24.6";
 
 const writable = new WritableIterable&lt;number&gt;();
 
@@ -246,7 +246,7 @@ prevents unbounded memory growth.</p>
 <h3 id="example-1-event-stream-to-pipeline"><a class="header" href="#example-1-event-stream-to-pipeline">Example 1: Event Stream to Pipeline</a></h3>
 <p>Convert DOM events into a processable stream:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
 
 const clicks = new WritableIterable&lt;MouseEvent&gt;();
 
@@ -267,7 +267,7 @@ window.addEventListener("unload", () =&gt; clicks.close());
 <h3 id="example-2-websocket-to-process"><a class="header" href="#example-2-websocket-to-process">Example 2: WebSocket to Process</a></h3>
 <p>Feed WebSocket messages to a process:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
 
 const messages = new WritableIterable&lt;string&gt;();
 
@@ -286,7 +286,7 @@ await enumerate(messages)
 <h3 id="example-3-sensor-data-stream"><a class="header" href="#example-3-sensor-data-stream">Example 3: Sensor Data Stream</a></h3>
 <p>Process sensor readings as they arrive:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
 
 interface SensorReading {
   temperature: number;
@@ -313,7 +313,7 @@ await readings.close();
 <h3 id="example-4-manual-process-stdin"><a class="header" href="#example-4-manual-process-stdin">Example 4: Manual Process stdin</a></h3>
 <p>Feed data to a process programmatically:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
 
 const input = new WritableIterable&lt;string&gt;();
 
@@ -334,7 +334,7 @@ await enumerate(input)
 <h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
 <p>Errors propagate through the iteration:</p>
 <!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - error propagation" -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
 
 const writable = new WritableIterable&lt;number&gt;();
 
@@ -360,7 +360,7 @@ try {
 <h2 id="cleanup-with-onclose"><a class="header" href="#cleanup-with-onclose">Cleanup with onclose</a></h2>
 <p>You can provide a cleanup callback:</p>
 <!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
 
 const writable = new WritableIterable&lt;string&gt;({
   onclose: async () =&gt; {

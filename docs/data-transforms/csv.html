@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-afe56446.js";
+            window.path_to_searchindex_js = "../searchindex-0b0fa714.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -197,8 +197,8 @@ handling of quoted fields, escaping, and edge cases.</p>
 <p><strong>Tip</strong>: Use LazyRow (<code>fromCsvToLazyRows()</code>) for better performance, especially when you only need to access a few fields from each row.</p>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="parsing-csv-to-rows"><a class="header" href="#parsing-csv-to-rows">Parsing CSV to Rows</a></h3>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
-import { fromCsvToRows } from "jsr:@j50n/proc@0.24.5/transforms";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
+import { fromCsvToRows } from "jsr:@j50n/proc@0.24.6/transforms";
 
 // Parse CSV into string arrays
 const rows = await read("data.csv")
@@ -210,7 +210,7 @@ const rows = await read("data.csv")
 // rows[2] = ["Bob", "25", "London"]        // Data row
 </code></pre>
 <h3 id="parsing-csv-to-lazyrow-recommended"><a class="header" href="#parsing-csv-to-lazyrow-recommended">Parsing CSV to LazyRow (Recommended)</a></h3>
-<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.5/transforms";
+<pre><code class="language-typescript">import { fromCsvToLazyRows } from "jsr:@j50n/proc@0.24.6/transforms";
 
 // Parse CSV into optimized LazyRow format
 const lazyRows = await read("data.csv")
@@ -229,7 +229,7 @@ for (const row of lazyRows) {
 }
 </code></pre>
 <h3 id="generating-csv"><a class="header" href="#generating-csv">Generating CSV</a></h3>
-<pre><code class="language-typescript">import { toCsv } from "jsr:@j50n/proc@0.24.5/transforms";
+<pre><code class="language-typescript">import { toCsv } from "jsr:@j50n/proc@0.24.6/transforms";
 
 // From string arrays
 const data = [
@@ -333,7 +333,7 @@ await read("messy-data.csv")
   .writeTo("cleaned-data.csv");
 </code></pre>
 <h3 id="csv-to-json-conversion"><a class="header" href="#csv-to-json-conversion">CSV to JSON Conversion</a></h3>
-<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.5/transforms";
+<pre><code class="language-typescript">import { toJson } from "jsr:@j50n/proc@0.24.6/transforms";
 
 // Convert CSV to JSON with headers
 const csvData = await read("employees.csv")
@@ -483,7 +483,7 @@ await read("data.record")
 </code></pre>
 <h2 id="integration-with-other-formats"><a class="header" href="#integration-with-other-formats">Integration with Other Formats</a></h2>
 <h3 id="csv--tsv"><a class="header" href="#csv--tsv">CSV → TSV</a></h3>
-<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.5/transforms";
+<pre><code class="language-typescript">import { toTsv } from "jsr:@j50n/proc@0.24.6/transforms";
 
 await read("data.csv")
   .transform(fromCsvToRows())
@@ -491,7 +491,7 @@ await read("data.csv")
   .writeTo("data.tsv");
 </code></pre>
 <h3 id="csv--record"><a class="header" href="#csv--record">CSV → Record</a></h3>
-<pre><code class="language-typescript">import { toRecord } from "jsr:@j50n/proc@0.24.5/transforms";
+<pre><code class="language-typescript">import { toRecord } from "jsr:@j50n/proc@0.24.6/transforms";
 
 await read("data.csv")
   .transform(fromCsvToRows())
@@ -508,11 +508,11 @@ usage</li>
 </ol>
 <h2 id="wasm-powered-parsing"><a class="header" href="#wasm-powered-parsing">WASM-Powered Parsing</a></h2>
 <p>CSV parsing uses WebAssembly for high performance:</p>
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.5";
+<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 import {
   fromCsvToLazyRows,
   fromCsvToRows,
-} from "jsr:@j50n/proc@0.24.5/transforms";
+} from "jsr:@j50n/proc@0.24.6/transforms";
 
 // WASM-powered parsing (batched output)
 const rows = await read("large-file.csv")
