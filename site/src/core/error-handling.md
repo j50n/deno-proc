@@ -372,6 +372,27 @@ into an array for later analysis, process them in real-time, or merge them with
 stdout to create a unified output stream. The stderr handler runs concurrently
 with your main pipeline, so it doesn't block the processing of stdout.
 
+```typescript
+import { enumerate, run, toLines } from "jsr:@j50n/proc";
+
+const stderrLines: string[] = [];
+
+await run(
+  {
+    fnStderr: async (stderr) => {
+      for await (const line of enumerate(stderr).transform(toLines)) {
+        stderrLines.push(line);
+      }
+    },
+  },
+  "sh",
+  "-c",
+  "echo 'normal output'; echo 'error message' >&2",
+).lines.collect();
+
+console.log("Captured stderr:", stderrLines);
+```
+
 ## Best Practices for Error Handling
 
 ### 1. Catch at the End

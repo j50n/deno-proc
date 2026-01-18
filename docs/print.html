@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bf7215ff.js";
+            window.path_to_searchindex_js = "searchindex-90c0fedc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9208c6f.js"></script>
@@ -1788,6 +1788,25 @@ and stderr streams, or implement custom logging. You can collect stderr lines
 into an array for later analysis, process them in real-time, or merge them with
 stdout to create a unified output stream. The stderr handler runs concurrently
 with your main pipeline, so it doesn’t block the processing of stdout.</p>
+<pre><code class="language-typescript">import { enumerate, run, toLines } from "jsr:@j50n/proc";
+
+const stderrLines: string[] = [];
+
+await run(
+  {
+    fnStderr: async (stderr) =&gt; {
+      for await (const line of enumerate(stderr).transform(toLines)) {
+        stderrLines.push(line);
+      }
+    },
+  },
+  "sh",
+  "-c",
+  "echo 'normal output'; echo 'error message' &gt;&amp;2",
+).lines.collect();
+
+console.log("Captured stderr:", stderrLines);
+</code></pre>
 <h2 id="best-practices-for-error-handling"><a class="header" href="#best-practices-for-error-handling">Best Practices for Error Handling</a></h2>
 <h3 id="1-catch-at-the-end"><a class="header" href="#1-catch-at-the-end">1. Catch at the End</a></h3>
 <p>Don’t catch errors in the middle of a pipeline unless you’re handling them
