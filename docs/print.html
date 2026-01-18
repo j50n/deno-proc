@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0b0fa714.js";
+            window.path_to_searchindex_js = "searchindex-bf7215ff.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9208c6f.js"></script>
@@ -796,6 +796,10 @@ IDE will guide you.</p>
   // Process errors, transform errors, your errors—all caught here
 }
 </code></pre>
+<p><strong>Important</strong>: Errors occur in sync with the data stream. If a process fails on
+line 100, you’ll successfully process lines 1-99 first. This makes error
+handling predictable and eliminates race conditions common in traditional
+streams.</p>
 <p>See <a href="#error-handling-1">Error Handling</a> for the full story.</p>
 <h2 id="resource-management"><a class="header" href="#resource-management">Resource Management</a></h2>
 <p>Always consume process output. Unconsumed output keeps the process handle open.</p>
@@ -1600,6 +1604,79 @@ one place.</p>
 </ol>
 <p>It’s functional programming—errors are just another type of data flowing
 through.</p>
+<h2 id="errors-are-synchronous-with-data"><a class="header" href="#errors-are-synchronous-with-data">Errors Are Synchronous With Data</a></h2>
+<p>Here’s a critical design principle that makes proc fundamentally different from
+the Streams API: <strong>errors occur in sync with the data stream</strong>.</p>
+<p>When a process fails, you don’t see the error immediately. You see it when you
+iterate to it:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">try {
+  // If this command fails on line 100...
+  await run("command")
+    .lines
+    .forEach((line) =&gt; {
+      console.log(line);
+    });
+} catch (error) {
+  // ...you'll successfully process lines 1-99 first
+  console.error(`Error after processing data: ${error.message}`);
+}
+</code></pre>
+<p>This is how streaming <strong>should</strong> work:</p>
+<ul>
+<li><strong>Partial consumption is safe</strong>: If you only take 50 lines (<code>.take(50)</code>), you
+never encounter an error that happens on line 100</li>
+<li><strong>Data comes first</strong>: You always process all available data before seeing the
+error</li>
+<li><strong>Predictable flow</strong>: Errors arrive exactly when you iterate to them, not
+asynchronously</li>
+</ul>
+<h3 id="why-this-matters"><a class="header" href="#why-this-matters">Why This Matters</a></h3>
+<p>The Streams API has a fundamental problem: errors occur <strong>out of sync</strong> with the
+data. A process might fail, but the error arrives as a separate event,
+disconnected from the data flow. This creates subtle bugs and edge cases:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// Streams API - error arrives separately from data
+const stream = createReadableStream();
+
+stream.on("data", (chunk) =&gt; {
+  // Process chunk
+});
+
+stream.on("error", (error) =&gt; {
+  // Error arrives here - but how much data did we process?
+  // Did we miss some data? Did we process partial data?
+  // Hard to reason about!
+});
+</code></pre>
+<p>With proc, errors are part of the iteration. They’re not separate events—they’re
+items in the stream that you encounter when you reach them:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">// proc - error is part of the data flow
+try {
+  for await (const line of run("command").lines) {
+    // Process line
+    // If an error occurs, you've already processed all previous lines
+    // No race conditions, no missing data, no ambiguity
+  }
+} catch (error) {
+  // You know exactly where you are in the stream
+}
+</code></pre>
+<h3 id="what-this-means-for-you"><a class="header" href="#what-this-means-for-you">What This Means for You</a></h3>
+<ol>
+<li><strong>No race conditions</strong>: Data and errors flow in a single, predictable
+sequence</li>
+<li><strong>Easier debugging</strong>: You know exactly how much data was processed before the
+error</li>
+<li><strong>Simpler code</strong>: No need to coordinate between data handlers and error
+handlers</li>
+<li><strong>Correct by default</strong>: Code that looks right actually is right</li>
+</ol>
+<p>This synchronous error propagation is a core design goal of proc. It takes
+careful engineering to ensure errors from child processes are thrown in sync
+with the data stream, but it eliminates entire categories of bugs that plague
+traditional stream-based code.</p>
 <h2 id="understanding-error-types"><a class="header" href="#understanding-error-types">Understanding Error Types</a></h2>
 <p>proc throws specific error types that help you handle different failure
 scenarios appropriately. Each error type carries relevant context about what

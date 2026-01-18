@@ -140,6 +140,95 @@ When something goes wrong anywhere in the pipeline:
 It's functional programming—errors are just another type of data flowing
 through.
 
+## Errors Are Synchronous With Data
+
+Here's a critical design principle that makes proc fundamentally different from
+the Streams API: **errors occur in sync with the data stream**.
+
+When a process fails, you don't see the error immediately. You see it when you
+iterate to it:
+
+<!-- NOT TESTED: Illustrative example -->
+
+```typescript
+try {
+  // If this command fails on line 100...
+  await run("command")
+    .lines
+    .forEach((line) => {
+      console.log(line);
+    });
+} catch (error) {
+  // ...you'll successfully process lines 1-99 first
+  console.error(`Error after processing data: ${error.message}`);
+}
+```
+
+This is how streaming **should** work:
+
+- **Partial consumption is safe**: If you only take 50 lines (`.take(50)`), you
+  never encounter an error that happens on line 100
+- **Data comes first**: You always process all available data before seeing the
+  error
+- **Predictable flow**: Errors arrive exactly when you iterate to them, not
+  asynchronously
+
+### Why This Matters
+
+The Streams API has a fundamental problem: errors occur **out of sync** with the
+data. A process might fail, but the error arrives as a separate event,
+disconnected from the data flow. This creates subtle bugs and edge cases:
+
+<!-- NOT TESTED: Illustrative example -->
+
+```typescript
+// Streams API - error arrives separately from data
+const stream = createReadableStream();
+
+stream.on("data", (chunk) => {
+  // Process chunk
+});
+
+stream.on("error", (error) => {
+  // Error arrives here - but how much data did we process?
+  // Did we miss some data? Did we process partial data?
+  // Hard to reason about!
+});
+```
+
+With proc, errors are part of the iteration. They're not separate events—they're
+items in the stream that you encounter when you reach them:
+
+<!-- NOT TESTED: Illustrative example -->
+
+```typescript
+// proc - error is part of the data flow
+try {
+  for await (const line of run("command").lines) {
+    // Process line
+    // If an error occurs, you've already processed all previous lines
+    // No race conditions, no missing data, no ambiguity
+  }
+} catch (error) {
+  // You know exactly where you are in the stream
+}
+```
+
+### What This Means for You
+
+1. **No race conditions**: Data and errors flow in a single, predictable
+   sequence
+2. **Easier debugging**: You know exactly how much data was processed before the
+   error
+3. **Simpler code**: No need to coordinate between data handlers and error
+   handlers
+4. **Correct by default**: Code that looks right actually is right
+
+This synchronous error propagation is a core design goal of proc. It takes
+careful engineering to ensure errors from child processes are thrown in sync
+with the data stream, but it eliminates entire categories of bugs that plague
+traditional stream-based code.
+
 ## Understanding Error Types
 
 proc throws specific error types that help you handle different failure

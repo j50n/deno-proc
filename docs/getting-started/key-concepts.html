@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b0fa714.js";
+            window.path_to_searchindex_js = "../searchindex-bf7215ff.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9208c6f.js"></script>
@@ -208,6 +208,10 @@ IDE will guide you.</p>
   // Process errors, transform errors, your errors—all caught here
 }
 </code></pre>
+<p><strong>Important</strong>: Errors occur in sync with the data stream. If a process fails on
+line 100, you’ll successfully process lines 1-99 first. This makes error
+handling predictable and eliminates race conditions common in traditional
+streams.</p>
 <p>See <a href="../core/error-handling.html">Error Handling</a> for the full story.</p>
 <h2 id="resource-management"><a class="header" href="#resource-management">Resource Management</a></h2>
 <p>Always consume process output. Unconsumed output keeps the process handle open.</p>

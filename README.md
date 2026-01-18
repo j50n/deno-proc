@@ -64,7 +64,8 @@ consumer pulls when ready. No memory pressure, no dropped data, no complexity.
 
 **Cleaner, more intuitive code** — Use `map`, `filter`, `reduce`, `flatMap`,
 `take`, `drop` and more—just like Arrays. Errors propagate naturally through
-pipelines. One try-catch at the end handles everything.
+pipelines in sync with the data stream—no race conditions or async error events.
+One try-catch at the end handles everything.
 
 **WASM-powered data transforms** — Convert between CSV, TSV, JSON, and Record
 formats with WebAssembly-accelerated parsing. For maximum throughput, use the

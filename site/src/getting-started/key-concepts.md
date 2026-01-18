@@ -39,6 +39,11 @@ try {
 }
 ```
 
+**Important**: Errors occur in sync with the data stream. If a process fails on
+line 100, you'll successfully process lines 1-99 first. This makes error
+handling predictable and eliminates race conditions common in traditional
+streams.
+
 See [Error Handling](../core/error-handling.md) for the full story.
 
 ## Resource Management
