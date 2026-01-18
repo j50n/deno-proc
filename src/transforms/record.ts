@@ -11,7 +11,10 @@ import type { Row } from "./types.ts";
 import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
 import { concat } from "../utility.ts";
 
-const decoder = new TextDecoder("utf-8", { fatal: true });
+const decode = (() => {
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  return decoder.decode.bind(decoder);
+})();
 
 /**
  * Parse Record format bytes into batches of string arrays.
@@ -44,7 +47,7 @@ export function fromRecordToRows() {
     let currentBatchSize = 0;
 
     for await (const chunk of bytes) {
-      buffer += decoder.decode(chunk, { stream: true });
+      buffer += decode(chunk, { stream: true });
 
       const records = buffer.split(RECORD_SEPARATOR);
       buffer = records.pop() || "";
@@ -64,7 +67,7 @@ export function fromRecordToRows() {
       }
     }
 
-    buffer += decoder.decode();
+    buffer += decode();
     if (buffer) {
       const fields = buffer.split(FIELD_SEPARATOR);
       currentBatch.push(fields);
@@ -105,7 +108,7 @@ export function fromRecordToLazyRows() {
     let currentBatchSize = 0;
 
     for await (const chunk of bytes) {
-      buffer += decoder.decode(chunk, { stream: true });
+      buffer += decode(chunk, { stream: true });
 
       const records = buffer.split(RECORD_SEPARATOR);
       buffer = records.pop() || "";
@@ -127,7 +130,7 @@ export function fromRecordToLazyRows() {
       }
     }
 
-    buffer += decoder.decode();
+    buffer += decode();
     if (buffer) {
       const fields = buffer.split(FIELD_SEPARATOR);
       const row = LazyRow.fromStringArray(fields);

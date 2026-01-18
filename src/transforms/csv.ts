@@ -1,7 +1,7 @@
 import { LazyRow } from "./lazy-row.ts";
 import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
 import type { Row } from "./types.ts";
-import { rowsToRecord, rowToRecord } from "./common.ts";
+import { joinRows, rowsToRecord, rowToRecord } from "./common.ts";
 
 /**
  * Options for parsing CSV data.
@@ -172,9 +172,8 @@ export function toCsv(stringifyOptions?: CsvStringifyOptions) {
     }
 
     function handleStringLazyRowArray(rows: LazyRow[]): Uint8Array {
-      const record = encode(
-        rows.map((row) => row.toStringArray().join(FS)).join(RS) + RS,
-      );
+      const stringRows = rows.map((row) => row.toStringArray());
+      const record = encode(joinRows(stringRows, FS, RS));
       return processor.recordToCsvDirect(record, separator, crlf);
     }
 

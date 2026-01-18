@@ -19,8 +19,14 @@ export interface JsonOptions<T = unknown> {
   sampleSize?: number;
 }
 
-const decoder = new TextDecoder("utf-8", { fatal: true });
-const encoder = new TextEncoder();
+const decode = (() => {
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  return decoder.decode.bind(decoder);
+})();
+const encode = (() => {
+  const encoder = new TextEncoder();
+  return encoder.encode.bind(encoder);
+})();
 
 /**
  * Parse JSON Lines (JSONL) bytes into batches of objects.
@@ -83,7 +89,7 @@ export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
       (options.sampleSize === undefined || options.sampleSize > 0);
 
     for await (const chunk of bytes) {
-      buffer += decoder.decode(chunk, { stream: true });
+      buffer += decode(chunk, { stream: true });
 
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
@@ -115,7 +121,7 @@ export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
       }
     }
 
-    buffer += decoder.decode();
+    buffer += decode();
     if (buffer.trim()) {
       const value: T = JSON.parse(buffer);
       if (shouldValidate && options?.schema) {
@@ -171,9 +177,13 @@ export function toJson<T = unknown>() {
     for await (const batch of data) {
       if (batch.length === 0) continue;
 
-      const lines = batch.map((value) => JSON.stringify(value));
-      const jsonl = lines.join("\n") + "\n";
-      yield encoder.encode(jsonl);
+      let result = "";
+      for (let i = 0; i < batch.length; i++) {
+        if (i > 0) result = result.concat("\n");
+        result = result.concat(JSON.stringify(batch[i]));
+      }
+      result = result.concat("\n");
+      yield encode(result);
     }
   };
 }

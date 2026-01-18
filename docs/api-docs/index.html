@@ -135,7 +135,15 @@ Examples</h2></div><div class="space-y-8"><div class="anchorable"><a href="#exam
 </a>
 <h3 class="example-header"><div class="markdown"><p>Quick start</p>
 </div></h3>
-  <div><div class="markdown"><pre class="highlight"><code class="language-ts">import { run } from &quot;@j50n/proc&quot;;
+  <div><div class="markdown"><pre class="highlight"><code class="language-ts">import { read, run } from &quot;@j50n/proc&quot;;
+import { fromCsvToRows, toTsv } from &quot;@j50n/proc/transforms&quot;;
+
+// Transform data between formats - CSV to TSV with filtering
+await read(&quot;sales.csv&quot;)
+  .transform(fromCsvToRows())
+  .filter((row) =&gt; parseFloat(row[3]) &gt; 1000)
+  .transform(toTsv())
+  .writeTo(&quot;high-value.tsv&quot;);
 
 // Run processes and capture output
 const lines = await run(&quot;ls&quot;, &quot;-la&quot;).lines.collect();
@@ -153,7 +161,15 @@ const commits = await run(&quot;git&quot;, &quot;log&quot;, &quot;--oneline&quot
   .filter(line =&gt; line.includes(&quot;fix&quot;))
   .take(5)
   .collect();
-</code><button class="copyButton" data-copy="import { run } from &quot;@j50n/proc&quot;;
+</code><button class="copyButton" data-copy="import { read, run } from &quot;@j50n/proc&quot;;
+import { fromCsvToRows, toTsv } from &quot;@j50n/proc/transforms&quot;;
+
+// Transform data between formats - CSV to TSV with filtering
+await read(&quot;sales.csv&quot;)
+  .transform(fromCsvToRows())
+  .filter((row) =&gt; parseFloat(row[3]) &gt; 1000)
+  .transform(toTsv())
+  .writeTo(&quot;high-value.tsv&quot;);
 
 // Run processes and capture output
 const lines = await run(&quot;ls&quot;, &quot;-la&quot;).lines.collect();
@@ -204,9 +220,9 @@ const commits = await run(&quot;git&quot;, &quot;log&quot;, &quot;--oneline&quot
 </button><code></code></pre>
 <h2 id="why-proc?">
 Why proc?</h2>
-<p><strong>Simpler than streams</strong> — AsyncIterables are a standard JavaScript primitive (more standard than streams).
-Pull-based iteration is easier to reason about than push-based streams. No complex coordination, no buffering
-logic, no backpressure headaches.</p>
+<p><strong>Simpler than streams</strong> — AsyncIterables are a standard JavaScript primitive, more standard than the
+Streams API. Pull-based iteration is easier to reason about than push-based streams. No complex coordination,
+no buffering logic, no backpressure headaches.</p>
 <p><strong>Backpressure solved</strong> — Traditional streams require careful coordination between producers and consumers.
 Async iterators eliminate this entirely—the consumer pulls when ready. No memory pressure, no dropped data,
 no complexity.</p>

@@ -40,7 +40,7 @@ export function writeUint32LE(value: number): Uint8Array {
  * @returns Record format string: fields joined by \x1F, terminated by \x1E
  */
 export function rowToRecord(row: string[]): string {
-  return row.join(FIELD_SEPARATOR) + RECORD_SEPARATOR;
+  return joinRow(row, FIELD_SEPARATOR, RECORD_SEPARATOR);
 }
 
 /**
@@ -49,7 +49,50 @@ export function rowToRecord(row: string[]): string {
  * @returns Record format string: all rows concatenated
  */
 export function rowsToRecord(rows: string[][]): string {
-  return rows.map((row) => row.join(FIELD_SEPARATOR) + RECORD_SEPARATOR).join(
-    "",
-  );
+  return joinRows(rows, FIELD_SEPARATOR, RECORD_SEPARATOR);
+}
+
+/**
+ * Join a single row's fields with a separator and add a line terminator.
+ * Optimized using string.concat() for better performance.
+ * @param row Array of field values
+ * @param fieldSep Field separator (e.g., "\t" for TSV)
+ * @param lineSep Line separator (e.g., "\n")
+ * @returns Joined string
+ */
+export function joinRow(
+  row: string[],
+  fieldSep: string,
+  lineSep: string,
+): string {
+  let result = "";
+  for (let i = 0; i < row.length; i++) {
+    if (i > 0) result = result.concat(fieldSep);
+    result = result.concat(row[i]);
+  }
+  return result.concat(lineSep);
+}
+
+/**
+ * Join fields with a separator and add a line terminator.
+ * Optimized using string.concat() for better performance.
+ * @param rows Array of rows (each row is an array of field values)
+ * @param fieldSep Field separator (e.g., "\t" for TSV)
+ * @param lineSep Line separator (e.g., "\n")
+ * @returns Joined string with all rows
+ */
+export function joinRows(
+  rows: string[][],
+  fieldSep: string,
+  lineSep: string,
+): string {
+  let result = "";
+  for (const row of rows) {
+    for (let i = 0; i < row.length; i++) {
+      if (i > 0) result = result.concat(fieldSep);
+      result = result.concat(row[i]);
+    }
+    result = result.concat(lineSep);
+  }
+  return result;
 }

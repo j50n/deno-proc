@@ -1,5 +1,11 @@
-const decoder = new TextDecoder("utf-8", { fatal: true });
-const encoder = new TextEncoder();
+const decode = (() => {
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  return decoder.decode.bind(decoder);
+})();
+const encode = (() => {
+  const encoder = new TextEncoder();
+  return encoder.encode.bind(encoder);
+})();
 
 /**
  * Lazy row representation for efficient field access.
@@ -140,7 +146,7 @@ class StringArrayLazyRow extends LazyRow {
 
   toBinary(): Uint8Array {
     // Create binary format: field_count + field_lengths + field_data
-    const fieldBytes = this.fields.map((field) => encoder.encode(field));
+    const fieldBytes = this.fields.map((field) => encode(field));
     const totalDataSize = fieldBytes.reduce(
       (sum, bytes) => sum + bytes.length,
       0,
@@ -221,7 +227,7 @@ class BinaryLazyRow extends LazyRow {
       : this.data.length;
 
     const fieldData = this.data.slice(start, end);
-    const field = decoder.decode(fieldData);
+    const field = decode(fieldData);
     this.fieldCache.set(index, field);
 
     return field;
@@ -262,7 +268,7 @@ class BinaryLazyRow extends LazyRow {
       fields.push(this.getField(i));
     }
 
-    const fieldBytes = fields.map((field) => encoder.encode(field));
+    const fieldBytes = fields.map((field) => encode(field));
     const totalDataSize = fieldBytes.reduce(
       (sum, bytes) => sum + bytes.length,
       0,

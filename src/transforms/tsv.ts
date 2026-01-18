@@ -1,11 +1,14 @@
-import { BATCH_SIZE_BYTES } from "./common.ts";
+import { BATCH_SIZE_BYTES, joinRow, joinRows } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
 import { concat } from "../utility.ts";
 import { writeUint32LE } from "./common.ts";
 
-const decoder = new TextDecoder("utf-8", { fatal: true });
+const decode = (() => {
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  return decoder.decode.bind(decoder);
+})();
 
 /**
  * Parse TSV bytes into batches of string arrays.
@@ -48,7 +51,7 @@ export function fromTsvToRows() {
     let currentBatchSize = 0;
 
     for await (const chunk of bytes) {
-      buffer += decoder.decode(chunk, { stream: true });
+      buffer += decode(chunk, { stream: true });
 
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
@@ -68,7 +71,7 @@ export function fromTsvToRows() {
       }
     }
 
-    buffer += decoder.decode();
+    buffer += decode();
     if (buffer.trim()) {
       const fields = buffer.split("\t");
       currentBatch.push(fields);
@@ -110,7 +113,7 @@ export function fromTsvToLazyRows() {
     let currentBatchSize = 0;
 
     for await (const chunk of bytes) {
-      buffer += decoder.decode(chunk, { stream: true });
+      buffer += decode(chunk, { stream: true });
 
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
@@ -132,7 +135,7 @@ export function fromTsvToLazyRows() {
       }
     }
 
-    buffer += decoder.decode();
+    buffer += decode();
     if (buffer.trim()) {
       const fields = buffer.split("\t");
       const row = LazyRow.fromStringArray(fields);
@@ -183,16 +186,15 @@ export function toTsv() {
     const handleRow = (row: Row): Uint8Array => {
       rowNumber++;
       validateTsvFields(row, rowNumber);
-      return encode(row.join("\t") + "\n");
+      return encode(joinRow(row, "\t", "\n"));
     };
 
     const handleRowArray = (rows: Row[]): Uint8Array => {
-      const lines = rows.map((row) => {
+      for (const row of rows) {
         rowNumber++;
         validateTsvFields(row, rowNumber);
-        return row.join("\t");
-      });
-      return encode(lines.join("\n") + "\n");
+      }
+      return encode(joinRows(rows, "\t", "\n"));
     };
 
     const handleBinaryLazyRow = (row: LazyRow): Uint8Array => {
@@ -207,7 +209,7 @@ export function toTsv() {
       rowNumber++;
       const fields = row.toStringArray();
       validateTsvFields(fields, rowNumber);
-      return encode(fields.join("\t") + "\n");
+      return encode(joinRow(fields, "\t", "\n"));
     };
 
     const handleBinaryLazyRowArray = (rows: LazyRow[]): Uint8Array => {
@@ -225,13 +227,14 @@ export function toTsv() {
     };
 
     const handleStringLazyRowArray = (rows: LazyRow[]): Uint8Array => {
-      const lines = rows.map((row) => {
+      const stringRows: Row[] = [];
+      for (const row of rows) {
         rowNumber++;
         const fields = row.toStringArray();
         validateTsvFields(fields, rowNumber);
-        return fields.join("\t");
-      });
-      return encode(lines.join("\n") + "\n");
+        stringRows.push(fields);
+      }
+      return encode(joinRows(stringRows, "\t", "\n"));
     };
 
     // deno-lint-ignore no-explicit-any
