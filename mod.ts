@@ -37,6 +37,17 @@
  *   .filter(line => line.includes("fix"))
  *   .take(5)
  *   .collect();
+ *
+ * // Bridge event-driven code to async iteration
+ * import { WritableIterable } from "@j50n/proc";
+ *
+ * const messages = new WritableIterable<string>();
+ * ws.onmessage = async (e) => await messages.write(e.data);
+ * ws.onclose = () => messages.close();
+ *
+ * for await (const msg of messages) {
+ *   console.log("Received:", msg);
+ * }
  * ```
  *
  * ## Why proc?
@@ -51,6 +62,9 @@
  *
  * **Cleaner, more intuitive code** — Use `map`, `filter`, `reduce`, `flatMap`, `take`, `drop` and more—just
  * like Arrays. Errors propagate naturally through pipelines. One try-catch at the end handles everything.
+ *
+ * **Bridge push and pull** — Convert callback-based APIs (events, WebSockets, sensors) into async iterables
+ * with WritableIterable. Automatic backpressure, natural error propagation, no coordination complexity.
  *
  * **WASM-powered data transforms** — Convert between CSV, TSV, JSON, and Record formats with
  * WebAssembly-accelerated parsing. For maximum throughput, use the flatdata CLI for multi-process streaming.

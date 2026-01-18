@@ -161,6 +161,17 @@ const commits = await run(&quot;git&quot;, &quot;log&quot;, &quot;--oneline&quot
   .filter(line =&gt; line.includes(&quot;fix&quot;))
   .take(5)
   .collect();
+
+// Bridge event-driven code to async iteration
+import { WritableIterable } from &quot;@j50n/proc&quot;;
+
+const messages = new WritableIterable&lt;string&gt;();
+ws.onmessage = async (e) =&gt; await messages.write(e.data);
+ws.onclose = () =&gt; messages.close();
+
+for await (const msg of messages) {
+  console.log(&quot;Received:&quot;, msg);
+}
 </code><button class="copyButton" data-copy="import { read, run } from &quot;@j50n/proc&quot;;
 import { fromCsvToRows, toTsv } from &quot;@j50n/proc/transforms&quot;;
 
@@ -187,6 +198,17 @@ const commits = await run(&quot;git&quot;, &quot;log&quot;, &quot;--oneline&quot
   .filter(line =&gt; line.includes(&quot;fix&quot;))
   .take(5)
   .collect();
+
+// Bridge event-driven code to async iteration
+import { WritableIterable } from &quot;@j50n/proc&quot;;
+
+const messages = new WritableIterable&lt;string&gt;();
+ws.onmessage = async (e) =&gt; await messages.write(e.data);
+ws.onclose = () =&gt; messages.close();
+
+for await (const msg of messages) {
+  console.log(&quot;Received:&quot;, msg);
+}
 "><svg
   class="copy"
   width="15"
@@ -228,6 +250,8 @@ Async iterators eliminate this entirely—the consumer pulls when ready. No memo
 no complexity.</p>
 <p><strong>Cleaner, more intuitive code</strong> — Use <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>flatMap</code>, <code>take</code>, <code>drop</code> and more—just
 like Arrays. Errors propagate naturally through pipelines. One try-catch at the end handles everything.</p>
+<p><strong>Bridge push and pull</strong> — Convert callback-based APIs (events, WebSockets, sensors) into async iterables
+with WritableIterable. Automatic backpressure, natural error propagation, no coordination complexity.</p>
 <p><strong>WASM-powered data transforms</strong> — Convert between CSV, TSV, JSON, and Record formats with
 WebAssembly-accelerated parsing. For maximum throughput, use the flatdata CLI for multi-process streaming.</p>
 <p><strong>Powerful process management</strong> — Run commands, pipe between processes, capture output, and control execution

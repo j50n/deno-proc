@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-90c0fedc.js";
+            window.path_to_searchindex_js = "searchindex-f85fc4bd.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f9208c6f.js"></script>
+        <script src="toc-b062a3f8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -222,6 +222,9 @@ experience with Deno streams or child processes required.</p>
 output, handle errors gracefully.</p>
 <p><strong>Async Iterables</strong> — Use <code>map</code>, <code>filter</code>, <code>reduce</code>, and more on any async data
 source. Process gigabyte files with constant memory.</p>
+<p><strong>Bridge Push and Pull</strong> — Convert callbacks, events, and WebSockets into async
+iterables with WritableIterable. Automatic backpressure, natural error
+propagation.</p>
 <p><strong>Data Transforms</strong> — Convert between CSV, TSV, JSON, and Record formats with
 streaming support. Or use the WASM-powered flatdata CLI for maximum throughput.</p>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
@@ -250,11 +253,24 @@ const results = await enumerate(urls)
   .map((r) =&gt; r.json())
   .collect();
 </code></pre>
+<p>Bridge event-driven code to async iteration:</p>
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const messages = new WritableIterable&lt;string&gt;();
+ws.onmessage = async (e) =&gt; await messages.write(e.data);
+ws.onclose = () =&gt; messages.close();
+
+for await (const msg of messages) {
+  console.log("Received:", msg);
+}
+</code></pre>
 <h2 id="quick-decision-guide"><a class="header" href="#quick-decision-guide">Quick Decision Guide</a></h2>
 <p><strong>Need to run shell commands?</strong> →
 <a href="./core/running-processes.html">Running Processes</a></p>
 <p><strong>Processing files line by line?</strong> → <a href="./utilities/file-io.html">File I/O</a></p>
 <p><strong>Converting CSV/TSV/JSON?</strong> → <a href="./data-transforms/README.html">Data Transforms</a></p>
+<p><strong>Have callback/event-based data?</strong> →
+<a href="./utilities/writable-iterable.html">WritableIterable</a></p>
 <p><strong>Need maximum throughput?</strong> → <a href="./utilities/flatdata.html">flatdata CLI</a></p>
 <p><strong>Working with any async data?</strong> →
 <a href="./iterables/enumerable.html">Understanding Enumerable</a></p>

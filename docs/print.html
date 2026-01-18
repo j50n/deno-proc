@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-90c0fedc.js";
+            window.path_to_searchindex_js = "searchindex-f85fc4bd.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f9208c6f.js"></script>
+        <script src="toc-b062a3f8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -223,6 +223,9 @@ experience with Deno streams or child processes required.</p>
 output, handle errors gracefully.</p>
 <p><strong>Async Iterables</strong> — Use <code>map</code>, <code>filter</code>, <code>reduce</code>, and more on any async data
 source. Process gigabyte files with constant memory.</p>
+<p><strong>Bridge Push and Pull</strong> — Convert callbacks, events, and WebSockets into async
+iterables with WritableIterable. Automatic backpressure, natural error
+propagation.</p>
 <p><strong>Data Transforms</strong> — Convert between CSV, TSV, JSON, and Record formats with
 streaming support. Or use the WASM-powered flatdata CLI for maximum throughput.</p>
 <h2 id="a-taste-of-proc"><a class="header" href="#a-taste-of-proc">A Taste of proc</a></h2>
@@ -251,11 +254,24 @@ const results = await enumerate(urls)
   .map((r) =&gt; r.json())
   .collect();
 </code></pre>
+<p>Bridge event-driven code to async iteration:</p>
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const messages = new WritableIterable&lt;string&gt;();
+ws.onmessage = async (e) =&gt; await messages.write(e.data);
+ws.onclose = () =&gt; messages.close();
+
+for await (const msg of messages) {
+  console.log("Received:", msg);
+}
+</code></pre>
 <h2 id="quick-decision-guide"><a class="header" href="#quick-decision-guide">Quick Decision Guide</a></h2>
 <p><strong>Need to run shell commands?</strong> →
 <a href="#running-processes">Running Processes</a></p>
 <p><strong>Processing files line by line?</strong> → <a href="#file-io">File I/O</a></p>
 <p><strong>Converting CSV/TSV/JSON?</strong> → <a href="data-transforms/README.html">Data Transforms</a></p>
+<p><strong>Have callback/event-based data?</strong> →
+<a href="#writableiterable">WritableIterable</a></p>
 <p><strong>Need maximum throughput?</strong> → <a href="#flatdata-cli">flatdata CLI</a></p>
 <p><strong>Working with any async data?</strong> →
 <a href="#understanding-enumerable">Understanding Enumerable</a></p>
@@ -2199,6 +2215,9 @@ caching stores all results in memory, so only use it when the dataset is small
 enough to fit in memory, you need to iterate multiple times, and the computation
 is expensive enough to justify the memory usage.</p>
 <h2 id="writable-iterables"><a class="header" href="#writable-iterables">Writable Iterables</a></h2>
+<p><strong>Need to convert callbacks or events into async iterables?</strong> See the dedicated
+<a href="#writableiterable">WritableIterable</a> page for complete
+documentation.</p>
 <p>Create async iterables you can write to programmatically, which bridges the gap
 between push-based and pull-based data models:</p>
 <!-- NOT TESTED: Illustrative example -->
@@ -3190,6 +3209,321 @@ const matches = await enumerate(data)
 <li><a href="#streaming-large-files">Streaming Large Files</a> - Work with huge files</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="writableiterable"><a class="header" href="#writableiterable">WritableIterable</a></h1>
+<p><code>WritableIterable</code> is a fascinating utility that inverts the normal data flow:
+instead of pulling data from an iterable, you push data into it. It bridges the
+gap between push-based (callbacks, events) and pull-based (async iteration)
+programming models.</p>
+<h2 id="the-problem-it-solves"><a class="header" href="#the-problem-it-solves">The Problem It Solves</a></h2>
+<p>Imagine you have a callback-based API (like event emitters, WebSocket messages,
+or sensor data) and you want to process it with proc’s pipeline operations. You
+can’t easily convert callbacks to an AsyncIterable… until now.</p>
+<h2 id="how-it-works-2"><a class="header" href="#how-it-works-2">How It Works</a></h2>
+<p><code>WritableIterable</code> is both:</p>
+<ul>
+<li><strong>Writable</strong>: You can <code>.write()</code> items to it</li>
+<li><strong>AsyncIterable</strong>: You can iterate over it with <code>for await</code></li>
+</ul>
+<p>It uses an internal queue to buffer items between the writer and reader,
+allowing them to operate at different speeds.</p>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - basic write and read" -->
+<pre><code class="language-typescript">import { sleep, WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const writable = new WritableIterable&lt;number&gt;();
+
+// Write in background (simulating slow producer)
+(async () =&gt; {
+  await writable.write(1);
+  await sleep(100);
+  await writable.write(2);
+  await sleep(100);
+  await writable.write(3);
+  await writable.close();
+})();
+
+// Read (items arrive as they're written)
+const results: number[] = [];
+for await (const item of writable) {
+  console.log("Received:", item);
+  results.push(item);
+}
+
+console.log(results); // [1, 2, 3]
+</code></pre>
+<p>This demonstrates the streaming nature: the reader receives items as they’re
+written, not all at once.</p>
+<blockquote>
+<p><strong>⚠️ Important</strong>: You MUST call <code>.close()</code> when done writing, or iteration
+will hang forever waiting for more data.</p>
+</blockquote>
+<h2 id="key-concepts-1"><a class="header" href="#key-concepts-1">Key Concepts</a></h2>
+<h3 id="push-vs-pull"><a class="header" href="#push-vs-pull">Push vs Pull</a></h3>
+<p><strong>Traditional AsyncIterable (pull-based)</strong>:</p>
+<pre><code class="language-typescript">// Consumer pulls data
+for await (const item of iterable) {
+  // Process item
+}
+</code></pre>
+<p><strong>WritableIterable (push-based)</strong>:</p>
+<pre><code class="language-typescript">// Producer pushes data
+await writable.write(item);
+</code></pre>
+<h3 id="backpressure"><a class="header" href="#backpressure">Backpressure</a></h3>
+<p><code>WritableIterable</code> implements automatic backpressure. If the writer is faster
+than the reader, <code>.write()</code> will pause until the reader catches up. This
+prevents unbounded memory growth.</p>
+<h2 id="real-world-examples-5"><a class="header" href="#real-world-examples-5">Real-World Examples</a></h2>
+<h3 id="example-1-event-stream-to-pipeline"><a class="header" href="#example-1-event-stream-to-pipeline">Example 1: Event Stream to Pipeline</a></h3>
+<p>Convert DOM events into a processable stream:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const clicks = new WritableIterable&lt;MouseEvent&gt;();
+
+// Producer: capture clicks
+document.addEventListener("click", async (event) =&gt; {
+  await clicks.write(event);
+});
+
+// Consumer: process clicks
+enumerate(clicks)
+  .map((event) =&gt; ({ x: event.clientX, y: event.clientY }))
+  .filter((pos) =&gt; pos.x &gt; 100)
+  .forEach((pos) =&gt; console.log("Click at:", pos));
+
+// Close when done (e.g., on page unload)
+window.addEventListener("unload", () =&gt; clicks.close());
+</code></pre>
+<h3 id="example-2-websocket-to-process"><a class="header" href="#example-2-websocket-to-process">Example 2: WebSocket to Process</a></h3>
+<p>Feed WebSocket messages to a process:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const messages = new WritableIterable&lt;string&gt;();
+
+// Producer: WebSocket messages
+const ws = new WebSocket("wss://example.com");
+ws.onmessage = async (event) =&gt; {
+  await messages.write(event.data);
+};
+ws.onclose = () =&gt; messages.close();
+
+// Consumer: pipe to process
+await enumerate(messages)
+  .run("jq", ".") // Pretty-print JSON
+  .toStdout();
+</code></pre>
+<h3 id="example-3-sensor-data-stream"><a class="header" href="#example-3-sensor-data-stream">Example 3: Sensor Data Stream</a></h3>
+<p>Process sensor readings as they arrive:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+interface SensorReading {
+  temperature: number;
+  timestamp: number;
+}
+
+const readings = new WritableIterable&lt;SensorReading&gt;();
+
+// Producer: sensor callback
+sensor.onReading(async (reading) =&gt; {
+  await readings.write(reading);
+});
+
+// Consumer: calculate moving average
+const averages = await enumerate(readings)
+  .map((r) =&gt; r.temperature)
+  .take(100) // First 100 readings
+  .reduce((acc, temp) =&gt; acc + temp, 0)
+  .then((sum) =&gt; sum / 100);
+
+console.log(`Average: ${averages}°C`);
+await readings.close();
+</code></pre>
+<h3 id="example-4-manual-process-stdin"><a class="header" href="#example-4-manual-process-stdin">Example 4: Manual Process stdin</a></h3>
+<p>Feed data to a process programmatically:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const input = new WritableIterable&lt;string&gt;();
+
+// Producer: generate data
+(async () =&gt; {
+  for (let i = 0; i &lt; 10; i++) {
+    await input.write(`line ${i}`);
+  }
+  await input.close();
+})();
+
+// Consumer: pipe to process
+await enumerate(input)
+  .run("grep", "5")
+  .toStdout();
+// Output: line 5
+</code></pre>
+<h2 id="error-handling-4"><a class="header" href="#error-handling-4">Error Handling</a></h2>
+<p>Errors propagate through the iteration:</p>
+<!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - error propagation" -->
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const writable = new WritableIterable&lt;number&gt;();
+
+// Write and close with error
+(async () =&gt; {
+  await writable.write(1);
+  await writable.write(2);
+  await writable.close(new Error("something failed"));
+})();
+
+try {
+  for await (const item of writable) {
+    console.log(item);
+  }
+} catch (error) {
+  console.error("Error:", error.message);
+}
+// Output:
+// 1
+// 2
+// Error: something failed
+</code></pre>
+<h2 id="cleanup-with-onclose"><a class="header" href="#cleanup-with-onclose">Cleanup with onclose</a></h2>
+<p>You can provide a cleanup callback:</p>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
+
+const writable = new WritableIterable&lt;string&gt;({
+  onclose: async () =&gt; {
+    console.log("Cleaning up resources...");
+    // Close connections, files, etc.
+  },
+});
+
+await writable.write("data");
+await writable.close();
+// Output: Cleaning up resources...
+</code></pre>
+<h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
+<h3 id="constructor"><a class="header" href="#constructor">Constructor</a></h3>
+<pre><code class="language-typescript">new WritableIterable&lt;T&gt;(options?: { onclose?: () =&gt; void | Promise&lt;void&gt; })
+</code></pre>
+<ul>
+<li><code>options.onclose</code>: Optional callback invoked when <code>.close()</code> is called</li>
+</ul>
+<h3 id="methods"><a class="header" href="#methods">Methods</a></h3>
+<p><strong><code>.write(item: T): Promise&lt;void&gt;</code></strong></p>
+<ul>
+<li>Write an item to the stream</li>
+<li>Throws if already closed</li>
+<li>Implements backpressure (pauses if reader is slow)</li>
+</ul>
+<p><strong><code>.close(error?: Error): Promise&lt;void&gt;</code></strong></p>
+<ul>
+<li>Close the stream</li>
+<li>Must be called to end iteration</li>
+<li>Safe to call multiple times</li>
+<li>Optional error propagates to reader</li>
+</ul>
+<h3 id="properties"><a class="header" href="#properties">Properties</a></h3>
+<p><strong><code>.isClosed: boolean</code></strong></p>
+<ul>
+<li>Returns <code>true</code> if <code>.close()</code> has been called</li>
+</ul>
+<h2 id="common-patterns-4"><a class="header" href="#common-patterns-4">Common Patterns</a></h2>
+<h3 id="pattern-timed-data-generation"><a class="header" href="#pattern-timed-data-generation">Pattern: Timed Data Generation</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const timed = new WritableIterable&lt;number&gt;();
+
+(async () =&gt; {
+  for (let i = 0; i &lt; 5; i++) {
+    await timed.write(i);
+    await new Promise((resolve) =&gt; setTimeout(resolve, 1000));
+  }
+  await timed.close();
+})();
+
+for await (const item of timed) {
+  console.log(item); // Prints 0, 1, 2, 3, 4 (one per second)
+}
+</code></pre>
+<h3 id="pattern-conditional-close"><a class="header" href="#pattern-conditional-close">Pattern: Conditional Close</a></h3>
+<!-- NOT TESTED: Illustrative example -->
+<pre><code class="language-typescript">const conditional = new WritableIterable&lt;number&gt;();
+
+(async () =&gt; {
+  for (let i = 0; i &lt; 100; i++) {
+    await conditional.write(i);
+    if (i === 10) {
+      await conditional.close(); // Stop early
+      break;
+    }
+  }
+})();
+
+const items = await enumerate(conditional).collect();
+console.log(items.length); // 11 (0 through 10)
+</code></pre>
+<h2 id="when-to-use-writableiterable"><a class="header" href="#when-to-use-writableiterable">When to Use WritableIterable</a></h2>
+<p><strong>Use it when:</strong></p>
+<ul>
+<li>Converting callback-based APIs to AsyncIterable</li>
+<li>Feeding data to process stdin programmatically</li>
+<li>Bridging event-driven and stream-based code</li>
+<li>You need backpressure between producer and consumer</li>
+</ul>
+<p><strong>Don’t use it when:</strong></p>
+<ul>
+<li>You already have an AsyncIterable (use <code>enumerate()</code> instead)</li>
+<li>You’re working with synchronous data (use arrays)</li>
+<li>You need multi-consumer support (WritableIterable is single-consumer)</li>
+</ul>
+<h2 id="performance-notes"><a class="header" href="#performance-notes">Performance Notes</a></h2>
+<ul>
+<li>Internal queue grows if writer is faster than reader</li>
+<li>Backpressure prevents unbounded growth</li>
+<li>Each <code>.write()</code> creates a Promise (small overhead)</li>
+<li>Best for moderate data rates (not millions of items/second)</li>
+</ul>
+<h2 id="comparison-with-other-approaches"><a class="header" href="#comparison-with-other-approaches">Comparison with Other Approaches</a></h2>
+<h3 id="vs-array"><a class="header" href="#vs-array">vs. Array</a></h3>
+<pre><code class="language-typescript">// Array: all data in memory
+const data = [1, 2, 3];
+for (const item of data) {}
+
+// WritableIterable: streaming, backpressure
+const writable = new WritableIterable&lt;number&gt;();
+for await (const item of writable) {}
+</code></pre>
+<h3 id="vs-transformstream"><a class="header" href="#vs-transformstream">vs. TransformStream</a></h3>
+<pre><code class="language-typescript">// TransformStream: byte-oriented, Web Streams API
+const { readable, writable } = new TransformStream();
+
+// WritableIterable: value-oriented, AsyncIterable
+const writable = new WritableIterable&lt;T&gt;();
+</code></pre>
+<h3 id="vs-channel-from-other-languages"><a class="header" href="#vs-channel-from-other-languages">vs. Channel (from other languages)</a></h3>
+<p>If you’re familiar with Go channels or Rust channels, <code>WritableIterable</code> is
+similar but:</p>
+<ul>
+<li>Single-consumer (not multi-consumer)</li>
+<li>Unbuffered by default (backpressure on every write)</li>
+<li>Integrates with AsyncIterable ecosystem</li>
+</ul>
+<h2 id="the-interesting-little-beast"><a class="header" href="#the-interesting-little-beast">The “Interesting Little Beast”</a></h2>
+<p>What makes <code>WritableIterable</code> interesting:</p>
+<ol>
+<li><strong>Inverted Control</strong>: Most iterables pull data; this one receives pushes</li>
+<li><strong>Backpressure</strong>: Automatically slows down fast producers</li>
+<li><strong>Bridge Pattern</strong>: Connects imperative (callbacks) to declarative
+(iteration)</li>
+<li><strong>Error Propagation</strong>: Errors flow naturally through the iteration</li>
+<li><strong>Simple API</strong>: Just <code>.write()</code>, <code>.close()</code>, and iterate</li>
+</ol>
+<p>It’s a small utility that solves a specific problem elegantly: turning
+push-based data sources into pull-based async iterables that work seamlessly
+with proc’s pipeline operations.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="data-transforms"><a class="header" href="#data-transforms">Data Transforms</a></h1>
 <p>Transform structured data between formats with streaming support and high
 performance.</p>
@@ -3330,7 +3664,7 @@ for (const row of lazyRows) {
 <li><strong>Lazy evaluation</strong>: Parse fields only when accessed</li>
 <li><strong>Caching</strong>: Repeated access uses cached results</li>
 </ul>
-<h2 id="real-world-examples-5"><a class="header" href="#real-world-examples-5">Real-World Examples</a></h2>
+<h2 id="real-world-examples-6"><a class="header" href="#real-world-examples-6">Real-World Examples</a></h2>
 <h3 id="data-pipeline"><a class="header" href="#data-pipeline">Data Pipeline</a></h3>
 <pre><code class="language-typescript">// Process sales data: CSV → filter → enrich → JSON
 await read("sales.csv")
@@ -3380,7 +3714,7 @@ const allRows = await read("huge-dataset.csv")
   .transform(fromCsvToRows())
   .collect(); // Memory explosion!
 </code></pre>
-<h2 id="error-handling-4"><a class="header" href="#error-handling-4">Error Handling</a></h2>
+<h2 id="error-handling-5"><a class="header" href="#error-handling-5">Error Handling</a></h2>
 <p>Transforms use strict error handling:</p>
 <pre><code class="language-typescript">try {
   await read("data.csv")
@@ -3423,7 +3757,7 @@ It uses the same WASM parser as flatdata CLI. See
 <p>CSV transforms provide robust parsing and generation of CSV files with proper
 handling of quoted fields, escaping, and edge cases.</p>
 <p><strong>Tip</strong>: Use LazyRow (<code>fromCsvToLazyRows()</code>) for better performance, especially when you only need to access a few fields from each row.</p>
-<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<h2 id="basic-usage-1"><a class="header" href="#basic-usage-1">Basic Usage</a></h2>
 <h3 id="parsing-csv-to-rows"><a class="header" href="#parsing-csv-to-rows">Parsing CSV to Rows</a></h3>
 <pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 import { fromCsvToRows } from "jsr:@j50n/proc@0.24.6/transforms";
@@ -3544,7 +3878,7 @@ await enumerate(complexData)
 // "Widget B","Contains commas, and
 // newlines",$29.99
 </code></pre>
-<h2 id="real-world-examples-6"><a class="header" href="#real-world-examples-6">Real-World Examples</a></h2>
+<h2 id="real-world-examples-7"><a class="header" href="#real-world-examples-7">Real-World Examples</a></h2>
 <h3 id="data-cleaning-pipeline"><a class="header" href="#data-cleaning-pipeline">Data Cleaning Pipeline</a></h3>
 <pre><code class="language-typescript">// Clean and validate CSV data
 await read("messy-data.csv")
@@ -3623,7 +3957,7 @@ await enumerate(salesData)
   }))
   .writeTo("sales-report.csv");
 </code></pre>
-<h2 id="error-handling-5"><a class="header" href="#error-handling-5">Error Handling</a></h2>
+<h2 id="error-handling-6"><a class="header" href="#error-handling-6">Error Handling</a></h2>
 <h3 id="common-csv-errors"><a class="header" href="#common-csv-errors">Common CSV Errors</a></h3>
 <pre><code class="language-typescript">try {
   await read("problematic.csv")
@@ -3789,7 +4123,7 @@ thoroughly with your data patterns.</p>
 <h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
 <p>TSV (Tab-Separated Values) provides a good balance between human readability and
 processing speed. With no complex quoting rules like CSV, TSV parsing is simpler and faster.</p>
-<h2 id="basic-usage-1"><a class="header" href="#basic-usage-1">Basic Usage</a></h2>
+<h2 id="basic-usage-2"><a class="header" href="#basic-usage-2">Basic Usage</a></h2>
 <h3 id="parsing-tsv-to-rows"><a class="header" href="#parsing-tsv-to-rows">Parsing TSV to Rows</a></h3>
 <pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 import { fromTsvToRows } from "jsr:@j50n/proc@0.24.6/transforms";
@@ -3854,7 +4188,7 @@ await enumerate(data)
 <li>Processing log files or structured data</li>
 <li>Need faster alternative to CSV</li>
 </ul>
-<h2 id="real-world-examples-7"><a class="header" href="#real-world-examples-7">Real-World Examples</a></h2>
+<h2 id="real-world-examples-8"><a class="header" href="#real-world-examples-8">Real-World Examples</a></h2>
 <h3 id="log-file-processing"><a class="header" href="#log-file-processing">Log File Processing</a></h3>
 <pre><code class="language-typescript">// Process web server access logs
 await read("access.log")
@@ -4083,7 +4417,7 @@ await read("events.tsv")
   }, { concurrency: 10 })
   .forEach((result) =&gt; console.log("Sent:", result.id));
 </code></pre>
-<h2 id="error-handling-6"><a class="header" href="#error-handling-6">Error Handling</a></h2>
+<h2 id="error-handling-7"><a class="header" href="#error-handling-7">Error Handling</a></h2>
 <h3 id="malformed-data"><a class="header" href="#malformed-data">Malformed Data</a></h3>
 <pre><code class="language-typescript">try {
   await read("data.tsv")
@@ -4179,7 +4513,7 @@ thoroughly with your data patterns.</p>
 Unlike other formats, JSON preserves full object structure including nested
 objects, arrays, and all JSON data types. This makes it ideal for APIs,
 configuration data, and complex structured information.</p>
-<h2 id="basic-usage-2"><a class="header" href="#basic-usage-2">Basic Usage</a></h2>
+<h2 id="basic-usage-3"><a class="header" href="#basic-usage-3">Basic Usage</a></h2>
 <h3 id="parsing-json-lines"><a class="header" href="#parsing-json-lines">Parsing JSON Lines</a></h3>
 <pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 import { fromJsonToRows } from "jsr:@j50n/proc@0.24.6/transforms";
@@ -4260,7 +4594,7 @@ const events = await read("events.jsonl")
   })
   .collect();
 </code></pre>
-<h2 id="real-world-examples-8"><a class="header" href="#real-world-examples-8">Real-World Examples</a></h2>
+<h2 id="real-world-examples-9"><a class="header" href="#real-world-examples-9">Real-World Examples</a></h2>
 <h3 id="api-event-processing"><a class="header" href="#api-event-processing">API Event Processing</a></h3>
 <pre><code class="language-typescript">// Process webhook events
 interface WebhookEvent {
@@ -4486,7 +4820,7 @@ await read("event-batches.jsonl")
   .transform(toJson())
   .writeTo("individual-events.jsonl");
 </code></pre>
-<h2 id="error-handling-7"><a class="header" href="#error-handling-7">Error Handling</a></h2>
+<h2 id="error-handling-8"><a class="header" href="#error-handling-8">Error Handling</a></h2>
 <h3 id="json-parsing-errors"><a class="header" href="#json-parsing-errors">JSON Parsing Errors</a></h3>
 <pre><code class="language-typescript">try {
   await read("malformed.jsonl")
@@ -4665,7 +4999,7 @@ field1\x1Ffield2\x1Ffield3\x1E
 <pre><code>Alice\x1F30\x1FNew\nYork\x1E
 Bob\x1F25\x1FLondon\x1E
 </code></pre>
-<h2 id="basic-usage-3"><a class="header" href="#basic-usage-3">Basic Usage</a></h2>
+<h2 id="basic-usage-4"><a class="header" href="#basic-usage-4">Basic Usage</a></h2>
 <h3 id="parsing-record-format"><a class="header" href="#parsing-record-format">Parsing Record Format</a></h3>
 <pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
 import { fromRecordToRows } from "jsr:@j50n/proc@0.24.6/transforms";
@@ -4757,7 +5091,7 @@ await read("large-dataset.record") // Fast parsing
 const duration = Date.now() - startTime;
 console.log(`Processed in ${duration}ms`);
 </code></pre>
-<h2 id="real-world-examples-9"><a class="header" href="#real-world-examples-9">Real-World Examples</a></h2>
+<h2 id="real-world-examples-10"><a class="header" href="#real-world-examples-10">Real-World Examples</a></h2>
 <h3 id="high-throughput-etl-pipeline"><a class="header" href="#high-throughput-etl-pipeline">High-Throughput ETL Pipeline</a></h3>
 <pre><code class="language-typescript">// Process millions of records efficiently
 let processedCount = 0;
@@ -5034,7 +5368,7 @@ await read("events.record")
   }, { concurrency: 20 }) // Higher concurrency due to Record format speed
   .forEach((result) =&gt; console.log("Processed:", result.id));
 </code></pre>
-<h2 id="error-handling-8"><a class="header" href="#error-handling-8">Error Handling</a></h2>
+<h2 id="error-handling-9"><a class="header" href="#error-handling-9">Error Handling</a></h2>
 <h3 id="malformed-records"><a class="header" href="#malformed-records">Malformed Records</a></h3>
 <pre><code class="language-typescript">try {
   await read("data.record")
@@ -5132,7 +5466,7 @@ providing a clean, simple API.</p>
 <li><strong>Automatic caching</strong>: Repeated access uses cached results</li>
 <li><strong>Memory efficient</strong>: Minimal overhead for conversion caching</li>
 </ul>
-<h2 id="basic-usage-4"><a class="header" href="#basic-usage-4">Basic Usage</a></h2>
+<h2 id="basic-usage-5"><a class="header" href="#basic-usage-5">Basic Usage</a></h2>
 <h3 id="creating-lazyrow"><a class="header" href="#creating-lazyrow">Creating LazyRow</a></h3>
 <pre><code class="language-typescript">import { LazyRow } from "jsr:@j50n/proc@0.24.6/transforms";
 
@@ -5307,7 +5641,7 @@ const processAllFields = (row: LazyRow) =&gt; {
   };
 };
 </code></pre>
-<h2 id="real-world-examples-10"><a class="header" href="#real-world-examples-10">Real-World Examples</a></h2>
+<h2 id="real-world-examples-11"><a class="header" href="#real-world-examples-11">Real-World Examples</a></h2>
 <h3 id="log-analysis-1"><a class="header" href="#log-analysis-1">Log Analysis</a></h3>
 <pre><code class="language-typescript">// Analyze web server logs efficiently
 let errorCount = 0;
@@ -5418,7 +5752,7 @@ console.log(`Processed ${stats.totalRows} sales`);
 console.log(`Total revenue: $${stats.totalSales.toFixed(2)}`);
 console.log(`Average customer age: ${stats.avgAge.toFixed(1)}`);
 </code></pre>
-<h2 id="error-handling-9"><a class="header" href="#error-handling-9">Error Handling</a></h2>
+<h2 id="error-handling-10"><a class="header" href="#error-handling-10">Error Handling</a></h2>
 <h3 id="field-access-errors"><a class="header" href="#field-access-errors">Field Access Errors</a></h3>
 <pre><code class="language-typescript">try {
   const value = row.getField(10); // Index out of bounds
@@ -5776,7 +6110,7 @@ fast items wait for slow ones.</p>
 if order truly matters for your use case.</p>
 <p><strong>Concurrency:</strong> Defaults to CPU count. Override with <code>{ concurrency: n }</code> if
 needed.</p>
-<h2 id="real-world-examples-11"><a class="header" href="#real-world-examples-11">Real-World Examples</a></h2>
+<h2 id="real-world-examples-12"><a class="header" href="#real-world-examples-12">Real-World Examples</a></h2>
 <h3 id="fetch-multiple-urls"><a class="header" href="#fetch-multiple-urls">Fetch Multiple URLs</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const urls = [
@@ -5858,7 +6192,7 @@ const results = await enumerate(apiCalls)
   }, { concurrency: 1 })
   .collect();
 </code></pre>
-<h2 id="error-handling-10"><a class="header" href="#error-handling-10">Error Handling</a></h2>
+<h2 id="error-handling-11"><a class="header" href="#error-handling-11">Error Handling</a></h2>
 <p>Errors propagate naturally:</p>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">try {
@@ -6250,7 +6584,7 @@ Object.entries(errorsByDay)
 <li>You need to process data multiple times</li>
 <li>Memory is not a concern</li>
 </ul>
-<h2 id="common-patterns-4"><a class="header" href="#common-patterns-4">Common Patterns</a></h2>
+<h2 id="common-patterns-5"><a class="header" href="#common-patterns-5">Common Patterns</a></h2>
 <h3 id="filter-and-count-1"><a class="header" href="#filter-and-count-1">Filter and Count</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const count = await read("file.txt")
@@ -6756,7 +7090,7 @@ const bytes = await read("file.bin").collect();
 <pre><code class="language-typescript">const path = new URL("./data.txt", import.meta.url);
 read(path);
 </code></pre>
-<h2 id="common-patterns-5"><a class="header" href="#common-patterns-5">Common Patterns</a></h2>
+<h2 id="common-patterns-6"><a class="header" href="#common-patterns-6">Common Patterns</a></h2>
 <h3 id="count-lines-1"><a class="header" href="#count-lines-1">Count Lines</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const lineCount = await read("file.txt").lines.count();
@@ -6852,7 +7186,7 @@ const results = await enumerate(files)
   }, { concurrency: 3 })
   .collect();
 </code></pre>
-<h2 id="error-handling-11"><a class="header" href="#error-handling-11">Error Handling</a></h2>
+<h2 id="error-handling-12"><a class="header" href="#error-handling-12">Error Handling</a></h2>
 <h3 id="file-not-found"><a class="header" href="#file-not-found">File Not Found</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">try {
@@ -6888,7 +7222,7 @@ for await (const line of read("huge.txt").lines) {
 <pre><code class="language-typescript">const chunks = await read("file.txt").chunkedLines.collect();
 // Array of string arrays
 </code></pre>
-<h2 id="real-world-examples-12"><a class="header" href="#real-world-examples-12">Real-World Examples</a></h2>
+<h2 id="real-world-examples-13"><a class="header" href="#real-world-examples-13">Real-World Examples</a></h2>
 <h3 id="log-analysis-2"><a class="header" href="#log-analysis-2">Log Analysis</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const errorsByType = await read("app.log")
@@ -6981,7 +7315,7 @@ characters that never appear in text data:</p>
 <li><code>\x1E</code> (Record Separator) between rows</li>
 </ul>
 <p>This makes parsing trivial: <code>row.split('\x1F')</code> gives you fields instantly.</p>
-<h2 id="basic-usage-5"><a class="header" href="#basic-usage-5">Basic Usage</a></h2>
+<h2 id="basic-usage-6"><a class="header" href="#basic-usage-6">Basic Usage</a></h2>
 <pre><code class="language-bash"># Convert CSV to record format
 cat data.csv | flatdata csv2record &gt; data.rec
 
@@ -7241,7 +7575,7 @@ create sequences like even numbers, multiples, or any regular interval:</p>
 <pre><code class="language-typescript">const countdown = await range({ from: 5, to: 0, step: -1 }).collect();
 // [5, 4, 3, 2, 1]
 </code></pre>
-<h2 id="real-world-examples-13"><a class="header" href="#real-world-examples-13">Real-World Examples</a></h2>
+<h2 id="real-world-examples-14"><a class="header" href="#real-world-examples-14">Real-World Examples</a></h2>
 <h3 id="repeat-n-times"><a class="header" href="#repeat-n-times">Repeat N Times</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">await range({ to: 10 }).forEach((i) =&gt; {
@@ -7362,7 +7696,7 @@ const people = await zip(names, ages)
   .map(([a, b]) =&gt; a + b)
   .collect();
 </code></pre>
-<h2 id="real-world-examples-14"><a class="header" href="#real-world-examples-14">Real-World Examples</a></h2>
+<h2 id="real-world-examples-15"><a class="header" href="#real-world-examples-15">Real-World Examples</a></h2>
 <h3 id="number-lines"><a class="header" href="#number-lines">Number Lines</a></h3>
 <!-- NOT TESTED: Illustrative example -->
 <pre><code class="language-typescript">const numbered = await read("file.txt")
@@ -7396,321 +7730,6 @@ await enumerate(items)
 <li><a href="#range-and-iteration">Range and Iteration</a> - Generate sequences</li>
 <li><a href="#array-like-methods">Array-Like Methods</a> - Transform data</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="writableiterable"><a class="header" href="#writableiterable">WritableIterable</a></h1>
-<p><code>WritableIterable</code> is a fascinating utility that inverts the normal data flow:
-instead of pulling data from an iterable, you push data into it. It bridges the
-gap between push-based (callbacks, events) and pull-based (async iteration)
-programming models.</p>
-<h2 id="the-problem-it-solves"><a class="header" href="#the-problem-it-solves">The Problem It Solves</a></h2>
-<p>Imagine you have a callback-based API (like event emitters, WebSocket messages,
-or sensor data) and you want to process it with proc’s pipeline operations. You
-can’t easily convert callbacks to an AsyncIterable… until now.</p>
-<h2 id="how-it-works-2"><a class="header" href="#how-it-works-2">How It Works</a></h2>
-<p><code>WritableIterable</code> is both:</p>
-<ul>
-<li><strong>Writable</strong>: You can <code>.write()</code> items to it</li>
-<li><strong>AsyncIterable</strong>: You can iterate over it with <code>for await</code></li>
-</ul>
-<p>It uses an internal queue to buffer items between the writer and reader,
-allowing them to operate at different speeds.</p>
-<h2 id="basic-usage-6"><a class="header" href="#basic-usage-6">Basic Usage</a></h2>
-<!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - basic write and read" -->
-<pre><code class="language-typescript">import { sleep, WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-const writable = new WritableIterable&lt;number&gt;();
-
-// Write in background (simulating slow producer)
-(async () =&gt; {
-  await writable.write(1);
-  await sleep(100);
-  await writable.write(2);
-  await sleep(100);
-  await writable.write(3);
-  await writable.close();
-})();
-
-// Read (items arrive as they're written)
-const results: number[] = [];
-for await (const item of writable) {
-  console.log("Received:", item);
-  results.push(item);
-}
-
-console.log(results); // [1, 2, 3]
-</code></pre>
-<p>This demonstrates the streaming nature: the reader receives items as they’re
-written, not all at once.</p>
-<blockquote>
-<p><strong>⚠️ Important</strong>: You MUST call <code>.close()</code> when done writing, or iteration
-will hang forever waiting for more data.</p>
-</blockquote>
-<h2 id="key-concepts-1"><a class="header" href="#key-concepts-1">Key Concepts</a></h2>
-<h3 id="push-vs-pull"><a class="header" href="#push-vs-pull">Push vs Pull</a></h3>
-<p><strong>Traditional AsyncIterable (pull-based)</strong>:</p>
-<pre><code class="language-typescript">// Consumer pulls data
-for await (const item of iterable) {
-  // Process item
-}
-</code></pre>
-<p><strong>WritableIterable (push-based)</strong>:</p>
-<pre><code class="language-typescript">// Producer pushes data
-await writable.write(item);
-</code></pre>
-<h3 id="backpressure"><a class="header" href="#backpressure">Backpressure</a></h3>
-<p><code>WritableIterable</code> implements automatic backpressure. If the writer is faster
-than the reader, <code>.write()</code> will pause until the reader catches up. This
-prevents unbounded memory growth.</p>
-<h2 id="real-world-examples-15"><a class="header" href="#real-world-examples-15">Real-World Examples</a></h2>
-<h3 id="example-1-event-stream-to-pipeline"><a class="header" href="#example-1-event-stream-to-pipeline">Example 1: Event Stream to Pipeline</a></h3>
-<p>Convert DOM events into a processable stream:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-const clicks = new WritableIterable&lt;MouseEvent&gt;();
-
-// Producer: capture clicks
-document.addEventListener("click", async (event) =&gt; {
-  await clicks.write(event);
-});
-
-// Consumer: process clicks
-enumerate(clicks)
-  .map((event) =&gt; ({ x: event.clientX, y: event.clientY }))
-  .filter((pos) =&gt; pos.x &gt; 100)
-  .forEach((pos) =&gt; console.log("Click at:", pos));
-
-// Close when done (e.g., on page unload)
-window.addEventListener("unload", () =&gt; clicks.close());
-</code></pre>
-<h3 id="example-2-websocket-to-process"><a class="header" href="#example-2-websocket-to-process">Example 2: WebSocket to Process</a></h3>
-<p>Feed WebSocket messages to a process:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-const messages = new WritableIterable&lt;string&gt;();
-
-// Producer: WebSocket messages
-const ws = new WebSocket("wss://example.com");
-ws.onmessage = async (event) =&gt; {
-  await messages.write(event.data);
-};
-ws.onclose = () =&gt; messages.close();
-
-// Consumer: pipe to process
-await enumerate(messages)
-  .run("jq", ".") // Pretty-print JSON
-  .toStdout();
-</code></pre>
-<h3 id="example-3-sensor-data-stream"><a class="header" href="#example-3-sensor-data-stream">Example 3: Sensor Data Stream</a></h3>
-<p>Process sensor readings as they arrive:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-interface SensorReading {
-  temperature: number;
-  timestamp: number;
-}
-
-const readings = new WritableIterable&lt;SensorReading&gt;();
-
-// Producer: sensor callback
-sensor.onReading(async (reading) =&gt; {
-  await readings.write(reading);
-});
-
-// Consumer: calculate moving average
-const averages = await enumerate(readings)
-  .map((r) =&gt; r.temperature)
-  .take(100) // First 100 readings
-  .reduce((acc, temp) =&gt; acc + temp, 0)
-  .then((sum) =&gt; sum / 100);
-
-console.log(`Average: ${averages}°C`);
-await readings.close();
-</code></pre>
-<h3 id="example-4-manual-process-stdin"><a class="header" href="#example-4-manual-process-stdin">Example 4: Manual Process stdin</a></h3>
-<p>Feed data to a process programmatically:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate, WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-const input = new WritableIterable&lt;string&gt;();
-
-// Producer: generate data
-(async () =&gt; {
-  for (let i = 0; i &lt; 10; i++) {
-    await input.write(`line ${i}`);
-  }
-  await input.close();
-})();
-
-// Consumer: pipe to process
-await enumerate(input)
-  .run("grep", "5")
-  .toStdout();
-// Output: line 5
-</code></pre>
-<h2 id="error-handling-12"><a class="header" href="#error-handling-12">Error Handling</a></h2>
-<p>Errors propagate through the iteration:</p>
-<!-- TESTED: tests/docs/writable-iterable.test.ts - "WritableIterable - error propagation" -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-const writable = new WritableIterable&lt;number&gt;();
-
-// Write and close with error
-(async () =&gt; {
-  await writable.write(1);
-  await writable.write(2);
-  await writable.close(new Error("something failed"));
-})();
-
-try {
-  for await (const item of writable) {
-    console.log(item);
-  }
-} catch (error) {
-  console.error("Error:", error.message);
-}
-// Output:
-// 1
-// 2
-// Error: something failed
-</code></pre>
-<h2 id="cleanup-with-onclose"><a class="header" href="#cleanup-with-onclose">Cleanup with onclose</a></h2>
-<p>You can provide a cleanup callback:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-const writable = new WritableIterable&lt;string&gt;({
-  onclose: async () =&gt; {
-    console.log("Cleaning up resources...");
-    // Close connections, files, etc.
-  },
-});
-
-await writable.write("data");
-await writable.close();
-// Output: Cleaning up resources...
-</code></pre>
-<h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
-<h3 id="constructor"><a class="header" href="#constructor">Constructor</a></h3>
-<pre><code class="language-typescript">new WritableIterable&lt;T&gt;(options?: { onclose?: () =&gt; void | Promise&lt;void&gt; })
-</code></pre>
-<ul>
-<li><code>options.onclose</code>: Optional callback invoked when <code>.close()</code> is called</li>
-</ul>
-<h3 id="methods"><a class="header" href="#methods">Methods</a></h3>
-<p><strong><code>.write(item: T): Promise&lt;void&gt;</code></strong></p>
-<ul>
-<li>Write an item to the stream</li>
-<li>Throws if already closed</li>
-<li>Implements backpressure (pauses if reader is slow)</li>
-</ul>
-<p><strong><code>.close(error?: Error): Promise&lt;void&gt;</code></strong></p>
-<ul>
-<li>Close the stream</li>
-<li>Must be called to end iteration</li>
-<li>Safe to call multiple times</li>
-<li>Optional error propagates to reader</li>
-</ul>
-<h3 id="properties"><a class="header" href="#properties">Properties</a></h3>
-<p><strong><code>.isClosed: boolean</code></strong></p>
-<ul>
-<li>Returns <code>true</code> if <code>.close()</code> has been called</li>
-</ul>
-<h2 id="common-patterns-6"><a class="header" href="#common-patterns-6">Common Patterns</a></h2>
-<h3 id="pattern-timed-data-generation"><a class="header" href="#pattern-timed-data-generation">Pattern: Timed Data Generation</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const timed = new WritableIterable&lt;number&gt;();
-
-(async () =&gt; {
-  for (let i = 0; i &lt; 5; i++) {
-    await timed.write(i);
-    await new Promise((resolve) =&gt; setTimeout(resolve, 1000));
-  }
-  await timed.close();
-})();
-
-for await (const item of timed) {
-  console.log(item); // Prints 0, 1, 2, 3, 4 (one per second)
-}
-</code></pre>
-<h3 id="pattern-conditional-close"><a class="header" href="#pattern-conditional-close">Pattern: Conditional Close</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const conditional = new WritableIterable&lt;number&gt;();
-
-(async () =&gt; {
-  for (let i = 0; i &lt; 100; i++) {
-    await conditional.write(i);
-    if (i === 10) {
-      await conditional.close(); // Stop early
-      break;
-    }
-  }
-})();
-
-const items = await enumerate(conditional).collect();
-console.log(items.length); // 11 (0 through 10)
-</code></pre>
-<h2 id="when-to-use-writableiterable"><a class="header" href="#when-to-use-writableiterable">When to Use WritableIterable</a></h2>
-<p><strong>Use it when:</strong></p>
-<ul>
-<li>Converting callback-based APIs to AsyncIterable</li>
-<li>Feeding data to process stdin programmatically</li>
-<li>Bridging event-driven and stream-based code</li>
-<li>You need backpressure between producer and consumer</li>
-</ul>
-<p><strong>Don’t use it when:</strong></p>
-<ul>
-<li>You already have an AsyncIterable (use <code>enumerate()</code> instead)</li>
-<li>You’re working with synchronous data (use arrays)</li>
-<li>You need multi-consumer support (WritableIterable is single-consumer)</li>
-</ul>
-<h2 id="performance-notes"><a class="header" href="#performance-notes">Performance Notes</a></h2>
-<ul>
-<li>Internal queue grows if writer is faster than reader</li>
-<li>Backpressure prevents unbounded growth</li>
-<li>Each <code>.write()</code> creates a Promise (small overhead)</li>
-<li>Best for moderate data rates (not millions of items/second)</li>
-</ul>
-<h2 id="comparison-with-other-approaches"><a class="header" href="#comparison-with-other-approaches">Comparison with Other Approaches</a></h2>
-<h3 id="vs-array"><a class="header" href="#vs-array">vs. Array</a></h3>
-<pre><code class="language-typescript">// Array: all data in memory
-const data = [1, 2, 3];
-for (const item of data) {}
-
-// WritableIterable: streaming, backpressure
-const writable = new WritableIterable&lt;number&gt;();
-for await (const item of writable) {}
-</code></pre>
-<h3 id="vs-transformstream"><a class="header" href="#vs-transformstream">vs. TransformStream</a></h3>
-<pre><code class="language-typescript">// TransformStream: byte-oriented, Web Streams API
-const { readable, writable } = new TransformStream();
-
-// WritableIterable: value-oriented, AsyncIterable
-const writable = new WritableIterable&lt;T&gt;();
-</code></pre>
-<h3 id="vs-channel-from-other-languages"><a class="header" href="#vs-channel-from-other-languages">vs. Channel (from other languages)</a></h3>
-<p>If you’re familiar with Go channels or Rust channels, <code>WritableIterable</code> is
-similar but:</p>
-<ul>
-<li>Single-consumer (not multi-consumer)</li>
-<li>Unbuffered by default (backpressure on every write)</li>
-<li>Integrates with AsyncIterable ecosystem</li>
-</ul>
-<h2 id="the-interesting-little-beast"><a class="header" href="#the-interesting-little-beast">The “Interesting Little Beast”</a></h2>
-<p>What makes <code>WritableIterable</code> interesting:</p>
-<ol>
-<li><strong>Inverted Control</strong>: Most iterables pull data; this one receives pushes</li>
-<li><strong>Backpressure</strong>: Automatically slows down fast producers</li>
-<li><strong>Bridge Pattern</strong>: Connects imperative (callbacks) to declarative
-(iteration)</li>
-<li><strong>Error Propagation</strong>: Errors flow naturally through the iteration</li>
-<li><strong>Simple API</strong>: Just <code>.write()</code>, <code>.close()</code>, and iterate</li>
-</ol>
-<p>It’s a small utility that solves a specific problem elegantly: turning
-push-based data sources into pull-based async iterables that work seamlessly
-with proc’s pipeline operations.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="sleep"><a class="header" href="#sleep">Sleep</a></h1>
 <p>The <code>sleep</code> function pauses execution for a specified duration. While it might

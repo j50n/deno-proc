@@ -49,6 +49,17 @@ try {
 } catch (error) {
   console.error(`Tests failed: ${error.code}`);
 }
+
+// Bridge event-driven code to async iteration
+import { WritableIterable } from "jsr:@j50n/proc";
+
+const messages = new WritableIterable<string>();
+ws.onmessage = async (e) => await messages.write(e.data);
+ws.onclose = () => messages.close();
+
+await enumerate(messages)
+  .filter((msg) => msg.includes("error"))
+  .toStdout();
 ```
 
 ## Why proc?
@@ -66,6 +77,10 @@ consumer pulls when ready. No memory pressure, no dropped data, no complexity.
 `take`, `drop` and more—just like Arrays. Errors propagate naturally through
 pipelines in sync with the data stream—no race conditions or async error events.
 One try-catch at the end handles everything.
+
+**Bridge push and pull** — Convert callback-based APIs (events, WebSockets,
+sensors) into async iterables with WritableIterable. Automatic backpressure,
+natural error propagation, no coordination complexity.
 
 **WASM-powered data transforms** — Convert between CSV, TSV, JSON, and Record
 formats with WebAssembly-accelerated parsing. For maximum throughput, use the
@@ -94,6 +109,8 @@ guide you toward correct usage.
 - **Slicing & sampling** — `take`, `drop`, `slice`, `first`, `last`, `nth`
 - **Concurrent operations** — `concurrentMap`, `concurrentUnorderedMap` with
   concurrency control
+- **Bridge push/pull** — `WritableIterable` converts callbacks/events to async
+  iterables
 - **Utilities** — `enumerate`, `zip`, `range`, `cache()`
 
 ### 📊 Data Transforms
@@ -265,10 +282,11 @@ await enumerate(urls)
 - **Slicing & sampling** — `take`, `drop`, `slice`, `first`, `last`, `nth`
 - **Concurrent operations** — `concurrentMap`, `concurrentUnorderedMap` with
   concurrency control
+- **Bridge push/pull** — `WritableIterable` converts callbacks/events to async
+  iterables
 - **Data transforms** — CSV, TSV, JSON, Record format conversions with streaming
 - **Utilities** — `enumerate`, `zip`, `range`, `read` (for files)
 - **Caching** — `cache()` to replay iterables
-- **Writable iterables** — Push values into async iterables programmatically
 
 ## Documentation
 

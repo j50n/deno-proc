@@ -27,6 +27,7 @@
 - [Transformations](./iterables/transformations.md)
 - [Aggregations](./iterables/aggregations.md)
 - [Slicing and Sampling](./iterables/slicing.md)
+- [WritableIterable](./utilities/writable-iterable.md)
 
 # Data Transforms
 
@@ -51,7 +52,6 @@
 - [flatdata CLI](./utilities/flatdata.md)
 - [Range and Iteration](./utilities/range.md)
 - [Zip and Enumerate](./utilities/zip-enumerate.md)
-- [WritableIterable](./utilities/writable-iterable.md)
 - [Sleep](./utilities/sleep.md)
 
 # Recipes

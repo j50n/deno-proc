@@ -323,6 +323,10 @@ is expensive enough to justify the memory usage.
 
 ## Writable Iterables
 
+**Need to convert callbacks or events into async iterables?** See the dedicated
+[WritableIterable](../utilities/writable-iterable.md) page for complete
+documentation.
+
 Create async iterables you can write to programmatically, which bridges the gap
 between push-based and pull-based data models:
 

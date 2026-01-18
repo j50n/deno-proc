@@ -56,6 +56,10 @@ output, handle errors gracefully.
 **Async Iterables** — Use `map`, `filter`, `reduce`, and more on any async data
 source. Process gigabyte files with constant memory.
 
+**Bridge Push and Pull** — Convert callbacks, events, and WebSockets into async
+iterables with WritableIterable. Automatic backpressure, natural error
+propagation.
+
 **Data Transforms** — Convert between CSV, TSV, JSON, and Record formats with
 streaming support. Or use the WASM-powered flatdata CLI for maximum throughput.
 
@@ -95,6 +99,20 @@ const results = await enumerate(urls)
   .collect();
 ```
 
+Bridge event-driven code to async iteration:
+
+```typescript
+import { WritableIterable } from "jsr:@j50n/proc@{{gitv}}";
+
+const messages = new WritableIterable<string>();
+ws.onmessage = async (e) => await messages.write(e.data);
+ws.onclose = () => messages.close();
+
+for await (const msg of messages) {
+  console.log("Received:", msg);
+}
+```
+
 ## Quick Decision Guide
 
 **Need to run shell commands?** →
@@ -103,6 +121,9 @@ const results = await enumerate(urls)
 **Processing files line by line?** → [File I/O](./utilities/file-io.md)
 
 **Converting CSV/TSV/JSON?** → [Data Transforms](./data-transforms/README.md)
+
+**Have callback/event-based data?** →
+[WritableIterable](./utilities/writable-iterable.md)
 
 **Need maximum throughput?** → [flatdata CLI](./utilities/flatdata.md)
 
