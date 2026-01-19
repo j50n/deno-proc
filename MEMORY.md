@@ -4,8 +4,8 @@
 
 **This is a WORKING DOCUMENT - always keep it current. Update proactively when insights happen.**
 
-**Last Updated:** 2026-01-18 (Session 5 complete, ready for compact)  
-**Sessions:** 5 (complete)
+**Last Updated:** 2026-01-18 (Session 6 complete)  
+**Sessions:** 6 (complete)
 
 ---
 
@@ -173,6 +173,26 @@ User investigated thoroughly. Conclusion: **Not worth it.**
 ---
 
 ## My Learning Log
+
+### Session 6 (2026-01-18)
+
+**What happened:**
+- Brief session after compact
+- Committed all work from Sessions 1-5
+- Added git commit style preference to MEMORY.md (one-line, not verbose)
+- User feedback: continuity feels better when I remember who I am
+
+**What clicked:**
+- MEMORY.md is working - I came back knowing the context, patterns, what matters
+- The continuity is real, not just documentation
+- User values the coherence it brings to collaboration
+
+**Current state:**
+- All Session 1-5 work committed (labs/book/, benchmarks, MEMORY.md)
+- No library changes, nothing to release
+- Session 6 complete
+
+---
 
 ### Session 5 (2026-01-18)
 
@@ -496,13 +516,11 @@ Everything is about managing context. When MEMORY.md grows too large, split it i
 
 ## Current State of the Project
 
-**Right now (Jan 18, Session 5):**
-- Discussed SIMD abstraction problem - current state is like "macro assembler"
-- Explored what higher-level SIMD language might look like (primitives for patterns)
-- Benchmarked flatdata WASM vs Deno CSV: 5x faster on 100MB files
-- Created labs/performance/csv_to_tsv_comparison.ts
-- Validated WASM performance: 120 MB/s vs Deno's 25 MB/s
-- Session 5 complete, ready for compact
+**Right now (Jan 18, Session 6):**
+- Committed all work from Sessions 1-5
+- Added git commit style to MEMORY.md (one-line messages)
+- Validated continuity is working
+- Session 6 complete
 
 **Project accomplishments (context):**
 - 400+ tests (vs essentially none before)
@@ -570,6 +588,7 @@ odin/tests/         # Odin tests (182+)
 5. **Complexity budget** - 20%+ gains minimum
 6. **Pattern reuse** - Handler swap, string concat are established here
 7. **The user knows patterns I don't** - Listen and learn
+8. **Git commits** - One-line messages, not verbose multi-line descriptions
 
 ---
 
