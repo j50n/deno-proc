@@ -118,6 +118,56 @@ for await (const line of run("tail", "-f", "log").lines) {
 }
 ```
 
+## Shutting Down Children Before Exit
+
+When Deno exits, proc sends SIGTERM to every child still running. It can't wait
+for them, though, and that matters when a child has its own shutdown work, such
+as a launcher that has to release a cloud resource on the way out. In a
+container, Deno's exit usually ends the container, and the child is killed
+partway through.
+
+`terminateAll` signals every running child at once and waits for all of them to
+exit. Call it from code that can still await, before you exit:
+
+<!-- NOT TESTED: Illustrative example -->
+
+```typescript
+import { terminateAll } from "jsr:@j50n/proc@{{gitv}}";
+
+Deno.addSignalListener("SIGTERM", async () => {
+  await terminateAll({ timeoutMs: 25_000 });
+  Deno.exit(143);
+});
+
+try {
+  await main();
+} catch (e) {
+  console.error(e);
+  await terminateAll({ timeoutMs: 25_000 });
+  Deno.exit(1);
+}
+```
+
+The signal listener is required. A container runtime stops a container by
+sending SIGTERM to its main process only, and if Deno isn't listening for it,
+Deno dies on the spot and none of this runs.
+
+Without `timeoutMs`, `terminateAll` waits as long as it takes. In a container,
+the real deadline is the runtime's SIGKILL at the end of its grace period (10
+seconds by default for `docker stop`, 30 for Kubernetes and ECS), so set
+`timeoutMs` a little under that. Children still running at the timeout are left
+alone, not killed: their shutdown keeps every second it can get.
+
+Two limits are worth knowing:
+
+- **proc signals only the processes it started.** If a child is a wrapper script
+  that runs the real program as its own child, the script has to `exec` the
+  program or forward the signal. Otherwise the program never hears about the
+  shutdown. The Scala 2 `scala` runner is one such wrapper.
+- **Nothing runs if Deno is killed outright**, by SIGKILL, the OOM killer, or a
+  failed node. Anything that must be cleaned up needs a backstop of its own on
+  the resource side, such as an idle timeout.
+
 ## Best Practices for Resource Management
 
 Following these principles will help you avoid resource leaks and build reliable

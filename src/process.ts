@@ -3,13 +3,89 @@ import { type Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
 import { type Writable, WritableIterable } from "./writable-iterable.ts";
 
+/** Children that have not exited yet. Each one removes itself when it exits. */
 const runningChildProcesses: Map<string, Process<unknown>> = new Map();
 
-globalThis.addEventListener("unload", () => {
-  for (const p of runningChildProcesses.values()) {
-    p.process.kill();
+/**
+ * Send `signal` to every running child. One that exits between the lookup and
+ * the signal makes `kill` throw; it needs no signal, and the rest still do.
+ */
+function signalAll(signal: Deno.Signal): Process<unknown>[] {
+  const children = [...runningChildProcesses.values()];
+  for (const p of children) {
+    try {
+      p.process.kill(signal);
+    } catch {
+      // Already exited.
+    }
   }
+  return children;
+}
+
+/*
+ * Last resort on exit: signal the children, but `unload` is synchronous, so
+ * nothing waits for them. Use `terminateAll` to wait.
+ */
+globalThis.addEventListener("unload", () => {
+  signalAll("SIGTERM");
 });
+
+/**
+ * Signal every child process proc started that is still running, all at once,
+ * and wait for them to exit.
+ *
+ * Call this before exiting when children have shutdown work of their own that
+ * must finish, such as releasing a cloud resource. On exit proc also sends
+ * SIGTERM to running children, but it can't wait for them, and in a container
+ * Deno's exit usually ends the container and kills them partway through.
+ *
+ * proc signals only the processes it started. A child that is a wrapper script
+ * has to `exec` its real program or forward the signal, or the program under
+ * it never hears about the shutdown.
+ *
+ * Without `timeoutMs` this waits until every child has exited. In a container,
+ * the runtime's SIGKILL at the end of its grace period is the real deadline;
+ * set `timeoutMs` a little under it to log or exit on your own terms first.
+ * Children still running at the timeout are left running, not killed.
+ *
+ * **Example**
+ *
+ * ```typescript
+ * Deno.addSignalListener("SIGTERM", async () => {
+ *   await terminateAll({ timeoutMs: 25_000 });
+ *   Deno.exit(143);
+ * });
+ * ```
+ *
+ * When Deno is killed by a signal it doesn't listen for, nothing runs, so the
+ * program has to trap the signal itself, as above.
+ *
+ * @param options.signal The signal to send. Default `"SIGTERM"`.
+ * @param options.timeoutMs Stop waiting after this many milliseconds.
+ */
+export async function terminateAll(
+  options?: { signal?: Deno.Signal; timeoutMs?: number },
+): Promise<void> {
+  const children = signalAll(options?.signal ?? "SIGTERM");
+  const exited = Promise.all(children.map((p) => p.status.catch(() => {})));
+
+  if (options?.timeoutMs == null) {
+    await exited;
+    return;
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      exited,
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, options.timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** Pipe kinds, matching `Deno.Command`. */
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -209,6 +285,8 @@ export class Process<S> implements Closer {
     })
       .spawn();
     runningChildProcesses.set(this.id, this as Process<unknown>);
+    const untrack = () => runningChildProcesses.delete(this.id);
+    this.process.status.then(untrack, untrack);
 
     if (options.fnStderr != null) {
       this.stderrResult = options.fnStderr(enumerate(this.process.stderr));
@@ -240,7 +318,6 @@ export class Process<S> implements Closer {
       if (this._stdin != null) {
         await this._stdin.close();
       }
-      runningChildProcesses.delete(this.id);
     }
   }
 
