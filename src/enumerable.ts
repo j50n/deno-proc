@@ -242,16 +242,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
     writer: Writable<T> | WritableStream<T> | string,
     options?: { noclose?: boolean },
   ): Promise<void> {
-    // Handle file path
+    // Handle file path. Closing the stream closes the file. Closing the file
+    // directly instead drops whatever the stream still buffers (Deno 2.9).
     if (typeof writer === "string") {
       const file = await Deno.create(writer);
-      try {
-        await this.writeTo(file.writable as WritableStream<T>, {
-          noclose: true,
-        });
-      } finally {
-        file.close();
-      }
+      await this.writeTo(file.writable as WritableStream<T>);
       return;
     }
 
