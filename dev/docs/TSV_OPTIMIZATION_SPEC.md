@@ -2,23 +2,29 @@
 
 ## Problem Statement
 
-Statistical benchmarks revealed that TSV-to-X transforms are 6-8x slower than they should be because they use a full CSV parser instead of simple delimiter replacement.
+Statistical benchmarks revealed that TSV-to-X transforms are 6-8x slower than
+they should be because they use a full CSV parser instead of simple delimiter
+replacement.
 
 ## Current Performance (50 iterations, 25.54 MB test file)
 
 ### Fast Transforms (using simple operations)
-- **record2tsv (scalar)**: 423.9 MB/s - Simple byte replacement (0x1F→tab, 0x1E→newline)
+
+- **record2tsv (scalar)**: 423.9 MB/s - Simple byte replacement (0x1F→tab,
+  0x1E→newline)
 - **record2tsv (SIMD)**: 519.8 MB/s - SIMD-optimized byte replacement
 - **lazyrow2tsv**: 94.1 MB/s - Binary decoding
 - **lazyrow2csv**: 92.6 MB/s - Binary decoding
 - **record2csv**: 89.2 MB/s - CSV stringifier (needs quoting logic)
 
 ### Slow Transforms (using CSV parser unnecessarily)
+
 - **tsv2record**: 64.2 MB/s ❌ Should be ~400+ MB/s
-- **tsv2csv**: 64.9 MB/s ❌ Should be ~400+ MB/s  
+- **tsv2csv**: 64.9 MB/s ❌ Should be ~400+ MB/s
 - **tsv2lazyrow**: 47.8 MB/s ❌ Should be ~400+ MB/s
 
 ### Correctly Slow Transforms (need CSV parser)
+
 - **csv2record**: 64.2 MB/s ✓ Needs parser for quote handling
 - **csv2tsv**: 65.6 MB/s ✓ Needs parser for quote handling
 - **csv2lazyrow**: 48.4 MB/s ✓ Needs parser for quote handling
@@ -59,7 +65,9 @@ const tsv2record = new Command()
       .transform((input) => processor.csvToRecordStreaming(input, 9)); // ❌ Full CSV parser!
 ```
 
-This calls `csvToRecordStreaming()` which uses `create_direct_parser()` - a **full RFC 4180 CSV parser** with:
+This calls `csvToRecordStreaming()` which uses `create_direct_parser()` - a
+**full RFC 4180 CSV parser** with:
+
 - State machine (FieldStart, Unquoted, Quoted, QuoteInQuoted, RecordEnd)
 - Quote handling and escape sequences
 - Character-by-character processing
@@ -142,13 +150,16 @@ const tsv2record = new Command()
 ### 4. Similar Changes for tsv2csv
 
 Create `tsv_to_csv` function that:
+
 - Replaces tab → comma
 - Keeps newline as-is
-- Optionally quotes fields containing commas/quotes/newlines (scan-then-quote approach)
+- Optionally quotes fields containing commas/quotes/newlines (scan-then-quote
+  approach)
 
 ### 5. TSV to LazyRow
 
 More complex - needs to:
+
 1. Parse TSV (simple: split on tabs and newlines)
 2. Encode to LazyRow binary format
 
@@ -157,6 +168,7 @@ May need dedicated `tsv_to_lazyrow` function or two-step process.
 ## Expected Results
 
 After optimization:
+
 - **tsv2record**: 64 MB/s → **~420 MB/s** (6.5x speedup)
 - **tsv2csv**: 65 MB/s → **~400 MB/s** (6x speedup)
 - **tsv2lazyrow**: 48 MB/s → **~400 MB/s** (8x speedup)
@@ -166,6 +178,7 @@ After optimization:
 ### Comprehensive Test Suite
 
 Create `tests/flatdata/tsv2record.test.ts` similar to `record2tsv.test.ts`:
+
 - Basic functionality (SIMD and scalar)
 - Edge cases (empty input, consecutive separators)
 - Special characters (Unicode, quotes, null bytes)
@@ -176,6 +189,7 @@ Create `tests/flatdata/tsv2record.test.ts` similar to `record2tsv.test.ts`:
 ### Benchmark Verification
 
 Run `benchmarks/flatdata-statistical.ts` and verify:
+
 - tsv2record reaches ~400+ MB/s
 - tsv2csv reaches ~400+ MB/s
 - tsv2lazyrow reaches ~400+ MB/s
@@ -200,11 +214,13 @@ interface WasmExports {
 
 ### Build Process
 
-Update `odin/build.sh` to compile new functions into both scalar and SIMD WASM modules.
+Update `odin/build.sh` to compile new functions into both scalar and SIMD WASM
+modules.
 
 ### Backward Compatibility
 
 Old methods remain available:
+
 - `csvToRecordStreaming(input, 9)` still works for TSV
 - New `tsvToRecordFast(input)` is faster alternative
 - CLI commands automatically use fast path

@@ -12,12 +12,12 @@ performance.
 
 proc offers several ways to process data. Here's how to choose:
 
-| Approach              | Best For                                     | Performance    |
-| --------------------- | -------------------------------------------- | -------------- |
-| **flatdata CLI**      | Large files (100MB+), batch processing       | Highest        |
-| **Data Transforms**   | In-process conversion, filtering, enrichment | Good to High   |
-| **Process Pipelines** | Shell-like operations, text processing       | Varies         |
-| **Async Iterables**   | Custom logic, API data, any async source     | Varies         |
+| Approach              | Best For                                     | Performance  |
+| --------------------- | -------------------------------------------- | ------------ |
+| **flatdata CLI**      | Large files (100MB+), batch processing       | Highest      |
+| **Data Transforms**   | In-process conversion, filtering, enrichment | Good to High |
+| **Process Pipelines** | Shell-like operations, text processing       | Varies       |
+| **Async Iterables**   | Custom logic, API data, any async source     | Varies       |
 
 **Decision guide:**
 
@@ -71,7 +71,8 @@ await read("data.csv")
 ### 🚀 **Streaming & Performance**
 
 - **Streaming design**: Constant memory usage regardless of file size
-- **LazyRow optimization**: Faster parsing for CSV/TSV when accessing selective fields
+- **LazyRow optimization**: Faster parsing for CSV/TSV when accessing selective
+  fields
 - **flatdata CLI**: WASM-powered tool for very large files
 
 ### 📊 **Format Support**

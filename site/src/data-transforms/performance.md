@@ -8,18 +8,19 @@ Guidance for choosing the right data format for your use case.
 
 ## Quick Format Comparison
 
-| Format     | Best For                        | Notes                          |
-| ---------- | ------------------------------- | ------------------------------ |
-| **CSV**    | Universal compatibility         | Use LazyRow for better speed   |
-| **TSV**    | Balance of speed & readability  | Simpler than CSV               |
-| **JSON**   | Rich object structures          | Best for small-medium datasets |
-| **Record** | Maximum throughput              | Internal processing only       |
+| Format     | Best For                       | Notes                          |
+| ---------- | ------------------------------ | ------------------------------ |
+| **CSV**    | Universal compatibility        | Use LazyRow for better speed   |
+| **TSV**    | Balance of speed & readability | Simpler than CSV               |
+| **JSON**   | Rich object structures         | Best for small-medium datasets |
+| **Record** | Maximum throughput             | Internal processing only       |
 
 ## Choosing a Format
 
 ### CSV - Universal Compatibility
 
-Use when you need compatibility with Excel, legacy systems, or when human readability matters.
+Use when you need compatibility with Excel, legacy systems, or when human
+readability matters.
 
 ```typescript
 // Best practice: Use LazyRow with CSV
@@ -31,7 +32,8 @@ await read("data.csv")
 
 ### TSV - Simple and Fast
 
-Use when you want a balance of speed and readability, and your data doesn't contain tabs or newlines.
+Use when you want a balance of speed and readability, and your data doesn't
+contain tabs or newlines.
 
 ```typescript
 await read("data.tsv")
@@ -52,7 +54,8 @@ await read("events.jsonl")
 
 ### Record - Maximum Throughput
 
-Use for internal processing when you need maximum throughput and don't need human readability.
+Use for internal processing when you need maximum throughput and don't need
+human readability.
 
 ```typescript
 await read("data.record")
@@ -107,7 +110,8 @@ await read("data.csv")
 
 ### 4. Convert Formats for Repeated Processing
 
-If you're processing the same data multiple times, convert to a faster format first:
+If you're processing the same data multiple times, convert to a faster format
+first:
 
 ```typescript
 // One-time conversion

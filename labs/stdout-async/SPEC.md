@@ -2,21 +2,31 @@
 
 ## Executive Summary
 
-Profile and optimize `toStdout()` to determine if synchronous stdout writes are a performance bottleneck. Current implementation uses synchronous writes to prevent console.log interference, but this may significantly impact throughput for high-speed data transformations.
+Profile and optimize `toStdout()` to determine if synchronous stdout writes are
+a performance bottleneck. Current implementation uses synchronous writes to
+prevent console.log interference, but this may significantly impact throughput
+for high-speed data transformations.
 
 ## Problem Statement
 
-The current `toStdout()` implementation is synchronous to ensure output ordering when mixed with `console.log()` statements. However, this design choice may be causing significant performance overhead:
+The current `toStdout()` implementation is synchronous to ensure output ordering
+when mixed with `console.log()` statements. However, this design choice may be
+causing significant performance overhead:
 
 - **Synchronous writes block** the transformation pipeline
-- **Backpressure is artificial** - waiting for stdout instead of natural flow control
-- **High-throughput scenarios suffer** - each chunk waits for the previous to complete
+- **Backpressure is artificial** - waiting for stdout instead of natural flow
+  control
+- **High-throughput scenarios suffer** - each chunk waits for the previous to
+  complete
 
-**Hypothesis**: Switching to async (non-blocking) stdout writes could significantly improve throughput, at the cost of potential console.log interleaving.
+**Hypothesis**: Switching to async (non-blocking) stdout writes could
+significantly improve throughput, at the cost of potential console.log
+interleaving.
 
 ## Objectives
 
-1. **Profile current implementation**: Measure throughput of synchronous `toStdout()`
+1. **Profile current implementation**: Measure throughput of synchronous
+   `toStdout()`
 2. **Implement async version**: Create non-blocking stdout writer
 3. **Quantify performance difference**: Measure throughput improvement
 4. **Document trade-offs**: Speed vs console.log safety
@@ -34,6 +44,7 @@ async toStdout(): Promise<void> {
 ```
 
 **Characteristics**:
+
 - ✅ Safe with console.log - output never interleaves
 - ✅ Predictable ordering
 - ❌ Blocks pipeline on each chunk
@@ -52,6 +63,7 @@ async toStdoutAsync(): Promise<void> {
 ```
 
 **Characteristics**:
+
 - ✅ Non-blocking writes
 - ✅ Simple implementation
 - ⚠️ console.log may interleave
@@ -73,6 +85,7 @@ async toStdoutAsync(): Promise<void> {
 ```
 
 **Characteristics**:
+
 - ✅ Uses WritableStream API
 - ✅ Better buffering behavior
 - ✅ Matches `writeTo()` pattern
@@ -105,6 +118,7 @@ async toStdoutAsync(): Promise<void> {
 ```
 
 **Characteristics**:
+
 - ✅ Maximum parallelism
 - ✅ Overlaps I/O with computation
 - ⚠️ More complex
@@ -136,7 +150,7 @@ async toStdoutAsync(): Promise<void> {
 1. **Fast producer** (reading from memory):
    ```typescript
    await enumerate(fastDataSource)
-       .toStdout();  // vs toStdoutAsync()
+     .toStdout(); // vs toStdoutAsync()
    ```
 
 2. **Piped to file** (fast consumer):
@@ -152,9 +166,9 @@ async toStdoutAsync(): Promise<void> {
 4. **With transformations**:
    ```typescript
    await enumerate(source)
-       .map(transform)
-       .filter(predicate)
-       .toStdout();  // vs toStdoutAsync()
+     .map(transform)
+     .filter(predicate)
+     .toStdout(); // vs toStdoutAsync()
    ```
 
 ## Trade-offs
@@ -162,11 +176,13 @@ async toStdoutAsync(): Promise<void> {
 ### Synchronous (Current)
 
 **Pros**:
+
 - Safe with console.log/console.error
 - Predictable output ordering
 - Simple mental model
 
 **Cons**:
+
 - Blocks pipeline on each write
 - Lower throughput for high-speed data
 - Artificial backpressure
@@ -174,11 +190,13 @@ async toStdoutAsync(): Promise<void> {
 ### Asynchronous (Proposed)
 
 **Pros**:
+
 - Higher throughput
 - Natural backpressure from stdout
 - Better CPU utilization
 
 **Cons**:
+
 - console.log may interleave with output
 - Slightly more complex implementation
 - Need to document the trade-off
@@ -188,16 +206,19 @@ async toStdoutAsync(): Promise<void> {
 Based on results, provide guidance:
 
 **Use synchronous `toStdout()` when**:
+
 - Mixing data output with console.log debugging
 - Output ordering is critical
 - Throughput is not a concern (<50 MB/s)
 
 **Use asynchronous `toStdoutAsync()` when**:
+
 - High-throughput data processing (>100 MB/s)
 - No console.log in the pipeline
 - Performance is critical
 
 **Consider**:
+
 - Making async the default, sync the special case?
 - Adding a flag: `toStdout({ sync: true })`?
 - Documenting the trade-off prominently?
@@ -205,22 +226,26 @@ Based on results, provide guidance:
 ## Implementation Plan
 
 ### Phase 1: Baseline Measurement
+
 1. Create benchmark harness
 2. Measure current synchronous `toStdout()` throughput
 3. Test with various data sources and chunk sizes
 
 ### Phase 2: Implement Async Versions
+
 1. Approach 1: Simple async write
 2. Approach 2: Buffered async (writeTo pattern)
 3. Approach 3: Queued writes (if needed)
 
 ### Phase 3: Comparative Analysis
+
 1. Benchmark all approaches
 2. Test with real-world scenarios
 3. Measure console.log interleaving frequency
 4. Document trade-offs
 
 ### Phase 4: Integration Decision
+
 1. Choose best approach based on data
 2. Update production code
 3. Document usage guidelines
@@ -257,28 +282,33 @@ Generate test files of various sizes with predictable content:
 ```typescript
 // Generate test data - simple repeating pattern
 function generateTestData(sizeInMB: number, outputPath: string) {
-    const line = "The quick brown fox jumps over the lazy dog.\n";
-    const bytesPerLine = new TextEncoder().encode(line).length;
-    const totalBytes = sizeInMB * 1024 * 1024;
-    const lineCount = Math.floor(totalBytes / bytesPerLine);
-    
-    const file = Deno.openSync(outputPath, { write: true, create: true, truncate: true });
-    const encoder = new TextEncoder();
-    
-    for (let i = 0; i < lineCount; i++) {
-        file.writeSync(encoder.encode(line));
-    }
-    
-    file.close();
+  const line = "The quick brown fox jumps over the lazy dog.\n";
+  const bytesPerLine = new TextEncoder().encode(line).length;
+  const totalBytes = sizeInMB * 1024 * 1024;
+  const lineCount = Math.floor(totalBytes / bytesPerLine);
+
+  const file = Deno.openSync(outputPath, {
+    write: true,
+    create: true,
+    truncate: true,
+  });
+  const encoder = new TextEncoder();
+
+  for (let i = 0; i < lineCount; i++) {
+    file.writeSync(encoder.encode(line));
+  }
+
+  file.close();
 }
 
 // Generate test files
-generateTestData(1, "data/small.txt");      // 1 MB
-generateTestData(100, "data/medium.txt");   // 100 MB
-generateTestData(1000, "data/large.txt");   // 1 GB
+generateTestData(1, "data/small.txt"); // 1 MB
+generateTestData(100, "data/medium.txt"); // 100 MB
+generateTestData(1000, "data/large.txt"); // 1 GB
 ```
 
-**Note**: Test data files are gitignored (`labs/*/data/`) and generated on-demand.
+**Note**: Test data files are gitignored (`labs/*/data/`) and generated
+on-demand.
 
 ## Success Criteria
 
@@ -291,16 +321,19 @@ generateTestData(1000, "data/large.txt");   // 1 GB
 ## Expected Outcomes
 
 ### Scenario A: Significant Improvement (>2x faster)
+
 - Async becomes the default
 - Sync version kept for special cases
 - Document the trade-off prominently
 
 ### Scenario B: Modest Improvement (20-50% faster)
+
 - Provide both options
 - Let users choose based on needs
 - Default stays sync for safety
 
 ### Scenario C: No Significant Difference
+
 - Keep current implementation
 - Document that stdout is not the bottleneck
 - Focus optimization efforts elsewhere
@@ -309,7 +342,9 @@ generateTestData(1000, "data/large.txt");   // 1 GB
 
 **Prerequisite for**: `labs/tsv-record-perf/`
 
-The WASM transformation experiment needs to know if stdout is a bottleneck. If we're measuring WASM performance while stdout is blocking, we're profiling the wrong thing.
+The WASM transformation experiment needs to know if stdout is a bottleneck. If
+we're measuring WASM performance while stdout is blocking, we're profiling the
+wrong thing.
 
 **Fix this first**, then measure WASM on a level playing field.
 
@@ -317,7 +352,8 @@ The WASM transformation experiment needs to know if stdout is a bottleneck. If w
 
 - This is about stdout specifically, not general file I/O
 - `writeTo()` already uses async pattern - we're aligning `toStdout()` with it
-- The console.log trade-off is real but may be acceptable for production pipelines
+- The console.log trade-off is real but may be acceptable for production
+  pipelines
 - Consider adding a `--sync-stdout` flag for debugging scenarios
 
 ## References

@@ -2,12 +2,15 @@
 
 ## Context
 
-Evaluating whether SIMD techniques from simdjson are applicable to our CSV/TSV parsing library.
+Evaluating whether SIMD techniques from simdjson are applicable to our CSV/TSV
+parsing library.
 
 ## simdjson Key Techniques
 
 ### 1. Two-Stage Architecture
-- **Stage 1**: Find all structural characters using SIMD (branchless, fixed cost per byte)
+
+- **Stage 1**: Find all structural characters using SIMD (branchless, fixed cost
+  per byte)
   - Process 64 bytes at a time
   - Output: indexes of structural characters
 - **Stage 2**: Parse values using indexes from stage 1
@@ -15,7 +18,10 @@ Evaluating whether SIMD techniques from simdjson are applicable to our CSV/TSV p
   - Can process tokens without data dependencies
 
 ### 2. Vectorized Classification
-Instead of N comparisons for N characters, use `vpshufb` (shuffle) as lookup table:
+
+Instead of N comparisons for N characters, use `vpshufb` (shuffle) as lookup
+table:
+
 ```
 - Split byte into high/low nibbles (4 bits each)
 - Use nibbles as indexes into 16-byte lookup tables
@@ -24,14 +30,17 @@ Instead of N comparisons for N characters, use `vpshufb` (shuffle) as lookup tab
 ```
 
 **Example**: Identify `,`, `:`, `{`, `}`, `[`, `]` and whitespace in one pass
+
 - 2 shuffle instructions + few logical ops
 - Processes 32 bytes at once
 - No branching
 
 ### 3. Bitset Operations
+
 Convert character locations to bitmasks (1 bit per byte):
 
 **Finding Quoted Regions**:
+
 ```
 1. Identify backslashes and quotes (vectorized comparison)
 2. Find escaped quotes (backslash sequences using arithmetic)
@@ -40,16 +49,20 @@ Convert character locations to bitmasks (1 bit per byte):
    - Result: bitmask where 1 = inside quotes
 ```
 
-**Key insight**: Carry-less multiplication computes XOR prefix-sum in one instruction
+**Key insight**: Carry-less multiplication computes XOR prefix-sum in one
+instruction
 
 ### 4. Branchless Processing
+
 - Fixed cost per input byte regardless of content
 - All decisions via bitwise operations
 - No unpredictable branches in hot path
 - Only check for errors once at end
 
 ### 5. Index Extraction
+
 From bitmask to array of indexes:
+
 ```c
 // Extract 8 indexes unconditionally
 while(s) {
@@ -57,6 +70,7 @@ while(s) {
 }
 // Overwrite excess with next iteration
 ```
+
 Avoids branch mispredictions when <8 bits set
 
 ## Performance Results (simdjson)
@@ -71,6 +85,7 @@ Avoids branch mispredictions when <8 bits set
 ### Good Fit
 
 **1. CSV Parsing (Delimited → Record format)**
+
 - Find delimiters: `,`, `\n`, `\r` (vectorized classification)
 - Detect quoted regions (same bitset technique as JSON)
 - Handle escaped quotes (same backslash detection)
@@ -78,6 +93,7 @@ Avoids branch mispredictions when <8 bits set
 - **Potential**: 2-4x speedup
 
 **2. TSV Parsing**
+
 - Simpler than CSV (no quoting)
 - Find `\t` and `\n` delimiters
 - **Current**: Already fast, less room for improvement
@@ -85,11 +101,13 @@ Avoids branch mispredictions when <8 bits set
 ### Less Applicable
 
 **1. Record → TSV (byte replacement)**
+
 - Just replace 0x1E → 0x09, 0x1F → 0x09
 - Already trivial with SIMD (current implementation)
 - Minimal benefit from complex techniques
 
 **2. Simple Transformations**
+
 - TSV ↔ CSV without quotes: just delimiter replacement
 - Overhead of bitset operations may not be worth it
 
@@ -113,18 +131,23 @@ Avoids branch mispredictions when <8 bits set
 ## Recommendations
 
 ### Phase 1: Measure Current Performance
+
 1. Profile CSV parser to find bottlenecks
 2. Measure branch misprediction rate
 3. Compare with/without quoting
 
 ### Phase 2: Targeted SIMD
+
 If bottlenecks found:
+
 1. **Vectorized delimiter detection** (easy win)
 2. **Bitset-based quote detection** (if quoting is slow)
 3. **Branchless quote handling** (if branches are problem)
 
 ### Phase 3: Consider Two-Stage
+
 Only if:
+
 - CSV parsing is critical path
 - Current approach is fundamentally limited
 - Willing to increase code complexity
@@ -133,7 +156,8 @@ Only if:
 
 - Paper: "Parsing Gigabytes of JSON per Second" (Langdale & Lemire, 2019)
 - Implementation: https://github.com/lemire/simdjson
-- Blog series: https://blog.tomlebreux.com/2020/01/03/fast-json-parsing-with-c-and-simd-2.html
+- Blog series:
+  https://blog.tomlebreux.com/2020/01/03/fast-json-parsing-with-c-and-simd-2.html
 
 ## Current Status
 
@@ -147,7 +171,8 @@ Only if:
 
 ### The Problem: Quote State is Expensive
 
-When parsing CSV, you need to know "am I inside quotes?" for every single character:
+When parsing CSV, you need to know "am I inside quotes?" for every single
+character:
 
 ```
 a,"b,c",d
@@ -157,6 +182,7 @@ a,"b,c",d
 ```
 
 **Traditional approach** (slow):
+
 ```
 inside_quotes = false
 for each character:
@@ -166,17 +192,20 @@ for each character:
         // found a real delimiter
 ```
 
-You check EVERY character one at a time. For a 1 MB file, that's 1 million checks.
+You check EVERY character one at a time. For a 1 MB file, that's 1 million
+checks.
 
 ### The Insight: Quotes Toggle Like Light Switches
 
 Think of quotes like light switches:
+
 - First quote: light ON (inside quotes)
-- Second quote: light OFF (outside quotes)  
+- Second quote: light OFF (outside quotes)
 - Third quote: light ON again
 - Fourth quote: light OFF again
 
 This is called **XOR** (exclusive OR) or "toggle":
+
 ```
 State: OFF
 See quote → toggle → ON
@@ -189,6 +218,7 @@ See quote → toggle → ON
 Instead of processing one character at a time, process 32 characters together:
 
 **Step 1: Find all the quotes**
+
 ```
 Input:  a,"b,c",d,"e,f",g
 Quotes: 00100001001000010  (1 = quote, 0 = not quote)
@@ -196,7 +226,8 @@ Quotes: 00100001001000010  (1 = quote, 0 = not quote)
 
 **Step 2: Compute "running toggle" for all 32 positions**
 
-This is where the magic happens. There's a CPU instruction called `pclmulqdq` (carry-less multiplication) that can compute this pattern:
+This is where the magic happens. There's a CPU instruction called `pclmulqdq`
+(carry-less multiplication) that can compute this pattern:
 
 ```
 Quotes: 00100001001000010
@@ -205,9 +236,11 @@ Result: 00111110001111100
         These positions are "inside quotes"
 ```
 
-It's like flipping 32 light switches simultaneously and seeing which ones end up ON.
+It's like flipping 32 light switches simultaneously and seeing which ones end up
+ON.
 
 **Step 3: Use the result**
+
 ```
 Commas:  01000010001000001  (where commas are)
 Inside:  00111110001111100  (inside quotes)
@@ -220,20 +253,24 @@ Real:    01000000001000001  (commas AND outside = real delimiters)
 ### Why This is Fast
 
 **Before (traditional):**
+
 - Process 32 characters: 32 checks, 32 branches
 - CPU can't predict the pattern (quoted vs unquoted is random)
 - ~32-64 CPU cycles
 
 **After (SIMD):**
+
 - Process 32 characters: ~5-10 instructions total
 - No branches (no guessing)
 - ~5-10 CPU cycles
 
-**That's 3-6x faster just for quote tracking**, and quote tracking is the main bottleneck in CSV parsing.
+**That's 3-6x faster just for quote tracking**, and quote tracking is the main
+bottleneck in CSV parsing.
 
 ### The "AHA" Moment
 
 You don't need to track state character-by-character. You can:
+
 1. Find all quotes in a chunk (1 instruction)
 2. Compute "inside/outside" for the whole chunk (1 instruction)
 3. Find real delimiters (1 instruction)
@@ -249,19 +286,28 @@ That's the key insight from simdjson applied to CSV.
 ### Why CSV is Hard to Parse Fast
 
 CSV requires character-by-character state tracking because:
-1. **Quote state affects delimiter meaning**: A comma inside quotes is data, not a delimiter
-2. **Escape sequences**: `""` inside quoted fields means literal `"`
-3. **Unpredictable patterns**: Can't know if next field is quoted without reading it
-4. **State carries across chunks**: Quote state must persist between SIMD operations
 
-This is fundamentally different from simple byte replacement (record→TSV), which has no state.
+1. **Quote state affects delimiter meaning**: A comma inside quotes is data, not
+   a delimiter
+2. **Escape sequences**: `""` inside quoted fields means literal `"`
+3. **Unpredictable patterns**: Can't know if next field is quoted without
+   reading it
+4. **State carries across chunks**: Quote state must persist between SIMD
+   operations
+
+This is fundamentally different from simple byte replacement (record→TSV), which
+has no state.
 
 ### SIMD Techniques That Apply to CSV
 
 #### 1. Vectorized Quote Detection (Critical)
-**The Problem**: Tracking "am I inside quotes?" for every byte is the main bottleneck.
 
-**The Solution**: simdjson's bitset technique computes quote state for 32 bytes in parallel:
+**The Problem**: Tracking "am I inside quotes?" for every byte is the main
+bottleneck.
+
+**The Solution**: simdjson's bitset technique computes quote state for 32 bytes
+in parallel:
+
 ```
 Input:  a,"b,c",d,"e""f"
 Step 1: Find quotes        → 00100001000100100 (bitmask)
@@ -271,10 +317,14 @@ Step 4: Delimiter mask     → 01000010001000001 (commas)
 Result: Real delimiters    → 01000000001000001 (AND with ~quotes)
 ```
 
-**Key insight**: Carry-less multiplication (`pclmulqdq`) computes XOR prefix-sum in one instruction. This gives you "inside/outside quotes" for an entire vector at once.
+**Key insight**: Carry-less multiplication (`pclmulqdq`) computes XOR prefix-sum
+in one instruction. This gives you "inside/outside quotes" for an entire vector
+at once.
 
 #### 2. Vectorized Delimiter Detection
+
 Use `vpshufb` (shuffle-as-lookup) to classify 32 bytes simultaneously:
+
 - Split each byte into high/low nibbles (4 bits each)
 - Use nibbles as indexes into 16-byte lookup tables
 - Combine with bitwise AND
@@ -283,7 +333,9 @@ Use `vpshufb` (shuffle-as-lookup) to classify 32 bytes simultaneously:
 **No branching, fixed cost per byte.**
 
 #### 3. Branchless Field Extraction
+
 Instead of:
+
 ```c
 if (inside_quotes) {
   // handle quoted field
@@ -292,9 +344,11 @@ if (inside_quotes) {
 }
 ```
 
-Process both paths and select result based on bitmask. Eliminates branch mispredictions.
+Process both paths and select result based on bitmask. Eliminates branch
+mispredictions.
 
 #### 4. Combine Masks for Real Delimiters
+
 ```
 real_delimiters = delimiter_mask & ~inside_quotes_mask
 ```
@@ -305,14 +359,19 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 
 **Likely 2-4x speedup** for these reasons:
 
-1. **Quote tracking**: Currently checks every byte; SIMD processes 32 bytes in ~10 instructions
-2. **Branch elimination**: CSV has unpredictable patterns (quoted vs unquoted); branchless SIMD avoids mispredictions
-3. **Parallel delimiter scanning**: Find all delimiters in chunk at once vs byte-by-byte
-4. **Proven technique**: simdjson showed 50% fewer instructions partly from these methods
+1. **Quote tracking**: Currently checks every byte; SIMD processes 32 bytes in
+   ~10 instructions
+2. **Branch elimination**: CSV has unpredictable patterns (quoted vs unquoted);
+   branchless SIMD avoids mispredictions
+3. **Parallel delimiter scanning**: Find all delimiters in chunk at once vs
+   byte-by-byte
+4. **Proven technique**: simdjson showed 50% fewer instructions partly from
+   these methods
 
 **Realistic target**: 10-27 MB/s → 40-100 MB/s (closer to JSON's 70-98 MB/s)
 
 **Won't reach 2-3 GB/s** because:
+
 - CSV is simpler than JSON (less structure to exploit)
 - Still need to copy/process field data
 - Memory bandwidth becomes limiting factor
@@ -320,7 +379,9 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 ### Two-Stage Architecture for CSV?
 
 **Probably not worth it:**
-- JSON benefits because stage 2 can skip whitespace, jump between structural elements
+
+- JSON benefits because stage 2 can skip whitespace, jump between structural
+  elements
 - CSV is flat - you process every field anyway
 - Single-pass SIMD (quote detection + delimiter finding) should be sufficient
 - Two-stage adds complexity without clear benefit for CSV's simple structure
@@ -328,17 +389,20 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 ### Implementation Strategy
 
 **Phase 1: Single-Pass SIMD Parser**
+
 1. Vectorized quote detection (bitset technique)
 2. Vectorized delimiter detection (vpshufb classification)
 3. Combine masks to find real delimiters
 4. Extract fields using delimiter positions
 
 **Phase 2: Optimize Hot Paths**
+
 1. Branchless field extraction
 2. Efficient index extraction from bitmasks
 3. Handle chunk boundaries (carry quote state forward)
 
 **Phase 3: Platform Support**
+
 1. x86-64 with SSE4.2/AVX2 (primary target)
 2. ARM NEON (if needed)
 3. Scalar fallback (for portability)
@@ -346,11 +410,13 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 ### Complexity Trade-offs
 
 **Pros:**
+
 - 2-4x performance improvement likely
 - Proven techniques from simdjson
 - Eliminates main bottleneck (quote tracking)
 
 **Cons:**
+
 - Significantly more complex code
 - Platform-specific intrinsics
 - Harder to debug and maintain
@@ -358,7 +424,10 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 
 ### Recommendation
 
-**For native code (x86-64/ARM)**: Yes, pursue SIMD for CSV parsing. The 3-7x performance gap vs JSON suggests real opportunity, and the techniques are proven. Start with quote detection (biggest bottleneck), add vectorized delimiter finding, keep it single-pass.
+**For native code (x86-64/ARM)**: Yes, pursue SIMD for CSV parsing. The 3-7x
+performance gap vs JSON suggests real opportunity, and the techniques are
+proven. Start with quote detection (biggest bottleneck), add vectorized
+delimiter finding, keep it single-pass.
 
 **For WebAssembly**: No, not worth the complexity. See WASM limitations below.
 
@@ -371,21 +440,25 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 ### Why WASM SIMD is Not Worth It for CSV
 
 **128-bit vectors only**
+
 - WASM SIMD: 128-bit (16 bytes at a time)
 - Native AVX2: 256-bit (32 bytes at a time)
 - Half the throughput per operation
 
 **Missing the magic instruction**
+
 - `pclmulqdq` (carry-less multiplication) is NOT in WASM SIMD spec
 - This is the key instruction that makes quote detection elegant and fast
 - Without it, must compute XOR prefix-sum manually (~10-20 instructions vs 1)
 
 **Reduced speedup**
+
 - Native with AVX2 + pclmulqdq: 2-4x faster
 - WASM with 128-bit + manual XOR: 1.3-2x faster (estimate)
 - Not worth the complexity increase
 
 **What WASM SIMD has**:
+
 - ✅ `i8x16.eq` - Vector comparisons (find quotes, commas)
 - ✅ `v128.and/or/xor/not` - Bitwise operations
 - ✅ `i8x16.swizzle` - Shuffle/classify (like `vpshufb`)
@@ -395,6 +468,7 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 ### Decision: Remove SIMD from WASM Implementation
 
 **Reasons**:
+
 1. Marginal gains (1.3-2x) don't justify complexity
 2. Missing `pclmulqdq` makes implementation inelegant
 3. Current scalar performance (10-27 MB/s) is acceptable
@@ -402,6 +476,7 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 5. Better to optimize scalar code than add complex SIMD
 
 **Better approach**:
+
 - Optimize scalar CSV parser (minimize branches, better algorithms)
 - Focus on correctness and features
 - If speed becomes critical, build native CLI tool (like flatdata)
@@ -409,6 +484,7 @@ Now you have positions of all actual field/row boundaries in a 32-byte chunk.
 ### Native Implementation Path (Future)
 
 If CSV parsing becomes a proven bottleneck:
+
 1. Build native CLI tool with full AVX2 support
 2. Use 256-bit vectors (32 bytes at a time)
 3. Use `pclmulqdq` for elegant quote detection
@@ -416,6 +492,7 @@ If CSV parsing becomes a proven bottleneck:
 5. Provide as optional high-performance alternative
 
 **Platform support**:
+
 - ✅ Intel (Haswell+, 2013+): AVX2 + `pclmulqdq`
 - ✅ AMD Zen (all generations, 2017+): AVX2 + `pclmulqdq`
 - ⚠️ ARM Graviton: NEON (128-bit) + `PMULL` (similar but different)

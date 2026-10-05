@@ -28,20 +28,24 @@ Any JS processing between read and write kills performance.
 
 ## SIMD Optimization: Loop Unrolling
 
-**Use 2-4x loop unrolling with SIMD operations** to maximize throughput on modern CPUs.
+**Use 2-4x loop unrolling with SIMD operations** to maximize throughput on
+modern CPUs.
 
 ### Why It Helps
 
-Modern CPUs (especially AMD Zen) have superscalar execution with multiple SIMD execution ports. Unrolling exposes instruction-level parallelism:
+Modern CPUs (especially AMD Zen) have superscalar execution with multiple SIMD
+execution ports. Unrolling exposes instruction-level parallelism:
 
 - **Reduces loop overhead** - Fewer branch instructions and counter increments
-- **Enables dual-issue execution** - CPU can dispatch multiple SIMD ops simultaneously
+- **Enables dual-issue execution** - CPU can dispatch multiple SIMD ops
+  simultaneously
 - **Better instruction pipelining** - More independent operations per iteration
 - **Improved cache utilization** - Processes larger chunks at once
 
 ### Recommended Unrolling Factor
 
 **4x unrolling** (64 bytes per iteration with 128-bit SIMD) balances:
+
 - Performance gains from parallelism
 - Code size (WASM has unrolling threshold of ~30)
 - Register pressure
@@ -76,7 +80,8 @@ for ; i + 16 <= aligned_length; i += 16 {
 }
 ```
 
-**Performance impact**: Measured ~633 MB/s average (906 MB/s peak) on Intel laptop. Greater gains expected on AMD Zen with dual-issue SIMD ports.
+**Performance impact**: Measured ~633 MB/s average (906 MB/s peak) on Intel
+laptop. Greater gains expected on AMD Zen with dual-issue SIMD ports.
 
 ## Anti-Patterns (What NOT to Do)
 

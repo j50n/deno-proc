@@ -2,25 +2,32 @@
 
 ## Executive Summary
 
-Comprehensive performance analysis of record format to TSV conversion implementations, comparing pure TypeScript against WASM (Odin) with SIMD optimizations. WASM provides **1.8-1.9x speedup** over TypeScript while maintaining correctness and validation.
+Comprehensive performance analysis of record format to TSV conversion
+implementations, comparing pure TypeScript against WASM (Odin) with SIMD
+optimizations. WASM provides **1.8-1.9x speedup** over TypeScript while
+maintaining correctness and validation.
 
 ## Format Specification
 
 ### Input: Record Format
+
 - **Field separator**: `0x1f` (Unit Separator)
 - **Record separator**: `0x1e` (Record Separator)
 - Can contain tab, CR, LF in data values (valid for CSV-like formats)
 
 ### Output: TSV Format
+
 - **Field separator**: `0x09` (Tab)
 - **Record separator**: `0x0a` (Newline)
 - Cannot contain tab, CR, LF in data values (structural characters)
 
 ### Transformation
+
 - `0x1f` → `0x09` (field separator → tab)
 - `0x1e` → `0x0a` (record separator → newline)
 
 ### Validation (Correct Versions)
+
 - Error on embedded `0x09` (tab), `0x0d` (CR), or `0x0a` (LF)
 - Report 1-based record number with locale formatting (e.g., "1,234,567")
 - Track records by counting `0x1e` separators during scan
@@ -28,12 +35,14 @@ Comprehensive performance analysis of record format to TSV conversion implementa
 ## Implementations
 
 ### TypeScript
+
 1. **bytes** - Direct byte manipulation (fast path, no validation)
 2. **bytes-correct** - Byte manipulation with validation and record tracking
 3. **string** - TextDecoder + replaceAll
 4. **regex** - TextDecoder + regex pattern matching
 
 ### WASM (Odin)
+
 1. **scalar** - Simple loop (fast path, no validation)
 2. **scalar-correct** - Loop with validation and record tracking
 3. **SIMD** - 16-byte SIMD vectors with dual masks
@@ -44,11 +53,11 @@ Comprehensive performance analysis of record format to TSV conversion implementa
 
 ### Statistical Analysis (100 iterations, 100MB file)
 
-| Implementation | Mean (MB/s) | Median (MB/s) | StdDev (MB/s) | Min (MB/s) | Max (MB/s) |
-|----------------|-------------|---------------|---------------|------------|------------|
-| **TypeScript bytes-correct** | 282 | 278 | 38 | 204 | 401 |
-| **WASM SIMD** | 498 | 474 | 118 | 240 | 868 |
-| **WASM SIMD-unrolled** | 539 | 520 | 144 | 267 | 969 |
+| Implementation               | Mean (MB/s) | Median (MB/s) | StdDev (MB/s) | Min (MB/s) | Max (MB/s) |
+| ---------------------------- | ----------- | ------------- | ------------- | ---------- | ---------- |
+| **TypeScript bytes-correct** | 282         | 278           | 38            | 204        | 401        |
+| **WASM SIMD**                | 498         | 474           | 118           | 240        | 868        |
+| **WASM SIMD-unrolled**       | 539         | 520           | 144           | 267        | 969        |
 
 ### Key Findings
 
@@ -92,6 +101,7 @@ Comprehensive performance analysis of record format to TSV conversion implementa
 ### For Production Use
 
 **Use WASM SIMD (simple version)**
+
 - Simpler code than unrolled version
 - Similar performance (within measurement error)
 - More predictable behavior
@@ -100,6 +110,7 @@ Comprehensive performance analysis of record format to TSV conversion implementa
 ### For Research/Learning
 
 **Keep all implementations**
+
 - Demonstrates SIMD optimization techniques
 - Shows loop unrolling trade-offs in WASM
 - Valuable for understanding performance characteristics
@@ -122,6 +133,7 @@ result = simd.select(record_mask, newline_char, result)
 ### Validation Strategy
 
 Correct versions validate during transformation:
+
 - SIMD: Uses `simd.lanes_eq()` for tab/CR/LF detection
 - Scalar: Simple byte comparison in loop
 - Both: Track record numbers by counting `0x1e` separators
@@ -136,6 +148,7 @@ Correct versions validate during transformation:
 ## Verification
 
 All implementations verified correct using `verify.ts`:
+
 - ✅ `0x1f` → `0x09` (tab)
 - ✅ `0x1e` → `0x0a` (newline)
 - ✅ All other bytes unchanged
@@ -144,11 +157,20 @@ All implementations verified correct using `verify.ts`:
 
 ## Conclusion
 
-WASM with SIMD provides significant performance benefits (~1.8-1.9x) over pure TypeScript for record→TSV conversion. While loop unrolling shows marginal gains, the simple SIMD implementation is recommended for production use due to better code simplicity and similar performance.
+WASM with SIMD provides significant performance benefits (~1.8-1.9x) over pure
+TypeScript for record→TSV conversion. While loop unrolling shows marginal gains,
+the simple SIMD implementation is recommended for production use due to better
+code simplicity and similar performance.
 
-The high variability in WASM measurements (118-144 MB/s stddev) is primarily due to thermal throttling and system effects, not implementation quality. TypeScript's lower variability (38 MB/s stddev) comes at the cost of ~45% lower throughput.
+The high variability in WASM measurements (118-144 MB/s stddev) is primarily due
+to thermal throttling and system effects, not implementation quality.
+TypeScript's lower variability (38 MB/s stddev) comes at the cost of ~45% lower
+throughput.
 
-For applications requiring maximum throughput with validation, **WASM SIMD** is the clear choice. For applications prioritizing predictability and simplicity, **TypeScript bytes-correct** provides excellent performance with minimal complexity.
+For applications requiring maximum throughput with validation, **WASM SIMD** is
+the clear choice. For applications prioritizing predictability and simplicity,
+**TypeScript bytes-correct** provides excellent performance with minimal
+complexity.
 
 ## Test Environment
 

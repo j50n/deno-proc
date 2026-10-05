@@ -8,9 +8,10 @@ High-performance binary-safe format using ASCII control characters.
 
 ## Overview
 
-Record format is designed for **high-throughput data processing** pipelines. It uses ASCII control characters (Record Separator and Field
-Separator) to achieve reliable parsing while supporting any UTF-8 content in
-field values, including tabs and newlines.
+Record format is designed for **high-throughput data processing** pipelines. It
+uses ASCII control characters (Record Separator and Field Separator) to achieve
+reliable parsing while supporting any UTF-8 content in field values, including
+tabs and newlines.
 
 ## Format Specification
 

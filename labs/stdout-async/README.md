@@ -1,14 +1,17 @@
 # Async Stdout Performance Experiment
 
-Determine if synchronous stdout writes are a performance bottleneck and explore async alternatives.
+Determine if synchronous stdout writes are a performance bottleneck and explore
+async alternatives.
 
 ## Problem
 
-Current `toStdout()` uses synchronous writes to prevent console.log interference. This may be causing significant throughput limitations.
+Current `toStdout()` uses synchronous writes to prevent console.log
+interference. This may be causing significant throughput limitations.
 
 ## Goal
 
-Measure the performance impact and implement an async version that trades console.log safety for speed.
+Measure the performance impact and implement an async version that trades
+console.log safety for speed.
 
 ## Quick Test
 
@@ -29,10 +32,12 @@ deno run benchmark.ts async-buffered > /dev/null
 
 ## Expected Result
 
-If async is significantly faster (>2x), it becomes the default with documentation about console.log trade-offs.
+If async is significantly faster (>2x), it becomes the default with
+documentation about console.log trade-offs.
 
 ## Why This Matters
 
-This is a **prerequisite** for `labs/tsv-record-perf/`. If stdout is the bottleneck, WASM performance measurements will be misleading.
+This is a **prerequisite** for `labs/tsv-record-perf/`. If stdout is the
+bottleneck, WASM performance measurements will be misleading.
 
 See [SPEC.md](SPEC.md) for complete details.

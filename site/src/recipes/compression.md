@@ -1,22 +1,26 @@
 # Compressing and Decompressing Data
 
-Stream data through compression without temporary files. Works with any data transform pipeline.
+Stream data through compression without temporary files. Works with any data
+transform pipeline.
 
 ## Three Approaches
 
 You have three ways to compress/decompress:
 
-1. **CompressionStream/DecompressionStream** — Web standard, built-in, good performance
+1. **CompressionStream/DecompressionStream** — Web standard, built-in, good
+   performance
 2. **gzip/gunzip** — Unix tools, widely available
 3. **pigz/unpigz** — Parallel gzip, fastest (if installed)
 
-All work the same way: pass them to `.transform()` and proc handles the streaming.
+All work the same way: pass them to `.transform()` and proc handles the
+streaming.
 
 ## Using CompressionStream (Recommended)
 
 Built into Deno, no external dependencies:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -29,7 +33,7 @@ await read("data.csv")
 await read("data.csv.gz")
   .transform(new DecompressionStream("gzip"))
   .lines
-  .forEach(line => console.log(line));
+  .forEach((line) => console.log(line));
 ```
 
 **Supported formats:** `"gzip"`, `"deflate"`, `"deflate-raw"`
@@ -39,6 +43,7 @@ await read("data.csv.gz")
 Standard Unix tools, available everywhere:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -51,14 +56,16 @@ await read("data.csv")
 await read("data.csv.gz")
   .run("gunzip")
   .lines
-  .forEach(line => console.log(line));
+  .forEach((line) => console.log(line));
 ```
 
 ## Using pigz/unpigz (Fastest)
 
-Parallel gzip for multi-core systems. Install with `apt install pigz` or `brew install pigz`:
+Parallel gzip for multi-core systems. Install with `apt install pigz` or
+`brew install pigz`:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -81,6 +88,7 @@ await read("large-file.csv.gz")
 Combine data transforms with compression:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
@@ -88,7 +96,7 @@ import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // CSV → filter → TSV → compress
 await read("sales.csv")
   .transform(fromCsvToRows())
-  .filter(row => parseFloat(row[3]) > 1000)
+  .filter((row) => parseFloat(row[3]) > 1000)
   .transform(toTsv())
   .transform(new CompressionStream("gzip"))
   .writeTo("high-value.tsv.gz");
@@ -99,6 +107,7 @@ await read("sales.csv")
 Read compressed data directly:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 import { fromCsvToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
@@ -106,7 +115,7 @@ import { fromCsvToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 const total = await read("sales.csv.gz")
   .transform(new DecompressionStream("gzip"))
   .transform(fromCsvToRows())
-  .map(row => parseFloat(row[3]))
+  .map((row) => parseFloat(row[3]))
   .reduce((sum, val) => sum + val, 0);
 
 console.log(`Total: $${total.toFixed(2)}`);
@@ -115,6 +124,7 @@ console.log(`Total: $${total.toFixed(2)}`);
 ## Multiple Compression Formats
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
@@ -137,12 +147,13 @@ await read("data.txt")
 ## Compression Level Control
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
 // gzip: -1 (fast) to -9 (best compression)
 await read("data.csv")
-  .run("gzip", "-9")  // Maximum compression
+  .run("gzip", "-9") // Maximum compression
   .writeTo("data.csv.gz");
 
 // pigz with compression level
@@ -153,11 +164,11 @@ await read("data.csv")
 
 ## When to Use Each
 
-| Method              | Use When                                    |
-|---------------------|---------------------------------------------|
-| **CompressionStream** | No external dependencies, good enough     |
-| **gzip/gunzip**     | Need specific gzip options, compatibility   |
-| **pigz/unpigz**     | Large files, multi-core system, need speed  |
+| Method                | Use When                                   |
+| --------------------- | ------------------------------------------ |
+| **CompressionStream** | No external dependencies, good enough      |
+| **gzip/gunzip**       | Need specific gzip options, compatibility  |
+| **pigz/unpigz**       | Large files, multi-core system, need speed |
 
 ## What Doesn't Work
 
@@ -182,20 +193,22 @@ Compressing a 100MB CSV file:
 - **gzip**: ~8-10 seconds (single-core)
 - **CompressionStream**: ~10-12 seconds (single-core)
 
-For most use cases, CompressionStream is fine. Use pigz for large files or batch processing.
+For most use cases, CompressionStream is fine. Use pigz for large files or batch
+processing.
 
 ## Real-World Example
 
 Process logs, filter errors, compress output:
 
 <!-- NOT TESTED: Illustrative example -->
+
 ```typescript
 import { read } from "jsr:@j50n/proc@{{gitv}}";
 
 await read("app.log")
   .lines
-  .filter(line => line.includes("ERROR") || line.includes("FATAL"))
-  .map(line => `${new Date().toISOString()} ${line}`)
+  .filter((line) => line.includes("ERROR") || line.includes("FATAL"))
+  .map((line) => `${new Date().toISOString()} ${line}`)
   .transform(new CompressionStream("gzip"))
   .writeTo("errors.log.gz");
 ```

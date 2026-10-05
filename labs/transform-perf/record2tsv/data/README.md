@@ -19,5 +19,6 @@ All test data files are gitignored and generated on-demand.
 ## Record Format
 
 Record format uses:
+
 - `0x1e` (ASCII record separator) between records
 - `\t` (tab) between fields within a record

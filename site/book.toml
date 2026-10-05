@@ -30,7 +30,6 @@ output-to-file = false
 
 [preprocessor.mdbook-deno-script-preprocessor]
 command = """deno run \
-  --allow-net=deno.land \
   --allow-run=git \
   ../tools/mdbook-deno-script-preprocessor.ts \
   process \

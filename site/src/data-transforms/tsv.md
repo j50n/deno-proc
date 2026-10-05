@@ -9,7 +9,8 @@ Fast, simple tab-separated value processing.
 ## Overview
 
 TSV (Tab-Separated Values) provides a good balance between human readability and
-processing speed. With no complex quoting rules like CSV, TSV parsing is simpler and faster.
+processing speed. With no complex quoting rules like CSV, TSV parsing is simpler
+and faster.
 
 ## Basic Usage
 

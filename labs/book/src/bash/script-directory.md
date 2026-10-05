@@ -1,6 +1,7 @@
 # Getting Script Directory
 
-A reliable way to get the absolute path of a script's directory, regardless of where it's called from.
+A reliable way to get the absolute path of a script's directory, regardless of
+where it's called from.
 
 ## The Pattern
 
@@ -15,7 +16,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 3. `&& pwd` - If cd succeeds, prints the current working directory
 4. `$(...)` - Captures the output into the `HERE` variable
 
-The key insight: the `cd` happens in a subshell created by `$()`, so it doesn't affect your current working directory. You get the absolute path without side effects.
+The key insight: the `cd` happens in a subshell created by `$()`, so it doesn't
+affect your current working directory. You get the absolute path without side
+effects.
 
 ## Example Usage
 
@@ -30,6 +33,7 @@ odin test "$HERE/tests" -out:"$HERE/test_runner"
 ```
 
 Now the script works correctly whether you run it as:
+
 - `./test.sh` (from the script's directory)
 - `../odin/test.sh` (from a parent directory)
 - `/absolute/path/to/test.sh` (with an absolute path)
@@ -37,6 +41,7 @@ Now the script works correctly whether you run it as:
 ## Why Not `realpath`?
 
 The `cd && pwd` pattern is more portable than `realpath`:
+
 - `realpath` isn't available on all systems (especially older macOS)
 - `pwd` after `cd` is POSIX standard and works everywhere
 - It properly resolves symlinks and relative paths

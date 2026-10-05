@@ -65,8 +65,8 @@ await enumerate(messages)
 ## Why proc?
 
 **Simpler than streams** — AsyncIterables are a standard JavaScript primitive,
-more standard than the Streams API. Pull-based iteration is easier to reason about
-than push-based streams. No complex coordination, no buffering logic, no
+more standard than the Streams API. Pull-based iteration is easier to reason
+about than push-based streams. No complex coordination, no buffering logic, no
 backpressure headaches.
 
 **Backpressure solved** — Traditional streams require careful coordination

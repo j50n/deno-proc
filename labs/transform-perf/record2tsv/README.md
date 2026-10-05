@@ -1,6 +1,7 @@
 # TSV-Record Performance Experiment
 
-Performance comparison of TypeScript vs WASM (Odin) implementations for record→TSV format conversion.
+Performance comparison of TypeScript vs WASM (Odin) implementations for
+record→TSV format conversion.
 
 ## Quick Start
 
@@ -21,18 +22,22 @@ See [RESULTS.md](RESULTS.md) for detailed analysis.
 ## Format Specification
 
 ### Input: Record Format
+
 - Field separator: `0x1f` (Unit Separator)
 - Record separator: `0x1e` (Record Separator)
 
 ### Output: TSV Format
+
 - Field separator: `0x09` (Tab)
 - Record separator: `0x0a` (Newline)
 
 ### Transformation
+
 - `0x1f` → `0x09` (field separator → tab)
 - `0x1e` → `0x0a` (record separator → newline)
 
 ### Validation
+
 - Error on embedded tab (`0x09`), CR (`0x0d`), or LF (`0x0a`)
 - Report 1-based record number with locale formatting
 
@@ -41,9 +46,11 @@ See [SPEC.md](SPEC.md) for complete specification.
 ## Implementations
 
 ### TypeScript
+
 - **bytes-correct** - Direct byte manipulation with validation
 
 ### WASM (Odin)
+
 - **scalar** - Simple loop
 - **scalar-correct** - Loop with validation
 - **SIMD** - 16-byte SIMD vectors (recommended)

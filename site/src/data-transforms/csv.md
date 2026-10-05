@@ -7,8 +7,8 @@ and LazyRow optimization.
 > API may change as we improve correctness and streaming performance. Test
 > thoroughly with your data patterns.
 
-> **⚡ WASM-powered**: CSV parsing uses WebAssembly for high performance.
-> It uses the same WASM parser as flatdata CLI. See
+> **⚡ WASM-powered**: CSV parsing uses WebAssembly for high performance. It
+> uses the same WASM parser as flatdata CLI. See
 > [Fast CSV Parsing](#fast-csv-parsing-wasm) below.
 
 ## Overview
@@ -16,7 +16,8 @@ and LazyRow optimization.
 CSV transforms provide robust parsing and generation of CSV files with proper
 handling of quoted fields, escaping, and edge cases.
 
-**Tip**: Use LazyRow (`fromCsvToLazyRows()`) for better performance, especially when you only need to access a few fields from each row.
+**Tip**: Use LazyRow (`fromCsvToLazyRows()`) for better performance, especially
+when you only need to access a few fields from each row.
 
 ## Basic Usage
 
@@ -391,10 +392,10 @@ await read("data.csv")
 ## Best Practices
 
 1. **Use LazyRow** for CSV processing when you don't need all fields
-3. **Validate field counts** if your data requires consistent structure
-4. **Use streaming processing** for large files to maintain constant memory
+2. **Validate field counts** if your data requires consistent structure
+3. **Use streaming processing** for large files to maintain constant memory
    usage
-5. **Convert to other formats** for repeated processing of the same data
+4. **Convert to other formats** for repeated processing of the same data
 
 ## WASM-Powered Parsing
 
@@ -427,10 +428,10 @@ const lazyRows = await read("large-file.csv")
 
 **When to use which:**
 
-| Parser             | Use Case                            |
-| ------------------ | ----------------------------------- |
-| `fromCsvToRows()`  | In-process parsing with WASM        |
-| `flatdata` CLI     | Maximum throughput, batch pipelines |
+| Parser            | Use Case                            |
+| ----------------- | ----------------------------------- |
+| `fromCsvToRows()` | In-process parsing with WASM        |
+| `flatdata` CLI    | Maximum throughput, batch pipelines |
 
 ## See Also
 
