@@ -28,11 +28,6 @@ cd "$HERE" && (
     deno fmt **/*.md
     deno fmt $TS_FILES
 
-    # This detects the hack pattern, only on the second line of the file
-    # and removes the added semicolon if present. `deno fmt` breaks the
-    # hack shebang pattern, so we have to fix it up.
-    sed -i '2s|^":";\s[/][/]#;|":" //#;|' $TS_FILES
-
     deno lint $TS_FILES
     deno check $TS_FILES
 
