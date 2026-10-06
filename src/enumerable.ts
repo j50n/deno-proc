@@ -1,5 +1,5 @@
 import { Process, type ProcessOptions } from "./process.ts";
-import { parseArgs } from "./helpers.ts";
+import { handled, parseArgs } from "./helpers.ts";
 import type { Cmd } from "./run.ts";
 import type { Writable } from "./writable-iterable.ts";
 import {
@@ -260,7 +260,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
         for await (const it of iter) {
           await p;
-          p = w.write(it);
+          p = handled(w.write(it));
         }
 
         await p;
@@ -281,7 +281,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
             break;
           }
 
-          p = writer.write(it);
+          p = handled(writer.write(it));
         }
 
         await p;
@@ -333,7 +333,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
           } else {
             yield await p;
           }
-          p = mapFn(it);
+          p = handled(mapFn(it));
         }
         if (!first) {
           yield await p;
@@ -666,7 +666,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
     for await (const item of this.iter) {
       await p;
-      p = forEachFn(item);
+      p = handled(forEachFn(item));
     }
     await p;
   }
@@ -1003,10 +1003,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * **Example**
    *
    * ```typescript
-   * const [a, b] = enumerate([[1, "A"], [2, "B"], [3, "C"]]).unzip();
+   * const pairs: [number, string][] = [[1, "A"], [2, "B"], [3, "C"]];
+   * const [a, b] = enumerate(pairs).unzip();
    *
-   * // a is number[] -> [1, 2, 3]
-   * // b is string[] -> ["A", "B", "C"]
+   * // a is Enumerable<number> -> 1, 2, 3
+   * // b is Enumerable<string> -> "A", "B", "C"
    * ```
    *
    * @returns Two enumerables, one for the left side of the tuple and the other for the right.
@@ -1081,7 +1082,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
       for await (const buff of iter) {
         await p;
-        p = writeAll(buff, Deno.stdout);
+        p = handled(writeAll(buff, Deno.stdout));
       }
       await p;
     }
@@ -1103,7 +1104,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
         for await (const buff of iter) {
           await p;
-          p = writeAll(buff, writer);
+          p = handled(writeAll(buff, writer));
         }
         await p;
       } finally {

@@ -1,6 +1,6 @@
 {
   "name": "@j50n/proc",
-  "version": "0.24.7",
+  "version": "0.25.0",
   "publish": { 
     "exclude": [
       "**/warandpeace.txt.gz",
@@ -13,11 +13,19 @@
       "tests/",
       "**/*.test.ts",
       "build.sh",
-      "build-site.sh"
+      "build-site.sh",
+      "MAINT.md",
+      "MEMORY.md",
+      "odin/",
+      "tools/",
+      ".vscode/",
+      "ols.json",
+      "wasm/"
     ]
   },
   "exports": {
     ".": "./mod.ts",
+    "./transforms": "./src/transforms/mod.ts",
     "./flatdata": "./scripts/flatdata/flatdata.ts"
   },
   "imports": {

@@ -49,12 +49,17 @@ export async function* toChunkedLines(
   const decoder = new TextDecoder("utf-8", { fatal: true });
 
   for await (const buff of buffs) {
-    const lines = decoder.decode(buff, { stream: true }).split(/\r?\n/g);
+    // Split on LF alone and drop the CR afterward, since a CRLF can arrive
+    // with the CR at the end of one chunk and the LF at the start of the next.
+    const lines = decoder.decode(buff, { stream: true }).split("\n");
     lines[0] = leftover + lines[0];
 
     leftover = lines.pop()!;
 
     if (lines.length !== 0) {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].endsWith("\r")) lines[i] = lines[i].slice(0, -1);
+      }
       yield lines;
     }
   }
@@ -211,23 +216,29 @@ function uint8arrayArrayOfLinesOp(item: Uint8Array[]) {
 export async function* toBytes(
   iter: AsyncIterable<StandardData>,
 ): AsyncIterable<Uint8Array> {
+  // Pick the op on the first item and keep it while items stay that type; an
+  // item of another type picks again.
   const setupOp: (item: StandardData) => Uint8Array = (
     item: StandardData,
   ) => {
     if (isString(item)) {
       op = stringPerLineOp as typeof setupOp;
+      accepts = isString;
       return op(item);
     } else if (item instanceof Uint8Array) {
       op = uint8arrayPerLineOp as typeof setupOp;
+      accepts = (it) => it instanceof Uint8Array;
       return op(item);
     } else if (Array.isArray(item)) {
       if (item.length === 0) {
         return new Uint8Array(0);
       } else if (isString(item[0])) {
         op = stringArrayOfLinesOp as typeof setupOp;
+        accepts = (it) => Array.isArray(it) && isString(it[0]);
         return op(item);
       } else if (item[0] instanceof Uint8Array) {
         op = uint8arrayArrayOfLinesOp as typeof setupOp;
+        accepts = (it) => Array.isArray(it) && it[0] instanceof Uint8Array;
         return op(item);
       } else {
         throw new TypeError(
@@ -246,9 +257,10 @@ export async function* toBytes(
   };
 
   let op = setupOp;
+  let accepts: (item: StandardData) => boolean = () => false;
 
   for await (const item of iter) {
-    yield op(item);
+    yield accepts(item) ? op(item) : setupOp(item);
   }
 }
 
@@ -289,21 +301,19 @@ export function buffer(
     let len = 0;
     let pieces: Uint8Array[] = [];
 
-    try {
-      for await (const piece of iter) {
-        len += piece.length;
-        pieces.push(piece);
+    for await (const piece of iter) {
+      len += piece.length;
+      pieces.push(piece);
 
-        if (len >= size) {
-          yield concat(pieces);
-          size = 0;
-          pieces = [];
-        }
-      }
-    } finally {
-      if (pieces.length > 0) {
+      if (len >= size) {
         yield concat(pieces);
+        len = 0;
+        pieces = [];
       }
+    }
+
+    if (pieces.length > 0) {
+      yield concat(pieces);
     }
   }
 

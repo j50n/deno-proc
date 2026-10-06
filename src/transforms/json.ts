@@ -1,4 +1,5 @@
-import { BATCH_SIZE_BYTES } from "./common.ts";
+import type { TransformerFunction } from "../transformers.ts";
+import { BATCH_SIZE_BYTES, splitText } from "./common.ts";
 
 type ZodSchema<T = unknown> = { parse(value: unknown): T }; // Minimal Zod interface
 
@@ -19,10 +20,6 @@ export interface JsonOptions<T = unknown> {
   sampleSize?: number;
 }
 
-const decode = (() => {
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  return decoder.decode.bind(decoder);
-})();
 const encode = (() => {
   const encoder = new TextEncoder();
   return encoder.encode.bind(encoder);
@@ -77,36 +74,25 @@ const encode = (() => {
  * @param options Parsing and validation options.
  * @returns A transformer function for use with `.transform()`.
  */
-export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
+export function fromJsonToRows<T = unknown>(
+  options?: JsonOptions<T>,
+): TransformerFunction<Uint8Array, T[]> {
   return async function* (
     bytes: AsyncIterable<Uint8Array>,
   ): AsyncIterable<T[]> {
-    let buffer = "";
     let currentBatch: T[] = [];
     let currentBatchSize = 0;
     let processedCount = 0;
-    const shouldValidate = options?.schema &&
-      (options.sampleSize === undefined || options.sampleSize > 0);
+    const schema = options?.schema;
+    const sampleSize = options?.sampleSize ?? Infinity;
 
-    for await (const chunk of bytes) {
-      buffer += decode(chunk, { stream: true });
-
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
+    for await (const lines of splitText(bytes, "\n")) {
       for (const line of lines) {
         if (!line.trim()) continue;
 
         const value: T = JSON.parse(line);
-
-        // Validate if needed
-        if (shouldValidate && options?.schema) {
-          if (
-            options.sampleSize === undefined ||
-            processedCount < options.sampleSize
-          ) {
-            options.schema.parse(value); // Will throw if invalid
-          }
+        if (schema != null && processedCount < sampleSize) {
+          schema.parse(value); // Will throw if invalid
         }
 
         currentBatch.push(value);
@@ -119,20 +105,6 @@ export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
           currentBatchSize = 0;
         }
       }
-    }
-
-    buffer += decode();
-    if (buffer.trim()) {
-      const value: T = JSON.parse(buffer);
-      if (shouldValidate && options?.schema) {
-        if (
-          options.sampleSize === undefined ||
-          processedCount < options.sampleSize
-        ) {
-          options.schema.parse(value);
-        }
-      }
-      currentBatch.push(value);
     }
 
     if (currentBatch.length > 0) {
@@ -172,7 +144,7 @@ export function fromJsonToRows<T = unknown>(options?: JsonOptions<T>) {
  *
  * @returns A transformer function for use with `.transform()`.
  */
-export function toJson<T = unknown>() {
+export function toJson<T = unknown>(): TransformerFunction<T[], Uint8Array> {
   return async function* (data: AsyncIterable<T[]>): AsyncIterable<Uint8Array> {
     for await (const batch of data) {
       if (batch.length === 0) continue;

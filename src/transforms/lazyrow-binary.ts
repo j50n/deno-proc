@@ -1,13 +1,13 @@
+import type { TransformerFunction } from "../transformers.ts";
 import {
+  asRows,
   BATCH_SIZE_BYTES,
-  rowsToRecord,
-  rowToRecord,
-  writeUint32LE,
+  frameBinaryRows,
+  toBinaryRow,
 } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 import { concat } from "../utility.ts";
-import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
 
 /**
  * Convert LazyRow or string array batches to binary lazyrow format.
@@ -27,94 +27,15 @@ import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
  *   .writeTo("data.lazyrow");
  * ```
  */
-export function toLazyRowBinary() {
+export function toLazyRowBinary(): TransformerFunction<
+  Row | Row[] | LazyRow | LazyRow[],
+  Uint8Array
+> {
   return async function* (
     data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
-    const encoder = new TextEncoder();
-    const processor = await FlatdataProcessor.create();
-    const encode = (s: string) => encoder.encode(s);
-
-    // Handler functions for each input type
-    function handleBinaryLazyRowArray(rows: LazyRow[]): Uint8Array {
-      const chunks = new Array(rows.length * 2);
-      let idx = 0;
-
-      for (let i = 0; i < rows.length; i++) {
-        const rowData = rows[i].toBinary();
-        chunks[idx++] = writeUint32LE(rowData.length);
-        chunks[idx++] = rowData;
-      }
-
-      return concat(chunks);
-    }
-
-    function handleBinaryLazyRow(row: LazyRow): Uint8Array {
-      const rowData = row.toBinary();
-      return concat([writeUint32LE(rowData.length), rowData]);
-    }
-
-    function handleRowArray(rows: Row[]): Uint8Array {
-      return processor.recordToLazyRowBinaryDirect(encode(rowsToRecord(rows)));
-    }
-
-    function handleStringLazyRowArray(rows: LazyRow[]): Uint8Array {
-      const stringRows = new Array(rows.length);
-      for (let i = 0; i < rows.length; i++) {
-        stringRows[i] = rows[i].toStringArray();
-      }
-      return processor.recordToLazyRowBinaryDirect(
-        encode(rowsToRecord(stringRows)),
-      );
-    }
-
-    function handleStringLazyRow(row: LazyRow): Uint8Array {
-      return processor.recordToLazyRowBinaryDirect(
-        encode(rowToRecord(row.toStringArray())),
-      );
-    }
-
-    function handleRow(row: Row): Uint8Array {
-      return processor.recordToLazyRowBinaryDirect(encode(rowToRecord(row)));
-    }
-
-    // Select handler on first iteration
-    // deno-lint-ignore no-explicit-any
-    let handler: (item: any) => Uint8Array = (item: any) => {
-      if (Array.isArray(item) && item.length === 0) {
-        return new Uint8Array(0);
-      }
-
-      if (
-        Array.isArray(item) && item.length > 0 &&
-        item[0] instanceof LazyRow && item[0].isBinaryBacked()
-      ) {
-        handler = handleBinaryLazyRowArray;
-      } else if (item instanceof LazyRow && item.isBinaryBacked()) {
-        handler = handleBinaryLazyRow;
-      } else if (
-        Array.isArray(item) && item.length > 0 && item[0] instanceof LazyRow
-      ) {
-        handler = handleStringLazyRowArray;
-      } else if (
-        Array.isArray(item) && item.length > 0 && Array.isArray(item[0])
-      ) {
-        handler = handleRowArray;
-      } else if (item instanceof LazyRow) {
-        handler = handleStringLazyRow;
-      } else if (Array.isArray(item)) {
-        handler = handleRow;
-      } else {
-        throw new TypeError(
-          `Unsupported input type for toLazyRowBinary: expected Row, Row[], LazyRow, or LazyRow[], got ${typeof item}`,
-        );
-      }
-
-      return handler(item);
-    };
-
     for await (const item of data) {
-      yield handler(item);
+      yield frameBinaryRows(asRows(item).map(toBinaryRow));
     }
   };
 }
@@ -134,52 +55,49 @@ export function toLazyRowBinary() {
  *   .forEach(row => console.log(row.getField(1)));
  * ```
  */
-export function fromLazyRowBinary() {
+export function fromLazyRowBinary(): TransformerFunction<
+  Uint8Array,
+  LazyRow[]
+> {
   return async function* (
     bytes: AsyncIterable<Uint8Array>,
   ): AsyncIterable<LazyRow[]> {
-    const chunks: Uint8Array[] = [];
-    let totalLen = 0;
-    let buffer: Uint8Array | null = null;
-    let offset = 0;
+    let buffer: Uint8Array = new Uint8Array(0);
+    let pending: Uint8Array[] = [];
+    let available = 0;
+    // Bytes needed before the next row can be read: its length prefix, then
+    // the whole row. Chunks wait in `pending` until there are enough, so a
+    // large row is copied once rather than once per chunk.
+    let needed = 4;
     let currentBatch: LazyRow[] = [];
     let currentBatchSize = 0;
 
-    const ensureBuffer = () => {
-      if (buffer && offset === 0) return;
-      buffer = new Uint8Array(totalLen - offset);
-      let pos = 0;
-      let skip = offset;
-      for (const chunk of chunks) {
-        if (skip >= chunk.length) {
-          skip -= chunk.length;
-          continue;
-        }
-        const src = skip > 0 ? chunk.subarray(skip) : chunk;
-        skip = 0;
-        buffer.set(src, pos);
-        pos += src.length;
-      }
-      chunks.length = 0;
-      chunks.push(buffer);
-      totalLen = buffer.length;
-      offset = 0;
-    };
-
     for await (const chunk of bytes) {
-      chunks.push(chunk);
-      totalLen += chunk.length;
-      buffer = null;
+      pending.push(chunk);
+      available += chunk.length;
+      if (available < needed) continue;
 
-      ensureBuffer();
+      buffer = concat([buffer, ...pending]);
+      pending = [];
+      const view = new DataView(
+        buffer.buffer,
+        buffer.byteOffset,
+        buffer.byteLength,
+      );
 
-      while (totalLen - offset >= 4) {
-        const view = new DataView(buffer!.buffer, buffer!.byteOffset + offset);
-        const rowLength = view.getUint32(0, true);
+      let offset = 0;
+      while (true) {
+        if (buffer.length - offset < 4) {
+          needed = 4;
+          break;
+        }
+        const rowLength = view.getUint32(offset, true);
+        if (buffer.length - offset < 4 + rowLength) {
+          needed = 4 + rowLength;
+          break;
+        }
 
-        if (totalLen - offset < 4 + rowLength) break;
-
-        const rowData = buffer!.subarray(offset + 4, offset + 4 + rowLength);
+        const rowData = buffer.subarray(offset + 4, offset + 4 + rowLength);
         currentBatch.push(LazyRow.fromBinary(rowData));
         currentBatchSize += rowLength;
         offset += 4 + rowLength;
@@ -190,10 +108,18 @@ export function fromLazyRowBinary() {
           currentBatchSize = 0;
         }
       }
+
+      buffer = buffer.subarray(offset);
+      available = buffer.length;
     }
 
     if (currentBatch.length > 0) {
       yield currentBatch;
+    }
+    if (available > 0) {
+      throw new Error(
+        `LazyRow binary data ends partway through a row (${available} bytes left over)`,
+      );
     }
   };
 }

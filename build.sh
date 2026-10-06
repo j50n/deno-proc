@@ -12,8 +12,9 @@ cargo install mdbook
 HERE="$(realpath "$(dirname "$0")")"
 
 cd "$HERE" && (
-    # Build WASM module
+    # Build WASM module and embed it for the library
     ./odin/build.sh
+    deno run --allow-read --allow-write tools/embed-wasm.ts
 
     # Update Deno
     deno update --latest

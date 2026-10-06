@@ -1,9 +1,14 @@
+import type { TransformerFunction } from "../transformers.ts";
 import {
   BATCH_SIZE_BYTES,
+  checkBinaryFields,
+  checkFields,
   FIELD_SEPARATOR,
+  forbiddenBytes,
   RECORD_SEPARATOR,
   rowsToRecord,
   rowToRecord,
+  splitText,
   writeUint32LE,
 } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
@@ -11,10 +16,36 @@ import type { Row } from "./types.ts";
 import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
 import { concat } from "../utility.ts";
 
-const decode = (() => {
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  return decoder.decode.bind(decoder);
-})();
+const RECORD_FORBIDDEN = forbiddenBytes({
+  0x1E: "record separator",
+  0x1F: "field separator",
+});
+
+/** Batch the parsed records of a record-format stream. */
+async function* recordBatches<T>(
+  bytes: AsyncIterable<Uint8Array>,
+  toRow: (fields: string[]) => T,
+): AsyncIterable<T[]> {
+  let currentBatch: T[] = [];
+  let currentBatchSize = 0;
+
+  for await (const records of splitText(bytes, RECORD_SEPARATOR)) {
+    for (const record of records) {
+      currentBatch.push(toRow(record.split(FIELD_SEPARATOR)));
+      currentBatchSize += record.length;
+
+      if (currentBatchSize >= BATCH_SIZE_BYTES) {
+        yield currentBatch;
+        currentBatch = [];
+        currentBatchSize = 0;
+      }
+    }
+  }
+
+  if (currentBatch.length > 0) {
+    yield currentBatch;
+  }
+}
 
 /**
  * Parse Record format bytes into batches of string arrays.
@@ -38,45 +69,9 @@ const decode = (() => {
  *
  * @returns A transformer function for use with `.transform()`.
  */
-export function fromRecordToRows() {
-  return async function* (
-    bytes: AsyncIterable<Uint8Array>,
-  ): AsyncIterable<Row[]> {
-    let buffer = "";
-    let currentBatch: Row[] = [];
-    let currentBatchSize = 0;
-
-    for await (const chunk of bytes) {
-      buffer += decode(chunk, { stream: true });
-
-      const records = buffer.split(RECORD_SEPARATOR);
-      buffer = records.pop() || "";
-
-      for (const record of records) {
-        if (!record) continue;
-
-        const fields = record.split(FIELD_SEPARATOR);
-        currentBatch.push(fields);
-        currentBatchSize += record.length;
-
-        if (currentBatchSize >= BATCH_SIZE_BYTES) {
-          yield currentBatch;
-          currentBatch = [];
-          currentBatchSize = 0;
-        }
-      }
-    }
-
-    buffer += decode();
-    if (buffer) {
-      const fields = buffer.split(FIELD_SEPARATOR);
-      currentBatch.push(fields);
-    }
-
-    if (currentBatch.length > 0) {
-      yield currentBatch;
-    }
-  };
+export function fromRecordToRows(): TransformerFunction<Uint8Array, Row[]> {
+  return (bytes: AsyncIterable<Uint8Array>): AsyncIterable<Row[]> =>
+    recordBatches(bytes, (fields) => fields);
 }
 
 /**
@@ -99,48 +94,12 @@ export function fromRecordToRows() {
  *
  * @returns A transformer function for use with `.transform()`.
  */
-export function fromRecordToLazyRows() {
-  return async function* (
-    bytes: AsyncIterable<Uint8Array>,
-  ): AsyncIterable<LazyRow[]> {
-    let buffer = "";
-    let currentBatch: LazyRow[] = [];
-    let currentBatchSize = 0;
-
-    for await (const chunk of bytes) {
-      buffer += decode(chunk, { stream: true });
-
-      const records = buffer.split(RECORD_SEPARATOR);
-      buffer = records.pop() || "";
-
-      for (const record of records) {
-        if (!record) continue;
-
-        const fields = record.split(FIELD_SEPARATOR);
-        const row = LazyRow.fromStringArray(fields);
-
-        currentBatch.push(row);
-        currentBatchSize += record.length;
-
-        if (currentBatchSize >= BATCH_SIZE_BYTES) {
-          yield currentBatch;
-          currentBatch = [];
-          currentBatchSize = 0;
-        }
-      }
-    }
-
-    buffer += decode();
-    if (buffer) {
-      const fields = buffer.split(FIELD_SEPARATOR);
-      const row = LazyRow.fromStringArray(fields);
-      currentBatch.push(row);
-    }
-
-    if (currentBatch.length > 0) {
-      yield currentBatch;
-    }
-  };
+export function fromRecordToLazyRows(): TransformerFunction<
+  Uint8Array,
+  LazyRow[]
+> {
+  return (bytes: AsyncIterable<Uint8Array>): AsyncIterable<LazyRow[]> =>
+    recordBatches(bytes, LazyRow.fromStringArray);
 }
 
 /**
@@ -164,7 +123,10 @@ export function fromRecordToLazyRows() {
  *
  * @returns A transformer function for use with `.transform()`.
  */
-export function toRecord() {
+export function toRecord(): TransformerFunction<
+  Row | Row[] | LazyRow | LazyRow[],
+  Uint8Array
+> {
   return async function* (
     data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
@@ -173,24 +135,35 @@ export function toRecord() {
       return encoder.encode.bind(encoder);
     })();
     const processor = await FlatdataProcessor.create();
+    let rowNumber = 0;
+
+    const check = (fields: string[]) =>
+      checkFields(fields, RECORD_FORBIDDEN, "record", ++rowNumber);
+    const checkBinary = (rowData: Uint8Array) =>
+      checkBinaryFields(rowData, RECORD_FORBIDDEN, "record", ++rowNumber);
 
     const handleRow = (row: Row): Uint8Array => {
+      check(row);
       return encode(rowToRecord(row));
     };
 
     const handleRowArray = (rows: Row[]): Uint8Array => {
+      rows.forEach(check);
       return encode(rowsToRecord(rows));
     };
 
     const handleBinaryLazyRow = (row: LazyRow): Uint8Array => {
       const rowData = row.toBinary();
+      checkBinary(rowData);
       return processor.lazyRowBinaryToRecordDirect(
         concat([writeUint32LE(rowData.length), rowData]),
       );
     };
 
     const handleStringLazyRow = (row: LazyRow): Uint8Array => {
-      return encode(rowToRecord(row.toStringArray()));
+      const fields = row.toStringArray();
+      check(fields);
+      return encode(rowToRecord(fields));
     };
 
     const handleBinaryLazyRowArray = (rows: LazyRow[]): Uint8Array => {
@@ -199,6 +172,7 @@ export function toRecord() {
 
       for (let i = 0; i < rows.length; i++) {
         const rowData = rows[i].toBinary();
+        checkBinary(rowData);
         chunks[idx++] = writeUint32LE(rowData.length);
         chunks[idx++] = rowData;
       }
@@ -208,6 +182,7 @@ export function toRecord() {
 
     const handleStringLazyRowArray = (rows: LazyRow[]): Uint8Array => {
       const stringRows = rows.map((row) => row.toStringArray());
+      stringRows.forEach(check);
       return encode(rowsToRecord(stringRows));
     };
 

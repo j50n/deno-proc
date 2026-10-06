@@ -17,6 +17,7 @@
  * // Transform data between formats - CSV to TSV with filtering
  * await read("sales.csv")
  *   .transform(fromCsvToRows())
+ *   .flatten()
  *   .filter((row) => parseFloat(row[3]) > 1000)
  *   .transform(toTsv())
  *   .writeTo("high-value.tsv");
@@ -192,6 +193,7 @@
 
 export * from "./src/utility.ts";
 export * from "./src/process.ts";
+export * from "./src/shutdown.ts";
 export * from "./src/run.ts";
 export * from "./src/enumerable.ts";
 export * from "./src/transformers.ts";

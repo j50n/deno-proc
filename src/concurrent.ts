@@ -1,3 +1,5 @@
+import { handled } from "./helpers.ts";
+
 function resolvedConcurrency(concurrency?: number | undefined) {
   if (concurrency === undefined) {
     return navigator.hardwareConcurrency;
@@ -56,7 +58,7 @@ export async function* concurrentMap<T, U>(
       yield await buffer.shift()!;
     }
 
-    buffer.push(mapFn(item));
+    buffer.push(handled(mapFn(item)));
   }
 
   while (buffer.length > 0) {
@@ -125,6 +127,7 @@ export async function* concurrentUnorderedMap<T, U>(
     const p: Esimorp<U> = esimorp();
     buffAft.push(p);
     buffFore.push(p);
+    handled(p.promise);
 
     (async () => {
       try {

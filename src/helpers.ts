@@ -54,3 +54,15 @@ export function bestTypeNameOf(item: unknown): string {
     return typeof item;
   }
 }
+
+/**
+ * Mark a promise as handled and return it unchanged. Awaiting it still throws.
+ * If nothing ever does, because iteration stopped on another error first, its
+ * failure is dropped instead of ending the process as an unhandled rejection.
+ *
+ * @internal
+ */
+export function handled<T>(value: T): T {
+  if (value instanceof Promise) value.catch(() => {});
+  return value;
+}

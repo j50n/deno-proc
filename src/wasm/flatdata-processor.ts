@@ -53,16 +53,32 @@
  * const processor = await FlatdataProcessor.create();
  *
  * // Convert CSV to record format
- * await processor.csvToRecord(inputStream, writeFunction, 44);
+ * const records = processor.csvToRecordStreaming(csvBytes, 44);
  *
  * // Convert back to CSV
- * await processor.recordToCsv(recordStream, writeFunction, 44, false);
+ * for await (const chunk of processor.recordToCsv(records, 44)) {
+ *   await Deno.stdout.write(chunk);
+ * }
  * ```
  *
  * @module
  */
 
 import { LazyRow } from "../transforms/lazy-row.ts";
+import { FLATDATA_WASM_BASE64 } from "./flatdata-wasm.ts";
+
+let compiled: Promise<WebAssembly.Module> | undefined;
+
+/**
+ * The flatdata module, compiled on first use and shared by every processor.
+ * It is embedded rather than read from `wasm/flatdata.wasm`, which can't be
+ * read when proc is installed from JSR.
+ */
+function flatdataModule(): Promise<WebAssembly.Module> {
+  return compiled ??= WebAssembly.compile(
+    Uint8Array.from(atob(FLATDATA_WASM_BASE64), (c) => c.charCodeAt(0)),
+  );
+}
 
 /** Field separator byte for record format (\x1F - Unit Separator) */
 const FIELD_SEP = 0x1F;
@@ -398,13 +414,13 @@ function createOdinRuntime(memory: WebAssembly.Memory): WebAssembly.Imports {
  * const processor = await FlatdataProcessor.create();
  *
  * // CSV to record format
- * await processor.csvToRecord(stream, write, 44); // comma separator
+ * const fromCsv = processor.csvToRecordStreaming(csvBytes, 44); // comma
  *
- * // TSV to record format
- * await processor.csvToRecord(stream, write, 9); // tab separator
+ * // Tab-separated, quoted like CSV, to record format
+ * const fromTabs = processor.csvToRecordStreaming(tabBytes, 9); // tab
  *
  * // Record to CSV with minimal quoting
- * await processor.recordToCsv(stream, write, 44, false);
+ * const csv = processor.recordToCsv(fromCsv, 44, false);
  *
  * // CSV to binary lazyrow for efficient field access
  * await processor.csvToLazyRowBinary(stream, write, 44);
@@ -441,12 +457,10 @@ export class FlatdataProcessor {
    * @throws Error if WASM module fails to load or initialize
    */
   static async create(): Promise<FlatdataProcessor> {
-    const wasmUrl = new URL(`../../wasm/flatdata.wasm`, import.meta.url);
-    const wasmBytes = await Deno.readFile(wasmUrl);
     const memory = new WebAssembly.Memory({ initial: 256, maximum: 1024 });
 
-    const { instance } = await WebAssembly.instantiate(
-      wasmBytes,
+    const instance = await WebAssembly.instantiate(
+      await flatdataModule(),
       createOdinRuntime(memory),
     );
 
@@ -491,136 +505,6 @@ export class FlatdataProcessor {
     }
   }
 
-  // =============================================================================
-  // CSV/TSV ↔ Record Format Conversions
-  // =============================================================================
-
-  /**
-   * Convert CSV/TSV to record format (\x1F/\x1E delimited).
-   *
-   * Uses the direct parser for maximum streaming performance. Output is written
-   * directly to the output buffer without intermediate copies.
-   *
-   * **Record format** uses ASCII control characters:
-   * - \x1F (Unit Separator) between fields
-   * - \x1E (Record Separator) between rows
-   *
-   * **Performance**: ~100-150 MB/s throughput
-   *
-   * @param input - Readable stream of CSV/TSV bytes
-   * @param write - Writer function for output chunks
-   * @param separator - Field separator character code (44 for comma, 9 for tab)
-   *
-   * @example
-   * ```ts
-   * const processor = await FlatdataProcessor.create();
-   *
-   * // CSV (comma-separated)
-   * await processor.csvToRecord(stream, write, 44);
-   *
-   * // TSV (tab-separated)
-   * await processor.csvToRecord(stream, write, 9);
-   *
-   * // European CSV (semicolon-separated)
-   * await processor.csvToRecord(stream, write, 59);
-   * ```
-   */
-  async csvToRecord(
-    input: ReadableStream<Uint8Array>,
-    write: Writer,
-    separator: number,
-  ): Promise<void> {
-    // CSV input: separator for fields, \n for records
-    // Output: \x1F for fields, \x1E for records
-    const parserId = this.exports.create_direct_parser(
-      separator,
-      0,
-      0x1F,
-      0x1E,
-      0x0A,
-    );
-    const reader = input.getReader();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        for (
-          let off = 0;
-          off < value.length;
-          off += FlatdataProcessor.CHUNK_SIZE
-        ) {
-          const slice = value.subarray(
-            off,
-            Math.min(off + FlatdataProcessor.CHUNK_SIZE, value.length),
-          );
-          new Uint8Array(this.memory.buffer, this.inputPtr, slice.length).set(
-            slice,
-          );
-
-          const outLen = this.exports.parse_direct(parserId, slice.length);
-          if (outLen < 0) throw new Error("WASM memory allocation failed");
-          if (outLen > 0) {
-            await write(
-              new Uint8Array(this.memory.buffer, this.getOutputPtr(), outLen),
-            );
-          }
-        }
-      }
-
-      const finalLen = this.exports.finish_direct(parserId);
-      if (finalLen < 0) throw new Error("WASM memory allocation failed");
-      if (finalLen > 0) {
-        await write(
-          new Uint8Array(this.memory.buffer, this.getOutputPtr(), finalLen),
-        );
-      }
-    } finally {
-      this.exports.destroy_direct_parser(parserId);
-    }
-  }
-
-  /**
-   * Convert CSV directly to TSV.
-   *
-   * Fast direct conversion using WASM parser with tab output separator.
-   * Much faster than csv→record→tsv pipeline.
-   *
-   * @param input - Readable stream of CSV bytes
-   * @param write - Writer function for output chunks
-   * @param separator - CSV field separator (default: comma)
-   */
-  /**
-   * Convert record format to delimited output (CSV/TSV).
-   *
-   * Simple delimiter replacement - record format has no quoting, so output
-   * doesn't need quoting either. Just swaps \x1F→separator, \x1E→\n.
-   *
-   * @param input - Readable stream of record format bytes
-   * @param write - Writer function for output chunks
-   * @param separator - Output field separator (comma for CSV, tab for TSV)
-   */
-  /**
-   * Convert record format to CSV/TSV.
-   *
-   * Takes record format (\x1F/\x1E delimited) and converts it to standard
-   * CSV/TSV with proper quoting and escaping according to RFC 4180.
-   *
-   * **Quoting behavior**:
-   * - `quoteAll=false`: Only quotes fields containing separator, quotes, or newlines
-   * - `quoteAll=true`: Quotes all fields (safer but larger output)
-   *
-   * **Performance**: ~100-150 MB/s throughput
-   *
-   * @param input - Readable stream of record format bytes
-   * @param write - Writer function for output chunks
-   * @param separator - Field separator character code (44 for comma, 9 for tab)
-   * @param quoteAll - If true, quote all fields; if false, only quote when necessary
-   *
-   * @example
-   * ```ts
-   * const processor = await FlatdataProcessor.create();
   // =============================================================================
   // CSV/TSV ↔ Binary LazyRow Conversions
   // =============================================================================

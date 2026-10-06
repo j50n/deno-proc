@@ -1,14 +1,58 @@
-import { BATCH_SIZE_BYTES, joinRow, joinRows } from "./common.ts";
+import type { TransformerFunction } from "../transformers.ts";
+import {
+  BATCH_SIZE_BYTES,
+  checkBinaryFields,
+  checkFields,
+  forbiddenBytes,
+  joinRow,
+  joinRows,
+  splitText,
+} from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
 import { concat } from "../utility.ts";
 import { writeUint32LE } from "./common.ts";
 
-const decode = (() => {
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  return decoder.decode.bind(decoder);
-})();
+const TSV_FORBIDDEN = forbiddenBytes({ 9: "tab", 10: "LF", 13: "CR" });
+
+/**
+ * The fields of one TSV line, or `null` for a blank line. A trailing CR is
+ * dropped, so CRLF files read the same as LF files; a field can't hold a CR.
+ */
+function tsvFields(line: string): string[] | null {
+  if (line.endsWith("\r")) line = line.slice(0, -1);
+  return line === "" ? null : line.split("\t");
+}
+
+/** Batch the parsed lines of a TSV stream. */
+async function* tsvBatches<T>(
+  bytes: AsyncIterable<Uint8Array>,
+  toRow: (fields: string[]) => T,
+): AsyncIterable<T[]> {
+  let currentBatch: T[] = [];
+  let currentBatchSize = 0;
+
+  for await (const lines of splitText(bytes, "\n")) {
+    for (const line of lines) {
+      const fields = tsvFields(line);
+      if (fields == null) continue;
+
+      currentBatch.push(toRow(fields));
+      currentBatchSize += line.length;
+
+      if (currentBatchSize >= BATCH_SIZE_BYTES) {
+        yield currentBatch;
+        currentBatch = [];
+        currentBatchSize = 0;
+      }
+    }
+  }
+
+  if (currentBatch.length > 0) {
+    yield currentBatch;
+  }
+}
 
 /**
  * Parse TSV bytes into batches of string arrays.
@@ -42,45 +86,9 @@ const decode = (() => {
  *
  * @returns A transformer function for use with `.transform()`.
  */
-export function fromTsvToRows() {
-  return async function* (
-    bytes: AsyncIterable<Uint8Array>,
-  ): AsyncIterable<Row[]> {
-    let buffer = "";
-    let currentBatch: Row[] = [];
-    let currentBatchSize = 0;
-
-    for await (const chunk of bytes) {
-      buffer += decode(chunk, { stream: true });
-
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        const fields = line.split("\t");
-        currentBatch.push(fields);
-        currentBatchSize += line.length;
-
-        if (currentBatchSize >= BATCH_SIZE_BYTES) {
-          yield currentBatch;
-          currentBatch = [];
-          currentBatchSize = 0;
-        }
-      }
-    }
-
-    buffer += decode();
-    if (buffer.trim()) {
-      const fields = buffer.split("\t");
-      currentBatch.push(fields);
-    }
-
-    if (currentBatch.length > 0) {
-      yield currentBatch;
-    }
-  };
+export function fromTsvToRows(): TransformerFunction<Uint8Array, Row[]> {
+  return (bytes: AsyncIterable<Uint8Array>): AsyncIterable<Row[]> =>
+    tsvBatches(bytes, (fields) => fields);
 }
 
 /**
@@ -104,48 +112,12 @@ export function fromTsvToRows() {
  *
  * @returns A transformer function for use with `.transform()`.
  */
-export function fromTsvToLazyRows() {
-  return async function* (
-    bytes: AsyncIterable<Uint8Array>,
-  ): AsyncIterable<LazyRow[]> {
-    let buffer = "";
-    let currentBatch: LazyRow[] = [];
-    let currentBatchSize = 0;
-
-    for await (const chunk of bytes) {
-      buffer += decode(chunk, { stream: true });
-
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        const fields = line.split("\t");
-        const row = LazyRow.fromStringArray(fields);
-
-        currentBatch.push(row);
-        currentBatchSize += line.length;
-
-        if (currentBatchSize >= BATCH_SIZE_BYTES) {
-          yield currentBatch;
-          currentBatch = [];
-          currentBatchSize = 0;
-        }
-      }
-    }
-
-    buffer += decode();
-    if (buffer.trim()) {
-      const fields = buffer.split("\t");
-      const row = LazyRow.fromStringArray(fields);
-      currentBatch.push(row);
-    }
-
-    if (currentBatch.length > 0) {
-      yield currentBatch;
-    }
-  };
+export function fromTsvToLazyRows(): TransformerFunction<
+  Uint8Array,
+  LazyRow[]
+> {
+  return (bytes: AsyncIterable<Uint8Array>): AsyncIterable<LazyRow[]> =>
+    tsvBatches(bytes, LazyRow.fromStringArray);
 }
 
 /**
@@ -172,7 +144,10 @@ export function fromTsvToLazyRows() {
  * @throws {Error} If data contains tab, CR, or LF characters
  * @returns A transformer function for use with `.transform()`.
  */
-export function toTsv() {
+export function toTsv(): TransformerFunction<
+  Row | Row[] | LazyRow | LazyRow[],
+  Uint8Array
+> {
   return async function* (
     data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
   ): AsyncIterable<Uint8Array> {
@@ -185,14 +160,14 @@ export function toTsv() {
 
     const handleRow = (row: Row): Uint8Array => {
       rowNumber++;
-      validateTsvFields(row, rowNumber);
+      checkFields(row, TSV_FORBIDDEN, "TSV", rowNumber);
       return encode(joinRow(row, "\t", "\n"));
     };
 
     const handleRowArray = (rows: Row[]): Uint8Array => {
       for (const row of rows) {
         rowNumber++;
-        validateTsvFields(row, rowNumber);
+        checkFields(row, TSV_FORBIDDEN, "TSV", rowNumber);
       }
       return encode(joinRows(rows, "\t", "\n"));
     };
@@ -200,6 +175,7 @@ export function toTsv() {
     const handleBinaryLazyRow = (row: LazyRow): Uint8Array => {
       rowNumber++;
       const rowData = row.toBinary();
+      checkBinaryFields(rowData, TSV_FORBIDDEN, "TSV", rowNumber);
       return processor.lazyRowBinaryToTsvDirect(
         concat([writeUint32LE(rowData.length), rowData]),
       );
@@ -208,7 +184,7 @@ export function toTsv() {
     const handleStringLazyRow = (row: LazyRow): Uint8Array => {
       rowNumber++;
       const fields = row.toStringArray();
-      validateTsvFields(fields, rowNumber);
+      checkFields(fields, TSV_FORBIDDEN, "TSV", rowNumber);
       return encode(joinRow(fields, "\t", "\n"));
     };
 
@@ -218,6 +194,7 @@ export function toTsv() {
 
       for (let i = 0; i < rows.length; i++) {
         const rowData = rows[i].toBinary();
+        checkBinaryFields(rowData, TSV_FORBIDDEN, "TSV", rowNumber + i + 1);
         chunks[idx++] = writeUint32LE(rowData.length);
         chunks[idx++] = rowData;
       }
@@ -231,7 +208,7 @@ export function toTsv() {
       for (const row of rows) {
         rowNumber++;
         const fields = row.toStringArray();
-        validateTsvFields(fields, rowNumber);
+        checkFields(fields, TSV_FORBIDDEN, "TSV", rowNumber);
         stringRows.push(fields);
       }
       return encode(joinRows(stringRows, "\t", "\n"));
@@ -275,35 +252,4 @@ export function toTsv() {
       yield handler(item);
     }
   };
-}
-
-/**
- * Validate that fields don't contain invalid TSV characters.
- * @throws {Error} If any field contains tab, CR, or LF
- */
-function validateTsvFields(fields: string[], rowNumber: number): void {
-  for (let i = 0; i < fields.length; i++) {
-    const field = fields[i];
-    if (field.includes("\t")) {
-      throw new Error(
-        `Invalid character (tab) in TSV data at row ${rowNumber.toLocaleString()}, field ${
-          i + 1
-        }`,
-      );
-    }
-    if (field.includes("\r")) {
-      throw new Error(
-        `Invalid character (CR) in TSV data at row ${rowNumber.toLocaleString()}, field ${
-          i + 1
-        }`,
-      );
-    }
-    if (field.includes("\n")) {
-      throw new Error(
-        `Invalid character (LF) in TSV data at row ${rowNumber.toLocaleString()}, field ${
-          i + 1
-        }`,
-      );
-    }
-  }
 }

@@ -12,7 +12,7 @@ HERE="$(realpath "$(dirname "$0")")"
 cd "$HERE" && (
     # Generate API documentation from Deno
     echo "Generating API documentation..."
-    deno doc --html --name="proc" --output=./site/src/api-docs ./mod.ts
+    deno doc --html --name="proc" --output=./site/src/api-docs ./mod.ts ./src/transforms/mod.ts
 )
 
 cd "$HERE/site/" && (

@@ -7,8 +7,8 @@ import { ProcessEnumerable } from "./enumerable.ts";
  *
  * @example
  * ```typescript
- * ["ls", "-la"]
- * ["echo", "hello"]
+ * const list: Cmd = ["ls", "-la"];
+ * const greet: Cmd = ["echo", "hello"];
  * ```
  */
 export type Cmd = [string | URL, ...string[]];

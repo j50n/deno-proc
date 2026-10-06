@@ -131,7 +131,7 @@ export async function cache<T>(
   );
   if (v == null) {
     v = await value();
-    put(key, v);
+    await put(key, v);
   }
   return v;
 }
