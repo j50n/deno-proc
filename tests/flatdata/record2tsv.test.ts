@@ -2,7 +2,7 @@
  * Record format to TSV, as the flatdata CLI's record2tsv does it.
  */
 
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
 import { fromRecordToRows, toTsv } from "../../src/transforms/mod.ts";
 
@@ -57,10 +57,12 @@ Deno.test("record2tsv - only field separator", async () => {
   assertEquals(result, "\t\n");
 });
 
-Deno.test("record2tsv - only record separator", async () => {
-  const input = "\x1E";
-  const result = await record2tsv(input);
-  assertEquals(result, "\n");
+Deno.test("record2tsv - a record of one empty field is refused, since TSV would skip it", async () => {
+  await assertRejects(
+    () => record2tsv("\x1E"),
+    Error,
+    "Invalid row (one empty field) in TSV data at row 1",
+  );
 });
 
 Deno.test("record2tsv - consecutive field separators", async () => {
@@ -69,10 +71,12 @@ Deno.test("record2tsv - consecutive field separators", async () => {
   assertEquals(result, "a\t\t\tb\n");
 });
 
-Deno.test("record2tsv - consecutive record separators", async () => {
-  const input = "a\x1E\x1E\x1Eb\x1E";
-  const result = await record2tsv(input);
-  assertEquals(result, "a\n\n\nb\n");
+Deno.test("record2tsv - consecutive record separators are refused at the first empty record", async () => {
+  await assertRejects(
+    () => record2tsv("a\x1E\x1E\x1Eb\x1E"),
+    Error,
+    "Invalid row (one empty field) in TSV data at row 2",
+  );
 });
 
 // Special characters

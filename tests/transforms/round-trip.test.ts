@@ -15,13 +15,11 @@ import {
   toRecord,
   toTsv,
 } from "../../src/transforms/mod.ts";
-import { chunked, readCsvReference } from "./reference.ts";
+import { chunked, readCsvReference, seededRandom } from "./reference.ts";
 
 /** Seeded rows of awkward fields: quotes, separators, line ends, UTF-8. */
 function randomRows(count: number, pieces: string[]): string[][] {
-  let seed = 7;
-  const random = (n: number) =>
-    (seed = (seed * 1103515245 + 12345) % 2 ** 31) % n;
+  const random = seededRandom(7);
   return Array.from(
     { length: count },
     () =>

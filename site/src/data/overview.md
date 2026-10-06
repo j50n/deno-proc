@@ -1,8 +1,8 @@
 # Reading and writing data formats
 
 `@j50n/proc/transforms` turns bytes into rows and rows back into bytes, a batch
-at a time, so a CSV export or a process's output streams through your code in
-constant memory.
+at a time, so a CSV export or a process's output streams through your code
+without being read whole into memory.
 
 ```typescript
 {{#include ../../examples/data/overview.ts}}
@@ -25,7 +25,7 @@ The transforms are a separate entry point, so import them from
 | ----------------------- | ---------------------------------------------- | ------------ | ---------------------------------- |
 | [CSV](./csv.md)         | `fromCsvToRows()`, `fromCsvToLazyRows()`       | `toCsv()`    | nothing: it quotes                 |
 | [TSV](./tsv.md)         | `fromTsvToRows()`, `fromTsvToLazyRows()`       | `toTsv()`    | a tab, CR, or LF                   |
-| [JSON lines](./json.md) | `fromJsonToRows()`                             | `toJson()`   | nothing, but it takes batches only |
+| [JSON lines](./json.md) | `fromJsonToRows()`                             | `toJson()`   | a value with no JSON form          |
 | [Record](./record.md)   | `fromRecordToRows()`, `fromRecordToLazyRows()` | `toRecord()` | `\x1E` or `\x1F`                   |
 
 - **CSV** to exchange data with spreadsheets, databases, and other people. Its
@@ -51,8 +51,8 @@ shows both.
 Parsers yield batches (arrays of rows), not single rows. Add `.flatten()` before
 a step that works on one row (`filter`, `map`, `take`), as in
 [Key ideas](../start/key-ideas.md). The row writers take a row or a batch per
-item, so there is no need to flatten just to write. `toJson()` takes batches
-only; see [JSON lines](./json.md) for the trap that sets.
+item, so there is no need to flatten just to write. `toJson()` takes one value
+per item, so flatten before it; see [JSON lines](./json.md).
 
 ## Row or LazyRow
 
@@ -101,21 +101,33 @@ reader would split it into extra fields or rows:
 
 The `Error` names the row and field, both counted from 1 across the whole
 stream. Items before the bad one have already been written, so a file you were
-writing holds the rows up to that point. `toCsv()` refuses nothing.
+writing holds the rows up to that point. `toCsv()` refuses no field.
 
-Empty rows don't all survive a trip through CSV or TSV. `toCsv()` writes a row
-`[""]` as `""`, which reads back as `[""]`, but `toTsv()` writes it as an empty
-line, which the parser skips. A row `[]` inside a batch is written as an empty
-line by both, and a `[]` passed on its own isn't written at all.
+A writer also refuses a row that would read back as no row, or as a different
+one, with an error such as `Invalid row (no fields) in CSV data at row 3`:
+
+| Row                        | `toCsv()`                        | `toTsv()` | `toRecord()`                       |
+| -------------------------- | -------------------------------- | --------- | ---------------------------------- |
+| `[""]`, one empty field    | writes `""`, reads back the same | refuses   | writes `\x1E`, reads back the same |
+| `[]` inside a batch        | refuses                          | refuses   | refuses                            |
+| `[]` as an item on its own | an empty batch: writes nothing   | the same  | the same                           |
+
+`csvToTsv()` refuses a CSV row of one empty field, as `toTsv()` does. Every row
+writer refuses a field holding a lone surrogate, which UTF-8 can't hold
+(`TextEncoder` would write U+FFFD in its place). A first field starting with
+U+FEFF would be dropped by the reader as a byte order mark, so `toCsv()` and
+`tsvToCsv()` quote it and the others refuse it.
 
 ## What parsers refuse
 
 The CSV and TSV parsers take lines ending in LF or CRLF. Any other CR outside a
 quoted field, as in a file with old Mac CR-only line ends, throws an `Error`
 such as `Invalid character (CR) in CSV data at row 1, field 2`, rather than read
-the file as one long row. Invalid UTF-8 throws a `TypeError` from the parser,
-or, for a LazyRow, when the field is decoded. Batches before the one holding the
-error have already gone down the pipeline.
+the file as one long row. The CSV parser throws on a quote still open at the end
+of the input, `Unclosed quote in CSV data at row 7, field 3`, rather than make
+the rest of the file one field. Invalid UTF-8 throws a `TypeError` from the
+parser, or, for a LazyRow, when the field is decoded. Batches before the one
+holding the error have already gone down the pipeline.
 
 The [flatdata CLI](./flatdata.md) converts between the same formats in a
 separate process, with the same checks.
@@ -128,12 +140,12 @@ Your numbers will differ; the ratios are what matter.
 
 | Reading                     | MB/s | Writing and converting | MB/s |
 | --------------------------- | ---- | ---------------------- | ---- |
-| `fromCsvToRows()`           | 130  | `toCsv()`              | 85   |
-| `fromCsvToLazyRows()`       | 350  | `toTsv()`              | 90   |
+| `fromCsvToRows()`           | 130  | `toCsv()`              | 75   |
+| `fromCsvToLazyRows()`       | 430  | `toTsv()`              | 85   |
 | filter with `fieldEquals()` | 385  | `toRecord()`           | 80   |
-| `fromTsvToRows()`           | 130  | `toJson()`             | 95   |
-| `fromTsvToLazyRows()`       | 440  | `csvToTsv()`           | 610  |
-| `fromRecordToRows()`        | 90   | `tsvToCsv()`           | 640  |
+| `fromTsvToRows()`           | 130  | `toJson()`             | 60   |
+| `fromTsvToLazyRows()`       | 455  | `csvToTsv()`           | 670  |
+| `fromRecordToRows()`        | 90   | `tsvToCsv()`           | 590  |
 | `fromJsonToRows()`          | 95   |                        |      |
 
 The LazyRow parsers are fast because they make no strings until asked, and
@@ -148,14 +160,14 @@ decoded to one string; proc streams it in 64 KB chunks.
 
 | CSV to rows                 | MB/s | Rows to CSV          | MB/s |
 | --------------------------- | ---- | -------------------- | ---- |
-| proc `fromCsvToRows()`      | 75   | proc `toCsv()`       | 75   |
-| Papa Parse                  | 55   | `@std/csv` stringify | 50   |
-| hand-written TypeScript     | 45   | Papa Parse unparse   | 25   |
-| `@std/csv` `CsvParseStream` | 28   | csv-stringify        | 23   |
-| `@std/csv` `parse`          | 19   |                      |      |
+| proc `fromCsvToRows()`      | 72   | proc `toCsv()`       | 66   |
+| Papa Parse                  | 53   | `@std/csv` stringify | 45   |
+| hand-written TypeScript     | 43   | Papa Parse unparse   | 23   |
+| `@std/csv` `CsvParseStream` | 26   | csv-stringify        | 22   |
+| `@std/csv` `parse`          | 18   |                      |      |
 | csv-parse                   | 14   |                      |      |
 
-Converting CSV to TSV, proc's `csvToTsv()` runs at about 450 MB/s here; reading
+Converting CSV to TSV, proc's `csvToTsv()` runs at about 540 MB/s here; reading
 with the hand-written parser and joining the rows back runs at 30. Reading TSV,
-proc and a plain `split` on the whole string are close (70 and 62): TSV has no
+proc and a plain `split` on the whole string are close (72 and 59): TSV has no
 quoting to work out, so making the strings is nearly all the work.

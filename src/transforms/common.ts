@@ -97,8 +97,13 @@ export function asRows(
  * normalized on its own, so a stream can mix rows and batches.
  *
  * `line` gets the row's fields and its number in the stream, counting from 1.
+ * A row with no fields never reaches it: no format can write one that reads
+ * back, so it throws, naming the row, with `format` as the format's name. A
+ * field holding a lone surrogate throws too, since UTF-8 can't hold one and
+ * `TextEncoder` would write U+FFFD in its place.
  */
 export function rowWriter(
+  format: string,
   line: (fields: string[], rowNumber: number) => string,
 ): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
@@ -109,15 +114,46 @@ export function rowWriter(
     let rowNumber = 0;
     for await (const item of items) {
       let text = "";
-      for (const row of asRows(item)) {
-        text += line(
-          row instanceof LazyRow ? row.toStringArray() : row,
-          ++rowNumber,
-        );
+      const rows = asRows(item);
+      const first = rowNumber + 1;
+      for (const row of rows) {
+        const fields = row instanceof LazyRow ? row.toStringArray() : row;
+        rowNumber++;
+        if (fields.length === 0) {
+          throw invalidRow("no fields", format, rowNumber);
+        }
+        text += line(fields, rowNumber);
       }
+      // One check of the whole text; the rows are looked at only to say where.
+      if (!text.isWellFormed()) throw loneSurrogate(rows, first, format);
       yield encoder.encode(text);
     }
   };
+}
+
+/** The error for the first field of `rows` that holds a lone surrogate. */
+function loneSurrogate(
+  rows: (Row | LazyRow)[],
+  firstRowNumber: number,
+  format: string,
+): Error {
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    const fields = row instanceof LazyRow ? row.toStringArray() : row;
+    for (let f = 0; f < fields.length; f++) {
+      // With the u flag, \p{Surrogate} matches only an unpaired one.
+      const match = /\p{Surrogate}/u.exec(fields[f]);
+      if (match) {
+        return invalidCharacter(
+          match[0].charCodeAt(0),
+          format,
+          firstRowNumber + r,
+          f,
+        );
+      }
+    }
+  }
+  return new Error(`Invalid text in ${format} data`);
 }
 
 /**
@@ -144,7 +180,23 @@ const CHARACTER_NAMES: Record<number, string> = {
   0x0D: "CR",
   0x1E: "record separator",
   0x1F: "field separator",
+  0xFEFF: "byte order mark",
 };
+
+/**
+ * Throw if the stream's first field starts with U+FEFF, for a format with no
+ * quoting: written first, it is a UTF-8 byte order mark, and readers drop
+ * one at the start.
+ */
+export function checkNoLeadingBom(
+  fields: string[],
+  format: string,
+  rowNumber: number,
+): void {
+  if (rowNumber === 1 && fields[0].startsWith("\uFEFF")) {
+    throw invalidCharacter(0xFEFF, format, rowNumber, 0);
+  }
+}
 
 /** The error for a character a format can't hold, at a 0-based field index. */
 export function invalidCharacter(
@@ -153,10 +205,28 @@ export function invalidCharacter(
   rowNumber: number,
   fieldIndex: number,
 ): Error {
-  const name = CHARACTER_NAMES[code] ?? `0x${code.toString(16)}`;
+  const name = CHARACTER_NAMES[code] ??
+    (code >= 0xD800 && code <= 0xDFFF
+      ? "lone surrogate"
+      : `0x${code.toString(16)}`);
   return new Error(
-    `Invalid character (${name}) in ${format} data at row ${rowNumber.toLocaleString()}, field ${
+    `Invalid character (${name}) in ${format} data at row ${rowNumber}, field ${
       fieldIndex + 1
     }`,
+  );
+}
+
+/**
+ * The error for a row a format can't hold, such as one with no fields, which
+ * would be written as a line that reads back as no row. `what` says what the
+ * row holds.
+ */
+export function invalidRow(
+  what: string,
+  format: string,
+  rowNumber: number,
+): Error {
+  return new Error(
+    `Invalid row (${what}) in ${format} data at row ${rowNumber}`,
   );
 }

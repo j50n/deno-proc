@@ -30,15 +30,19 @@ checks the values unless you pass a schema.
 {{#include ../../examples/data/json-schema.out}}
 ```
 
-| Option       | Default     | Meaning                                              |
-| ------------ | ----------- | ---------------------------------------------------- |
-| `schema`     | none        | an object whose `parse(value)` throws on a bad value |
-| `sampleSize` | every value | check only the first `sampleSize` values             |
+| Option       | Default     | Meaning                                                              |
+| ------------ | ----------- | -------------------------------------------------------------------- |
+| `schema`     | none        | an object whose `parse(value)` returns the value to yield, or throws |
+| `sampleSize` | every value | check only the first `sampleSize` values                             |
 
-Whatever `schema.parse` throws stops the stream and reaches your `catch`. Its
-return value is ignored: you get the value as `JSON.parse` made it, so Zod
-transforms and defaults are not applied, and unknown keys are not stripped. Call
-`schema.parse` yourself in a `.map()` if you want its result.
+Whatever `schema.parse` throws stops the stream and reaches your `catch`. What
+it returns is the value you get, so a Zod schema's defaults and transforms
+apply, and keys it doesn't know are stripped, as with any `parse` call.
+
+With `sampleSize`, only the first `sampleSize` values go through the schema. The
+rest come as `JSON.parse` made them, unchecked and untransformed, though they
+are typed as the schema's output, just as values are with no schema at all. So
+use `sampleSize` only with a schema that checks values without changing them.
 
 Note that `e1` never printed. A batch is parsed whole before it is yielded, so
 an error stops the stream before any value in the same batch reaches you.
@@ -57,22 +61,22 @@ parse the lines yourself: `.lines.enum()` gives each line its index.
 {{#include ../../examples/data/json-write.out}}
 ```
 
-`toJson()` takes batches (arrays of values), the shape the parsers yield, and
-writes one line per value. Mapping each batch, as above, turns CSV rows into
-objects without flattening.
+`toJson()` takes one value per item and writes it on a line of its own, the
+reverse of `fromJsonToRows()` followed by `.flatten()`. The parsers yield
+batches, so flatten them first; a batch passed as it is would be written as one
+JSON array on one line.
 
-The trap: after `.flatten()`, a stream of rows is a stream of arrays, and
-`toJson()` takes each row as a batch, writing each field on a line of its own
-with no error. Wrap single values in a batch of one, `.map((value) => [value])`,
-as in the second half of the example.
-
-A value `JSON.stringify` can't represent, such as `undefined` or a function, is
-written as the text `undefined`, which won't parse back.
+Inside a value, `JSON.stringify`'s rules apply: a property holding `undefined`
+or a function is left out, and in an array it becomes `null`. An item with no
+JSON form at all (`undefined`, a function, a symbol) throws a `TypeError` naming
+the item, counted from 1, as the second half of the example shows. So does an
+item `JSON.stringify` throws on, such as a `BigInt`. Items before it have
+already been written.
 
 ## From JSON to rows
 
 To write JSON values as CSV or TSV, turn each into an array of strings:
-`.map((batch) => batch.map((e) => [e.id, String(e.ms)]))` before `toCsv()`.
+`.map((e) => [e.id, String(e.ms)])` after `.flatten()`, before `toCsv()`.
 
 See
 [`fromJsonToRows`](https://jsr.io/@j50n/proc/doc/transforms/~/fromJsonToRows)

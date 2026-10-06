@@ -10,15 +10,16 @@ export type ZodSchema<T = unknown> = { parse(value: unknown): T };
 /** Options for {@link fromJsonToRows}. */
 export interface JsonOptions<T = unknown> {
   /**
-   * Checks each value: `schema.parse(value)` is called, and whatever it throws
-   * stops the stream. Its return value is ignored, so you get the value as
-   * `JSON.parse` made it: Zod transforms and defaults are not applied, and
-   * unknown keys are not stripped. Default: no check.
+   * Checks each value: what `schema.parse(value)` returns is the value
+   * yielded, so Zod defaults and transforms apply and unknown keys are
+   * stripped, and whatever it throws stops the stream. Default: no check.
    */
   schema?: ZodSchema<T>;
   /**
-   * Check only the first `sampleSize` values with `schema`; the rest pass
-   * unchecked. Default: check every value.
+   * Pass only the first `sampleSize` values through `schema`. The rest are
+   * yielded as `JSON.parse` made them, unchecked and untransformed, and are
+   * typed `T` only by assertion, as with no schema at all; so use it only with
+   * a schema that checks values without changing them. Default: every value.
    */
   sampleSize?: number;
 }
@@ -35,7 +36,8 @@ const encode = (() => {
  * an object. Blank lines are skipped. Batches close at about 128 KiB of text
  * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work value by value.
  *
- * `T` is only asserted unless you pass a `schema`. A line that isn't JSON
+ * `T` is only asserted unless you pass a `schema`, whose `parse` result is
+ * what you get. A line that isn't JSON
  * throws the `SyntaxError` from `JSON.parse`, whose position counts from the
  * start of that line; it doesn't say which line. Invalid UTF-8 throws a
  * `TypeError`.
@@ -82,10 +84,10 @@ export function fromJsonToRows<T = unknown>(
       for (const line of lines) {
         if (!line.trim()) continue;
 
-        const value: T = JSON.parse(line);
-        if (schema != null && processedCount < sampleSize) {
-          schema.parse(value); // Will throw if invalid
-        }
+        const parsed: unknown = JSON.parse(line);
+        const value = schema != null && processedCount < sampleSize
+          ? schema.parse(parsed)
+          : parsed as T;
 
         currentBatch.push(value);
         currentBatchSize += line.length;
@@ -106,14 +108,17 @@ export function fromJsonToRows<T = unknown>(
 }
 
 /**
- * Write batches of values as JSON lines, one `JSON.stringify` per line.
+ * Write values as JSON lines: one `JSON.stringify` per item, one item per
+ * line. It is the reverse of `fromJsonToRows()` followed by `.flatten()`.
  *
- * Each item must be a batch (an array of values), and yields one chunk of
- * bytes; empty batches yield nothing. Watch for this after `.flatten()`: a
- * stream of `Row`s is a stream of arrays, so each row is taken as a batch and
- * each field lands on a line of its own. To write single values, wrap them:
- * `.map((v) => [v])`. A value `JSON.stringify` can't represent, such as
- * `undefined` or a function, is written as the text `undefined`.
+ * Each item yields one chunk of bytes. An array is one value, written as a
+ * JSON array on one line, so flatten a stream of batches first. Inside a
+ * value, `JSON.stringify`'s rules apply: a property holding `undefined` or a
+ * function is left out, and in an array it becomes `null`. An item with no
+ * JSON form at all (`undefined`, a function, a symbol) throws a `TypeError`
+ * naming it, counted from 1: `Item 3 can't be written as JSON (undefined)`.
+ * So does an item `JSON.stringify` throws on, such as a `BigInt` or a cycle,
+ * with that error as its `cause`. Items before it have already been written.
  *
  * @example Write CSV rows as JSON objects
  * ```ts
@@ -122,7 +127,8 @@ export function fromJsonToRows<T = unknown>(
  *
  * await read("people.csv")
  *   .transform(fromCsvToRows())
- *   .map((batch) => batch.map(([name, age]) => ({ name, age: Number(age) })))
+ *   .flatten()
+ *   .map(([name, age]) => ({ name, age: Number(age) }))
  *   .transform(toJson())
  *   .writeTo("people.jsonl");
  * ```
@@ -130,22 +136,32 @@ export function fromJsonToRows<T = unknown>(
  * @returns A transformer for `.transform()`.
  */
 export function toJson<T = unknown>(): TransformerFunction<
-  T[],
+  T,
   Uint8Array<ArrayBuffer>
 > {
   return async function* (
-    data: AsyncIterable<T[]>,
+    values: AsyncIterable<T>,
   ): AsyncIterable<Uint8Array<ArrayBuffer>> {
-    for await (const batch of data) {
-      if (batch.length === 0) continue;
-
-      let result = "";
-      for (let i = 0; i < batch.length; i++) {
-        if (i > 0) result = result.concat("\n");
-        result = result.concat(JSON.stringify(batch[i]));
+    let itemNumber = 0;
+    for await (const value of values) {
+      itemNumber++;
+      let text: string | undefined;
+      try {
+        text = JSON.stringify(value);
+      } catch (cause) {
+        throw new TypeError(
+          `Item ${itemNumber} can't be written as JSON (${
+            cause instanceof Error ? cause.message : String(cause)
+          })`,
+          { cause },
+        );
       }
-      result = result.concat("\n");
-      yield encode(result);
+      if (text === undefined) {
+        throw new TypeError(
+          `Item ${itemNumber} can't be written as JSON (${typeof value})`,
+        );
+      }
+      yield encode(text + "\n");
     }
   };
 }

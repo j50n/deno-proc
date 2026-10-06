@@ -39,16 +39,21 @@
  *
  * Parsers yield batches (arrays of rows), not single rows, so add `.flatten()`
  * to work row by row. The row writers take a single row or a batch per item,
- * and {@link toJson} takes batches only. Each item becomes one chunk of bytes.
+ * and {@link toJson} takes one value per item, so flatten before it. Each item
+ * becomes one chunk of bytes.
  *
  * ## Errors
  *
- * A writer throws rather than write a field its format can't hold: {@link toTsv}
- * and {@link csvToTsv} refuse a tab, CR, or LF in a field, and {@link toRecord}
- * refuses `\x1E` or `\x1F`. {@link toCsv} refuses nothing; it quotes. The CSV
- * and TSV parsers take lines ending in LF or CRLF and refuse any other CR
- * outside a quoted field, a file with CR-only line ends included. The `Error`
- * names the row and field, counted from 1, as in
+ * A reader or writer throws rather than drop or change a row or field. A
+ * writer refuses a field its format can't hold: {@link toTsv} and
+ * {@link csvToTsv} refuse a tab, CR, or LF in a field, and {@link toRecord}
+ * refuses `\x1E` or `\x1F`; {@link toCsv} quotes instead. Every row writer
+ * refuses a row that would read back as no row or a different one (a row with
+ * no fields, and in TSV a row of one empty field) and a lone surrogate, which
+ * UTF-8 can't hold. The CSV and TSV parsers take lines ending in LF or CRLF
+ * and refuse any other CR outside a quoted field, a file with CR-only line
+ * ends included, and the CSV parser refuses a quote still open at the end of
+ * the input. The `Error` names the row (and field), counted from 1, as in
  * `Invalid character (tab) in TSV data at row 2, field 1`. Invalid UTF-8 in
  * the input throws a `TypeError` when it is decoded. Otherwise the CSV parser
  * is lenient; see {@link fromCsvToRows}.

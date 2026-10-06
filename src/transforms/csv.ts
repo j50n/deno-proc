@@ -31,15 +31,17 @@ export interface CsvStringifyOptions {
 }
 
 /** The separator, after checking that CSV can use it. */
-function csvSeparator(separator = ","): string {
-  const code = separator.charCodeAt(0);
+function csvSeparator(separator: unknown = ","): string {
   if (
-    separator.length !== 1 || code > 127 || separator === '"' ||
+    typeof separator !== "string" || separator.length !== 1 ||
+    separator.charCodeAt(0) > 127 || separator === '"' ||
     separator === "\n" || separator === "\r"
   ) {
     throw new RangeError(
       `CSV separator must be one ASCII character other than a quote, CR, or LF; got ${
-        JSON.stringify(separator)
+        typeof separator === "string"
+          ? JSON.stringify(separator)
+          : String(separator)
       }`,
     );
   }
@@ -63,15 +65,20 @@ function csvSeparator(separator = ","): string {
  *   kept.
  * - A quote opens a quoted field only at the start of a field. Anywhere else
  *   it is text: `a"b` reads as `a"b`, and `"ab"cd` as `abcd`.
- * - An unclosed quote runs to the end of the input, which ends the field.
  * - A UTF-8 byte order mark at the start is dropped.
  *
  * Outside quotes, a CR anywhere but right before LF throws an `Error` naming
  * the row and field, counted from 1:
  * `Invalid character (CR) in CSV data at row 3, field 2`. So does a CR that
  * ends the input, and so a file with CR-only line ends fails at its first
- * line. Inside quotes a CR is text. Invalid UTF-8 throws a `TypeError`. Either
- * error comes after the batches before the one that holds it.
+ * line. Inside quotes a CR is text. A quote still open at the end of the
+ * input throws an `Error` naming the row and field where it opened:
+ * `Unclosed quote in CSV data at row 7, field 1`. A row is held whole until
+ * it ends, so the rows after an unclosed quote are held in memory until the
+ * end of the input; a row too large for the WebAssembly module's memory
+ * throws `Row too large for the WebAssembly module's memory in CSV data at
+ * row 7`. Invalid UTF-8 throws a `TypeError`. Each error comes after the
+ * batches before the one that holds it.
  *
  * @example Read a CSV file
  * ```ts
@@ -153,11 +160,21 @@ export function fromCsvToLazyRows(
  * Write rows as CSV.
  *
  * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
- * and may differ from the one before. Each yields one chunk of bytes. A field
- * holding the separator, `"`, CR, or LF is quoted, with quotes doubled; others
- * are written as they are. A row of one empty field is written as `""`, since
- * an empty line would read back as no row. Rows end with LF, or CRLF with
- * `crlf: true`. No field is refused.
+ * and may differ from the one before. Each yields one chunk of bytes; an
+ * item `[]` is an empty batch. A field holding the separator, `"`, CR, or LF
+ * is quoted, with quotes doubled; others are written as they are. A row of
+ * one empty field is written as `""`, since an empty line would read back as
+ * no row, and a first field starting with U+FEFF is quoted, since readers
+ * drop a byte order mark at the start. Rows end with LF, or CRLF with
+ * `crlf: true`.
+ *
+ * Two things throw an `Error` naming the row, counted from 1: a row with no
+ * fields (a `[]` inside a batch, or a LazyRow with none), which CSV can't
+ * write so that it reads back, as in
+ * `Invalid row (no fields) in CSV data at row 3`; and a field holding a lone
+ * surrogate, which UTF-8 can't hold, as in
+ * `Invalid character (lone surrogate) in CSV data at row 3, field 2`. Items
+ * before it have already been written.
  *
  * @example Rows built in code, with CRLF line ends
  * ```ts
@@ -185,13 +202,15 @@ export function toCsv(
     `[${separator.replace(/[\\\]^-]/, "\\$&")}"\r\n]`,
   );
 
-  return rowWriter((fields) => {
+  return rowWriter("CSV", (fields, rowNumber) => {
     if (fields.length === 1 && fields[0] === "") return '""' + lineEnd;
     let line = "";
     for (let i = 0; i < fields.length; i++) {
       if (i > 0) line += separator;
       const field = fields[i];
-      line += needsQuotes.test(field)
+      line += needsQuotes.test(field) ||
+          // A byte order mark first in the output would be dropped on reading.
+          (rowNumber === 1 && i === 0 && field.startsWith("\uFEFF"))
         ? `"${field.replaceAll('"', '""')}"`
         : field;
     }
@@ -203,13 +222,21 @@ export function toCsv(
  * Convert CSV to TSV, bytes to bytes, without making rows: several times
  * faster than {@link fromCsvToRows} into {@link toTsv}.
  *
- * CSV is read as {@link fromCsvToRows} reads it. TSV can't hold a tab, CR, or
- * LF in a field, so a CSV field holding one throws an `Error`, as `toTsv`
- * does: `Invalid character (tab) in TSV data at row 2, field 1`. The output
- * of the 128 KiB chunks of input before the one holding it has already been
- * passed on, and can end partway through a row. To keep such data, go through
- * rows and replace the characters on the way to `toTsv`. A row of one empty
- * field comes out as a blank line, which TSV readers skip.
+ * CSV is read as {@link fromCsvToRows} reads it, errors included. TSV can't
+ * hold a tab, CR, or LF in a field, so a CSV field holding one throws an
+ * `Error`, as `toTsv` does: `Invalid character (tab) in TSV data at row 2,
+ * field 1`. Nor can it hold a row of one empty field (`""` on a line), which
+ * would be a blank line: `Invalid row (one empty field) in TSV data at row 4`.
+ * A first field starting with U+FEFF would be dropped by a TSV reader as a
+ * byte order mark, so it throws as well. Whichever error comes first in the
+ * input is the one thrown, so an unclosed quote whose field takes in a line
+ * break reports the LF. The output of the
+ * 128 KiB chunks of input before the one holding it has already been passed
+ * on, and can end partway through a row. To keep such data, go through rows
+ * and replace the characters on the way to `toTsv`.
+ *
+ * Fields are copied as bytes, not decoded, so invalid UTF-8 passes through
+ * to the output unchanged instead of throwing.
  *
  * @example
  * ```ts
@@ -235,7 +262,12 @@ export function csvToTsv(
  * faster than {@link fromTsvToRows} into {@link toCsv}.
  *
  * TSV is read as {@link fromTsvToRows} reads it, CR errors included, and
- * fields are quoted as {@link toCsv} quotes them.
+ * fields are quoted as {@link toCsv} quotes them, a first field starting with
+ * U+FEFF included. Fields are copied as bytes,
+ * not decoded, so invalid UTF-8 passes through to the output unchanged
+ * instead of throwing. A field too large for the WebAssembly module's memory
+ * throws `Field too large for the WebAssembly module's memory in TSV data at
+ * row 2`, since the module holds each field whole.
  *
  * @example
  * ```ts

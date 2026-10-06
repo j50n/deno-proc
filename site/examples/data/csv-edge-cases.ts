@@ -23,7 +23,7 @@ const inputs = [
   ' a , "b"\n', // spaces are kept, so this quote is text
   'a"b,c\n', // a quote inside an unquoted field is text
   '"ab" ,c\n', // text after a closing quote is kept
-  'a,"bc\nd,e\n', // an unclosed quote runs to the end of the input
+  'a,"bc\nd,e\n', // a quote still open at the end is an error
   '"x\ry",z\n', // a CR inside quotes is text
   "a,b\rc,d\r", // a lone CR outside quotes is an error
 ];

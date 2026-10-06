@@ -42,8 +42,12 @@ might, use [CSV](./csv.md) or the [record format](./record.md).
 tab, CR, or LF throws an `Error` naming the row and field, as in
 `Invalid character (tab) in TSV data at row 2, field 2`; rows before it have
 already been written ([What writers refuse](./overview.md#what-writers-refuse)
-shows one). If your fields might hold them and a lossy fix is acceptable,
-replace them first:
+shows one). A row of one empty field, `[""]`, throws too, since it would be a
+blank line and the parser skips those:
+`Invalid row (one empty field) in TSV data at row 3`. So do a lone surrogate,
+which UTF-8 can't hold, and a first field starting with U+FEFF, which the parser
+would drop as a byte order mark. If your fields might hold these and a lossy fix
+is acceptable, replace them first:
 
 ```typescript
 {{#include ../../examples/data/tsv-write.ts}}

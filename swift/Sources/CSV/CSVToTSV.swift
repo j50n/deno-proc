@@ -5,10 +5,10 @@
 /// change the data without a word, and writing it raw would turn one row into
 /// several downstream, so the conversion refuses instead: the first such byte
 /// is recorded with its row and field, and the caller reports it. The same
-/// rule as writing rows with `toTsv`. A CR the lexer refuses in the CSV is
-/// recorded the same way, whichever comes first. A row whose only field is
-/// empty comes out as a blank line, which TSV readers skip; TSV can't say it
-/// either.
+/// rule as writing rows with `toTsv`. A row whose only field is empty is
+/// refused too (`emptyRow`): it would come out as a blank line, which TSV
+/// readers skip. A CR or an unclosed quote the lexer refuses in the CSV is
+/// recorded the same way, whichever comes first.
 ///
 /// Every input byte makes at most one output byte, and the end of the stream
 /// one more, so `output` (one byte longer than a chunk, plus slack) never
@@ -20,6 +20,8 @@ final class CSVToTSV: StreamOperation {
     let output: UnsafeMutablePointer<UInt8>
     private var lexer: CSVLexer
     private var position = Position()
+    /// The row the last feed ended in has written a byte already.
+    private var rowHasOutput = false
 
     init(separator: UInt8, chunkCapacity: Int) {
         self.chunkCapacity = chunkCapacity
@@ -32,12 +34,16 @@ final class CSVToTSV: StreamOperation {
     /// `output`, or -1 once the input has had a byte refused. When `last`,
     /// the stream ends here.
     func feed(_ count: Int, last: Bool) -> Int {
-        var sink = TSVWriter(out: output, position: position, refusal: refusal)
+        var sink = TSVWriter(
+            out: output, position: position, rowStart: rowHasOutput ? -1 : 0,
+            refusal: refusal)
         var lexer = self.lexer
         lexer.scan(input, count: count, into: &sink)
         if last { lexer.finish(into: &sink) }
         self.lexer = lexer
         position = sink.position
+        rowHasOutput = sink.count > sink.rowStart
+        currentRow = position.row
         return refused ? -1 : sink.count
     }
 }
@@ -48,14 +54,18 @@ struct TSVWriter: CSVSink {
     let out: UnsafeMutablePointer<UInt8>
     var count = 0
     var position: Position
+    /// Where in `out` the current row began, or -1 if it began in an earlier
+    /// feed and wrote something there.
+    var rowStart: Int
     let refusal: UnsafeMutablePointer<Invalid>
 
     init(
-        out: UnsafeMutablePointer<UInt8>, position: Position,
+        out: UnsafeMutablePointer<UInt8>, position: Position, rowStart: Int,
         refusal: UnsafeMutablePointer<Invalid>
     ) {
         self.out = out
         self.position = position
+        self.rowStart = rowStart
         self.refusal = refusal
     }
 
@@ -83,10 +93,17 @@ struct TSVWriter: CSVSink {
         position.field &+= 1
     }
 
+    /// The lexer ends no row for a blank line, and a separator writes a tab,
+    /// so a row that ends with nothing written since it began held one empty
+    /// field.
     @inline(__always)
     mutating func rowEnd(utf8Excess: Int) {
+        if count == rowStart {
+            refuse(ASCII.lf, inOutput: true, kind: .emptyRow)
+        }
         out[count] = ASCII.lf
         count &+= 1
+        rowStart = count
         position.row &+= 1
         position.field = 1
     }

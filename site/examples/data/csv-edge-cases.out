@@ -7,7 +7,7 @@
 " a , \"b\"\n"             [[" a "," \"b\""]]
 "a\"b,c\n"                 [["a\"b","c"]]
 "\"ab\" ,c\n"              [["ab ","c"]]
-"a,\"bc\nd,e\n"            [["a","bc\nd,e\n"]]
+"a,\"bc\nd,e\n"            Unclosed quote in CSV data at row 1, field 2
 "\"x\ry\",z\n"             [["x\ry","z"]]
 "a,b\rc,d\r"               Invalid character (CR) in CSV data at row 1, field 2
 "a\n\"\"\nb\n" [["a"],[""],["b"]]

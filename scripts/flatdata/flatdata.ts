@@ -23,11 +23,15 @@
  * `csv2tsv` and `tsv2csv` run entirely in WebAssembly, without making rows.
  *
  * What to watch for: a field the output format can't hold stops the
- * conversion with an error on stderr naming its row and field, and exit code
- * 1. TSV can't hold a tab, CR, or LF in a field, and the record format can't
- * hold `\x1E` or `\x1F`. A CR in CSV or TSV input anywhere but before LF
- * (outside quotes) is an error too. Output written before the error stays, and
- * can end partway through a row.
+ * conversion with `flatdata: <message>` on stderr, naming its row and field,
+ * and exit code 1. TSV can't hold a tab, CR, or LF in a field, and the record
+ * format can't hold `\x1E` or `\x1F`. A CR in CSV or TSV input anywhere but
+ * before LF (outside quotes) is an error too, and so is a CSV quote still
+ * open at the end of the input. Output written before the error stays, and can
+ * end partway through a row. `-o` naming the input file (by any path) is
+ * refused before anything is written, since opening the output would empty
+ * it. When the reader of stdout goes away, as `| head` does, flatdata stops
+ * and exits 0.
  *
  * @example
  * ```sh
@@ -57,12 +61,46 @@ import denoJson from "../../deno.json" with { type: "json" };
 // Transform Functions (exported for benchmarks and testing)
 // =============================================================================
 
+/**
+ * Throw if `output` is the file `input` names, or stdin is when there is no
+ * `input`: opening the output empties it before a byte is read. Paths are
+ * compared by device and inode, so another path to the same file, or a
+ * symlink to it, counts. Without permission to stat, there is no check.
+ */
+async function refuseSameFile(
+  input: string | undefined,
+  output: string | undefined,
+): Promise<void> {
+  if (output === undefined) return;
+  const target = await statOf(output);
+  const source = await statOf(input ?? "/dev/stdin");
+  if (
+    target !== undefined && source !== undefined && target.ino !== null &&
+    target.dev === source.dev && target.ino === source.ino
+  ) {
+    throw new Error(
+      `${input === undefined ? "stdin" : JSON.stringify(input)} and ${
+        JSON.stringify(output)
+      } are the same file; writing would empty it`,
+    );
+  }
+}
+
+async function statOf(path: string): Promise<Deno.FileInfo | undefined> {
+  try {
+    return await Deno.stat(path);
+  } catch {
+    return undefined;
+  }
+}
+
 /** Read `input` (or stdin), transform it, and write `output` (or stdout). */
 async function convert(
   input: string | undefined,
   output: string | undefined,
   transform: TransformerFunction<Uint8Array, Uint8Array>,
 ): Promise<void> {
+  await refuseSameFile(input, output);
   const stream = input
     ? (await Deno.open(input, { read: true })).readable
     : Deno.stdin.readable;
@@ -230,30 +268,52 @@ const record2tsvCmd = new Command()
     await record2tsv(input, output);
   });
 
+/**
+ * Run `main`, and exit as a command should: quietly with 0 when stdout's
+ * reader has gone away, as with `| head`, and with `flatdata: <message>` on
+ * stderr and 1 on any other error.
+ */
+async function exitOnError(main: () => Promise<unknown>): Promise<void> {
+  try {
+    await main();
+  } catch (error) {
+    if (error instanceof Deno.errors.BrokenPipe) Deno.exit(0);
+    console.error(
+      `flatdata: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    Deno.exit(1);
+  }
+}
+
 if (import.meta.main) {
-  await new Command()
-    .name("flatdata")
-    .version(denoJson.version)
-    .description(`Convert between tabular data formats.
+  await exitOnError(() =>
+    new Command()
+      .name("flatdata")
+      .version(denoJson.version)
+      .description(`Convert between tabular data formats.
 
 Formats:
   csv      RFC 4180 comma-separated values (configurable separator)
   tsv      Tab-separated values
   record   Text format using \\x1F (field) and \\x1E (record) separators`)
-    .example("CSV to record", "cat data.csv | flatdata csv2record | ./process")
-    .example(
-      "Record to CSV",
-      "flatdata record2csv -d ';' < data.rec > euro.csv",
-    )
-    .example(
-      "Full pipeline",
-      "flatdata csv2record -i huge.csv | ./analyze | flatdata record2csv -o results.csv",
-    )
-    .command("csv2record", csv2recordCmd)
-    .command("csv2tsv", csv2tsvCmd)
-    .command("tsv2record", tsv2recordCmd)
-    .command("tsv2csv", tsv2csvCmd)
-    .command("record2csv", record2csvCmd)
-    .command("record2tsv", record2tsvCmd)
-    .parse(Deno.args);
+      .example(
+        "CSV to record",
+        "cat data.csv | flatdata csv2record | ./process",
+      )
+      .example(
+        "Record to CSV",
+        "flatdata record2csv -d ';' < data.rec > euro.csv",
+      )
+      .example(
+        "Full pipeline",
+        "flatdata csv2record -i huge.csv | ./analyze | flatdata record2csv -o results.csv",
+      )
+      .command("csv2record", csv2recordCmd)
+      .command("csv2tsv", csv2tsvCmd)
+      .command("tsv2record", tsv2recordCmd)
+      .command("tsv2csv", tsv2csvCmd)
+      .command("record2csv", record2csvCmd)
+      .command("record2tsv", record2tsvCmd)
+      .parse(Deno.args)
+  );
 }

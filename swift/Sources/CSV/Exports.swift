@@ -8,8 +8,11 @@
 // converter's input and output) are valid until the next feed on the same
 // handle, and so are views of memory, since a feed may grow it.
 //
-// A feed returns -1 once its input has had a byte refused, and the
-// `invalid_*` functions, which take any handle, say which and where.
+// A feed returns -1 once its input has had something refused, and the
+// `invalid_*` functions, which take any handle, say what and where.
+//
+// An allocation that fails traps (`unreachable`). The instance's memory is
+// still there afterwards, so `current_row` says which row was too large.
 
 typealias Handle = UnsafeMutableRawPointer
 
@@ -32,6 +35,18 @@ func invalidRow(_ h: Handle) -> Int32 {
 @_expose(wasm, "invalid_field") @_cdecl("invalid_field")
 func invalidField(_ h: Handle) -> Int32 {
     with(h) { (o: StreamOperation) in Int32(truncatingIfNeeded: o.invalid.field) }
+}
+
+/// What was refused: a `Refusal` raw value.
+@_expose(wasm, "invalid_kind") @_cdecl("invalid_kind")
+func invalidKind(_ h: Handle) -> Int32 {
+    with(h) { (o: StreamOperation) in Int32(o.invalid.kind.rawValue) }
+}
+
+/// The row, counted from 1, that the last feed was growing a buffer for.
+@_expose(wasm, "current_row") @_cdecl("current_row")
+func currentRow(_ h: Handle) -> Int32 {
+    with(h) { (o: StreamOperation) in Int32(truncatingIfNeeded: o.currentRow) }
 }
 
 @_expose(wasm, "invalid_byte") @_cdecl("invalid_byte")
@@ -59,7 +74,8 @@ func readerInput(_ h: Handle) -> UnsafeMutablePointer<UInt8> {
     with(h) { (r: CSVReader) in r.input }
 }
 
-/// Bytes of complete rows at `reader_output`, or -1 once a CR is refused.
+/// Bytes of complete rows at `reader_output`, or -1 once a CR or an unclosed
+/// quote is refused.
 @_expose(wasm, "reader_feed") @_cdecl("reader_feed")
 func readerFeed(_ h: Handle, _ count: Int32, _ last: Int32) -> Int32 {
     with(h) { (r: CSVReader) in Int32(r.feed(Int(count), last: last != 0)) }
@@ -103,8 +119,8 @@ func csvToTSVOutput(_ h: Handle) -> UnsafeMutablePointer<UInt8> {
     with(h) { (c: CSVToTSV) in c.output }
 }
 
-/// Bytes at `csv2tsv_output`, or -1 once a byte is refused: a CR the CSV
-/// doesn't allow, or a byte TSV can't hold.
+/// Bytes at `csv2tsv_output`, or -1 once something is refused: a CR or an
+/// unclosed quote the CSV doesn't allow, or a byte or row TSV can't hold.
 @_expose(wasm, "csv2tsv_feed") @_cdecl("csv2tsv_feed")
 func csvToTSVFeed(_ h: Handle, _ count: Int32, _ last: Int32) -> Int32 {
     with(h) { (c: CSVToTSV) in Int32(c.feed(Int(count), last: last != 0)) }

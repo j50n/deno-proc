@@ -54,11 +54,14 @@ Deno.test("JSON - stringify objects", async () => {
     { name: "Bob", age: "25" },
   ];
 
-  const result = await enumerate([data])
+  const result = await enumerate(data)
     .transform(toJson())
     .collect();
 
-  const output = new TextDecoder().decode(result[0]);
+  assertEquals(result.length, 2);
+  const output = result.map((chunk) => new TextDecoder().decode(chunk)).join(
+    "",
+  );
   const lines = output.trim().split("\n");
   assertEquals(lines.length, 2);
   assertEquals(JSON.parse(lines[0]), { name: "Alice", age: "30" });
@@ -73,10 +76,12 @@ Deno.test("JSON - round trip", async () => {
     .collect();
 
   const stringified = await enumerate(parsed)
+    .flatten()
     .transform(toJson())
     .collect();
 
-  const output = new TextDecoder().decode(stringified[0]).trim();
+  const output = stringified.map((chunk) => new TextDecoder().decode(chunk))
+    .join("").trim();
   const lines = output.split("\n");
   assertEquals(lines.length, 2);
   assertEquals(JSON.parse(lines[0]), { name: "Alice", age: "30" });
@@ -220,7 +225,7 @@ Deno.test("JSON pathological - round-trip with large data", async () => {
     { id: 2, data: hugeValue },
   ];
 
-  const jsonBytes = await enumerate([originalData])
+  const jsonBytes = await enumerate(originalData)
     .transform(toJson())
     .collect();
 

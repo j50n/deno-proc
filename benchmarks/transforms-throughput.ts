@@ -54,11 +54,24 @@ const WORDS = [
   "🎉party",
 ];
 
+/**
+ * A seeded generator of integers in `[0, n)`: mulberry32, whose state stays a
+ * 32-bit integer, so it neither loses precision nor repeats for 2^32 draws.
+ */
+function seededRandom(seed: number): (n: number) => number {
+  let state = seed >>> 0;
+  return (n) => {
+    state = (state + 0x6D2B79F5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return (((t ^ (t >>> 14)) >>> 0) / 2 ** 32 * n) | 0;
+  };
+}
+
 /** Rows of realistic fields, the same on every run. */
 function realisticRows(): string[][] {
-  let seed = 42;
-  const random = (n: number) =>
-    (seed = (seed * 1103515245 + 12345) % 2147483648) % n;
+  const random = seededRandom(42);
   return Array.from(
     { length: ROWS },
     () =>
@@ -162,7 +175,7 @@ const recordChunks = chunked(record);
 const jsonChunks = chunked(jsonLines);
 const rowBatches = batches(rows);
 const tsvRowBatches = batches(tsvRows);
-const jsonValues = batches(rows as unknown[]);
+const jsonValues = rows as unknown[];
 
 /** Rows of a lazy filter: field 3 is "theta", collecting field 7. */
 async function lazyFilter(

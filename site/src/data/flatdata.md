@@ -55,9 +55,11 @@ end in `\x1E`, not newlines, so read them with `fromRecordToRows()`, not
 
 A field the output format can't hold stops the conversion, as the library's
 writers do: a tab, CR, or LF for TSV, `\x1E` or `\x1F` for the record format. So
-does a CR in CSV or TSV input that isn't part of a CRLF. flatdata prints an
-error naming the row and field to stderr and exits with code 1, which proc turns
-into an `ExitCodeError`:
+does a row the output would lose, a CR in CSV or TSV input that isn't part of a
+CRLF, and a CSV quote still open at the end of the input. flatdata prints the
+message to stderr as one line naming the row and field, as in
+`flatdata: Invalid character (tab) in TSV data at row 2, field 1`, and exits
+with code 1, which proc turns into an `ExitCodeError`:
 
 ```typescript
 {{#include ../../examples/data/flatdata-limits.ts}}
@@ -69,3 +71,12 @@ into an `ExitCodeError`:
 
 Output written before the error stays, and can end partway through a row; here
 there was none. `-d` must be one ASCII character other than `"`, CR, or LF.
+
+`-o` naming the file it reads, by `-i` or by `<`, is an error before anything is
+written, whatever path or symlink names it: opening the output would empty the
+input. When the reader of its output goes away, as with `| head`, flatdata stops
+and exits with 0, as other commands do.
+
+Invalid UTF-8 stops the commands that make rows (`csv2record`, `tsv2record`,
+`record2csv`, `record2tsv`) with a `TypeError`. `csv2tsv` and `tsv2csv` copy
+bytes without decoding them, so they pass it through unchanged.

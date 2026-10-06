@@ -1,6 +1,12 @@
 import type { TransformerFunction } from "../transformers.ts";
 import { readRows } from "../wasm/flatdata.ts";
-import { batchRows, checkFields, rowWriter } from "./common.ts";
+import {
+  batchRows,
+  checkFields,
+  checkNoLeadingBom,
+  invalidRow,
+  rowWriter,
+} from "./common.ts";
 import { type LazyRow, lazyRows } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
@@ -85,13 +91,20 @@ export function fromTsvToLazyRows(): TransformerFunction<
  *
  * TSV has no quoting, so a field can't hold a tab, CR, or LF. One that does
  * throws an `Error` naming the row and field, counted from 1:
- * `Invalid character (tab) in TSV data at row 2, field 1`. Items before the
- * one holding it have already been written. For such data, use {@link toCsv}
- * or {@link toRecord}.
+ * `Invalid character (tab) in TSV data at row 2, field 1`. A row that would
+ * be written as a blank line, which reads back as no row, throws too: a row
+ * of one empty field (`[""]`) with
+ * `Invalid row (one empty field) in TSV data at row 3`, and a row with no
+ * fields (a `[]` inside a batch) with `Invalid row (no fields) ...`. So do a
+ * lone surrogate, which UTF-8 can't hold, and a first field starting with
+ * U+FEFF, which a reader would drop as a byte order mark. Items before the
+ * one that throws have already been written. For such data, use
+ * {@link toCsv} or {@link toRecord}.
  *
  * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
- * and may differ from the one before. Each yields one chunk of bytes. To
- * turn CSV bytes into TSV, {@link csvToTsv} does it without making rows.
+ * and may differ from the one before. Each yields one chunk of bytes; an
+ * item `[]` is an empty batch. To turn CSV bytes into TSV, {@link csvToTsv}
+ * does it without making rows.
  *
  * @example Write rows built in code
  * ```ts
@@ -109,8 +122,12 @@ export function toTsv(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
   Uint8Array<ArrayBuffer>
 > {
-  return rowWriter((fields, rowNumber) => {
+  return rowWriter("TSV", (fields, rowNumber) => {
+    if (fields.length === 1 && fields[0] === "") {
+      throw invalidRow("one empty field", "TSV", rowNumber);
+    }
     checkFields(fields, TSV_FORBIDDEN, "TSV", rowNumber);
+    checkNoLeadingBom(fields, "TSV", rowNumber);
     let line = "";
     for (let i = 0; i < fields.length; i++) {
       if (i > 0) line += "\t";

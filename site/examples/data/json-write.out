@@ -2,3 +2,4 @@
 {"id":"2","customer":"Grace","qty":1}
 {"id":"3","customer":"Linus","qty":10}
 {"total":13}
+Item 2 can't be written as JSON (undefined)

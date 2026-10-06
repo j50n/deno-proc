@@ -32,8 +32,11 @@ which decode a field only when you read it.
 
 `toCsv()` quotes a field that holds the separator, a quote, CR, or LF, and
 doubles the quotes inside it. Other fields are written as they are, spaces
-included. It refuses nothing. Each item can be a row or a batch, of `Row`s or
-`LazyRow`s.
+included, except that a first field starting with U+FEFF is quoted, since
+readers drop a byte order mark at the start. It refuses only what CSV can't
+hold: a row with no fields (`[]` inside a batch), which would be a blank line
+and read back as no row, and a field holding a lone surrogate, which UTF-8 can't
+hold. Each item can be a row or a batch, of `Row`s or `LazyRow`s.
 
 ## Options
 
@@ -50,8 +53,9 @@ lines (a line starting with `#` is data), no trimming.
 
 ## What the parser accepts
 
-It reads RFC 4180 and is lenient about the rest. The one thing it refuses is a
-CR outside quotes that isn't part of a CRLF:
+It reads RFC 4180 and is lenient about the rest. It refuses two things: a CR
+outside quotes that isn't part of a CRLF, and a quote still open at the end of
+the input:
 
 ```typescript
 {{#include ../../examples/data/csv-edge-cases.ts}}
@@ -72,13 +76,18 @@ CR outside quotes that isn't part of a CRLF:
 - Spaces around a field are kept. A quote opens a quoted field only at the very
   start of a field, so a quote after a space, or inside an unquoted field, is
   text. Text after a closing quote is kept: `"ab" ,c` reads as `["ab ", "c"]`.
-- An unclosed quote runs to the end of the input, and everything after it
-  becomes one field.
 - A UTF-8 byte order mark at the start, as spreadsheet programs write, is
   dropped.
 - Any other CR outside quotes throws an `Error` naming the row and field, so a
   file with CR-only line ends fails at its first line rather than reading as one
-  long row. Batches before the one holding it have already been yielded.
+  long row.
+- A quote still open at the end of the input throws an `Error` naming the row
+  and field where it opened, as in
+  `Unclosed quote in CSV data at row 1, field 2`, rather than make the rest of
+  the file one field.
+
+Either error comes after the batches before the one holding it have been
+yielded.
 
 ## Converting to and from TSV
 
@@ -93,10 +102,18 @@ making rows or strings, several times faster than a parser and a writer:
 {{#include ../../examples/data/csv-convert.out}}
 ```
 
-They read and write as the parsers and writers do. TSV can't hold a tab, CR, or
-LF in a field, so `csvToTsv()` throws on a CSV field holding one, as `toTsv()`
-does; the output passed on before it can end partway through a row. A row of one
-empty field comes out of `csvToTsv()` as a blank line, which TSV readers skip.
+They read and write as the parsers and writers do, errors included. TSV can't
+hold a tab, CR, or LF in a field, so `csvToTsv()` throws on a CSV field holding
+one, as `toTsv()` does. Nor can it hold a row of one empty field (`""` on a
+line), which would be a blank line, so `csvToTsv()` throws on that too:
+`Invalid row (one empty field) in TSV data at row 4`. The first error in the
+input is the one thrown: an unclosed quote whose field takes in a line break
+reports the LF. The output passed on before it can end partway through a row.
+
+They copy field bytes without decoding them, so invalid UTF-8 doesn't throw
+here: it passes through to the output unchanged, as text in any other
+ASCII-compatible encoding does. The parsers would throw a `TypeError` on the
+same input.
 
 ## Other traps
 
@@ -104,6 +121,10 @@ empty field comes out of `csvToTsv()` as a blank line, which TSV readers skip.
   converted, and from `fromCsvToLazyRows()` only when the bad field is decoded.
 - Every field is a string. `Number(row[3])` for numbers; an empty field is `""`,
   and `Number("")` is `0`.
+- A row is held whole until it ends, in the WebAssembly module's memory, which
+  can't pass 4 GiB. A row of around a gigabyte is too large, and throws
+  `Row too large for the WebAssembly module's memory in CSV data at row 7`.
+  `tsvToCsv()` holds the longest field whole instead, with about the same limit.
 
 See [`fromCsvToRows`](https://jsr.io/@j50n/proc/doc/transforms/~/fromCsvToRows),
 [`toCsv`](https://jsr.io/@j50n/proc/doc/transforms/~/toCsv), and

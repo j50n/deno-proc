@@ -20,7 +20,7 @@ side.
 | CR inside quotes                    | content                                    |
 | blank line                          | no row                                     |
 | `""` alone on a line                | a row of one empty field                   |
-| a quote still open at the end       | the field ends there, with what it held    |
+| a quote still open at the end       | an error naming where the quote opened     |
 | UTF-8 byte order mark at the start  | dropped (in TypeScript, before the module) |
 
 TSV is the same reader with a tab separator and quoting off, so a quote is
@@ -46,7 +46,9 @@ records the row and field, counted from 1, through `StreamOperation`'s
 `refusal`; a feed then returns -1, and `src/wasm/flatdata.ts` turns that into
 the `Invalid character (CR) in CSV data at row N, field M` error. Refusing is
 kept out of the hot loop, because carrying its state through every iteration
-cost 10 to 20%.
+cost 10 to 20%. A quote still open when the stream ends is refused the same way,
+as a different `Refusal` kind, at the row and field where it opened: no field or
+row ends inside quotes, so the sink is still there.
 
 The three operations differ in what they write:
 
@@ -59,7 +61,8 @@ The three operations differ in what they write:
   never straddles two batches, and a row longer than a chunk just grows the
   buffer.
 - `CSVToTSV` writes fields with tabs and rows with LF, and refuses a tab, CR, or
-  LF inside a field, which TSV can't hold. Its output is not held back.
+  LF inside a field, which TSV can't hold, and a row of one empty field, which
+  would be a blank line. Its output is not held back.
 - `TSVToCSV` has a simpler scanner of its own, on the same SIMD classifiers,
   since TSV has no quoting. It quotes a field only when the field holds the
   separator or a quote, which it knows only at the field's end, so a field cut
@@ -85,6 +88,28 @@ nothing. It suffices because wasm memory can't shrink anyway, and buffers grow
 by doubling, so what a stream abandons is less than what it uses. One instance
 per stream also means two streams read at once never share state.
 
+What bounds the memory is the longest row, not the input: the reader holds a row
+whole, and `TSVToCSV` holds a field whole, in its input and again in its output,
+where it reserves the field's size plus its quotes. The arena grows memory by
+just what an allocation needs, so a stream's memory runs to about 2 times its
+longest row in the reader and 5 to 7 times its longest field in `tsvToCsv()`,
+depending on where the doubling buffers land (measured: a field of 128 MiB took
+896 MiB, one of 512 MiB took 2,561 MiB). Before, the arena doubled memory too
+and `TSVToCSV` reserved three times the field, and the same 128 MiB took 1,536
+MiB. `csvToTsv()` holds nothing back and runs in constant memory.
+
+A wasm32 memory can't pass 4 GiB. When an allocation can't be made, the arena
+traps: the Embedded Swift runtime doesn't check for a null pointer, and would
+write through it into the module's own memory at address 0. Every operation sets
+`currentRow` before it grows a buffer, so after the trap the TypeScript side
+reads `current_row` and throws
+`Row too large for the WebAssembly module's memory in CSV data at row N` (for
+`tsvToCsv()`, `Field too large ...`), with the `RuntimeError` as its cause. In
+practice that is a row, or a `tsvToCsv()` field, of around a gigabyte. The
+exports return pointers as `i32`, which JavaScript reads as negative past 2 GiB,
+so `src/wasm/flatdata.ts` reads every pointer through `address()`
+(`pointer >>> 0`).
+
 ## Tests
 
 `tests/transforms/reference.ts` is a plain TypeScript reader and writer for CSV
@@ -93,9 +118,9 @@ and TSV, written the slow, obvious way and sharing no code with the module.
 edge cases at chunk sizes of 1, 7, 63, 64, 65, and 1,000 bytes, which puts a
 chunk boundary at every position that matters: inside a CRLF, a doubled quote, a
 UTF-8 character, a SIMD block. They also cover fields of several megabytes, CR
-refusals with their row and field, a byte order mark split across chunks,
-invalid UTF-8, and streams read at the same time. `round-trip.test.ts` checks
-that what the writers write reads back the same.
+and unclosed-quote refusals with their row and field, a byte order mark split
+across chunks, invalid UTF-8, and streams read at the same time.
+`round-trip.test.ts` checks that what the writers write reads back the same.
 
 [Building and releasing](./build-process.md#the-webassembly-module) covers the
 build.

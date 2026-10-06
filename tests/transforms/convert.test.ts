@@ -45,10 +45,20 @@ const READABLE_TSV = EDGE_TSV.filter((tsv) =>
   typeof rowsOrError(() => readTsvReference(tsv)) !== "string"
 );
 
-/** The first field TSV can't hold, as csvToTsv reports it. */
-function firstInvalid(rows: string[][]): string | undefined {
+/**
+ * The first field or row TSV can't hold, as csvToTsv reports it. With
+ * `lastIsOpen`, the last row never ended, so it is no row of one empty field.
+ */
+function firstInvalid(
+  rows: string[][],
+  lastIsOpen = false,
+): string | undefined {
   const names: Record<string, string> = { "\t": "tab", "\n": "LF", "\r": "CR" };
   for (const [r, row] of rows.entries()) {
+    const ended = !lastIsOpen || r < rows.length - 1;
+    if (ended && row.length === 1 && row[0] === "") {
+      return `Invalid row (one empty field) in TSV data at row ${r + 1}`;
+    }
     for (const [f, field] of row.entries()) {
       const bad = /[\t\n\r]/.exec(field);
       if (bad) {
@@ -60,12 +70,25 @@ function firstInvalid(rows: string[][]): string | undefined {
   }
 }
 
+/**
+ * What csvToTsv refuses first in `csv`, if anything. An unclosed quote is
+ * found only at the end, so anything TSV can't hold comes before it. No
+ * fixture with a CR the reference refuses has a field TSV can't hold before
+ * it, so there the reference's error is the first one.
+ */
+function csvToTsvRefusal(csv: string): string | undefined {
+  const rows = rowsOrError(() => readCsvReference(csv));
+  if (typeof rows !== "string") return firstInvalid(rows);
+  if (rows.startsWith("Unclosed quote")) {
+    return firstInvalid(readCsvReference(csv + '"'), true) ?? rows;
+  }
+  return rows;
+}
+
 Deno.test("csvToTsv writes the reference's rows as TSV, or refuses as the reference says, at every chunk size.", async () => {
-  // No fixture with a CR the reference refuses has a field TSV can't hold
-  // before it, so the reference's error is the first one.
   for (const [i, csv] of EDGE_CSV.entries()) {
     const rows = rowsOrError(() => readCsvReference(csv));
-    const invalid = typeof rows === "string" ? rows : firstInvalid(rows);
+    const invalid = csvToTsvRefusal(csv);
     for (const size of CHUNK_SIZES) {
       const converted = () =>
         text(convertCsvToTsv(source(csv, size), 0x2C, size));

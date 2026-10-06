@@ -2,6 +2,7 @@ import type { TransformerFunction } from "../transformers.ts";
 import {
   BATCH_SIZE_BYTES,
   checkFields,
+  checkNoLeadingBom,
   FIELD_SEPARATOR,
   RECORD_SEPARATOR,
   rowWriter,
@@ -49,7 +50,8 @@ async function* recordBatches<T>(
  * adds) reads as a row `["\n"]`. Batches close at about 128 KiB of text
  * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work row by row.
  *
- * Invalid UTF-8 throws a `TypeError`.
+ * A UTF-8 byte order mark at the start is dropped. Invalid UTF-8 throws a
+ * `TypeError`.
  *
  * @example Read rows another program wrote
  * ```ts
@@ -106,10 +108,17 @@ export function fromRecordToLazyRows(): TransformerFunction<
  * A field can hold any text but those two characters. One that holds either
  * throws an `Error` naming the row and field, counted from 1:
  * `Invalid character (field separator) in record data at row 2, field 2`.
- * Items before the one holding it have already been written.
+ * A row with no fields (a `[]` inside a batch) throws too, since it would be
+ * written as `\x1E` and read back as `[""]`:
+ * `Invalid row (no fields) in record data at row 3`. So do a lone surrogate,
+ * which UTF-8 can't hold, and a first field starting with U+FEFF, which the
+ * reader would drop as a byte order mark. A row `[""]` is written as `\x1E`
+ * and reads back as itself. Items before the one that throws have already
+ * been written.
  *
  * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
- * and may differ from the one before. Each yields one chunk of bytes.
+ * and may differ from the one before. Each yields one chunk of bytes; an
+ * item `[]` is an empty batch.
  *
  * @example Hand CSV to a program as records
  * ```ts
@@ -130,8 +139,9 @@ export function toRecord(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
   Uint8Array<ArrayBuffer>
 > {
-  return rowWriter((fields, rowNumber) => {
+  return rowWriter("record", (fields, rowNumber) => {
     checkFields(fields, RECORD_FORBIDDEN, "record", rowNumber);
+    checkNoLeadingBom(fields, "record", rowNumber);
     return fields.join(FIELD_SEPARATOR) + RECORD_SEPARATOR;
   });
 }

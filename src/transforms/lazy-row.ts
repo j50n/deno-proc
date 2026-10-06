@@ -161,6 +161,7 @@ class BatchRow extends LazyRow {
   fieldEquals(index: number, value: string): boolean {
     checkIndex(this, index);
     const expected = encoded(value);
+    if (expected === undefined) return false;
     const j = this.first + index;
     const { bytes, byteEnds } = this.batch;
     const start = j === 0 ? 0 : byteEnds[j - 1] + 1;
@@ -187,11 +188,16 @@ class BatchRow extends LazyRow {
 
 /** The last value `fieldEquals` encoded: a filter compares the same one. */
 let lastValue = "";
-let lastEncoded = new Uint8Array(0);
+let lastEncoded: Uint8Array | undefined = new Uint8Array(0);
 
-function encoded(value: string): Uint8Array {
+/**
+ * `value` as UTF-8, or `undefined` if it holds a lone surrogate. Encoding
+ * would make that U+FFFD, and a field holding a real U+FFFD would match it;
+ * no field decoded from UTF-8 holds a lone surrogate, so none equals it.
+ */
+function encoded(value: string): Uint8Array | undefined {
   if (value !== lastValue) {
-    lastEncoded = encoder.encode(value);
+    lastEncoded = value.isWellFormed() ? encoder.encode(value) : undefined;
     lastValue = value;
   }
   return lastEncoded;

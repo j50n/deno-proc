@@ -3,7 +3,8 @@ import SIMDKernels
 /// Converts TSV to RFC 4180 CSV in chunks, bytes in and bytes out.
 ///
 /// A field is quoted when it holds the separator or a quote, with each quote
-/// doubled; anything else is copied as is. As the TSV reader does, it takes
+/// doubled, and so is the stream's first field when it starts with a byte
+/// order mark, which a CSV reader would drop; anything else is copied as is. As the TSV reader does, it takes
 /// lines ending in LF or CRLF, refuses any other CR (TSV can't hold one in a
 /// field), and skips blank lines. A refused CR makes the feed return -1, with
 /// `refusal` saying where. Lines end in LF, or CRLF when `crlf`.
@@ -18,9 +19,16 @@ import SIMDKernels
 /// A CR looks at the byte after it; when the CR ends the chunk, the next
 /// chunk's first byte decides (`crEndsChunk`).
 ///
-/// A field of n bytes writes at most 2n + 2 bytes and its tab or line end at
-/// most 2 more, so output three times the scanned input, plus slack, never
-/// fills.
+/// Output is reserved for the worst case of the new bytes but the exact size
+/// of the carried ones, since the longest field sets the memory a stream
+/// needs. A field of n bytes writes at most 2n + 2 (quoted, quotes doubled)
+/// and its tab or line end at most 2 more: at most 3 bytes for each of the
+/// n + 1 input bytes that hold it and its tab or LF, once n is 1 or more. The
+/// carried bytes write themselves and their quotes again. What that leaves out
+/// is at most 4 bytes: the carried field's quotes and line end when the first
+/// new byte ends it, and the last field's at the end of the stream, which has
+/// no tab or LF of its own. So a feed writes at most
+/// carried + its quotes + 3 × new + 4.
 final class TSVToCSV: StreamOperation {
     let chunkCapacity: Int
     let separator: UInt8
@@ -35,6 +43,8 @@ final class TSVToCSV: StreamOperation {
     private var atLineStart = true
     /// The carried field ends in a CR, so the next byte must be LF.
     private var crEndsChunk = false
+    /// No field has been written yet.
+    private var firstField = true
     private var position = Position()
 
     init(separator: UInt8, crlf: Bool, chunkCapacity: Int) {
@@ -53,7 +63,8 @@ final class TSVToCSV: StreamOperation {
     /// stream ends here.
     func feed(_ count: Int, last: Bool) -> Int {
         let total = carried + count
-        output.reserve(3 * total + 3 + copySlack, keeping: 0)
+        currentRow = position.row
+        output.reserve(carried + carriedScan.quotes + 3 * count + 4 + copySlack, keeping: 0)
         // Locals, not stored properties, for the reason in `CSVLexer.scan`.
         let src = UnsafePointer(input.base)
         let separator = self.separator
@@ -64,11 +75,27 @@ final class TSVToCSV: StreamOperation {
         var atLineStart = self.atLineStart
         var position = self.position
         var crEndsChunk = self.crEndsChunk
+        var firstField = self.firstField
         let refusal = self.refusal
+
+        /// Writes the field from `fieldStart` to `end`. The stream's first
+        /// field is quoted if it starts with a UTF-8 byte order mark, which a
+        /// reader would otherwise drop.
+        @inline(__always) func writeField(to end: Int) {
+            if firstField {
+                firstField = false
+                if end &- fieldStart >= 3 && src[fieldStart] == 0xEF
+                    && src[fieldStart &+ 1] == 0xBB && src[fieldStart &+ 2] == 0xBF
+                {
+                    scan.needsQuotes = true
+                }
+            }
+            writer.field(src + fieldStart, count: end &- fieldStart, scan)
+        }
 
         @inline(__always) func endLine(at end: Int) {
             if !(atLineStart && end == fieldStart) {
-                writer.field(src + fieldStart, count: end &- fieldStart, scan)
+                writeField(to: end)
                 if crlf { writer.byte(ASCII.cr) }
                 writer.byte(ASCII.lf)
                 position.row &+= 1
@@ -89,7 +116,7 @@ final class TSVToCSV: StreamOperation {
             let at = scanned &+ offset
             let b = src[at]
             if b == ASCII.tab {
-                writer.field(src + fieldStart, count: at &- fieldStart, scan)
+                writeField(to: at)
                 writer.byte(separator)
                 scan = FieldScan()
                 fieldStart = at &+ 1
@@ -108,7 +135,7 @@ final class TSVToCSV: StreamOperation {
                 }
             } else {
                 scan.needsQuotes = true
-                if b == ASCII.quote { scan.hasQuote = true }
+                if b == ASCII.quote { scan.quotes &+= 1 }
             }
         }
 
@@ -119,9 +146,11 @@ final class TSVToCSV: StreamOperation {
         } else {
             carried = total &- fieldStart
             input.moveToFront(from: fieldStart, count: carried)
+            currentRow = position.row
             input.reserve(carried + chunkCapacity + scanPadding, keeping: carried)
         }
         carriedScan = scan
+        self.firstField = firstField
         self.atLineStart = atLineStart
         self.position = position
         self.crEndsChunk = crEndsChunk
@@ -133,7 +162,8 @@ final class TSVToCSV: StreamOperation {
 struct FieldScan {
     /// It holds the separator or a quote.
     var needsQuotes = false
-    var hasQuote = false
+    /// Quotes in it, each written twice.
+    var quotes = 0
 }
 
 /// Calls `body`, in order, with the position of every byte in `p[0..<count]`
@@ -176,7 +206,7 @@ struct CSVFieldWriter {
     @inline(__always)
     mutating func field(_ bytes: UnsafePointer<UInt8>, count n: Int, _ scan: FieldScan) {
         if scan.needsQuotes { byte(ASCII.quote) }
-        if !scan.hasQuote {
+        if scan.quotes == 0 {
             if n > 0 {
                 copyWithSlack(out + count, bytes, n)
                 count &+= n

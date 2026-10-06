@@ -35,8 +35,8 @@ protocol CSVSink {
 extension CSVSink {
     /// Refuses `b` where the sink is now, unless something was refused before.
     @inline(__always)
-    func refuse(_ b: UInt8, inOutput: Bool = false) {
-        refusal.refuse(b, at: position, inOutput: inOutput)
+    func refuse(_ b: UInt8, inOutput: Bool = false, kind: Refusal = .byte) {
+        refusal.refuse(b, at: position, inOutput: inOutput, kind: kind)
     }
 }
 
@@ -52,7 +52,10 @@ extension CSVSink {
 ///   CR that ends the input included: a CR-only file is refused at its first
 ///   line end, not read as one row. Inside quotes a CR is content.
 /// - A blank line is no row. A line holding only `""` is a row of one empty field.
-/// - A quote still open at the end of the input ends there, with what it held.
+/// - A quote still open at the end of the input is refused, as an
+///   `unclosedQuote` at the row and field where it opened: read as a field, it
+///   would take in the rest of the input without a word. No field or row ends
+///   inside quotes, so the sink is still where the quote opened.
 ///
 /// It is a plain state machine over the special bytes only: quote, LF, CR, the
 /// separator, and `extra`, found 64 at a time with simd128. The bytes between
@@ -105,6 +108,7 @@ struct CSVLexer {
     /// Ends a last row that had no trailing newline.
     mutating func finish<Sink: CSVSink>(into sink: inout Sink) {
         if crEndsChunk { refuseCR(into: &sink) }
+        if state == .quoted { sink.refuse(ASCII.quote, kind: .unclosedQuote) }
         if !rowIsEmpty || state != .fieldStart { sink.rowEnd(utf8Excess: utf8Excess) }
         state = .fieldStart
         rowIsEmpty = true

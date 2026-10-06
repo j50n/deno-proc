@@ -22,9 +22,9 @@
 /// `output`, `byteEnds` and `textEnds` may move at every feed; the caller
 /// reads their addresses afterwards. `input` stays put.
 ///
-/// A CR the lexer refuses makes the feed return -1, with `refusal` saying
-/// where. The rows of that feed are not handed back; rows of earlier feeds
-/// have been.
+/// A CR or an unclosed quote the lexer refuses makes the feed return -1, with
+/// `refusal` saying where. The rows of that feed are not handed back; rows of
+/// earlier feeds have been.
 final class CSVReader: StreamOperation {
     let chunkCapacity: Int
     /// Where the caller writes each chunk of at most `chunkCapacity` bytes.
@@ -60,6 +60,7 @@ final class CSVReader: StreamOperation {
     func feed(_ count: Int, last: Bool) -> Int {
         // Every input byte makes at most one output byte or terminator, and
         // the end of the stream one more terminator.
+        currentRow = rowsBefore &+ 1
         carryPartialRow(incoming: count + 1)
         var sink = IndexingRecordWriter(
             out: output.base, count: partialBytes,

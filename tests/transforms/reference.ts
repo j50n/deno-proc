@@ -7,12 +7,33 @@
  * the start of a field and is content anywhere else, including after a
  * closing quote; lines end in LF or CRLF, and outside quotes a CR anywhere
  * else is an error; a blank line is no row; a quote still open at the end of
- * the input ends there. TSV has no quoting, so the CR rule holds everywhere.
+ * the input is an error, at the row and field where it opened. TSV has no
+ * quoting, so the CR rule holds everywhere.
  */
 
 /** The error for a CR not before LF, at a row and field counted from 1. */
 export function strayCrMessage(format: string, row: number, field: number) {
   return `Invalid character (CR) in ${format} data at row ${row}, field ${field}`;
+}
+
+/** The error for a quote still open at the end, where it opened. */
+export function unclosedQuoteMessage(row: number, field: number) {
+  return `Unclosed quote in CSV data at row ${row}, field ${field}`;
+}
+
+/**
+ * A seeded generator of integers in `[0, n)`: mulberry32, whose state stays
+ * a 32-bit integer, so it neither loses precision nor repeats for 2^32 draws.
+ */
+export function seededRandom(seed: number): (n: number) => number {
+  let state = seed >>> 0;
+  return (n) => {
+    state = (state + 0x6D2B79F5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return (((t ^ (t >>> 14)) >>> 0) / 2 ** 32 * n) | 0;
+  };
 }
 
 /** Rows of CSV text. */
@@ -73,6 +94,9 @@ export function readCsvReference(text: string, separator = ","): string[][] {
       fieldStarted = true;
       rowStarted = true;
     }
+  }
+  if (inQuotes) {
+    throw new Error(unclosedQuoteMessage(rows.length + 1, row.length + 1));
   }
   if (rowStarted || fieldStarted) {
     row.push(field);
@@ -207,8 +231,12 @@ export const EDGE_CSV: string[] = [
   `${long},"${long.replaceAll(" ", '""')}",${long}\n"${long}"\n`,
   // record-format separators as content
   "a\x1Fb,c\x1Ed\n\x1E,\x1F\n",
-  // unterminated quote at the end
+  // errors: a quote still open at the end, with and without a line break in it
   'a,"open, never\nclosed',
+  'x\ny,"z',
+  '"',
+  'a,b\n"""',
+  ...CHUNK_SIZES.map((size) => padded("", size, size - 1, "a\n", '"', "b")),
   // a quote closed exactly at the end, no newline
   'a,"b"',
   // trailing separator at the end
