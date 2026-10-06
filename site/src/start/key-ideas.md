@@ -107,9 +107,9 @@ takes one value per item.
 ```
 
 When Deno is told to stop (Ctrl-C, or a container's SIGTERM), it exits at once
-without telling its children; in a container they are killed with it before they
-can clean up. When an error goes uncaught, Deno kills its children as it exits,
-on any host. `main()` runs your program, and however it ends (it returns, it
-throws, or a signal arrives), it asks every child to stop and waits for them, up
-to 30 seconds, before exiting. See
+without waiting for its children; in a container they are killed with it before
+they can clean up. When an error goes uncaught, Deno kills its children as it
+exits, on any host. `main()` runs your program, and however it ends (it returns,
+it throws, or a signal arrives), it makes sure every child has been asked to
+stop, and waits for them, up to 30 seconds, before exiting. See
 [Shutting down cleanly](../processes/shutdown.md).
