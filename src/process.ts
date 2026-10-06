@@ -97,8 +97,10 @@ export interface ProcessOptions<S> {
   /**
    * Start the child with no environment but `env`, rather than this
    * process's environment plus `env`. Use it to keep secrets in your
-   * environment from reaching the child. Without a `PATH` in `env`, a bare
-   * program name may no longer be found; give a path. Default `false`.
+   * environment from reaching the child. The program itself is still found
+   * on this process's `PATH`, but the child gets no `PATH` unless `env` has
+   * one, so a program it starts by name may not be found (shells fall back
+   * to a default). Default `false`.
    */
   readonly clearEnv?: boolean;
   /**

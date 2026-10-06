@@ -66,7 +66,9 @@ environment the child inherits, or overrides them; it can't remove one. A `PATH`
 in `env` also changes where the program is looked up, so `run({ env }, "ls")`
 runs whatever `ls` comes first on that `PATH`. Don't build `env` from untrusted
 input. `clearEnv: true` starts the child with only `env`, to keep secrets in
-your environment from reaching it; give it a `PATH`, or the program by its path.
+your environment from reaching it. proc still finds the program on your `PATH`,
+but the child gets none unless `env` has one, so put a `PATH` in `env` if it
+starts other programs by name.
 
 `timeoutMs` stops a child that runs too long: proc sends it SIGTERM, and reading
 its output throws a `TimeoutError` ([Errors](./errors.md#timed-out)). The other
