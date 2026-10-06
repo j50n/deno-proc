@@ -353,3 +353,84 @@ Deno.test({
     assertEquals(runs.map((run) => run.stderr), runs.map(() => ""));
   },
 });
+
+/**
+ * A child that writes 1 MB to stderr and then waits, with an fnStderr that
+ * gathers it all and writes it to `out` a while after the child exits, as a
+ * buffering writer does. `ending` is how the program ends.
+ */
+function stderrProgram(out: string, ending: string) {
+  return `
+    import { main, run, terminateAll } from "${MOD}";
+    const child = () => run({
+      fnStderr: async (stderr) => {
+        const chunks = await stderr.collect();
+        await new Promise((r) => setTimeout(r, 300));
+        const file = await Deno.open("${out}", { write: true, create: true });
+        for (const chunk of chunks) await file.write(chunk);
+        file.close();
+      },
+    }, "sh", "-c", "head -c 1000000 /dev/zero >&2; exec sleep 30");
+    ${ending}`;
+}
+
+for (
+  const [how, ending] of [
+    [
+      "main",
+      `await main(async () => {
+        child();
+        await new Promise((r) => setTimeout(r, 300));
+        return 1;
+      });`,
+    ],
+    [
+      "terminateAll",
+      `child();
+      await new Promise((r) => setTimeout(r, 300));
+      await terminateAll();
+      Deno.exit(1);`,
+    ],
+  ]
+) {
+  Deno.test({
+    name:
+      `${how} waits for an fnStderr to finish writing after its child exits.`,
+
+    async fn() {
+      const dir = await Deno.makeTempDir();
+      try {
+        const out = `${dir}/stderr.bin`;
+        const { code } = await new Deno.Command("deno", {
+          args: ["eval", stderrProgram(out, ending)],
+        }).output();
+        assertEquals(code, 1);
+        assertEquals((await Deno.stat(out)).size, 1_000_000);
+      } finally {
+        await Deno.remove(dir, { recursive: true });
+      }
+    },
+  });
+}
+
+Deno.test({
+  name:
+    "terminateAll gives up on an fnStderr that never finishes at timeoutMs.",
+
+  async fn() {
+    const program = `
+      import { run, terminateAll } from "${MOD}";
+      run({ fnStderr: () => new Promise(() => {}) }, "sleep", "30");
+      const start = Date.now();
+      await terminateAll({ timeoutMs: 400 });
+      console.log(Date.now() - start);
+      Deno.exit(0);`;
+    const { code, stdout } = await new Deno.Command("deno", {
+      args: ["eval", program],
+      stdout: "piped",
+    }).output();
+    assertEquals(code, 0);
+    const waited = Number(new TextDecoder().decode(stdout));
+    assert(waited >= 350 && waited < 2000, `waited ${waited} ms`);
+  },
+});

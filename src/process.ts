@@ -46,7 +46,8 @@ export type ErrorHandler<S> = (
  * Read stderr to the end. A child that writes more to stderr than its pipe
  * holds (about 64 KB) blocks until it is read, and if this function returns
  * without reading, the program hangs. Iteration of stdout doesn't finish until
- * the returned promise settles.
+ * the returned promise settles, and {@link main} and {@link terminateAll} wait
+ * for it too, so it can write what it gathered after the child exits.
  *
  * Don't throw from it to fail the process. A throw replaces the process's own
  * error, so the exit code is lost. Return what you need and throw from
@@ -348,14 +349,13 @@ export class Process<S> implements Closer {
       stderr,
       args: [...this.args],
     }).spawn();
-    track(this.process);
-
     const fnStderr = options.fnStderr;
     if (fnStderr != null) {
       // Async, so one that throws at once fails the output like any other.
       const stderr = enumerate(this.process.stderr);
       this.stderrResult = handled((async () => await fnStderr(stderr))());
     }
+    track(this.process, this.stderrResult);
   }
 
   private _stderr: AsyncIterable<Uint8Array> | undefined;

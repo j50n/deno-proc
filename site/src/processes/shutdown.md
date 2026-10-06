@@ -10,8 +10,9 @@
 
 [`main()`](https://jsr.io/@j50n/proc/doc/~/main) runs your program, and however
 it ends, it signals every child process proc started that is still running,
-waits for them to exit, and only then exits. Wrap any program that runs
-long-lived children in it, and always one that runs in a container.
+waits for them to exit and for their `fnStderr` handlers to finish, and only
+then exits. Wrap any program that runs long-lived children in it, and always one
+that runs in a container.
 
 The service here is a stand-in shell script: it holds a lock file while it runs
 and removes it when it gets SIGTERM. Left alone, it finishes by itself, and the
@@ -56,6 +57,9 @@ needed.
 
 - **On return**, any child still running (one you started and never awaited)
   gets SIGTERM, and `main` waits for it as it would on a signal.
+- **A child is done** when it has exited and its `fnStderr`, if it has one, has
+  finished. A handler that gathers stderr and writes it out after the exit gets
+  to finish writing, within the same `timeoutMs`.
 - **On an error**, `main` prints it to stderr before it signals the children.
   That includes an unhandled promise rejection or an error thrown in a timer.
 - **On SIGTERM**, `main` passes it on and waits. A SIGTERM comes to Deno alone,
@@ -184,6 +188,12 @@ the [Dockerfile reference](https://docs.docker.com/reference/dockerfile/) warns,
 does not pass signals on, so `main` never sees the SIGTERM.
 
 ## What `main` can't do
+
+It can't wait for output your program is still reading. A pipeline writing a
+command's stdout to a file, or a `tee` branch nobody awaits, is on its own once
+the program has returned or thrown: `main` waits for the children and their
+stderr handlers, not for your code. Await your own pipelines before the program
+returns.
 
 Nothing runs if Deno is killed outright: by SIGKILL, the out-of-memory killer,
 or a failed node. A call to `Deno.exit()` elsewhere in your code also exits at

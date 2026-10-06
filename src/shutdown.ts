@@ -1,5 +1,9 @@
-/** Children proc started that have not exited yet. */
-const running = new Set<Deno.ChildProcess>();
+/**
+ * Children proc started that aren't done yet, each with a promise that
+ * settles when it is: the child has exited, and its `fnStderr`, if any, has
+ * finished with what it read.
+ */
+const running = new Map<Deno.ChildProcess, Promise<void>>();
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -24,22 +28,28 @@ const SIGNALS: { signal: Deno.Signal; code: number; forward: boolean }[] =
     ];
 
 /**
- * Track a child until it exits.
+ * Track a child until it is done: it has exited, and `handling`, the work of
+ * its `fnStderr`, has settled. A handler often writes its last output after
+ * the exit, from what it gathered.
  *
  * @internal
  */
-export function track(child: Deno.ChildProcess): void {
-  running.add(child);
-  const untrack = () => running.delete(child);
+export function track(
+  child: Deno.ChildProcess,
+  handling?: Promise<unknown>,
+): void {
+  const done = Promise.allSettled([child.status, handling]).then(() => {
+    running.delete(child);
+  });
+  running.set(child, done);
   child.status.then((status) => {
-    untrack();
     if (
       status.signal === "SIGINT" || status.signal === "SIGHUP" ||
       status.code === 130 || status.code === 129
     ) {
       terminalSignalSeen = true;
     }
-  }, untrack);
+  }, () => {});
 }
 
 /**
@@ -59,19 +69,20 @@ const SIGNAL_GRACE_MS = 500;
 const INTERRUPT_GRACE_MS = 1_000;
 
 /**
- * Send `signal` to every running child. One that exits between the lookup and
- * the signal makes `kill` throw; it needs no signal, and the rest still do.
+ * Send `signal` to every child not yet done, and return what to wait on. One
+ * that has exited already (its `fnStderr` still busy) makes `kill` throw; it
+ * needs no signal, and the rest still do.
  */
-function signalAll(signal: Deno.Signal): Deno.ChildProcess[] {
+function signalAll(signal: Deno.Signal): Promise<void>[] {
   const children = [...running];
-  for (const child of children) {
+  for (const [child] of children) {
     try {
       child.kill(signal);
     } catch {
       // Already exited.
     }
   }
-  return children;
+  return children.map(([, done]) => done);
 }
 
 /*
@@ -84,7 +95,9 @@ globalThis.addEventListener("unload", () => {
 
 /**
  * Signal every child process proc started that is still running, all at once,
- * and wait for them to exit.
+ * and wait for them to exit, and for each one's `fnStderr` to finish: a
+ * handler that writes what it gathered after the exit gets to finish
+ * writing.
  *
  * {@link main} does this for you on the way out. Call it directly to stop the
  * children without exiting.
@@ -102,8 +115,7 @@ export async function terminateAll(
   options?: { signal?: Deno.Signal; timeoutMs?: number },
 ): Promise<void> {
   const timeoutMs = checkedTimeout(options?.timeoutMs);
-  const children = signalAll(options?.signal ?? "SIGTERM");
-  await waitFor(children, timeoutMs);
+  await waitFor(signalAll(options?.signal ?? "SIGTERM"), timeoutMs);
 }
 
 /** `timeoutMs`, or the default; throws unless it is a number of at least 0. */
@@ -114,12 +126,12 @@ function checkedTimeout(timeoutMs: number = DEFAULT_TIMEOUT_MS): number {
   return timeoutMs;
 }
 
-/** Wait until `children` have exited, or `timeoutMs` has passed. */
+/** Wait until `children` are done, or `timeoutMs` has passed. */
 async function waitFor(
-  children: Deno.ChildProcess[],
+  children: Promise<void>[],
   timeoutMs: number,
 ): Promise<void> {
-  const exited = Promise.all(children.map((c) => c.status.catch(() => {})));
+  const exited = Promise.all(children);
 
   // setTimeout fires at once for anything past its 32-bit range.
   if (!(timeoutMs < 2 ** 31 - 1)) {
@@ -152,7 +164,7 @@ async function waitFor(
  * always one that runs in a container.
  *
  * However the program ends, `main` signals every running child, waits for them
- * to exit, then exits:
+ * to exit and their `fnStderr` handlers to finish, then exits:
  *
  * - The program returns: SIGTERM, then exit with the returned code (default 0).
  * - The program throws, or an error goes uncaught anywhere: report the error,
@@ -173,7 +185,9 @@ async function waitFor(
  * `main` gives the signal half a second to arrive, so the exit is still 130
  * and the error it caused isn't reported.
  *
- * Call it once, around the whole program: it ends the process.
+ * Call it once, around the whole program: it ends the process. It can't wait
+ * for output your program is still reading, such as a pipeline writing a
+ * command's stdout to a file: await that before the program returns.
  *
  * **Example**
  *
@@ -209,7 +223,10 @@ export async function main(
       await terminateAll({ timeoutMs });
     } else {
       const start = Date.now();
-      await waitFor([...running], Math.min(INTERRUPT_GRACE_MS, timeoutMs));
+      await waitFor(
+        [...running.values()],
+        Math.min(INTERRUPT_GRACE_MS, timeoutMs),
+      );
       const left = Math.max(0, timeoutMs - (Date.now() - start));
       if (running.size > 0) await terminateAll({ timeoutMs: left });
     }
