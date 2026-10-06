@@ -28,7 +28,8 @@ export type Cmd = [string | URL, ...string[]];
  * `.forEach()`, `.first`, `for await`, and the rest. The methods are lazy; the
  * process is not.
  *
- * Options go first: `run({ cwd, env, fnStderr, fnError, buffer }, ...cmd)`
+ * Options go first:
+ * `run({ cwd, env, clearEnv, timeoutMs, fnStderr, fnError }, ...cmd)`
  * (see {@link ProcessOptions}). The child's stdin is closed (`"null"`), and its
  * stderr goes to yours unless you pass `fnStderr`. A program that doesn't exist
  * throws `Deno.errors.NotFound` from `run()` itself.

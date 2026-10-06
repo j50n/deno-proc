@@ -24,12 +24,13 @@ every command and every callback in the pipeline.
 | `ExitCodeError: grep exited with code 1`, no reason | the reason went to stderr                               | [Putting stderr into the error](#putting-stderr-into-the-error)                   |
 | `UpstreamError`, or an error with a `cause`         | an earlier command or callback failed                   | [Which error a pipeline throws](#which-error-a-pipeline-throws)                   |
 | `SignalError`                                       | the command was killed                                  | [Killed by a signal](#killed-by-a-signal)                                         |
+| `TimeoutError`                                      | the command ran past its `timeoutMs`                    | [Timed out](#timed-out)                                                           |
 | `NotFound` from `run()` or `read()`                 | the program or file isn't there                         | [A missing program or file](#a-missing-program-or-file)                           |
 | `NotCapable: Requires run access`                   | Deno's permissions                                      | [Install](../start/install.md#permissions)                                        |
 | `RangeError: .first: the sequence is empty`         | `.first` on empty output                                | [Reading the output](./running.md#reading-the-output)                             |
 | no error, the program just hangs                    | nothing reads a command's output                        | [Running a command](./running.md#waiting-for-a-command-you-dont-want-output-from) |
 
-All three process errors extend
+All four process errors extend
 [`ProcessError`](https://jsr.io/@j50n/proc/doc/~/ProcessError), so
 `error instanceof ProcessError` catches any of them. Narrow with `instanceof`
 before using `code`, `signal`, or `command`.
@@ -50,6 +51,26 @@ name in `signal`. `SIGKILL` usually means the out-of-memory killer or a
 `kill -9`; `SIGTERM` means something asked it to stop. A command you stopped
 early yourself (with `take`, `first`, or `break`) dies of `SIGPIPE`, but that
 throws nothing.
+
+## Timed out
+
+```typescript
+{{#include ../../examples/processes/errors-timeout.ts}}
+```
+
+```text
+{{#include ../../examples/processes/errors-timeout.out}}
+```
+
+With `timeoutMs`, proc sends the child SIGTERM when the time runs out, and its
+output throws [`TimeoutError`](https://jsr.io/@j50n/proc/doc/~/TimeoutError)
+once the child has exited, even if it caught the signal and exited cleanly: a
+run that was cut short didn't succeed. The timer runs from the start until the
+child exits, so it also stops a child whose output you stopped reading early. A
+child that ignores SIGTERM keeps running; proc never sends SIGKILL. And reading
+waits for the output to end, which a child's own children can hold open, as a
+wrapper script's do (see
+[Wrapper scripts must `exec`](./shutdown.md#wrapper-scripts-must-exec)).
 
 ## Which error a pipeline throws
 

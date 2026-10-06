@@ -41,11 +41,13 @@ import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 ## Errors
 
 - [`ProcessError`](https://jsr.io/@j50n/proc/doc/~/ProcessError): base class of
-  the three below; catch it to handle any process failure.
+  the four below; catch it to handle any process failure.
 - [`ExitCodeError`](https://jsr.io/@j50n/proc/doc/~/ExitCodeError): a command
   exited non-zero; `.code`, `.command`.
 - [`SignalError`](https://jsr.io/@j50n/proc/doc/~/SignalError): a command was
   killed by a signal; `.signal`, `.command`.
+- [`TimeoutError`](https://jsr.io/@j50n/proc/doc/~/TimeoutError): a command ran
+  past its `timeoutMs` and was stopped; `.timeoutMs`, `.command`.
 - [`UpstreamError`](https://jsr.io/@j50n/proc/doc/~/UpstreamError): a command
   succeeded but its input failed; `.cause` is the original error.
 

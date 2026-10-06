@@ -65,8 +65,13 @@ Options go before the command:
 environment the child inherits, or overrides them; it can't remove one. A `PATH`
 in `env` also changes where the program is looked up, so `run({ env }, "ls")`
 runs whatever `ls` comes first on that `PATH`. Don't build `env` from untrusted
-input. The other options, `fnStderr` and `fnError`, are about errors and are
-covered in [Errors](./errors.md). All of them are listed under
+input. `clearEnv: true` starts the child with only `env`, to keep secrets in
+your environment from reaching it; give it a `PATH`, or the program by its path.
+
+`timeoutMs` stops a child that runs too long: proc sends it SIGTERM, and reading
+its output throws a `TimeoutError` ([Errors](./errors.md#timed-out)). The other
+options, `fnStderr` and `fnError`, are about errors and are covered in
+[Errors](./errors.md). All of them are listed under
 [`ProcessOptions`](https://jsr.io/@j50n/proc/doc/~/ProcessOptions).
 
 ## Status and PID

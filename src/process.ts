@@ -94,6 +94,22 @@ export interface ProcessOptions<S> {
    * from untrusted input.
    */
   readonly env?: Record<string, string>;
+  /**
+   * Start the child with no environment but `env`, rather than this
+   * process's environment plus `env`. Use it to keep secrets in your
+   * environment from reaching the child. Without a `PATH` in `env`, a bare
+   * program name may no longer be found; give a path. Default `false`.
+   */
+  readonly clearEnv?: boolean;
+  /**
+   * Stop the child after this many milliseconds: proc sends it SIGTERM, and
+   * reading its output throws {@link TimeoutError} once it has exited,
+   * however it exited. The timer starts when the child does and stops when
+   * it exits, so it bounds a child you stopped reading early, too. A child
+   * that ignores SIGTERM keeps running; proc never sends SIGKILL. Default:
+   * no limit.
+   */
+  readonly timeoutMs?: number;
 
   /** Read the child's stderr. See {@link StderrHandler}. */
   fnStderr?: StderrHandler<S>;
@@ -128,7 +144,8 @@ export interface ProcessStreamOptions<S> extends ProcessOptions<S> {
 
 /**
  * The base class of the errors a process throws when it fails:
- * {@link ExitCodeError}, {@link SignalError}, and {@link UpstreamError}.
+ * {@link ExitCodeError}, {@link SignalError}, {@link TimeoutError}, and
+ * {@link UpstreamError}.
  * Catch it to handle any of them.
  *
  * `name` is the subclass's name. `cause` is the earlier error that led to this
@@ -280,6 +297,48 @@ export class SignalError extends ProcessError {
 }
 
 /**
+ * Thrown when a process ran past its `timeoutMs` and proc stopped it. It is
+ * thrown where you read the output, after the last line has been delivered,
+ * whatever the exit code or signal: a run that was cut short didn't succeed.
+ *
+ * `timeoutMs` is the limit and `command` the command and arguments. `cause`
+ * is set when the process's input failed too, as described for
+ * {@link UpstreamError}. `fnError` can replace or suppress it.
+ *
+ * @example
+ * ```typescript
+ * import { run, TimeoutError } from "@j50n/proc";
+ *
+ * try {
+ *   await run({ timeoutMs: 100 }, "sleep", "5").lines.collect();
+ * } catch (error) {
+ *   if (error instanceof TimeoutError) console.error(error.message);
+ *   // sleep timed out after 100 ms
+ * }
+ * ```
+ */
+export class TimeoutError extends ProcessError {
+  /**
+   * proc throws these itself; build one only to test code that handles it.
+   *
+   * @param message The error message.
+   * @param command The command and arguments.
+   * @param timeoutMs The limit the process ran past.
+   * @param options.cause The failure of this process's input, if any.
+   */
+  constructor(
+    message: string,
+    public readonly command: string[],
+    public readonly timeoutMs: number,
+    options?: { cause?: Error },
+  ) {
+    super(message, { cause: options?.cause });
+    this.name = this.constructor.name;
+    hide(this, "command");
+  }
+}
+
+/**
  * A child process whose stdout is an async iterable that throws when the
  * process fails. {@link run} and `.run()` are built on it.
  *
@@ -329,6 +388,7 @@ export class Process<S> implements Closer {
    * @param cmd The program: a name looked up on `PATH`, a path, or a file URL.
    * @param args The arguments.
    * @throws {Deno.errors.NotFound} If the program doesn't exist.
+   * @throws {RangeError} If `timeoutMs` is not a number of at least 0.
    */
   constructor(
     public readonly options: ProcessStreamOptions<S>,
@@ -339,11 +399,17 @@ export class Process<S> implements Closer {
       throw new TypeError('fnStderr needs stderr: "piped"');
     }
 
+    const timeoutMs = options.timeoutMs;
+    if (timeoutMs !== undefined && !(timeoutMs >= 0)) {
+      throw new RangeError(`timeoutMs must be at least 0; got ${timeoutMs}`);
+    }
+
     // Only the options proc defines; anything else in `options` stays out.
-    const { cwd, env, stdin, stdout, stderr } = options;
+    const { cwd, env, clearEnv, stdin, stdout, stderr } = options;
     this.process = new Deno.Command(this.cmd, {
       cwd,
       env,
+      clearEnv,
       stdin,
       stdout,
       stderr,
@@ -356,7 +422,24 @@ export class Process<S> implements Closer {
       this.stderrResult = handled((async () => await fnStderr(stderr))());
     }
     track(this.process, this.stderrResult);
+
+    // setTimeout fires at once past its 32-bit range: no timer is the same.
+    if (timeoutMs !== undefined && timeoutMs < 2 ** 31 - 1) {
+      const timer = setTimeout(() => {
+        this.timedOut = true;
+        try {
+          this.process.kill("SIGTERM");
+        } catch {
+          // It exited as the timer fired.
+        }
+      }, timeoutMs);
+      const stop = () => clearTimeout(timer);
+      this.process.status.then(stop, stop);
+    }
   }
+
+  /** Whether `timeoutMs` ran out and proc sent the child SIGTERM. */
+  private timedOut = false;
 
   private _stderr: AsyncIterable<Uint8Array> | undefined;
   private _stdout: AsyncIterable<Uint8Array<ArrayBuffer>> | undefined;
@@ -449,6 +532,8 @@ export class Process<S> implements Closer {
       const cmd = [this.cmd, ...this.args].map((it) => it.toString());
 
       const passError = () => this._passError;
+      const timedOut = () => this.timedOut;
+      const timeoutMs = this.options.timeoutMs;
 
       const catchHandler = async (error?: Error) => {
         const errorHandler = this.options.fnError;
@@ -503,7 +588,14 @@ export class Process<S> implements Closer {
 
               const cause = passError();
 
-              if (status.signal != null) {
+              if (timedOut()) {
+                throw new TimeoutError(
+                  `${cmd[0]} timed out after ${timeoutMs} ms`,
+                  cmd,
+                  timeoutMs!,
+                  cause == null ? undefined : { cause },
+                );
+              } else if (status.signal != null) {
                 // The program only: arguments can hold secrets, and messages
                 // end up in logs. `command` has the rest.
                 throw new SignalError(

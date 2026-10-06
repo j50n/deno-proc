@@ -61,10 +61,10 @@ Deno.test("new Process refuses fnStderr without piped stderr before starting the
 });
 
 Deno.test("Options proc doesn't define don't reach the child.", async () => {
-  const options = { clearEnv: true } as Record<string, unknown>;
-  const withOption = await run(options, "sh", "-c", "echo $HOME").lines.first;
-  const without = await run("sh", "-c", "echo $HOME").lines.first;
-  assertEquals(withOption, without);
+  // Passed on to Deno.Command, uid 0 would fail the spawn: the tests don't
+  // run as root.
+  const options = { uid: 0, gid: 0 } as Record<string, unknown>;
+  assertEquals(await run(options, "sh", "-c", "echo ok").lines.first, "ok");
 });
 
 Deno.test("Stopping early doesn't wait for a quiet child to exit.", async () => {
