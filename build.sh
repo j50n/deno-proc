@@ -2,6 +2,7 @@
 
 set -e
 set -x
+shopt -s globstar
 
 # Update Rust and Cargo
 rustup update
@@ -23,7 +24,7 @@ cd "$HERE" && (
     # Update Deno
     deno update --latest
 
-    TS_FILES="benchmarks/*.ts scripts/*/*.ts site/*.ts src/**/*.ts tests/**/*.ts tools/*.ts"
+    TS_FILES="mod.ts benchmarks/*.ts scripts/*/*.ts site/*.ts site/examples/**/*.ts src/**/*.ts tests/**/*.ts tools/*.ts"
 
     deno fmt **/*.md
     deno fmt $TS_FILES

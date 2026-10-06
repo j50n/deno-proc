@@ -6,6 +6,7 @@ console.log(`${5 * MINUTES} ms in five minutes`);
 let attempts = 0;
 async function flaky() {
   attempts += 1;
+  await sleep(1); // stands in for the real work
   if (attempts < 3) throw new Error("not yet");
   return "ok";
 }
