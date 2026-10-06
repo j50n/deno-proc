@@ -46,8 +46,7 @@ if (Deno.args[0] === "supports") {
       .join("\n"),
   );
 
-  const gitv = (await run("git", "describe", "--tags").lines.first)
-    .split("-")[0];
+  const gitv = await run("git", "describe", "--tags", "--abbrev=0").lines.first;
 
   const sections = book.sections || book.items || [];
   const chapters = extractChapters(sections);

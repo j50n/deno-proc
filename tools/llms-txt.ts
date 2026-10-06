@@ -22,7 +22,8 @@ if (src == null || out == null) {
 }
 
 const version = new TextDecoder().decode(
-  (await new Deno.Command("git", { args: ["describe", "--tags"] }).output())
+  (await new Deno.Command("git", { args: ["describe", "--tags", "--abbrev=0"] })
+    .output())
     .stdout,
 ).trim();
 
