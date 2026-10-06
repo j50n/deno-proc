@@ -53,16 +53,31 @@ export function track(
       status.signal === "SIGINT" || status.signal === "SIGHUP" ||
       status.code === 130 || status.code === 129
     ) {
-      terminalSignalSeen = true;
+      terminalSignalAt = Date.now();
     }
   }, () => {});
 }
 
+/** The children's outputs being read now, each settling when its reading ends. */
+const reading = new Set<Promise<void>>();
+
 /**
- * Whether a child ended because of a SIGINT or SIGHUP, so one is probably on
- * its way to Deno as well: the terminal sends them to the whole group.
+ * Note that a child's output is being read until `done` settles, so that
+ * {@link main} can let the reading finish before it exits.
+ *
+ * @internal
  */
-let terminalSignalSeen = false;
+export function trackReading(done: Promise<void>): void {
+  reading.add(done);
+  done.finally(() => reading.delete(done));
+}
+
+/**
+ * When a child last ended because of a SIGINT or SIGHUP. If that was just
+ * now, one is probably on its way to Deno as well: the terminal sends them to
+ * the whole group.
+ */
+let terminalSignalAt = -Infinity;
 
 /** How long `main` gives that signal to arrive. */
 const SIGNAL_GRACE_MS = 500;
@@ -199,9 +214,18 @@ async function waitFor(
  * `main` gives the signal half a second to arrive, so the exit is still 130
  * and the error it caused isn't reported.
  *
- * Call it once, around the whole program: it ends the process. It can't wait
- * for output your program is still reading, such as a pipeline writing a
- * command's stdout to a file: await that before the program returns.
+ * After a signal, once the children have exited, `main` lets the program
+ * finish with what they printed on the way out: it waits, within
+ * `timeoutMs`, for their output to be read to the end, then up to half a
+ * second for the program to return, so a pipeline writing their output to a
+ * file gets to finish it. An error the program ends with then isn't
+ * reported: the signal decides the exit code. A child that ignores SIGTERM is
+ * still running when `main` gives up and exits.
+ *
+ * An uncaught error while `main` is waiting is reported, and turns an exit
+ * code of 0 into 1.
+ *
+ * Call it once, around the whole program: it ends the process.
  *
  * **Example**
  *
@@ -223,28 +247,43 @@ export async function main(
 ): Promise<never> {
   const timeoutMs = checkedTimeout(options?.timeoutMs);
   let finishing = false;
+  let exitCode = 0;
   let signalsReceived = 0;
   const signalArrived = Promise.withResolvers<void>();
+  const programDone = Promise.withResolvers<void>();
 
   /**
    * Signal the children (unless they have been already), wait, exit. Only the
-   * first call does anything.
+   * first call does anything. After a signal, wait for the program too.
    */
   const finish = async (code: number, signal = true) => {
     if (finishing) return;
     finishing = true;
+    exitCode = code;
+    const start = Date.now();
+    const left = () => Math.max(0, timeoutMs - (Date.now() - start));
+    const wasReading = reading.size > 0;
     if (signal) {
       await terminateAll({ timeoutMs });
     } else {
-      const start = Date.now();
       await waitFor(
         [...running.values()],
         WINDOWS ? timeoutMs : Math.min(INTERRUPT_GRACE_MS, timeoutMs),
       );
-      const left = Math.max(0, timeoutMs - (Date.now() - start));
-      if (running.size > 0 && !WINDOWS) await terminateAll({ timeoutMs: left });
+      if (running.size > 0 && !WINDOWS) {
+        await terminateAll({ timeoutMs: left() });
+      }
     }
-    Deno.exit(code);
+    if (signalsReceived > 0 && wasReading) {
+      // Let the program finish with what the children printed on the way
+      // out: the reading ends with them, and then the writing of it.
+      await waitFor([...reading], left());
+      await waitFor(
+        [programDone.promise],
+        Math.min(SIGNAL_GRACE_MS, left()),
+      );
+    }
+    Deno.exit(exitCode);
   };
 
   /**
@@ -253,7 +292,7 @@ export async function main(
    * arrive first; then it decides the exit, and the error isn't reported.
    */
   const end = async (code: number, error?: { error: unknown }) => {
-    if (terminalSignalSeen) {
+    if (Date.now() - terminalSignalAt < SIGNAL_GRACE_MS) {
       let timer: ReturnType<typeof setTimeout> | undefined;
       await Promise.race([
         signalArrived.promise,
@@ -261,7 +300,14 @@ export async function main(
       ]);
       clearTimeout(timer);
     }
-    if (finishing) return;
+    if (finishing) {
+      // Already on the way out. After a signal, errors are its doing.
+      if (error && signalsReceived === 0) {
+        console.error(error.error);
+        if (exitCode === 0) exitCode = 1;
+      }
+      return;
+    }
     if (error) console.error(error.error);
     await finish(code);
   };
@@ -282,11 +328,14 @@ export async function main(
   globalThis.addEventListener("error", onUncaught);
   globalThis.addEventListener("unhandledrejection", onUncaught);
 
+  let result: { code: number; error?: { error: unknown } };
   try {
-    await end((await program()) ?? 0);
+    result = { code: (await program()) ?? 0 };
   } catch (error) {
-    await end(1, { error });
+    result = { code: 1, error: { error } };
   }
+  programDone.resolve();
+  await end(result.code, result.error);
 
   // A signal or an uncaught error got there first, and that finish exits.
   return await new Promise<never>(() => {});

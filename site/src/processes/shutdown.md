@@ -65,6 +65,12 @@ needed.
 - **On SIGTERM**, `main` passes it on and waits. A SIGTERM comes to Deno alone,
   from `docker stop`, Kubernetes, systemd, or `kill`, so the children hear of it
   only through `main`.
+- **After a signal**, once the children have exited, `main` lets the program
+  finish with what they printed on the way out: it waits for their output to be
+  read to the end, then up to half a second for the program to return, so a
+  pipeline writing it to a file completes. A child that dies of the signal makes
+  its consumer throw `SignalError`; `main` doesn't print it, since the signal
+  decides the exit code.
 - **On SIGINT or SIGHUP**, `main` doesn't pass it on. These usually come from
   the terminal (Ctrl-C, or the terminal closing), which sends them to the whole
   foreground process group, children included. Forwarding would make it their

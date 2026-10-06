@@ -92,11 +92,14 @@ What bounds the memory is the longest row, not the input: the reader holds a row
 whole, and `TSVToCSV` holds a field whole, in its input and again in its output,
 where it reserves the field's size plus its quotes. The arena grows memory by
 just what an allocation needs, so a stream's memory runs to about 2 times its
-longest row in the reader and 5 to 7 times its longest field in `tsvToCsv()`,
-depending on where the doubling buffers land (measured: a field of 128 MiB took
-896 MiB, one of 512 MiB took 2,561 MiB). Before, the arena doubled memory too
-and `TSVToCSV` reserved three times the field, and the same 128 MiB took 1,536
-MiB. `csvToTsv()` holds nothing back and runs in constant memory.
+longest row in the reader, plus the row's field ends: two `UInt32`s a field, so
+a row of empty fields (`,,,,`) takes about 18 times its size (measured: 16 MiB
+of commas took 287 MiB, 64 MiB took 1,151 MiB). In `tsvToCsv()` it is 5 to 10
+times its longest field, depending on where the doubling buffers land and how
+many quotes need doubling (measured: a field of 128 MiB took 896 MiB, one of 512
+MiB took 2,561 MiB, and 64 MiB of `"` took 640 MiB). Before, the arena doubled
+memory too and `TSVToCSV` reserved three times the field, and the same 128 MiB
+took 1,536 MiB. `csvToTsv()` holds nothing back and runs in constant memory.
 
 A wasm32 memory can't pass 4 GiB. When an allocation can't be made, the arena
 traps: the Embedded Swift runtime doesn't check for a null pointer, and would
@@ -105,10 +108,10 @@ write through it into the module's own memory at address 0. Every operation sets
 reads `current_row` and throws
 `Row too large for the WebAssembly module's memory in CSV data at row N` (for
 `tsvToCsv()`, `Field too large ...`), with the `RuntimeError` as its cause. In
-practice that is a row, or a `tsvToCsv()` field, of around a gigabyte. The
-exports return pointers as `i32`, which JavaScript reads as negative past 2 GiB,
-so `src/wasm/flatdata.ts` reads every pointer through `address()`
-(`pointer >>> 0`).
+practice that is a row, or a `tsvToCsv()` field, of around a gigabyte, or a row
+of about 150 MB of empty fields. The exports return pointers as `i32`, which
+JavaScript reads as negative past 2 GiB, so `src/wasm/flatdata.ts` reads every
+pointer through `address()` (`pointer >>> 0`).
 
 ## Tests
 

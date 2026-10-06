@@ -1,3 +1,5 @@
+import { abandon } from "./helpers.ts";
+
 /** One item in the chain the branches walk along. */
 type Node<T> = { value?: T; next?: Node<T> };
 
@@ -15,6 +17,10 @@ export function tee<T>(
   source: AsyncIterable<T>,
   n: number,
 ): AsyncIterable<T>[] {
+  if (!(Number.isInteger(n) && n >= 1)) {
+    abandon(source);
+    throw new RangeError(`tee needs a whole number of at least 1; got ${n}`);
+  }
   const iterator = source[Symbol.asyncIterator]();
   let last: Node<T> = {};
   let pulling: Promise<void> | undefined;

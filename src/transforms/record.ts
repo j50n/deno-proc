@@ -21,7 +21,13 @@ async function* recordBatches<T>(
   let currentBatch: T[] = [];
   let currentBatchSize = 0;
 
-  for await (const records of splitText(bytes, RECORD_SEPARATOR)) {
+  for await (
+    const records of splitText(
+      bytes,
+      RECORD_SEPARATOR,
+      (row) => `Invalid UTF-8 in record data at row ${row}`,
+    )
+  ) {
     for (const record of records) {
       currentBatch.push(toRow(record.split(FIELD_SEPARATOR)));
       currentBatchSize += record.length;

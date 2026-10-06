@@ -86,8 +86,8 @@ pair, such as `CompressionStream`:
 {{#include ../../examples/iterables/stream-step.out}}
 ```
 
-A stream works once. Used a second time, it yields nothing and throws nothing,
-so create a new one for each use, as `upper()` does. An error from upstream of
-the stream reaches the consumer unchanged, and so does one thrown in its
-`transform()`. A generator is usually simpler to write; use a stream when you
-already have one.
+A stream works once. Used a second time, it yields nothing or throws, and the
+source goes unread, so create a new one for each use, as `upper()` does. An
+error from upstream of the stream reaches the consumer unchanged, and so does
+one thrown in its `transform()`. A generator is usually simpler to write; use a
+stream when you already have one.

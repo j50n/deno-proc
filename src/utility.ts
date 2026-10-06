@@ -173,7 +173,8 @@ export interface RangeUntilOptions {
  * Fractional steps add up floating-point error: `{ until: 0.3, step: 0.1 }`
  * gives 0, 0.1, 0.2, because the fourth value is 0.30000000000000004.
  *
- * A `step` of 0 throws `RangeError` at the call.
+ * A `step` of 0 or NaN throws `RangeError` at the call, and so does one too
+ * small to change `from` (1 from 2⁵³, say), which would count forever.
  *
  * @example
  * ```typescript
@@ -190,13 +191,17 @@ export function range(
   options: RangeToOptions | RangeUntilOptions,
 ): Enumerable<number> {
   const s = options.step ?? 1;
-  if (s === 0) {
-    throw new RangeError("step cannot be 0");
+  const f = options.from ?? 0;
+  if (s === 0 || Number.isNaN(s)) {
+    throw new RangeError(`step must be a number other than 0; got ${s}`);
+  }
+  if (f + s === f) {
+    // Adding it would never move on from `from`.
+    throw new RangeError(`step ${s} is too small to count from ${f}`);
   }
 
   async function* doRange(): AsyncIterable<number> {
     if ("to" in options) {
-      const f = options.from ?? 0;
       const t = options.to;
 
       if (s > 0) {
@@ -209,7 +214,6 @@ export function range(
         }
       }
     } else {
-      const f = options.from ?? 0;
       const u = options.until;
 
       if (s > 0) {

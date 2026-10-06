@@ -83,8 +83,9 @@ const branches = await cache(
 `null` and `undefined` are never stored, so `compute` runs every time for them.
 A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
 cached; one that doesn't is returned without being stored, so `compute` runs
-every time for it. Each entry is deleted once it is older than the timeout it
-was stored with. Two calls that miss at the same time both compute.
+every time for it. Deno KV deletes each entry once it is older than the timeout
+it was stored with. A timeout of 0 stores nothing. Two calls that miss at the
+same time both compute.
 
 A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still
@@ -93,9 +94,9 @@ says it is the class; cache plain data.
 Deno picks which database "default" means. With a `deno.json`, every script in
 that project shares one, so two scripts that both use the key `"config"` get
 each other's values; without one, each main script has its own. The database is
-a SQLite file under Deno's cache directory (`DENO_DIR`), unencrypted, and
-`cache` never deletes an entry, so don't cache secrets such as tokens. See the
-[API reference](https://jsr.io/@j50n/proc/doc/~/cache).
+a SQLite file under Deno's cache directory (`DENO_DIR`), unencrypted, and an
+entry stays in it until it expires, so don't cache secrets such as tokens. See
+the [API reference](https://jsr.io/@j50n/proc/doc/~/cache).
 
 ## `debug`
 

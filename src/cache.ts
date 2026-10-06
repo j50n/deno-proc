@@ -142,7 +142,9 @@ export async function cache<T>(
           cacheKey(key),
           { timestamp: new Date(), value: fresh },
           // KV deletes the entry once it is this old; reads check age anyway.
-          Number.isFinite(timeout) ? { expireIn: timeout } : undefined,
+          // Past about 140,000 years KV refuses it, and the entry might as
+          // well not expire.
+          timeout <= 2 ** 52 ? { expireIn: timeout } : undefined,
         );
       } catch {
         // A value KV can't hold (too large, not cloneable) is returned, not

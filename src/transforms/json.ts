@@ -83,7 +83,13 @@ export function fromJsonToRows<T = unknown>(
 
     let lineNumber = 0;
 
-    for await (const lines of splitText(bytes, "\n")) {
+    for await (
+      const lines of splitText(
+        bytes,
+        "\n",
+        (line) => `Invalid UTF-8 in JSON data at line ${line}`,
+      )
+    ) {
       for (const line of lines) {
         lineNumber++;
         if (!line.trim()) continue;

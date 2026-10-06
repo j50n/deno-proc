@@ -22,7 +22,7 @@ Deno.test("range - step=0 throws error", () => {
       range({ to: 10, step: 0 });
     },
     RangeError,
-    "step cannot be 0",
+    "step must be a number other than 0",
   );
 });
 

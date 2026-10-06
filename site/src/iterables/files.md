@@ -38,11 +38,14 @@ pass `{ atomic: true }`:
 {{#include ../../examples/iterables/rewrite.out}}
 ```
 
-With `atomic`, proc writes a new file beside the old one and renames it into
-place once everything is written. A failure leaves the old file as it was, with
-nothing beside it. A symlink stays a symlink, and the file keeps its mode. It
-needs read permission on the file and write permission on its directory, and the
-result is a new file, so a hard link to the old one still shows the old content.
+With `atomic`, proc writes a new file beside the old one, flushes it to disk,
+and renames it into place once everything is written. A failure leaves the old
+file as it was, with nothing beside it, and so does a program that exits partway
+under `main`. A symlink stays a symlink, and the file keeps its mode. Anything
+reached through `/dev` or `/proc`, such as `/dev/stdout`, is written in place.
+It needs read permission on the file and write permission on its directory, and
+the result is a new file, so a hard link to the old one still shows the old
+content.
 
 To add to a file instead of replacing it, open it yourself and pass its
 `writable`:

@@ -71,6 +71,18 @@ Deno.test("A timeout of 0 calls value every time and stores nothing.", async () 
   assertEquals(run.stdout, "2 null\n", run.stderr);
 });
 
+Deno.test("A timeout past what Deno KV can expire still caches.", async () => {
+  const run = await program(`
+    let calls = 0;
+    const value = () => (calls++, 42);
+    const timeout = Number.MAX_SAFE_INTEGER;
+    await cache("k", value, { timeout });
+    await cache("k", value, { timeout });
+    console.log(calls);
+  `);
+  assertEquals(run.stdout, "1\n", run.stderr);
+});
+
 Deno.test("A value Deno KV can't hold is returned, uncached, without an error.", async () => {
   const run = await program(`
     let calls = 0;

@@ -1,6 +1,11 @@
 import { blue } from "@std/fmt/colors";
 import { enumerate } from "./enumerable.ts";
-import { bestTypeNameOf } from "./helpers.ts";
+import {
+  abandon,
+  bestTypeNameOf,
+  lastBytes,
+  textBeforeInvalid,
+} from "./helpers.ts";
 import { concat, concatLines, isString } from "./utility.ts";
 
 const encoder = new TextEncoder();
@@ -94,13 +99,27 @@ export async function* toChunkedLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string[]> {
   let leftover: string = "";
+  let count = 0;
+  let recent: Uint8Array = new Uint8Array(0);
 
   const decoder = new TextDecoder("utf-8", { fatal: true });
+  const invalid = () => new TypeError(`Invalid UTF-8 at line ${count + 1}`);
 
   for await (const buff of buffs) {
+    // Invalid UTF-8: deliver the lines before it, then fail naming the line.
+    let text: string;
+    let failed = false;
+    try {
+      text = decoder.decode(buff, { stream: true });
+    } catch {
+      text = textBeforeInvalid(recent, buff, 0x0A, count === 0 && !leftover);
+      failed = true;
+    }
+    recent = lastBytes(recent, buff);
+
     // Split on LF alone and drop the CR afterward, since a CRLF can arrive
     // with the CR at the end of one chunk and the LF at the start of the next.
-    const lines = decoder.decode(buff, { stream: true }).split("\n");
+    const lines = text.split("\n");
     lines[0] = leftover + lines[0];
 
     leftover = lines.pop()!;
@@ -109,11 +128,19 @@ export async function* toChunkedLines(
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].endsWith("\r")) lines[i] = lines[i].slice(0, -1);
       }
+      count += lines.length;
       yield lines;
     }
+    if (failed) throw invalid();
   }
 
-  const lines = decoder.decode().split("\n");
+  let end: string;
+  try {
+    end = decoder.decode();
+  } catch {
+    throw invalid();
+  }
+  const lines = end.split("\n");
   lines[0] = leftover + lines[0];
 
   if (lines.at(-1)!.length === 0) {
@@ -344,7 +371,7 @@ export async function* toBufferSource(
  * ```
  *
  * @param size The least number of bytes per chunk. At 0 or below (the
- *   default), chunks pass through unchanged.
+ *   default), or NaN, chunks pass through unchanged.
  */
 export function buffer(
   size = 0,
@@ -371,7 +398,7 @@ export function buffer(
     }
   }
 
-  if (size <= 0) {
+  if (!(size > 0)) {
     return (iter) => iter;
   } else {
     return buffergen;
@@ -501,8 +528,9 @@ export function gzip(
  * get a function.
  *
  * A stream works once. Using the same transformer, or the same
- * `TransformStream`, a second time yields nothing, or throws again the error
- * the first use failed with; create a new stream for each use.
+ * `TransformStream`, a second time yields nothing or throws (a `TypeError`,
+ * or the error the first use failed with), and closes the source unread;
+ * create a new stream for each use.
  *
  * If the source throws, the stream is aborted, not closed, so a
  * `CompressionStream` doesn't write a complete-looking end to what it got.
@@ -530,15 +558,18 @@ export function transformerFromTransformStream<IN, OUT>(
   async function* converter(
     items: AsyncIterable<IN>,
   ): AsyncIterable<OUT> {
-    let error: Error | undefined;
+    // Boxed, so that even `throw undefined` counts as an error.
+    let error: { error: unknown } | undefined;
+    let reading = false;
 
     // Note the source's error and let it abort the stream: closing it instead
     // would let, say, a CompressionStream finish a complete-looking file.
     async function* errorTrap(items: AsyncIterable<IN>): AsyncIterable<IN> {
+      reading = true;
       try {
         yield* items;
       } catch (e) {
-        error = e as Error | undefined;
+        error = { error: e };
         throw e;
       }
     }
@@ -548,13 +579,15 @@ export function transformerFromTransformStream<IN, OUT>(
         .from(errorTrap(items))
         .pipeThrough<OUT>(transform);
     } catch (e) {
-      if (error == null) {
-        error = e as Error | undefined;
-      }
+      error ??= { error: e };
+    } finally {
+      // A stream used before never reads the source; close it, or a command
+      // feeding it waits for a reader for good.
+      if (!reading) abandon(items);
     }
 
     if (error != null) {
-      throw error;
+      throw error.error;
     }
   }
 

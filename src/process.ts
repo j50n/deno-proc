@@ -2,7 +2,7 @@ import type { Closer } from "@std/io/types";
 import { type Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
 import { type Writable, WritableIterable } from "./writable-iterable.ts";
-import { track } from "./shutdown.ts";
+import { track, trackReading } from "./shutdown.ts";
 import { handled } from "./helpers.ts";
 
 /** How a child's stdin, stdout, or stderr is connected, as in `Deno.Command`. */
@@ -18,9 +18,9 @@ export type PipeKinds = "piped" | "inherit" | "null";
  * `error`, or `stderrData` that is not `null` or `undefined`. It is not called
  * when the consumer stops reading early.
  *
- * - `error` is the {@link ExitCodeError}, {@link SignalError}, or
- *   {@link UpstreamError} the process would throw, or the error `fnStderr`
- *   threw; `undefined` if the process succeeded.
+ * - `error` is the {@link ExitCodeError}, {@link SignalError},
+ *   {@link TimeoutError}, or {@link UpstreamError} the process would throw, or
+ *   the error `fnStderr` threw; `undefined` if the process succeeded.
  * - `stderrData` is what `fnStderr` resolved to; `undefined` if there is no
  *   `fnStderr` or it threw.
  *
@@ -110,6 +110,10 @@ export interface ProcessOptions<S> {
    * it exits, so it bounds a child you stopped reading early, too. A child
    * that ignores SIGTERM keeps running; proc never sends SIGKILL. On
    * Windows, Deno's SIGTERM can't be caught: the child is ended at once.
+   * Programs the child started aren't signalled, and may hold its stdout
+   * open after it exits; once it has, a pause of a tenth of a second in the
+   * output ends it, so they can't hold up the error. A wrapper script
+   * should `exec` its program, so that the program gets the SIGTERM.
    * Default: no limit.
    */
   readonly timeoutMs?: number;
@@ -154,9 +158,10 @@ export interface ProcessStreamOptions<S> extends ProcessOptions<S> {
  * `name` is the subclass's name. `cause` is the earlier error that led to this
  * one, if any; `options.cause` holds the same value.
  *
- * Printing one, or `JSON.stringify`, shows the message, the program and the
- * cause, but not `command`'s arguments, which can hold secrets: read
- * `command` to get them.
+ * Printing one shows the message, which names the program, and the cause,
+ * but not `command`'s arguments, which can hold secrets: read `command` to
+ * get them. `JSON.stringify` gives only `name` and the numeric fields, such
+ * as `code`.
  */
 export abstract class ProcessError extends Error {
   /**
@@ -169,13 +174,71 @@ export abstract class ProcessError extends Error {
     message: string,
     public readonly options?: { cause?: Error },
   ) {
-    super(message, { cause: options?.cause });
+    // No `cause` at all when there is none, rather than `cause: undefined`.
+    super(message, options?.cause == null ? undefined : options);
     this.name = this.constructor.name;
     hide(this, "options");
   }
 }
 
 /** Keep `key` out of what printing and `JSON.stringify` show. */
+/** How long a read may wait for data once proc has stopped waiting. */
+const QUIET_MS = 100;
+
+type PipeReader = {
+  chunks: AsyncGenerator<Uint8Array<ArrayBuffer>>;
+  stopWaiting(): void;
+};
+
+/**
+ * Read a child's stdout. After `stopWaiting`, a read that waits `QUIET_MS`
+ * for data ends the output: the child has exited (or timed out), so whatever
+ * still holds the pipe open is a program it started, which may run for good.
+ */
+function pipeReader(
+  stream: ReadableStream<Uint8Array<ArrayBuffer>>,
+): PipeReader {
+  const reader = stream.getReader();
+  let waiting = false;
+  let pending = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const giveUp = () => {
+    timer = setTimeout(() => reader.cancel().catch(() => {}), QUIET_MS);
+  };
+
+  async function* chunks() {
+    let done = false;
+    try {
+      while (true) {
+        pending = true;
+        if (waiting) giveUp();
+        const result = await reader.read().finally(() => {
+          pending = false;
+          clearTimeout(timer);
+        });
+        if (result.done) {
+          done = true;
+          return;
+        }
+        yield result.value;
+      }
+    } finally {
+      // Stopped early: closing the pipe tells the child no one is reading.
+      if (!done) await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  }
+
+  return {
+    chunks: chunks(),
+    stopWaiting() {
+      if (waiting) return;
+      waiting = true;
+      if (pending) giveUp();
+    },
+  };
+}
+
 function hide(error: Error, key: string) {
   Object.defineProperty(error, key, { enumerable: false });
 }
@@ -188,8 +251,8 @@ function hide(error: Error, key: string) {
  * `cause` is that failure, such as the upstream process's
  * {@link ExitCodeError}, and `message` is copied from it. `command` is the
  * process that threw, not the one that failed. If this process failed too, it
- * throws its own `ExitCodeError` or `SignalError` instead, with the same
- * `cause`.
+ * throws its own `ExitCodeError`, `SignalError`, or `TimeoutError` instead,
+ * with the same `cause`.
  *
  * @example
  * ```typescript
@@ -439,10 +502,49 @@ export class Process<S> implements Closer {
       const stop = () => clearTimeout(timer);
       this.process.status.then(stop, stop);
     }
+
+    if (stdout === "piped") {
+      this.process.status.then(() => {
+        if (!this.reading) {
+          // Nobody is reading: read what is left now, so the pipe closes. A
+          // child run only for its status would otherwise hold a file
+          // descriptor for as long as this process runs.
+          this.pipe = pipeReader(this.process.stdout);
+          this.pipe.stopWaiting();
+          this.drained = Array.fromAsync(this.pipe.chunks);
+          this.drained.catch(() => {});
+        } else if (this.timedOut) {
+          this.pipe?.stopWaiting();
+        }
+      }, () => {});
+    }
   }
 
   /** Whether `timeoutMs` ran out and proc sent the child SIGTERM. */
   private timedOut = false;
+
+  /** Whether reading stdout has begun. */
+  private reading = false;
+  private pipe: PipeReader | undefined;
+  /** The output, read after the child exited because nobody was reading. */
+  private drained: Promise<Uint8Array<ArrayBuffer>[]> | undefined;
+
+  /** The child's stdout, as read by the first and only reader. */
+  private async *output(): AsyncGenerator<Uint8Array<ArrayBuffer>> {
+    this.reading = true;
+    const done = Promise.withResolvers<void>();
+    trackReading(done.promise);
+    try {
+      if (this.drained != null) {
+        yield* await this.drained;
+      } else {
+        this.pipe ??= pipeReader(this.process.stdout);
+        yield* this.pipe.chunks;
+      }
+    } finally {
+      done.resolve();
+    }
+  }
 
   private _stderr: AsyncIterable<Uint8Array> | undefined;
   private _stdout: AsyncIterable<Uint8Array<ArrayBuffer>> | undefined;
@@ -482,7 +584,8 @@ export class Process<S> implements Closer {
    * Resolves when the child exits, with its exit code or signal. It doesn't
    * throw for a failed exit. A child that fills its stdout pipe doesn't exit
    * until something reads it, so wait on this alone only when output is
-   * small or not piped.
+   * small or not piped. Output nobody has started reading when the child
+   * exits is kept in memory, and can still be read.
    */
   get status(): Promise<Deno.CommandStatus> {
     return this.process.status;
@@ -516,9 +619,9 @@ export class Process<S> implements Closer {
 
   /**
    * The child's stdout, as bytes. After the last chunk, it throws
-   * {@link ExitCodeError}, {@link SignalError}, or {@link UpstreamError} if
-   * the process failed, or what `fnError` decides. Stopping early throws
-   * nothing.
+   * {@link ExitCodeError}, {@link SignalError}, {@link TimeoutError}, or
+   * {@link UpstreamError} if the process failed, or what `fnError` decides.
+   * Stopping early throws nothing.
    *
    * Iterate it once; a second pass yields nothing.
    *
@@ -532,6 +635,7 @@ export class Process<S> implements Closer {
     if (this._stdout == null) {
       const close = this.close.bind(this);
       const process = this.process;
+      const output = () => this.output();
       const cmd = [this.cmd, ...this.args].map((it) => it.toString());
 
       const passError = () => this._passError;
@@ -584,7 +688,7 @@ export class Process<S> implements Closer {
               // A consumer that stops early returns from here: it has its
               // answer, so it doesn't wait for the child to exit, or for
               // fnStderr to read to the end, and hears no error from either.
-              yield* process.stdout;
+              yield* output();
 
               const status = await process.status;
               await ser;

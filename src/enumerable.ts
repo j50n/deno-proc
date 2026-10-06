@@ -155,7 +155,9 @@ async function* identity<T>(iter: AsyncIterable<T>): AsyncIterableIterator<T> {
 /**
  * Write each item, overlapping each write with reading the next item. If
  * reading throws, the write in flight finishes first, so what was read before
- * the error reaches its destination before the error reaches the caller.
+ * the error reaches its destination before the error reaches the caller. A
+ * write that fails ends it at once, without waiting for the next item, which
+ * from a quiet source could be a long time, and the source is closed.
  * `stop` is checked before each write.
  */
 async function writeEach<T>(
@@ -163,19 +165,54 @@ async function writeEach<T>(
   write: (item: T) => Promise<unknown>,
   stop?: () => boolean,
 ): Promise<void> {
-  let p: Promise<unknown> | undefined;
-  try {
-    for await (const item of items) {
-      await p;
-      if (stop?.()) break;
-      p = handled(write(item));
+  const it = items[Symbol.asyncIterator]();
+  let writing: Promise<unknown> | undefined;
+  let failed = false;
+  // Ends the wait for the next item, when a write fails during it.
+  let interrupt: ((result: typeof FAILED) => void) | undefined;
+  while (true) {
+    let next: Promise<IteratorResult<T> | typeof FAILED> = handled(it.next());
+    if (writing !== undefined) {
+      const first = Promise.withResolvers<IteratorResult<T> | typeof FAILED>();
+      interrupt = first.resolve;
+      next.then(first.resolve, first.reject);
+      next = first.promise;
     }
-  } catch (e) {
-    await p?.catch(() => {});
-    throw e;
+    let result: IteratorResult<T> | typeof FAILED;
+    try {
+      result = failed ? FAILED : await next;
+    } catch (e) {
+      await writing?.catch(() => {});
+      throw e;
+    }
+    if (result === FAILED) {
+      handled(it.return?.());
+      await writing; // Throws the write's error.
+      return;
+    }
+    if (result.done) break;
+    try {
+      await writing;
+    } catch (e) {
+      handled(it.return?.());
+      throw e;
+    }
+    if (stop?.()) {
+      await it.return?.();
+      break;
+    }
+    writing = write(result.value);
+    writing.then(undefined, () => {
+      failed = true;
+      interrupt?.(FAILED);
+    });
   }
-  await p;
+  await writing;
 }
+
+const FAILED = Symbol("failed");
+const ENDED = Symbol("ended");
+const NEVER: Promise<never> = new Promise(() => {});
 
 /**
  * An async sequence with Array-style methods. {@link run}, {@link read},
@@ -260,8 +297,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * ```
    */
   enum(): Enumerable<[T, number]> {
-    let count = 0;
-    return this.map((item) => [item, count++]);
+    const iter = this.iter;
+    return enumerate({
+      async *[Symbol.asyncIterator]() {
+        // Per pass, so a source that can be read again is numbered from 0.
+        let count = 0;
+        for await (const item of iter) yield [item, count++];
+      },
+    });
   }
 
   /**
@@ -277,14 +320,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * replace a file only once everything has succeeded, or to rewrite it in
    * place, pass `{ atomic: true }`.
    *
-   * With `atomic`, the items go to a new file beside `path`, renamed over it
-   * once they are all written. A failure leaves the old file as it was, with
-   * nothing beside it, and the source may read the file being replaced. A
-   * symlink is followed and stays a symlink, and the new file takes the old
-   * one's mode; a device such as `/dev/null` is written in place. It needs
-   * read permission on `path` as well as write permission on its directory,
-   * and the file is a new one: a hard link to the old file keeps the old
-   * content.
+   * With `atomic`, the items go to a new file beside `path`, flushed to disk
+   * and renamed over it once they are all written. A failure leaves the old
+   * file as it was, with nothing beside it, and the source may read the file
+   * being replaced; if the process exits partway, under {@link main} or by
+   * `Deno.exit`, the new file is removed. A symlink is followed and stays a
+   * symlink, and the new file takes the old one's mode, read-only included.
+   * A device such as `/dev/null`, and any path through `/dev` or `/proc`
+   * (`/dev/stdout`), is written in place. It needs read permission on `path`
+   * as well as write permission on its directory, and the file is a new one:
+   * a hard link to the old file keeps the old content.
    *
    * @example
    * ```typescript
@@ -313,11 +358,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * Writing to a `Writable` stops early if it is closed meanwhile, which for a
    * {@link WritableIterable} includes its reader stopping.
    *
-   * If the source throws, a `WritableStream` is closed (not aborted) and the
-   * error is thrown here. A `Writable`, such as a {@link WritableIterable},
-   * gets the error through `close(error)` instead, so it reaches whoever
-   * reads the `Writable`, and this promise resolves; with `noclose`, the
-   * `Writable` stays open and the error is thrown here.
+   * If the source throws, a `WritableStream` is aborted (not closed), so
+   * whatever reads it sees a failure rather than a complete-looking end, and
+   * the error is thrown here; with `noclose` it is left as it is. A
+   * `Writable`, such as a {@link WritableIterable}, gets the error through
+   * `close(error)` instead, so it reaches whoever reads the `Writable`, and
+   * this promise resolves; with `noclose`, the `Writable` stays open and the
+   * error is thrown here. An error from the destination itself, writing or
+   * closing, is thrown here.
    *
    * @example
    * ```typescript
@@ -385,7 +433,6 @@ export class Enumerable<T> implements AsyncIterable<T> {
         abandon(iter);
         throw e;
       }
-      let failed = false;
       // stdout's reader going away (`| head`) is an early stop, as in toStdout.
       const stdout = writer === Deno.stdout.writable;
       let readerGone = false;
@@ -401,32 +448,37 @@ export class Enumerable<T> implements AsyncIterable<T> {
           () => readerGone,
         );
       } catch (e) {
-        failed = true;
-        throw e;
-      } finally {
+        // Abort rather than close, so the other end sees a failure, not a
+        // complete-looking end; the first error is the one to report.
+        if (!options?.noclose) await w.abort(e).catch(() => {});
         w.releaseLock();
-        if (!options?.noclose) {
-          // After a failure, close what can be closed, but the first error
-          // is the one to report.
-          const closing = writer.close();
-          await (failed || readerGone ? closing.catch(() => {}) : closing);
-        }
+        throw e;
+      }
+      w.releaseLock();
+      if (!options?.noclose) {
+        const closing = writer.close();
+        await (readerGone ? closing.catch(() => {}) : closing);
       }
     } else {
+      let sinkFailed = false;
       try {
         await writeEach(
           iter,
-          (it) => writer.write(it),
+          (it) =>
+            writer.write(it).catch((e) => {
+              sinkFailed = true;
+              throw e;
+            }),
           () => writer.isClosed,
         );
-
-        if (!options?.noclose) {
-          await writer.close();
-        }
       } catch (e) {
-        if (options?.noclose) throw e;
+        // The source's error goes to whoever reads the Writable; the
+        // Writable's own is thrown here.
+        if (options?.noclose || sinkFailed) throw e;
         await writer.close(e as Error | undefined);
+        return;
       }
+      if (!options?.noclose) await writer.close();
     }
   }
 
@@ -960,8 +1012,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    *   .collect();
    * ```
    *
-   * @param options `cwd`, `env`, `fnStderr`, `fnError`, `buffer`; see
-   *   {@link ProcessOptions}.
+   * @param options `cwd`, `env`, `clearEnv`, `timeoutMs`, `fnStderr`,
+   *   `fnError`, `buffer`; see {@link ProcessOptions}.
    * @param cmd The command and its arguments.
    */
   run<S>(
@@ -1033,6 +1085,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * ```
    *
    * @param n How many Enumerables to make. Default 2.
+   * @throws {RangeError} If `n` isn't a whole number of at least 1.
    */
   tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
     return tee(this.iter, n ?? 2).map((it) => enumerate(it)) as Tuple<
@@ -1055,7 +1108,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * const header = await run("cat", "data.csv").lines.take(1).collect();
    * ```
    *
-   * @param n How many items to keep. Default 1; 0 or less (or NaN) keeps none.
+   * @param n How many items to keep. Default 1; 0 or less (or NaN) keeps
+   *   none, and a fraction is rounded down, as for `Array.slice`.
    */
   take<N extends number = 1>(n?: N): Enumerable<T> {
     const iter = this.iter;
@@ -1064,7 +1118,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       {
         async *[Symbol.asyncIterator]() {
           let count = 0;
-          const goal = n ?? 1;
+          const goal = Math.trunc(n ?? 1);
           if (!(goal > 0)) {
             abandon(iter);
             return;
@@ -1115,7 +1169,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * const rows = await run("cat", "data.csv").lines.drop(1).collect();
    * ```
    *
-   * @param n How many items to skip. Default 1.
+   * @param n How many items to skip. Default 1; 0 or less (or NaN) skips
+   *   none, and a fraction is rounded down, as for `Array.slice`.
    */
   drop<N extends number = 1>(n?: N): Enumerable<T> {
     const iter = this.iter;
@@ -1124,7 +1179,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       {
         async *[Symbol.asyncIterator]() {
           let count = 0;
-          const goal = n ?? 1;
+          const goal = Math.trunc(n ?? 1) || 0;
           for await (const item of iter) {
             if (count >= goal) {
               yield item;
@@ -1198,12 +1253,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
           try {
             for (;;) {
               pending = true;
-              const [a, b] = await Promise.all([
-                iterA.next(),
-                iterB.next(),
+              const nextA = handled(iterA.next());
+              const nextB = handled(iterB.next());
+              // A side that ends ends the zip, without waiting for the other.
+              const ended = (next: Promise<IteratorResult<unknown>>) =>
+                next.then((r) => r.done ? ENDED : NEVER, () => NEVER);
+              const pair = await Promise.race([
+                Promise.all([nextA, nextB]),
+                ended(nextA),
+                ended(nextB),
               ]);
+              if (pair === ENDED) break;
               pending = false;
 
+              const [a, b] = pair;
               if (a.done || b.done) {
                 break;
               }
@@ -1433,7 +1496,8 @@ export class ProcessEnumerable<S> extends Enumerable<Uint8Array<ArrayBuffer>> {
    * more output than the pipe holds, read the output first or alongside, or
    * it never resolves. Reading through a consumer already throws on failure,
    * so `status` is for when you don't want the output, or have set `fnError`
-   * to handle failures.
+   * to handle failures. Output nobody has started reading when the child
+   * exits is kept in memory, and can still be read.
    *
    * @example
    * ```typescript

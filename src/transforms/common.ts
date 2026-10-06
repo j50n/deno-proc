@@ -3,6 +3,7 @@
 import type { TransformerFunction } from "../transformers.ts";
 import type { RowBatch } from "../wasm/flatdata.ts";
 import { decodeBatch } from "./decode.ts";
+import { lastBytes, textBeforeInvalid } from "../helpers.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
@@ -27,27 +28,49 @@ export const FIELD_SEPARATOR = "\x1F";
  *
  * Each stream gets its own decoder, because a decoder carries a character split
  * across two chunks from one to the next.
+ *
+ * Invalid UTF-8 is a `TypeError` with the message `invalid` makes from the
+ * number of the piece holding it, counting from 1; the pieces before it are
+ * yielded first.
  */
 export async function* splitText(
   bytes: AsyncIterable<Uint8Array>,
   separator: string,
+  invalid: (piece: number) => string,
 ): AsyncIterable<string[]> {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let tail = "";
+  let count = 0;
+  let recent: Uint8Array = new Uint8Array(0);
 
   for await (const chunk of bytes) {
-    const text = decoder.decode(chunk, { stream: true });
-    // Re-splitting a long unfinished piece on every chunk would be quadratic.
-    if (!text.includes(separator)) {
-      tail += text;
-      continue;
+    let text: string;
+    let failed = false;
+    try {
+      text = decoder.decode(chunk, { stream: true });
+    } catch {
+      const atStart = count === 0 && !tail;
+      text = textBeforeInvalid(recent, chunk, separator.charCodeAt(0), atStart);
+      failed = true;
     }
-    const pieces = (tail + text).split(separator);
-    tail = pieces.pop()!;
-    yield pieces;
+    recent = lastBytes(recent, chunk);
+    // Re-splitting a long unfinished piece on every chunk would be quadratic.
+    if (text.includes(separator)) {
+      const pieces = (tail + text).split(separator);
+      tail = pieces.pop()!;
+      count += pieces.length;
+      yield pieces;
+    } else {
+      tail += text;
+    }
+    if (failed) throw new TypeError(invalid(count + 1));
   }
 
-  tail += decoder.decode();
+  try {
+    tail += decoder.decode();
+  } catch {
+    throw new TypeError(invalid(count + 1));
+  }
   if (tail !== "") yield [tail];
 }
 
