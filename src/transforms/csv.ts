@@ -1,8 +1,12 @@
 import type { TransformerFunction } from "../transformers.ts";
-import type { LazyRow } from "./lazy-row.ts";
-import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
+import {
+  convertCsvToTsv,
+  convertTsvToCsv,
+  readRows,
+} from "../wasm/flatdata.ts";
+import { type LazyRow, lazyRows } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
-import { asRows, frameBinaryRows, toBinaryRow } from "./common.ts";
+import { batchRows, rowWriter } from "./common.ts";
 
 /**
  * Options for parsing CSV data.
@@ -22,8 +26,8 @@ export interface CsvStringifyOptions {
   crlf?: boolean;
 }
 
-/** The separator as a byte, after checking that CSV can use it. */
-function csvSeparator(separator = ","): number {
+/** The separator, after checking that CSV can use it. */
+function csvSeparator(separator = ","): string {
   const code = separator.charCodeAt(0);
   if (
     separator.length !== 1 || code > 127 || separator === '"' ||
@@ -35,14 +39,20 @@ function csvSeparator(separator = ","): number {
       }`,
     );
   }
-  return code;
+  return separator;
 }
 
 /**
  * Parse CSV bytes into batches of string arrays.
  *
- * Uses high-performance WebAssembly parser with RFC 4180 compliance.
- * Streams CSV data efficiently, yielding batches of parsed rows.
+ * How it reads CSV, where RFC 4180 leaves room: a quote opens a quoted field
+ * only at the start of a field, and is content anywhere else; CR outside
+ * quotes is dropped, so CRLF files read like LF files; blank lines are
+ * skipped; a quote left open at the end of the input ends there. A UTF-8
+ * byte order mark at the start is dropped, and invalid UTF-8 is an error.
+ *
+ * The parser is WebAssembly with SIMD; each batch holds the rows of about
+ * 128 KB of input.
  *
  * @example Basic CSV parsing
  * ```typescript
@@ -70,28 +80,21 @@ function csvSeparator(separator = ","): number {
 export function fromCsvToRows(
   parseOptions?: CsvParseOptions,
 ): TransformerFunction<Uint8Array, string[][]> {
-  const separator = csvSeparator(parseOptions?.separator);
-  return async function* (
-    bytes: AsyncIterable<Uint8Array>,
-  ): AsyncIterable<string[][]> {
-    const processor = await FlatdataProcessor.create();
-    const lazyRowStream = processor.csvToLazyRowsStreaming(bytes, separator);
-
-    for await (const batch of lazyRowStream) {
-      yield batch.map((row) => row.toStringArray());
+  const separator = csvSeparator(parseOptions?.separator).charCodeAt(0);
+  return async function* (bytes) {
+    for await (const batch of readRows(bytes, separator, true)) {
+      yield batchRows(batch);
     }
   };
 }
 
 /**
- * Parse CSV bytes into batches of LazyRow objects.
+ * Parse CSV bytes into batches of {@link LazyRow} objects.
  *
- * Uses high-performance WebAssembly parser with RFC 4180 compliance.
- * Returns {@link LazyRow} objects for better performance when you only
- * need to access specific fields.
- *
- * **Performance**: Up to 1.7x faster than `fromCsvToRows` for large datasets
- * when accessing only a subset of fields.
+ * Reads CSV as {@link fromCsvToRows} does, but leaves each field undecoded
+ * until it is read. When a pipeline looks at only a few fields of each row,
+ * such as a filter, this is several times faster, especially with
+ * {@link LazyRow.fieldEquals}.
  *
  * @example Efficient field access
  * ```typescript
@@ -101,8 +104,8 @@ export function fromCsvToRows(
  * await read("large.csv")
  *   .transform(fromCsvToLazyRows())
  *   .flatten()
- *   .filter(row => row.getField(0) === "active")
- *   .forEach(row => console.log(row.getField(1)));
+ *   .filter((row) => row.fieldEquals(0, "active"))
+ *   .forEach((row) => console.log(row.getField(1)));
  * ```
  *
  * @param parseOptions CSV parsing options.
@@ -111,21 +114,21 @@ export function fromCsvToRows(
 export function fromCsvToLazyRows(
   parseOptions?: CsvParseOptions,
 ): TransformerFunction<Uint8Array, LazyRow[]> {
-  const separator = csvSeparator(parseOptions?.separator);
-  return async function* (
-    bytes: AsyncIterable<Uint8Array>,
-  ): AsyncIterable<LazyRow[]> {
-    const processor = await FlatdataProcessor.create();
-    yield* processor.csvToLazyRowsStreaming(bytes, separator);
+  const separator = csvSeparator(parseOptions?.separator).charCodeAt(0);
+  return async function* (bytes) {
+    for await (const batch of readRows(bytes, separator, true)) {
+      yield lazyRows(batch);
+    }
   };
 }
 
 /**
  * Convert row data to CSV bytes.
  *
- * Uses high-performance WebAssembly with RFC 4180 compliance.
  * Accepts string arrays, batches of string arrays, LazyRow objects,
- * or batches of LazyRow objects.
+ * or batches of LazyRow objects. A field is quoted when it holds the
+ * separator, a quote, CR or LF, with quotes doubled. A row of one empty field
+ * is written as `""`, since an empty line would read back as no row.
  *
  * @example Write CSV file
  * ```typescript
@@ -138,17 +141,6 @@ export function fromCsvToLazyRows(
  *   .writeTo("output.csv");
  * ```
  *
- * @example Convert TSV to CSV
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToLazyRows, toCsv } from "jsr:@j50n/proc/transforms";
- *
- * await read("data.tsv")
- *   .transform(fromTsvToLazyRows())
- *   .transform(toCsv())
- *   .writeTo("data.csv");
- * ```
- *
  * @param stringifyOptions CSV output options.
  * @returns A transformer function for use with `.transform()`.
  */
@@ -156,23 +148,75 @@ export function toCsv(
   stringifyOptions?: CsvStringifyOptions,
 ): TransformerFunction<Row | Row[] | LazyRow | LazyRow[], Uint8Array> {
   const separator = csvSeparator(stringifyOptions?.separator);
-  const crlf = stringifyOptions?.crlf ?? false;
-  return async function* (
-    data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
-  ): AsyncIterable<Uint8Array> {
-    const processor = await FlatdataProcessor.create();
+  const lineEnd = stringifyOptions?.crlf ? "\r\n" : "\n";
+  const needsQuotes = new RegExp(
+    `[${separator.replace(/[\\\]^-]/, "\\$&")}"\r\n]`,
+  );
 
-    // Every row goes to WASM in the length-prefixed binary format, which can
-    // carry any character in a field.
-    for await (const item of data) {
-      const rows = asRows(item);
-      yield rows.length === 0
-        ? new Uint8Array(0)
-        : processor.lazyRowBinaryToCsvDirect(
-          frameBinaryRows(rows.map(toBinaryRow)),
-          separator,
-          crlf,
-        );
+  return rowWriter((fields) => {
+    if (fields.length === 1 && fields[0] === "") return '""' + lineEnd;
+    let line = "";
+    for (let i = 0; i < fields.length; i++) {
+      if (i > 0) line += separator;
+      const field = fields[i];
+      line += needsQuotes.test(field)
+        ? `"${field.replaceAll('"', '""')}"`
+        : field;
     }
-  };
+    return line + lineEnd;
+  });
+}
+
+/**
+ * Convert CSV bytes straight to TSV bytes, all in WebAssembly: much faster
+ * than parsing to rows and writing them.
+ *
+ * TSV can't hold a tab, LF or CR inside a field, so a CSV field holding one
+ * is an error, as it is for `toTsv`; the rows before it have already
+ * been passed on. To keep such data, parse it with {@link fromCsvToRows} and
+ * replace the characters on the way to `toTsv`. CSV is read as
+ * {@link fromCsvToRows} reads it.
+ *
+ * @example
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { csvToTsv } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("data.csv").transform(csvToTsv()).writeTo("data.tsv");
+ * ```
+ *
+ * @param parseOptions CSV parsing options.
+ * @returns A transformer function for use with `.transform()`.
+ */
+export function csvToTsv(
+  parseOptions?: CsvParseOptions,
+): TransformerFunction<Uint8Array, Uint8Array> {
+  const separator = csvSeparator(parseOptions?.separator).charCodeAt(0);
+  return (bytes) => convertCsvToTsv(bytes, separator);
+}
+
+/**
+ * Convert TSV bytes straight to CSV bytes, all in WebAssembly: much faster
+ * than parsing to rows and writing them.
+ *
+ * TSV is read as `fromTsvToRows` reads it, and fields are quoted as
+ * {@link toCsv} quotes them.
+ *
+ * @example
+ * ```typescript
+ * import { read } from "jsr:@j50n/proc";
+ * import { tsvToCsv } from "jsr:@j50n/proc/transforms";
+ *
+ * await read("data.tsv").transform(tsvToCsv()).writeTo("data.csv");
+ * ```
+ *
+ * @param stringifyOptions CSV output options.
+ * @returns A transformer function for use with `.transform()`.
+ */
+export function tsvToCsv(
+  stringifyOptions?: CsvStringifyOptions,
+): TransformerFunction<Uint8Array, Uint8Array> {
+  const separator = csvSeparator(stringifyOptions?.separator).charCodeAt(0);
+  const crlf = stringifyOptions?.crlf ?? false;
+  return (bytes) => convertTsvToCsv(bytes, separator, crlf);
 }

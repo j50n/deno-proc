@@ -530,7 +530,6 @@ await read("users.jsonl")
 
 - **Readability**: JSON is human-readable, Record is binary
 - **Flexibility**: JSON supports any structure, Record is tabular
-- **Performance**: Record is faster for large datasets
 - **Compatibility**: JSON works everywhere, Record is specialized
 
 ## Next Steps

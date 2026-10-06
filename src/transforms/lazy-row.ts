@@ -1,25 +1,24 @@
-const decode = (() => {
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  return decoder.decode.bind(decoder);
-})();
-const encode = (() => {
-  const encoder = new TextEncoder();
-  return encoder.encode.bind(encoder);
-})();
+import type { RowBatch } from "../wasm/flatdata.ts";
+
+const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+const encoder = new TextEncoder();
 
 /**
- * Lazy row representation for efficient field access.
+ * A row whose fields are decoded only when they are read.
  *
- * LazyRow defers string conversion until fields are actually accessed,
- * providing better performance when you only need specific fields from
- * large datasets.
+ * Rows from `fromCsvToLazyRows` and `fromTsvToLazyRows` are views of the
+ * bytes the reader produced: reading a field decodes just that field, and
+ * {@link LazyRow.fieldEquals} compares bytes without making a string at all,
+ * which makes it the fastest way to filter rows. Rows from record format and
+ * {@link LazyRow.fromStringArray} wrap strings; they work wherever a LazyRow
+ * is accepted.
  *
- * **Performance**: Using LazyRow with CSV parsing can be 1.05-1.7x faster
- * than parsing to string arrays when accessing only a subset of fields.
+ * A LazyRow can't be changed. To change a row, take
+ * {@link LazyRow.toStringArray} and work on that.
  *
- * **Two implementations**:
- * - `fromStringArray()`: Wraps existing string array, converts to binary on demand
- * - `fromBinary()`: Wraps binary data, converts to strings on demand
+ * A row read from CSV or TSV keeps the bytes of its whole batch (about
+ * 128 KB of input) alive. To hold on to a few rows out of a large stream,
+ * keep their `toStringArray()` instead.
  *
  * @example Create from string array
  * ```typescript
@@ -30,7 +29,7 @@ const encode = (() => {
  * console.log(row.columnCount); // 3
  * ```
  *
- * @example Use with transforms
+ * @example Filter on one field, read another
  * ```typescript
  * import { read } from "jsr:@j50n/proc";
  * import { fromCsvToLazyRows } from "jsr:@j50n/proc/transforms";
@@ -38,9 +37,9 @@ const encode = (() => {
  * await read("users.csv")
  *   .transform(fromCsvToLazyRows())
  *   .flatten()
- *   .filter(row => row.getField(2) === "active")
- *   .map(row => row.getField(0))
- *   .forEach(name => console.log(name));
+ *   .filter((row) => row.fieldEquals(2, "active"))
+ *   .map((row) => row.getField(0))
+ *   .forEach((name) => console.log(name));
  * ```
  */
 export abstract class LazyRow {
@@ -56,61 +55,42 @@ export abstract class LazyRow {
   abstract getField(index: number): string;
 
   /**
-   * Set a field by index.
+   * Whether a field holds exactly `value`. For rows read from CSV or TSV this
+   * compares bytes and makes no string, so it is much faster than
+   * `getField(index) === value`.
    * @param index Zero-based field index.
-   * @param value New field value.
+   * @param value The value to compare with.
    * @throws RangeError if index is out of bounds.
    */
-  abstract setField(index: number, value: string): void;
+  abstract fieldEquals(index: number, value: string): boolean;
 
   /**
    * Convert to a string array.
-   * @returns All fields as a string array.
+   * @returns All fields as a new string array.
    */
   abstract toStringArray(): string[];
 
   /**
-   * Convert to binary representation.
-   * @returns Binary data suitable for Record format.
-   */
-  abstract toBinary(): Uint8Array;
-
-  /**
-   * Check if this LazyRow is backed by binary data.
-   * @returns true if backed by binary, false if backed by string array.
-   */
-  abstract isBinaryBacked(): boolean;
-
-  /**
    * Create a LazyRow from a string array.
    *
-   * Use this when you have parsed data and want to wrap it for
-   * consistent API access or later binary conversion.
-   *
-   * @param fields Array of field values.
+   * @param fields Array of field values. The row keeps this array.
    * @returns A LazyRow wrapping the fields.
    */
   static fromStringArray(fields: string[]): LazyRow {
-    return new StringArrayLazyRow(fields);
+    return new StringArrayRow(fields);
   }
 
-  /**
-   * Create a LazyRow from binary data.
-   *
-   * Use this when reading from Record format for maximum performance.
-   * String conversion is deferred until fields are accessed.
-   *
-   * @param data Binary row data.
-   * @param fieldBoundaries Optional pre-computed field boundaries.
-   * @returns A LazyRow wrapping the binary data.
-   */
-  static fromBinary(data: Uint8Array, fieldBoundaries?: number[]): LazyRow {
-    return new BinaryLazyRow(data, fieldBoundaries);
+  protected checkIndex(index: number): void {
+    if (!Number.isInteger(index) || index < 0 || index >= this.columnCount) {
+      throw new RangeError(
+        `Field index ${index} out of range [0, ${this.columnCount})`,
+      );
+    }
   }
 }
 
-class StringArrayLazyRow extends LazyRow {
-  constructor(private fields: string[]) {
+class StringArrayRow extends LazyRow {
+  constructor(private readonly fields: string[]) {
     super();
   }
 
@@ -119,175 +99,119 @@ class StringArrayLazyRow extends LazyRow {
   }
 
   getField(index: number): string {
-    if (index < 0 || index >= this.fields.length) {
-      throw new RangeError(
-        `Field index ${index} out of range [0, ${this.fields.length})`,
-      );
-    }
+    this.checkIndex(index);
     return this.fields[index];
   }
 
-  setField(index: number, value: string): void {
-    if (index < 0 || index >= this.fields.length) {
-      throw new RangeError(
-        `Field index ${index} out of range [0, ${this.fields.length})`,
-      );
-    }
-    this.fields[index] = value;
+  fieldEquals(index: number, value: string): boolean {
+    return this.getField(index) === value;
   }
 
   toStringArray(): string[] {
     return [...this.fields];
   }
+}
 
-  isBinaryBacked(): boolean {
-    return false;
+/**
+ * The rows of one batch from the reader, copied out of WASM memory so they
+ * outlive the next read. Its rows share it.
+ */
+class OwnedBatch {
+  readonly bytes: Uint8Array;
+  readonly byteEnds: Uint32Array;
+  readonly textEnds: Uint32Array;
+  /**
+   * The whole batch decoded, once a row is asked for all its fields.
+   * Decoding once and slicing is the fast way to get every field; decoding
+   * fields one by one is the fast way to get a few.
+   */
+  text?: string;
+
+  constructor(batch: RowBatch) {
+    this.bytes = batch.bytes.slice();
+    this.byteEnds = batch.byteEnds.slice();
+    this.textEnds = batch.textEnds.slice();
   }
 
-  toBinary(): Uint8Array {
-    // Create binary format: field_count + field_lengths + field_data
-    const fieldBytes = this.fields.map((field) => encode(field));
-    const totalDataSize = fieldBytes.reduce(
-      (sum, bytes) => sum + bytes.length,
-      0,
-    );
-    const headerSize = 4 + (this.fields.length * 4); // field_count + field_lengths
-
-    const buffer = new Uint8Array(headerSize + totalDataSize);
-    const view = new DataView(buffer.buffer);
-
-    // Write field count
-    view.setUint32(0, this.fields.length, true);
-
-    // Write field lengths and data
-    let offset = 4 + (this.fields.length * 4);
-    for (let i = 0; i < this.fields.length; i++) {
-      const fieldData = fieldBytes[i];
-      view.setUint32(4 + (i * 4), fieldData.length, true);
-      buffer.set(fieldData, offset);
-      offset += fieldData.length;
-    }
-
-    return buffer;
+  decodeAll(): string {
+    return this.text ??= decoder.decode(this.bytes);
   }
 }
 
-class BinaryLazyRow extends LazyRow {
-  private fieldCache = new Map<number, string>();
-  private fieldBoundaries: number[];
-  private modifications?: Map<number, string>;
-
-  constructor(private data: Uint8Array, fieldBoundaries?: number[]) {
+class BatchRow extends LazyRow {
+  constructor(
+    private readonly batch: OwnedBatch,
+    /** Index of the row's first field among the batch's fields. */
+    private readonly first: number,
+    readonly columnCount: number,
+  ) {
     super();
-    if (fieldBoundaries) {
-      this.fieldBoundaries = fieldBoundaries;
-    } else {
-      // Parse header to get field boundaries
-      this.fieldBoundaries = this.parseFieldBoundaries();
-    }
-  }
-
-  private parseFieldBoundaries(): number[] {
-    const view = new DataView(this.data.buffer, this.data.byteOffset);
-    const fieldCount = view.getUint32(0, true);
-    const boundaries: number[] = [];
-
-    let offset = 4 + (fieldCount * 4);
-    for (let i = 0; i < fieldCount; i++) {
-      const fieldLength = view.getUint32(4 + (i * 4), true);
-      boundaries.push(offset);
-      offset += fieldLength;
-    }
-
-    return boundaries;
-  }
-
-  get columnCount(): number {
-    return this.fieldBoundaries.length;
   }
 
   getField(index: number): string {
-    if (index < 0 || index >= this.fieldBoundaries.length) {
-      throw new RangeError(
-        `Field index ${index} out of range [0, ${this.fieldBoundaries.length})`,
-      );
+    this.checkIndex(index);
+    const j = this.first + index;
+    const { text, textEnds, bytes, byteEnds } = this.batch;
+    if (text !== undefined) {
+      return text.slice(j === 0 ? 0 : textEnds[j - 1] + 1, textEnds[j]);
     }
-
-    if (this.modifications?.has(index)) {
-      return this.modifications.get(index)!;
-    }
-
-    if (this.fieldCache.has(index)) {
-      return this.fieldCache.get(index)!;
-    }
-
-    const start = this.fieldBoundaries[index];
-    const end = index < this.fieldBoundaries.length - 1
-      ? this.fieldBoundaries[index + 1]
-      : this.data.length;
-
-    const fieldData = this.data.slice(start, end);
-    const field = decode(fieldData);
-    this.fieldCache.set(index, field);
-
-    return field;
+    return decoder.decode(
+      bytes.subarray(j === 0 ? 0 : byteEnds[j - 1] + 1, byteEnds[j]),
+    );
   }
 
-  setField(index: number, value: string): void {
-    if (index < 0 || index >= this.fieldBoundaries.length) {
-      throw new RangeError(
-        `Field index ${index} out of range [0, ${this.fieldBoundaries.length})`,
-      );
+  fieldEquals(index: number, value: string): boolean {
+    this.checkIndex(index);
+    const expected = encoded(value);
+    const j = this.first + index;
+    const { bytes, byteEnds } = this.batch;
+    const start = j === 0 ? 0 : byteEnds[j - 1] + 1;
+    if (byteEnds[j] - start !== expected.length) return false;
+    for (let k = 0; k < expected.length; k++) {
+      if (bytes[start + k] !== expected[k]) return false;
     }
-    if (!this.modifications) {
-      this.modifications = new Map();
-    }
-    this.modifications.set(index, value);
-  }
-
-  toStringArray(): string[] {
-    const fields: string[] = [];
-    for (let i = 0; i < this.fieldBoundaries.length; i++) {
-      fields.push(this.getField(i));
-    }
-    return fields;
-  }
-
-  isBinaryBacked(): boolean {
     return true;
   }
 
-  toBinary(): Uint8Array {
-    if (!this.modifications) {
-      return this.data;
-    }
-
-    // Apply modifications by converting to array, modifying, and re-serializing
-    const fields: string[] = [];
-    for (let i = 0; i < this.fieldBoundaries.length; i++) {
-      fields.push(this.getField(i));
-    }
-
-    const fieldBytes = fields.map((field) => encode(field));
-    const totalDataSize = fieldBytes.reduce(
-      (sum, bytes) => sum + bytes.length,
-      0,
-    );
-    const headerSize = 4 + (fields.length * 4);
-
-    const buffer = new Uint8Array(headerSize + totalDataSize);
-    const view = new DataView(buffer.buffer);
-
-    view.setUint32(0, fields.length, true);
-
-    let offset = 4 + (fields.length * 4);
+  toStringArray(): string[] {
+    const text = this.batch.decodeAll();
+    const ends = this.batch.textEnds;
+    const fields = new Array<string>(this.columnCount);
+    let start = this.first === 0 ? 0 : ends[this.first - 1] + 1;
     for (let i = 0; i < fields.length; i++) {
-      const fieldData = fieldBytes[i];
-      view.setUint32(4 + (i * 4), fieldData.length, true);
-      buffer.set(fieldData, offset);
-      offset += fieldData.length;
+      const end = ends[this.first + i];
+      fields[i] = text.slice(start, end);
+      start = end + 1;
     }
-
-    return buffer;
+    return fields;
   }
+}
+
+/** The last value `fieldEquals` encoded: a filter compares the same one. */
+let lastValue = "";
+let lastEncoded = new Uint8Array(0);
+
+function encoded(value: string): Uint8Array {
+  if (value !== lastValue) {
+    lastEncoded = encoder.encode(value);
+    lastValue = value;
+  }
+  return lastEncoded;
+}
+
+const RS = 0x1E;
+
+/** The rows of a batch from the reader, as LazyRows. */
+export function lazyRows(batch: RowBatch): LazyRow[] {
+  const owned = new OwnedBatch(batch);
+  const { bytes, byteEnds } = owned;
+  const rows: LazyRow[] = [];
+  let first = 0;
+  for (let j = 0; j < byteEnds.length; j++) {
+    if (bytes[byteEnds[j]] === RS) {
+      rows.push(new BatchRow(owned, first, j - first + 1));
+      first = j + 1;
+    }
+  }
+  return rows;
 }

@@ -327,12 +327,13 @@ Deno.test("TSV pathological - 1MB field", async () => {
 
   const result = await enumerate([new TextEncoder().encode(tsvData)])
     .transform(fromTsvToRows())
+    .flatten()
     .collect();
 
-  assertEquals(result[0][0][0], "header1");
-  assertEquals(result[0][1][0], "small");
-  assertEquals(result[0][1][1], hugeField);
-  assertEquals(result[0][1][2], "end");
+  assertEquals(result[0][0], "header1");
+  assertEquals(result[1][0], "small");
+  assertEquals(result[1][1], hugeField);
+  assertEquals(result[1][2], "end");
 });
 
 Deno.test("TSV pathological - many fields (100 columns)", async () => {
@@ -420,6 +421,7 @@ Deno.test("TSV pathological - round-trip with 1MB field", async () => {
   // Parse to rows
   const rows = await enumerate([new TextEncoder().encode(tsvData)])
     .transform(fromTsvToRows())
+    .flatten()
     .collect();
 
   // Convert back to TSV
@@ -427,6 +429,6 @@ Deno.test("TSV pathological - round-trip with 1MB field", async () => {
     .transform(toTsv())
     .collect();
 
-  const resultTsv = new TextDecoder().decode(tsvBytes[0]);
+  const resultTsv = tsvBytes.map((b) => new TextDecoder().decode(b)).join("");
   assertEquals(resultTsv, `h1\th2\nsmall\t${hugeField}\n`);
 });

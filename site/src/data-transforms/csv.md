@@ -7,9 +7,8 @@ and LazyRow optimization.
 > API may change as we improve correctness and streaming performance. Test
 > thoroughly with your data patterns.
 
-> **⚡ WASM-powered**: CSV parsing uses WebAssembly for high performance. It
-> uses the same WASM parser as flatdata CLI. See
-> [Fast CSV Parsing](#fast-csv-parsing-wasm) below.
+> **⚡ WASM-powered**: CSV parsing, and conversion between CSV and TSV, run in
+> WebAssembly with SIMD. See [How Fast](#how-fast) below.
 
 ## Overview
 
@@ -250,8 +249,11 @@ await enumerate(salesData)
 
 The parser is lenient. It doesn't throw on rows of different lengths, on a stray
 quote inside an unquoted field, or on a quoted field left open at the end of the
-input; it keeps what it read. The one thing it rejects is invalid UTF-8, which
-throws a `TypeError`:
+input; it keeps what it read. A quote opens a quoted field only at the start of
+a field, and text after a closing quote is kept (`"a"b` reads as `ab`). A CR
+outside quotes is dropped, so CRLF files read like LF files; blank lines are
+skipped; a UTF-8 byte order mark at the start is dropped. The one thing it
+rejects is invalid UTF-8, which throws a `TypeError`:
 
 ```typescript
 try {
@@ -363,13 +365,17 @@ await read("data.record")
 
 ### CSV → TSV
 
-```typescript
-import { toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+`csvToTsv()` converts bytes to bytes without making strings, several times
+faster than parsing rows and writing them. TSV can't hold a tab, CR or LF in a
+field, so a CSV field holding one is an error, as with `toTsv()`:
 
-await read("data.csv")
-  .transform(fromCsvToRows())
-  .transform(toTsv())
-  .writeTo("data.tsv");
+```typescript
+import { csvToTsv, tsvToCsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
+
+await read("data.csv").transform(csvToTsv()).writeTo("data.tsv");
+
+// And back, quoting fields as toCsv() does.
+await read("data.tsv").transform(tsvToCsv()).writeTo("data.csv");
 ```
 
 ### CSV → Record
@@ -391,43 +397,21 @@ await read("data.csv")
    usage
 4. **Convert to other formats** for repeated processing of the same data
 
-## WASM-Powered Parsing
+## How Fast
 
-CSV parsing uses WebAssembly for high performance:
+The CSV reader is WebAssembly built from Swift, finding quotes, separators and
+line ends 64 bytes at a time with SIMD. Each batch holds the rows of about 128
+KB of input. On realistic data (UTF-8, about one field in ten quoted, some with
+newlines), roughly:
 
-```typescript
-import { read } from "jsr:@j50n/proc@{{gitv}}";
-import {
-  fromCsvToLazyRows,
-  fromCsvToRows,
-} from "jsr:@j50n/proc@{{gitv}}/transforms";
+| Transform                      | MB/s |
+| ------------------------------ | ---- |
+| `fromCsvToRows()`              | 130  |
+| `fromCsvToLazyRows()` + filter | 380  |
+| `csvToTsv()`, `tsvToCsv()`     | 580  |
+| `toCsv()`                      | 90   |
 
-// WASM-powered parsing (batched output)
-const rows = await read("large-file.csv")
-  .transform(fromCsvToRows())
-  .flatten()
-  .flatMap((batch) => batch) // Flatten batches
-  .collect();
-
-// Or with LazyRow
-const lazyRows = await read("large-file.csv")
-  .transform(fromCsvToLazyRows())
-  .flatten()
-  .flatMap((batch) => batch)
-  .collect();
-```
-
-**Key differences:**
-
-- Returns batches of rows (`string[][]`) instead of individual rows
-- Uses WASM engine for parsing
-
-**When to use which:**
-
-| Parser            | Use Case                            |
-| ----------------- | ----------------------------------- |
-| `fromCsvToRows()` | In-process parsing with WASM        |
-| `flatdata` CLI    | Maximum throughput, batch pipelines |
+`benchmarks/transforms-throughput.ts` measures these on your machine.
 
 ## See Also
 

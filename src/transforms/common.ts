@@ -2,6 +2,8 @@
  * Common constants and utilities for transform functions.
  */
 
+import type { TransformerFunction } from "../transformers.ts";
+import type { RowBatch } from "../wasm/flatdata.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
@@ -16,89 +18,6 @@ export const BATCH_SIZE_BYTES = 128 * 1024; // 128KB
  */
 export const RECORD_SEPARATOR = "\x1E"; // ASCII 30 - separates records
 export const FIELD_SEPARATOR = "\x1F"; // ASCII 31 - separates fields
-
-/**
- * Static buffer for writing 32-bit integers (reused to avoid allocations).
- */
-const uint32Buffer = new Uint8Array(4);
-const uint32View = new Uint32Array(uint32Buffer.buffer);
-
-/**
- * Write a 32-bit unsigned integer to a static buffer in little-endian format.
- * Returns a slice (copy) of the static buffer containing the 4-byte integer.
- *
- * Note: The returned slice is a copy. The static buffer is reused on next call.
- *
- * @param value The integer value to write (0 to 4294967295)
- * @returns Uint8Array containing the 4-byte little-endian representation
- */
-export function writeUint32LE(value: number): Uint8Array {
-  uint32View[0] = value;
-  return uint32Buffer.slice();
-}
-
-/**
- * Convert a single row to record format string.
- * @param row Array of field values
- * @returns Record format string: fields joined by \x1F, terminated by \x1E
- */
-export function rowToRecord(row: string[]): string {
-  return joinRow(row, FIELD_SEPARATOR, RECORD_SEPARATOR);
-}
-
-/**
- * Convert multiple rows to record format string.
- * @param rows Array of rows (each row is an array of field values)
- * @returns Record format string: all rows concatenated
- */
-export function rowsToRecord(rows: string[][]): string {
-  return joinRows(rows, FIELD_SEPARATOR, RECORD_SEPARATOR);
-}
-
-/**
- * Join a single row's fields with a separator and add a line terminator.
- * Optimized using string.concat() for better performance.
- * @param row Array of field values
- * @param fieldSep Field separator (e.g., "\t" for TSV)
- * @param lineSep Line separator (e.g., "\n")
- * @returns Joined string
- */
-export function joinRow(
-  row: string[],
-  fieldSep: string,
-  lineSep: string,
-): string {
-  let result = "";
-  for (let i = 0; i < row.length; i++) {
-    if (i > 0) result = result.concat(fieldSep);
-    result = result.concat(row[i]);
-  }
-  return result.concat(lineSep);
-}
-
-/**
- * Join fields with a separator and add a line terminator.
- * Optimized using string.concat() for better performance.
- * @param rows Array of rows (each row is an array of field values)
- * @param fieldSep Field separator (e.g., "\t" for TSV)
- * @param lineSep Line separator (e.g., "\n")
- * @returns Joined string with all rows
- */
-export function joinRows(
-  rows: string[][],
-  fieldSep: string,
-  lineSep: string,
-): string {
-  let result = "";
-  for (const row of rows) {
-    for (let i = 0; i < row.length; i++) {
-      if (i > 0) result = result.concat(fieldSep);
-      result = result.concat(row[i]);
-    }
-    result = result.concat(lineSep);
-  }
-  return result;
-}
 
 /**
  * Decode a byte stream and split it on `separator`, yielding the complete
@@ -131,6 +50,31 @@ export async function* splitText(
   if (tail !== "") yield [tail];
 }
 
+const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+
+/**
+ * The rows of a batch from the reader as string arrays: the whole batch
+ * decoded with one call, then sliced. Decoding field by field is several
+ * times slower.
+ */
+export function batchRows(batch: RowBatch): Row[] {
+  const text = decoder.decode(batch.bytes);
+  const ends = batch.textEnds;
+  const rows: Row[] = [];
+  let row: Row = [];
+  let start = 0;
+  for (let j = 0; j < ends.length; j++) {
+    const end = ends[j];
+    row.push(text.slice(start, end));
+    if (text.charCodeAt(end) === 0x1E) {
+      rows.push(row);
+      row = [];
+    }
+    start = end + 1;
+  }
+  return rows;
+}
+
 /**
  * Normalize one item of a row stream (a row, or an array of rows) to an array
  * of rows.
@@ -146,87 +90,66 @@ export function asRows(
     : [item as Row];
 }
 
-/** One row in the LazyRow binary format. */
-export function toBinaryRow(row: Row | LazyRow): Uint8Array {
-  return (row instanceof LazyRow ? row : LazyRow.fromStringArray(row))
-    .toBinary();
+/**
+ * A transformer that writes each item of a row stream as text, one line per
+ * row from `line`, and encodes once per item: building one string and
+ * encoding it is several times faster than encoding row by row.
+ *
+ * `line` gets the row's fields and its number in the stream, counting from 1.
+ */
+export function rowWriter(
+  line: (fields: string[], rowNumber: number) => string,
+): TransformerFunction<Row | Row[] | LazyRow | LazyRow[], Uint8Array> {
+  return async function* (items) {
+    const encoder = new TextEncoder();
+    let rowNumber = 0;
+    for await (const item of items) {
+      let text = "";
+      for (const row of asRows(item)) {
+        text += line(
+          row instanceof LazyRow ? row.toStringArray() : row,
+          ++rowNumber,
+        );
+      }
+      yield encoder.encode(text);
+    }
+  };
 }
 
-/** Length-prefix binary rows and join them, as a LazyRow binary stream. */
-export function frameBinaryRows(rows: Uint8Array[]): Uint8Array {
-  let size = 0;
-  for (const row of rows) size += 4 + row.length;
-
-  const framed = new Uint8Array(size);
-  const view = new DataView(framed.buffer);
-  let offset = 0;
-  for (const row of rows) {
-    view.setUint32(offset, row.length, true);
-    framed.set(row, offset + 4);
-    offset += 4 + row.length;
-  }
-  return framed;
-}
-
-/** A byte lookup table naming the bytes a format can't hold in a field. */
-export function forbiddenBytes(names: Record<number, string>): string[] {
-  const table: string[] = new Array(256);
-  for (const [byte, name] of Object.entries(names)) table[Number(byte)] = name;
-  return table;
-}
-
-/** Throw if a field holds a byte the format can't represent. */
+/**
+ * Throw if a field holds a character the format can't represent. `forbidden`
+ * matches any such character.
+ */
 export function checkFields(
   fields: string[],
-  forbidden: string[],
+  forbidden: RegExp,
   format: string,
   rowNumber: number,
 ): void {
   for (let f = 0; f < fields.length; f++) {
-    const field = fields[f];
-    for (let i = 0; i < field.length; i++) {
-      const code = field.charCodeAt(i);
-      if (code < 128 && forbidden[code] != null) {
-        throw invalidCharacter(forbidden[code], format, rowNumber, f);
-      }
+    const match = forbidden.exec(fields[f]);
+    if (match) {
+      throw invalidCharacter(match[0].charCodeAt(0), format, rowNumber, f);
     }
   }
 }
 
-/**
- * Throw if a field of a binary row holds a byte the format can't represent.
- * Scanning bytes is enough: in UTF-8, a byte below 0x80 always stands for
- * itself.
- */
-export function checkBinaryFields(
-  rowData: Uint8Array,
-  forbidden: string[],
-  format: string,
-  rowNumber: number,
-): void {
-  const view = new DataView(
-    rowData.buffer,
-    rowData.byteOffset,
-    rowData.byteLength,
-  );
-  const fieldCount = view.getUint32(0, true);
-  let pos = 4 + fieldCount * 4;
-  for (let f = 0; f < fieldCount; f++) {
-    const end = pos + view.getUint32(4 + f * 4, true);
-    for (let i = pos; i < end; i++) {
-      const name = forbidden[rowData[i]];
-      if (name != null) throw invalidCharacter(name, format, rowNumber, f);
-    }
-    pos = end;
-  }
-}
+const CHARACTER_NAMES: Record<number, string> = {
+  0x09: "tab",
+  0x0A: "LF",
+  0x0D: "CR",
+  0x1E: "record separator",
+  0x1F: "field separator",
+};
 
-function invalidCharacter(
-  name: string,
+/** The error for a character a format can't hold, at a 0-based field index. */
+export function invalidCharacter(
+  code: number,
   format: string,
   rowNumber: number,
   fieldIndex: number,
 ): Error {
+  const name = CHARACTER_NAMES[code] ?? `0x${code.toString(16)}`;
   return new Error(
     `Invalid character (${name}) in ${format} data at row ${rowNumber.toLocaleString()}, field ${
       fieldIndex + 1

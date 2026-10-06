@@ -4,12 +4,10 @@ import {
   fromCsvToLazyRows,
   fromCsvToRows,
   fromJsonToRows,
-  fromLazyRowBinary,
   fromRecordToRows,
   fromTsvToRows,
   LazyRow,
   toCsv,
-  toLazyRowBinary,
   toRecord,
   toTsv,
 } from "../../src/transforms/mod.ts";
@@ -24,7 +22,7 @@ async function text(chunks: AsyncIterable<Uint8Array>): Promise<string> {
   );
 }
 
-/** Rows parsed from CSV: binary-backed LazyRows, as real pipelines get them. */
+/** Rows parsed from CSV: LazyRows over the reader's bytes, as real pipelines get them. */
 function csvRows(csv: string) {
   return enumerate([bytes(csv)]).transform(fromCsvToLazyRows());
 }
@@ -32,7 +30,7 @@ function csvRows(csv: string) {
 // Fields that a format can't hold must be refused, never written raw, or one
 // row turns into several downstream.
 
-Deno.test("toTsv refuses a CSV field holding a newline, on the binary path.", async () => {
+Deno.test("toTsv refuses a CSV field holding a newline, from LazyRows.", async () => {
   await assertRejects(
     () => text(csvRows('"a\nb",c\n').transform(toTsv())),
     Error,
@@ -40,7 +38,7 @@ Deno.test("toTsv refuses a CSV field holding a newline, on the binary path.", as
   );
 });
 
-Deno.test("toTsv refuses a CSV field holding a tab, on the binary path.", async () => {
+Deno.test("toTsv refuses a CSV field holding a tab, from LazyRows.", async () => {
   await assertRejects(
     () => text(csvRows('x,y\n"t\tu",v\n').transform(toTsv())),
     Error,
@@ -54,7 +52,7 @@ Deno.test("toRecord refuses fields holding a record or field separator, on every
     ["Row", () => enumerate([["a\x1Fb"]])],
     ["Row[]", () => enumerate([[["ok"], ["a\x1Eb"]]])],
     ["string LazyRow", () => enumerate([LazyRow.fromStringArray(["a\x1Eb"])])],
-    ["binary LazyRow[]", () => csvRows("a\x1Fb\n")],
+    ["CSV LazyRow[]", () => csvRows("a\x1Fb\n")],
   ];
   for (const [kind, input] of inputs) {
     await assertRejects(
@@ -89,16 +87,6 @@ Deno.test("toCsv handles a stream whose items change type.", async () => {
     ]).transform(toCsv()),
   );
   assertEquals(csv, "a,b\nc,d\n");
-});
-
-Deno.test("toLazyRowBinary keeps a field holding \\x1E as one field.", async () => {
-  const back = await enumerate([[["x\x1Ey", "z"]]])
-    .transform(toLazyRowBinary())
-    .transform(fromLazyRowBinary())
-    .flatten()
-    .map((row) => row.toStringArray())
-    .collect();
-  assertEquals(back, [["x\x1Ey", "z"]]);
 });
 
 // Each stream decodes on its own: a character split across chunks in one
@@ -150,41 +138,6 @@ Deno.test("A record holding one empty field round-trips.", async () => {
     await text(enumerate([[["x"], [""], ["y"]]]).transform(toRecord())),
   )]).transform(fromRecordToRows()).flatten().collect();
   assertEquals(back, [["x"], [""], ["y"]]);
-});
-
-Deno.test("fromLazyRowBinary yields the complete rows, then fails on a truncated one.", async () => {
-  const framed = new Uint8Array(
-    (await enumerate([[["a"], ["b"]]]).transform(toLazyRowBinary()).collect())
-      .flatMap((b) => [...b]),
-  );
-  const truncated = framed.subarray(0, framed.length - 1);
-  const seen: string[][] = [];
-
-  await assertRejects(
-    () =>
-      enumerate([truncated]).transform(fromLazyRowBinary()).flatten()
-        .forEach((row) => {
-          seen.push(row.toStringArray());
-        }),
-    Error,
-    "ends partway through a row",
-  );
-  assertEquals(seen, [["a"]]);
-});
-
-Deno.test("fromLazyRowBinary reads a large row delivered in small chunks.", async () => {
-  const big = "x".repeat(100_000);
-  const framed = new Uint8Array(
-    (await enumerate([[[big, "y"], ["z"]]]).transform(toLazyRowBinary())
-      .collect()).flatMap((b) => [...b]),
-  );
-  const chunks: Uint8Array[] = [];
-  for (let i = 0; i < framed.length; i += 1000) {
-    chunks.push(framed.subarray(i, i + 1000));
-  }
-  const rows = await enumerate(chunks).transform(fromLazyRowBinary()).flatten()
-    .map((row) => row.toStringArray()).collect();
-  assertEquals(rows, [[big, "y"], ["z"]]);
 });
 
 Deno.test("A very long TSV line in many small chunks is read in linear time.", async () => {

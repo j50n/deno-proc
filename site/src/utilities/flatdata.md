@@ -1,8 +1,8 @@
 # flatdata CLI
 
-**flatdata** is a high-performance command-line utility for converting between
-tabular data formats. It's distributed as part of proc and uses WebAssembly for
-near-native parsing speed.
+**flatdata** is a command-line utility for converting between tabular data
+formats. It's distributed as part of proc and runs on the same transforms as
+`@j50n/proc/transforms`; CSV to TSV and back run entirely in WebAssembly.
 
 ## Installation
 
@@ -30,35 +30,21 @@ flatdata --version
 
 ## Why flatdata?
 
-CSV parsing is CPU-intensive. When processing large files, the parsing step can
-become a bottleneck. flatdata solves this by:
-
-1. **Offloading parsing to a separate process** - Your main application stays
-   responsive
-2. **Using WASM for speed** - ~7x faster than pure JavaScript, about half native
-   speed
-3. **Streaming design** - Handles files of any size with constant memory
-
-The key insight: by converting CSV to a simple binary format (record),
-downstream processing becomes trivial string splits instead of complex CSV
-parsing.
+CSV parsing is CPU-intensive. Running it in a separate process keeps your main
+application responsive and puts a second core to work, and the output can be a
+format that is trivial to read downstream.
 
 ## Formats
 
-| Format      | Description                         | Use Case                      |
-| ----------- | ----------------------------------- | ----------------------------- |
-| **csv**     | RFC 4180 comma-separated values     | Standard interchange          |
-| **tsv**     | Tab-separated values                | Simple data, no quoting       |
-| **record**  | Binary: `\x1F` field, `\x1E` record | Fast processing               |
-| **lazyrow** | Binary with length-prefixed fields  | Efficient random field access |
+| Format     | Description                              | Use Case                |
+| ---------- | ---------------------------------------- | ----------------------- |
+| **csv**    | RFC 4180 comma-separated values          | Standard interchange    |
+| **tsv**    | Tab-separated values                     | Simple data, no quoting |
+| **record** | `\x1F` between fields, `\x1E` after rows | Fast processing         |
 
-The **record** format is the key to performance. It uses ASCII control
-characters that never appear in text data:
-
-- `\x1F` (Unit Separator) between fields
-- `\x1E` (Record Separator) between rows
-
-This makes parsing trivial: `row.split('\x1F')` gives you fields instantly.
+The **record** format uses ASCII control characters that don't appear in text
+data, so a field can hold anything else, nothing is escaped, and
+`row.split('\x1F')` gives you the fields.
 
 ## Basic Usage
 
@@ -75,64 +61,24 @@ cat huge.csv | flatdata csv2record | ./process | flatdata record2csv > results.c
 
 ## Commands
 
-### Direct Conversions
-
 ```bash
-flatdata csv2tsv [options]       # CSV → TSV
-flatdata tsv2csv [options]       # TSV → CSV
+flatdata csv2tsv [options]       # CSV → TSV, in WebAssembly
+flatdata tsv2csv [options]       # TSV → CSV, in WebAssembly
+flatdata csv2record [options]    # CSV → record
+flatdata tsv2record [options]    # TSV → record
+flatdata record2csv [options]    # record → CSV
+flatdata record2tsv [options]    # record → TSV
 ```
 
 Options:
 
 - `-d, --separator <char>` - CSV field separator (default: `,`)
-- `-q, --quote-all` - Quote all fields in output
+- `--crlf` - CRLF line endings in CSV output (`tsv2csv`, `record2csv`)
 - `-i, --input <file>` - Input file (default: stdin)
 - `-o, --output <file>` - Output file (default: stdout)
 
-### CSV/TSV Input
-
-```bash
-flatdata csv2record [options]    # CSV → record
-flatdata csv2lazyrow [options]   # CSV → lazyrow
-flatdata tsv2record [options]    # TSV → record
-flatdata tsv2lazyrow [options]   # TSV → lazyrow
-```
-
-Options:
-
-- `-d, --separator <char>` - Field separator (CSV only, default: `,`)
-- `-c, --columns <n>` - Expected column count (fail if mismatch)
-- `-s, --strict` - Fail on parse errors
-- `-i, --input <file>` - Input file (default: stdin)
-- `-o, --output <file>` - Output file (default: stdout)
-
-### Record/Lazyrow Output
-
-```bash
-flatdata record2csv [options]    # record → CSV
-flatdata record2tsv [options]    # record → TSV
-flatdata lazyrow2csv [options]   # lazyrow → CSV
-flatdata lazyrow2tsv [options]   # lazyrow → TSV
-```
-
-Options:
-
-- `-d, --separator <char>` - Field separator (CSV only, default: `,`)
-- `-q, --quote-all` - Quote all fields
-- `-i, --input <file>` - Input file (default: stdin)
-- `-o, --output <file>` - Output file (default: stdout)
-
-### Record ↔ Lazyrow Conversion
-
-```bash
-flatdata record2lazyrow [options]  # record → lazyrow
-flatdata lazyrow2record [options]  # lazyrow → record
-```
-
-Options:
-
-- `-i, --input <file>` - Input file (default: stdin)
-- `-o, --output <file>` - Output file (default: stdout)
+TSV can't hold a tab, CR or LF inside a field, so `csv2tsv` and `record2tsv`
+stop with an error naming the row and field of the first one.
 
 ## Using with proc
 
@@ -201,28 +147,10 @@ await run("cat", "data.csv")
   .toStdout();
 ```
 
-### Bidirectional Pipeline
-
-```typescript
-import { run } from "jsr:@j50n/proc";
-
-// CSV → process → CSV
-const output = await run("flatdata", "csv2record", "-i", "input.csv")
-  .lines
-  .map((record) => {
-    const fields = record.split("\x1F");
-    fields[1] = fields[1].toUpperCase(); // Transform field
-    return fields.join("\x1F");
-  })
-  .run("flatdata", "record2csv")
-  .lines
-  .collect();
-```
-
 ## Transforms for Record Format
 
-proc provides transforms to convert between the binary record format and
-JavaScript objects.
+proc provides transforms to convert between the record format and JavaScript
+objects.
 
 ### fromRecordToRows
 
@@ -255,21 +183,6 @@ await run("flatdata", "csv2record", "-i", "wide.csv")
   .forEach((row) => console.log(row.getField(1), row.getField(5)));
 ```
 
-### fromLazyRowBinary
-
-Convert binary lazyrow format (from `csv2lazyrow`) to LazyRow objects:
-
-```typescript
-import { run } from "jsr:@j50n/proc";
-import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
-
-await run("flatdata", "csv2lazyrow", "-i", "wide.csv")
-  .transform(fromLazyRowBinary())
-  .flatten()
-  .filter((row) => row.getField(2) === "error")
-  .forEach((row) => console.log(`${row.getField(0)}: ${row.getField(3)}`));
-```
-
 ### toRecord
 
 Convert row data to record format for piping to flatdata:
@@ -288,30 +201,6 @@ await run("flatdata", "csv2record", "-i", "input.csv")
   .toStdout();
 ```
 
-## LazyRow for Memory Efficiency
-
-LazyRow defers field parsing until accessed - ideal when you only need a few
-fields from wide rows:
-
-```typescript
-import { run } from "jsr:@j50n/proc";
-import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
-
-await run("flatdata", "csv2lazyrow", "-i", "huge.csv")
-  .transform(fromLazyRowBinary())
-  .flatten()
-  .filter((row) => row.columnCount > 5) // O(1) column count
-  .map((row) => row.getField(0)) // Only parse field 0
-  .take(100)
-  .toStdout();
-```
-
-LazyRow methods:
-
-- `columnCount` - Number of fields (O(1), no parsing)
-- `getField(n)` - Get nth field as string (parses on demand)
-- `toStringArray()` - Get all fields as string[]
-
 ## European CSV (Semicolon-Delimited)
 
 ```bash
@@ -323,13 +212,10 @@ flatdata csv2record -d ';' -i euro.csv | flatdata record2csv -o us.csv
 
 1. **Pipe through flatdata** to offload CPU work from your main process
 2. **Use record format** for intermediate processing - it's trivial to parse
-3. **LazyRow** when you only need a few fields from wide rows
-4. **Validate early** with `--columns` and `--strict` to catch data issues
+3. **Convert CSV and TSV directly** with `csv2tsv` and `tsv2csv`; they are the
+   fastest commands
 
 ## Architecture
 
-flatdata uses a [custom RFC 4180 CSV parser](../appendix/csv-parser.md) written
-in Odin and compiled to WebAssembly. We needed a _push parser_—one that accepts
-arbitrary chunks of input and tracks state across calls—because WASM modules
-can't pull data from JavaScript. Odin's standard library CSV parser is a pull
-parser that expects to read from a file or complete buffer.
+flatdata reads CSV with a [streaming RFC 4180 reader](../appendix/csv-parser.md)
+written in Embedded Swift and compiled to WebAssembly.

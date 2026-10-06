@@ -14,14 +14,21 @@ It also updates the toolchain (`rustup update`, `cargo install mdbook`) and
 every dependency to its latest version (`deno update --latest`). Dependencies in
 `deno.json` are pinned exactly, so plain `deno update` never moves them.
 
-The first project step rebuilds `wasm/flatdata.wasm` from `odin/src`, which
-needs [Odin](https://odin-lang.org/) installed. The built `.wasm` is committed,
-so without Odin, run the steps after `./odin/build.sh` by hand. Only a change
-under `odin/src` needs the rebuild.
+The first project step rebuilds `wasm/flatdata.wasm` from `swift/` with
+`./swift/build.sh`, which needs Swift 6.3.2 and its Embedded WebAssembly SDK
+(`swift-6.3.2-RELEASE_wasm-embedded`; another name can be given in `SWIFT_SDK`).
+The built `.wasm` is committed, so without Swift, run the steps after
+`./swift/build.sh` by hand. Only a change under `swift/` needs the rebuild, and
+`build.sh` skips it otherwise: the compiler embeds a `.swift_modhash` that
+differs on every build, so the bytes change even when the code doesn't.
 
 The library loads the module from `src/wasm/flatdata-wasm.ts`, which
 `tools/embed-wasm.ts` generates from `wasm/flatdata.wasm`. `build.sh` runs it
-after the Odin build; a test fails if the two differ.
+after the Swift build; a test fails if the two differ.
+
+To see what the compiler made of a hot loop, disassemble the module with
+`llvm-objdump -d wasm/flatdata.wasm`. The module should have no imports; one
+that appears means something pulled in a piece of wasi-libc.
 
 ## Release
 

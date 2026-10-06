@@ -483,12 +483,13 @@ Deno.test("CSV pathological - 1MB field", async () => {
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
+    .flatten()
     .collect();
 
-  assertEquals(result[0][0], ["name", "data"]);
-  assertEquals(result[0][1][0], "Alice");
-  assertEquals(result[0][1][1].length, 1024 * 1024);
-  assertEquals(result[0][2], ["Bob", "small"]);
+  assertEquals(result[0], ["name", "data"]);
+  assertEquals(result[1][0], "Alice");
+  assertEquals(result[1][1].length, 1024 * 1024);
+  assertEquals(result[2], ["Bob", "small"]);
 });
 
 Deno.test("CSV pathological - 1MB quoted field", async () => {
@@ -497,9 +498,10 @@ Deno.test("CSV pathological - 1MB quoted field", async () => {
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToRows())
+    .flatten()
     .collect();
 
-  assertEquals(result[0][1][1].length, 1024 * 1024);
+  assertEquals(result[1][1].length, 1024 * 1024);
 });
 
 Deno.test("CSV pathological - many fields (100 columns)", async () => {
@@ -541,14 +543,15 @@ Deno.test("CSV pathological - 1MB field round-trip", async () => {
     .transform(toCsv())
     .collect();
 
-  const csvText = new TextDecoder().decode(result[0]);
+  const csvText = result.map((b) => new TextDecoder().decode(b)).join("");
 
   // Parse to verify data integrity
   const parsed = await enumerate([new TextEncoder().encode(csvText)])
     .transform(fromCsvToRows())
+    .flatten()
     .collect();
 
-  assertEquals(parsed[0][1][1].length, 1024 * 1024);
+  assertEquals(parsed[1][1].length, 1024 * 1024);
 });
 
 Deno.test("CSV pathological - 1MB field to LazyRow", async () => {
@@ -557,9 +560,10 @@ Deno.test("CSV pathological - 1MB field to LazyRow", async () => {
 
   const result = await enumerate([new TextEncoder().encode(csvData)])
     .transform(fromCsvToLazyRows())
+    .flatten()
     .collect();
 
-  assertEquals(result[0][1].getField(1).length, 1024 * 1024);
+  assertEquals(result[1].getField(1).length, 1024 * 1024);
 });
 
 Deno.test("CSV pathological - chunk boundary in middle of field", async () => {

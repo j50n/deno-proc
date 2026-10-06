@@ -12,8 +12,4 @@ labs/*/results/*.tsv
 labs/*/results/*.record
 labs/*/results/*.jsonl
 
-# Odin build artifacts
-odin/target/
-odin/wasm/
-
 .idea/

@@ -119,7 +119,7 @@ guide you toward correct usage.
 
 - **Format conversion** — CSV ↔ TSV ↔ JSON ↔ Record
 - **Streaming processing** — Constant memory usage for any file size
-- **LazyRow optimization** — Faster parsing with binary backing
+- **LazyRow** — Rows that decode fields only when read; filter on bytes
 - **flatdata CLI** — WASM-powered tool for multi-process streaming
 
 ## Installation

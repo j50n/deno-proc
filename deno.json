@@ -16,10 +16,9 @@
       "build-site.sh",
       "MAINT.md",
       "MEMORY.md",
-      "odin/",
+      "swift/",
       "tools/",
       ".vscode/",
-      "ols.json",
       "wasm/"
     ]
   },

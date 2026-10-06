@@ -566,7 +566,6 @@ if (errors.length > 0) {
 ### Record vs JSON
 
 - **Structure**: JSON supports nested objects, Record is flat tabular
-- **Speed**: Record is faster for large tabular datasets
 - **Flexibility**: JSON is more flexible for complex structures
 - **Size**: Record is more compact for simple tabular data
 

@@ -14,7 +14,7 @@ proc offers several ways to process data. Here's how to choose:
 
 | Approach              | Best For                                     | Performance  |
 | --------------------- | -------------------------------------------- | ------------ |
-| **flatdata CLI**      | Large files (100MB+), batch processing       | Highest      |
+| **flatdata CLI**      | Converting files from the shell              | High         |
 | **Data Transforms**   | In-process conversion, filtering, enrichment | Good to High |
 | **Process Pipelines** | Shell-like operations, text processing       | Varies       |
 | **Async Iterables**   | Custom logic, API data, any async source     | Varies       |
@@ -22,7 +22,7 @@ proc offers several ways to process data. Here's how to choose:
 **Decision guide:**
 
 - Converting CSV/TSV/JSON files? → **Data Transforms** (this chapter)
-- Processing 100MB+ files for maximum speed? →
+- Converting files in a shell pipeline? →
   [flatdata CLI](../utilities/flatdata.md)
 - Running shell commands and piping output? →
   [Process Pipelines](../core/pipelines.md)
@@ -124,10 +124,10 @@ await read("events.jsonl")
   .writeTo("alerts.jsonl");
 ```
 
-### Record - Maximum Performance
+### Record - Any Text in Fields
 
 ```typescript
-// Best for: High-throughput processing, internal formats
+// Best for: internal formats whose fields may hold tabs, newlines or quotes
 await read("big-data.record")
   .transform(fromRecordToRows())
   .flatten()
@@ -163,9 +163,9 @@ for (const row of lazyRows) {
 
 ### LazyRow Benefits
 
-- **Zero conversion cost**: Choose optimal backing based on source
-- **Lazy evaluation**: Parse fields only when accessed
-- **Caching**: Repeated access uses cached results
+- **Lazy decoding**: A field becomes a string only when you read it
+- **Byte comparison**: `fieldEquals(i, value)` filters without decoding
+- **Interchangeable**: Every writer takes LazyRows as well as string arrays
 
 ## Real-World Examples
 
@@ -262,4 +262,4 @@ try {
 - [Record Format](./record.md) — High-performance binary format
 - [LazyRow Optimization](./lazyrow.md) — Optimized data access patterns
 - [Performance Guide](./performance.md) — Benchmarks and optimization tips
-- [flatdata CLI](../utilities/flatdata.md) — WASM-powered processing at 330 MB/s
+- [flatdata CLI](../utilities/flatdata.md) — Format conversion from the shell

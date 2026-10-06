@@ -1,36 +1,17 @@
 /**
- * Comprehensive test suite for record2tsv transformation.
+ * Record format to TSV, as the flatdata CLI's record2tsv does it.
  */
 
 import { assertEquals } from "@std/assert";
-import { FlatdataProcessor } from "../../src/wasm/flatdata-processor.ts";
+import { enumerate } from "../../src/enumerable.ts";
+import { fromRecordToRows, toTsv } from "../../src/transforms/mod.ts";
 
 async function record2tsv(input: string): Promise<string> {
-  const processor = await FlatdataProcessor.create();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  const chunks: Uint8Array[] = [];
-  for await (
-    const chunk of processor.recordToTsv(
-      (async function* () {
-        yield encoder.encode(input);
-      })(),
-    )
-  ) {
-    chunks.push(chunk);
-  }
-
-  return decoder.decode(
-    new Uint8Array(chunks.reduce((acc, c) => acc + c.length, 0)).map((_, i) => {
-      let offset = 0;
-      for (const chunk of chunks) {
-        if (i < offset + chunk.length) return chunk[i - offset];
-        offset += chunk.length;
-      }
-      return 0;
-    }),
-  );
+  const chunks = await enumerate([new TextEncoder().encode(input)])
+    .transform(fromRecordToRows())
+    .transform(toTsv())
+    .collect();
+  return chunks.map((chunk) => new TextDecoder().decode(chunk)).join("");
 }
 
 // Basic functionality tests

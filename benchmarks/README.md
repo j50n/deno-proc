@@ -1,76 +1,21 @@
 # Benchmarks
 
-Performance benchmarks for deno-proc transforms.
+## Transform Throughput (`transforms-throughput.ts`)
 
-## Quick Start
+MB/s for every transform in `@j50n/proc/transforms`: reading CSV, TSV, record
+and JSON into rows and LazyRows, filtering LazyRows, converting CSV and TSV
+bytes to each other, and writing rows. Each figure is the median of seven runs
+after a warm-up.
 
 ```bash
-# Run all benchmarks
-./benchmarks/run-benchmarks.sh
-
-# Run specific benchmark
-./benchmarks/run-benchmarks.sh 1  # Flatdata statistical
-./benchmarks/run-benchmarks.sh 2  # Transform throughput
+deno run --allow-read benchmarks/transforms-throughput.ts            # realistic data
+deno run --allow-read benchmarks/transforms-throughput.ts --simple   # field{c}_{r} data
+deno run --allow-read benchmarks/transforms-throughput.ts toCsv      # names containing "toCsv"
 ```
 
-## Available Benchmarks
+The data is 100,000 rows of 20 fields. By default the fields are realistic:
+words with UTF-8 in them, and about one in ten quoted for a comma, a `""` escape
+or an embedded newline. `--simple` gives every reader an easy time, which is
+worth seeing too, but realistic data is what the numbers in the docs come from.
 
-### 1. Flatdata Statistical (`flatdata-statistical.ts`)
-
-Statistical analysis of WASM-based flatdata transforms:
-
-- CSV, TSV, Record, JSON parsing and generation
-- Warmup phase (20 iterations) for VM optimization
-- Measurement phase (10 iterations)
-- Statistics: mean, median, std dev, quartiles, throughput (MB/s)
-- Data: 100,000 records × 20 columns (~25MB)
-
-**Run time:** ~2-3 minutes
-
-**Example output:**
-
-```
-csv2record
-============================================================
-Results:
-  Time (ms):
-    Mean:     393.35
-    Median:   394.98
-    Std Dev:  16.48
-  Throughput (MB/s):
-    Mean:     64.9
-    Median:   64.7
-```
-
-### 2. Transform Throughput (`transforms-throughput.ts`)
-
-Quick throughput comparison of all in-process transforms:
-
-- CSV, TSV, Record, JSON formats
-- LazyRow binary format
-- WASM-accelerated CSV parsing
-- Single-run measurements
-- Data: 100,000 records × 20 columns (~25MB)
-
-**Run time:** ~30 seconds
-
-**Example output:**
-
-```
-SUMMARY
-============================================================
-Transform                            MB/s         Time
-------------------------------------------------------------
-fromCsvToRows                        26.2       974 ms
-fromTsvToLazyRows                   178.7       143 ms
-fromLazyRowBinary                   713.6        45 ms
-------------------------------------------------------------
-Average                             147.5 MB/s
-```
-
-## Notes
-
-- Both benchmarks use the same test data size for consistency
-- Flatdata benchmark provides statistical rigor for detailed analysis
-- Throughput benchmark provides quick performance overview
-- Results vary based on CPU, memory, and system load
+Results vary with CPU and load; compare runs on a quiet machine.

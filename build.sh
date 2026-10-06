@@ -13,7 +13,11 @@ HERE="$(realpath "$(dirname "$0")")"
 
 cd "$HERE" && (
     # Build WASM module and embed it for the library
-    ./odin/build.sh
+    # Only when the Swift changed: each build embeds a different
+    # .swift_modhash, so rebuilding unchanged sources still changes the bytes.
+    if [ -n "$(find swift/Package.swift swift/Sources -newer wasm/flatdata.wasm)" ]; then
+        ./swift/build.sh
+    fi
     deno run --allow-read --allow-write tools/embed-wasm.ts
 
     # Update Deno

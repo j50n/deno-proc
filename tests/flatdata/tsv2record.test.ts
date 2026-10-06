@@ -1,36 +1,17 @@
 /**
- * Comprehensive test suite for tsv2record transformation.
- * Tests scalar implementation for correctness with edge cases.
+ * TSV to record format, as the flatdata CLI's tsv2record does it.
  */
 
 import { assertEquals } from "@std/assert";
-import { FlatdataProcessor } from "../../src/wasm/flatdata-processor.ts";
+import { enumerate } from "../../src/enumerable.ts";
+import { fromTsvToRows, toRecord } from "../../src/transforms/mod.ts";
 
 async function tsv2record(input: string): Promise<string> {
-  const processor = await FlatdataProcessor.create();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  const chunks: Uint8Array[] = [];
-  for await (
-    const chunk of processor.tsvToRecord(
-      (async function* () {
-        yield encoder.encode(input);
-      })(),
-    )
-  ) {
-    chunks.push(chunk);
-  }
-
-  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return decoder.decode(result);
+  const chunks = await enumerate([new TextEncoder().encode(input)])
+    .transform(fromTsvToRows())
+    .transform(toRecord())
+    .collect();
+  return chunks.map((chunk) => new TextDecoder().decode(chunk)).join("");
 }
 
 // Basic functionality tests
@@ -70,9 +51,9 @@ Deno.test("tsv2record - only tab", async () => {
   assertEquals(result, "\x1F\x1E");
 });
 
-Deno.test("tsv2record - only newline", async () => {
+Deno.test("tsv2record - only newline is no record", async () => {
   const result = await tsv2record("\n");
-  assertEquals(result, "\x1E");
+  assertEquals(result, "");
 });
 
 Deno.test("tsv2record - consecutive tabs", async () => {
@@ -80,9 +61,9 @@ Deno.test("tsv2record - consecutive tabs", async () => {
   assertEquals(result, "a\x1F\x1F\x1Fb\x1E");
 });
 
-Deno.test("tsv2record - consecutive newlines", async () => {
+Deno.test("tsv2record - blank lines are skipped", async () => {
   const result = await tsv2record("a\n\n\nb\n");
-  assertEquals(result, "a\x1E\x1E\x1Eb\x1E");
+  assertEquals(result, "a\x1Eb\x1E");
 });
 
 // Carriage return handling
@@ -175,12 +156,12 @@ Deno.test("tsv2record - 32 byte input", async () => {
 });
 
 // No trailing newline
-Deno.test("tsv2record - no trailing newline", async () => {
+Deno.test("tsv2record - no trailing newline still ends the record", async () => {
   const result = await tsv2record("a\tb\tc");
-  assertEquals(result, "a\x1Fb\x1Fc");
+  assertEquals(result, "a\x1Fb\x1Fc\x1E");
 });
 
 Deno.test("tsv2record - multiple records no trailing newline", async () => {
   const result = await tsv2record("a\tb\n1\t2");
-  assertEquals(result, "a\x1Fb\x1E1\x1F2");
+  assertEquals(result, "a\x1Fb\x1E1\x1F2\x1E");
 });

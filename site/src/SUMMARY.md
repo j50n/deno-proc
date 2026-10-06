@@ -73,7 +73,7 @@
 
 # Appendix
 
-- [CSV Parser Specification](./appendix/csv-parser.md)
+- [The CSV Reader](./appendix/csv-parser.md)
 
 ---
 

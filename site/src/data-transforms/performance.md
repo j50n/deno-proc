@@ -13,7 +13,27 @@ Guidance for choosing the right data format for your use case.
 | **CSV**    | Universal compatibility        | Use LazyRow for better speed   |
 | **TSV**    | Balance of speed & readability | Simpler than CSV               |
 | **JSON**   | Rich object structures         | Best for small-medium datasets |
-| **Record** | Maximum throughput             | Internal processing only       |
+| **Record** | Any text in fields             | Internal processing only       |
+
+## Measured Speeds
+
+From `benchmarks/transforms-throughput.ts`: 100,000 rows of 20 realistic fields
+(UTF-8, about one field in ten quoted, some with newlines), median MB/s on one
+machine. Expect your numbers to differ; the ratios are what matter.
+
+| Reading                     | MB/s | Writing and converting | MB/s |
+| --------------------------- | ---- | ---------------------- | ---- |
+| `fromCsvToRows()`           | 130  | `toCsv()`              | 90   |
+| `fromCsvToLazyRows()`       | 350  | `toTsv()`              | 90   |
+| filter with `fieldEquals()` | 380  | `toRecord()`           | 85   |
+| `fromTsvToRows()`           | 135  | `toJson()`             | 100  |
+| `fromTsvToLazyRows()`       | 450  | `csvToTsv()`           | 580  |
+| `fromRecordToRows()`        | 95   | `tsvToCsv()`           | 580  |
+| `fromJsonToRows()`          | 100  |                        |      |
+
+CSV and TSV are read in WebAssembly; the LazyRow readers are fast because they
+don't make strings until asked. Converting between CSV and TSV never makes
+strings at all.
 
 ## Choosing a Format
 
@@ -54,10 +74,10 @@ await read("events.jsonl")
   .collect();
 ```
 
-### Record - Maximum Throughput
+### Record - Any Text in Fields
 
-Use for internal processing when you need maximum throughput and don't need
-human readability.
+Use for internal processing when fields may hold tabs, newlines or quotes and
+you don't need human readability. Nothing is ever escaped.
 
 ```typescript
 await read("data.record")
@@ -91,15 +111,12 @@ const allData = await read("large-file.csv")
 Only parse the fields you actually need:
 
 ```typescript
-// Only parses fields 0 and 5
+// Decodes only field 0, and only for active rows
 await read("wide-data.csv")
   .transform(fromCsvToLazyRows())
   .flatten()
-  .filter((row) => {
-    const id = row.getField(0);
-    const status = row.getField(5);
-    return id.startsWith("A") && status === "active";
-  })
+  .filter((row) => row.fieldEquals(5, "active"))
+  .filter((row) => row.getField(0).startsWith("A"))
   .collect();
 ```
 
@@ -115,24 +132,13 @@ await read("data.csv")
   .collect();
 ```
 
-### 4. Convert Formats for Repeated Processing
+### 4. Convert Between CSV and TSV on the Bytes
 
-If you're processing the same data multiple times, convert to a faster format
-first:
+`csvToTsv()` and `tsvToCsv()` never make strings, so they run several times
+faster than parsing rows and writing them:
 
 ```typescript
-// One-time conversion
-await read("data.csv")
-  .transform(fromCsvToRows())
-  .transform(toRecord())
-  .writeTo("data.record");
-
-// Subsequent processing is faster
-await read("data.record")
-  .transform(fromRecordToRows())
-  .flatten()
-  .filter((row) => row[1] === "target")
-  .collect();
+await read("data.csv").transform(csvToTsv()).writeTo("data.tsv");
 ```
 
 ## See Also

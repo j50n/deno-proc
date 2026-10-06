@@ -1,25 +1,16 @@
 import type { TransformerFunction } from "../transformers.ts";
 import {
   BATCH_SIZE_BYTES,
-  checkBinaryFields,
   checkFields,
   FIELD_SEPARATOR,
-  forbiddenBytes,
   RECORD_SEPARATOR,
-  rowsToRecord,
-  rowToRecord,
+  rowWriter,
   splitText,
-  writeUint32LE,
 } from "./common.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
-import { FlatdataProcessor } from "../wasm/flatdata-processor.ts";
-import { concat } from "../utility.ts";
 
-const RECORD_FORBIDDEN = forbiddenBytes({
-  0x1E: "record separator",
-  0x1F: "field separator",
-});
+const RECORD_FORBIDDEN = new RegExp(`[${RECORD_SEPARATOR}${FIELD_SEPARATOR}]`);
 
 /** Batch the parsed records of a record-format stream. */
 async function* recordBatches<T>(
@@ -50,10 +41,9 @@ async function* recordBatches<T>(
 /**
  * Parse Record format bytes into batches of string arrays.
  *
- * Record format uses ASCII control characters (RS=0x1E, US=0x1F) as separators,
- * making it binary-safe and faster to parse than CSV/TSV.
- *
- * **Performance**: Record format achieves ~93 MB/s, the fastest of all formats.
+ * Record format uses ASCII control characters (RS=0x1E, US=0x1F) as
+ * separators, so a field can hold any text but those two, and nothing is
+ * quoted or escaped.
  *
  * @example Basic Record parsing
  * ```typescript
@@ -127,101 +117,8 @@ export function toRecord(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
   Uint8Array
 > {
-  return async function* (
-    data: AsyncIterable<Row | Row[] | LazyRow | LazyRow[]>,
-  ): AsyncIterable<Uint8Array> {
-    const encode = (() => {
-      const encoder = new TextEncoder();
-      return encoder.encode.bind(encoder);
-    })();
-    const processor = await FlatdataProcessor.create();
-    let rowNumber = 0;
-
-    const check = (fields: string[]) =>
-      checkFields(fields, RECORD_FORBIDDEN, "record", ++rowNumber);
-    const checkBinary = (rowData: Uint8Array) =>
-      checkBinaryFields(rowData, RECORD_FORBIDDEN, "record", ++rowNumber);
-
-    const handleRow = (row: Row): Uint8Array => {
-      check(row);
-      return encode(rowToRecord(row));
-    };
-
-    const handleRowArray = (rows: Row[]): Uint8Array => {
-      rows.forEach(check);
-      return encode(rowsToRecord(rows));
-    };
-
-    const handleBinaryLazyRow = (row: LazyRow): Uint8Array => {
-      const rowData = row.toBinary();
-      checkBinary(rowData);
-      return processor.lazyRowBinaryToRecordDirect(
-        concat([writeUint32LE(rowData.length), rowData]),
-      );
-    };
-
-    const handleStringLazyRow = (row: LazyRow): Uint8Array => {
-      const fields = row.toStringArray();
-      check(fields);
-      return encode(rowToRecord(fields));
-    };
-
-    const handleBinaryLazyRowArray = (rows: LazyRow[]): Uint8Array => {
-      const chunks = new Array(rows.length * 2);
-      let idx = 0;
-
-      for (let i = 0; i < rows.length; i++) {
-        const rowData = rows[i].toBinary();
-        checkBinary(rowData);
-        chunks[idx++] = writeUint32LE(rowData.length);
-        chunks[idx++] = rowData;
-      }
-
-      return processor.lazyRowBinaryToRecordDirect(concat(chunks));
-    };
-
-    const handleStringLazyRowArray = (rows: LazyRow[]): Uint8Array => {
-      const stringRows = rows.map((row) => row.toStringArray());
-      stringRows.forEach(check);
-      return encode(rowsToRecord(stringRows));
-    };
-
-    // deno-lint-ignore no-explicit-any
-    let handler: (item: any) => Uint8Array = (item: any) => {
-      if (Array.isArray(item) && item.length === 0) {
-        return new Uint8Array(0);
-      }
-
-      if (
-        Array.isArray(item) && item.length > 0 &&
-        item[0] instanceof LazyRow && item[0].isBinaryBacked()
-      ) {
-        handler = handleBinaryLazyRowArray;
-      } else if (
-        Array.isArray(item) && item.length > 0 && item[0] instanceof LazyRow
-      ) {
-        handler = handleStringLazyRowArray;
-      } else if (item instanceof LazyRow && item.isBinaryBacked()) {
-        handler = handleBinaryLazyRow;
-      } else if (item instanceof LazyRow) {
-        handler = handleStringLazyRow;
-      } else if (
-        Array.isArray(item) && item.length > 0 && Array.isArray(item[0])
-      ) {
-        handler = handleRowArray;
-      } else if (Array.isArray(item)) {
-        handler = handleRow;
-      } else {
-        throw new TypeError(
-          `Unsupported input type for toRecord: expected Row, Row[], LazyRow, or LazyRow[], got ${typeof item}`,
-        );
-      }
-
-      return handler(item);
-    };
-
-    for await (const item of data) {
-      yield handler(item);
-    }
-  };
+  return rowWriter((fields, rowNumber) => {
+    checkFields(fields, RECORD_FORBIDDEN, "record", rowNumber);
+    return fields.join(FIELD_SEPARATOR) + RECORD_SEPARATOR;
+  });
 }

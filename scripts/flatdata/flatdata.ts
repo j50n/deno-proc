@@ -2,16 +2,14 @@
 /**
  * flatdata - Tabular data format converter
  *
- * A high-performance CLI tool for converting between tabular data formats.
- * Uses WebAssembly (Odin-compiled) for fast CSV/TSV parsing and stringification.
+ * A CLI tool for converting between CSV, TSV and record format, built on the
+ * transforms in `@j50n/proc/transforms`. CSV to TSV and back run entirely in
+ * WebAssembly.
  *
  * Supported formats:
  * - CSV: RFC 4180 comma-separated values (configurable separator)
  * - TSV: Tab-separated values
  * - Record: Text format using \x1F (field) and \x1E (record) separators
- * - LazyRow: Binary format with length-prefixed fields for efficient random access
- *
- * Performance: ~100+ MB/s for CSV parsing and stringification.
  *
  * @example
  * ```bash
@@ -20,9 +18,6 @@
  *
  * # Pipeline processing
  * flatdata csv2record -i huge.csv | ./process | flatdata record2csv -o results.csv
- *
- * # Binary lazyrow format for efficient field access
- * flatdata csv2lazyrow -i data.csv -o data.lazy
  * ```
  *
  * @module
@@ -30,220 +25,100 @@
 
 import { Command } from "@cliffy/command";
 import { enumerate } from "../../mod.ts";
-import { FlatdataProcessor } from "../../src/wasm/flatdata-processor.ts";
+import type { TransformerFunction } from "../../src/transformers.ts";
+import {
+  csvToTsv,
+  fromCsvToRows,
+  fromRecordToRows,
+  fromTsvToRows,
+  toCsv,
+  toRecord,
+  toTsv,
+  tsvToCsv,
+} from "../../src/transforms/mod.ts";
 import denoJson from "../../deno.json" with { type: "json" };
 
 // =============================================================================
 // Transform Functions (exported for benchmarks and testing)
 // =============================================================================
 
-export async function csv2record(
+/** Read `input` (or stdin), transform it, and write `output` (or stdout). */
+async function convert(
+  input: string | undefined,
+  output: string | undefined,
+  transform: TransformerFunction<Uint8Array, Uint8Array>,
+): Promise<void> {
+  const stream = input
+    ? (await Deno.open(input, { read: true })).readable
+    : Deno.stdin.readable;
+  const converted = enumerate(stream).transform(transform);
+  await (output
+    ? converted.writeTo(output)
+    : converted.writeTo(Deno.stdout.writable, { noclose: true }));
+}
+
+/** Rows through a reader and a writer: one way between any two formats. */
+function viaRows(
+  reader: TransformerFunction<Uint8Array, string[][]>,
+  writer: TransformerFunction<string[][], Uint8Array>,
+): TransformerFunction<Uint8Array, Uint8Array> {
+  return (bytes) => writer(reader(bytes));
+}
+
+export function csv2record(
   input?: string,
   output?: string,
   separator = ",",
 ): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.csvToRecordStreaming(input, separator.charCodeAt(0))
+  return convert(
+    input,
+    output,
+    viaRows(fromCsvToRows({ separator }), toRecord()),
   );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
 }
 
-export async function csv2lazyrow(
+export function csv2tsv(
   input?: string,
   output?: string,
   separator = ",",
 ): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.csvToLazyRowBinaryStreaming(input, separator.charCodeAt(0))
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
+  return convert(input, output, csvToTsv({ separator }));
 }
 
-export async function csv2tsv(
+export function tsv2record(input?: string, output?: string): Promise<void> {
+  return convert(input, output, viaRows(fromTsvToRows(), toRecord()));
+}
+
+export function tsv2csv(
   input?: string,
   output?: string,
   separator = ",",
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.csvToTsvStreaming(input, separator.charCodeAt(0))
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
-}
-
-export async function tsv2record(
-  input?: string,
-  output?: string,
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.tsvToRecord(input)
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
-}
-
-export async function tsv2lazyrow(
-  input?: string,
-  output?: string,
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.tsvToLazyRow(input)
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
-}
-
-export async function tsv2csv(
-  input?: string,
-  output?: string,
-  separator = ",",
-  alwaysQuote = false,
   crlf = false,
 ): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.tsvToCsv(input, separator.charCodeAt(0), alwaysQuote, crlf)
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
+  return convert(input, output, tsvToCsv({ separator, crlf }));
 }
 
-export async function record2csv(
+export function record2csv(
   input?: string,
   output?: string,
   separator = ",",
-  alwaysQuote = false,
   crlf = false,
 ): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.recordToCsv(input, separator.charCodeAt(0), alwaysQuote, crlf)
+  return convert(
+    input,
+    output,
+    viaRows(fromRecordToRows(), toCsv({ separator, crlf })),
   );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
 }
 
-export async function record2tsv(
-  input?: string,
-  output?: string,
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.recordToTsv(input)
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
-}
-
-export async function record2lazyrow(
-  input?: string,
-  output?: string,
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.recordToLazyRowBinaryStreaming(input)
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
-}
-
-export async function lazyrow2csv(
-  input?: string,
-  output?: string,
-  separator = ",",
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.lazyRowBinaryToDelimitedStreaming(input, separator.charCodeAt(0))
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
-}
-
-export async function lazyrow2tsv(
-  input?: string,
-  output?: string,
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.lazyRowBinaryToDelimitedStreaming(input, 9)
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
-}
-
-export async function lazyrow2record(
-  input?: string,
-  output?: string,
-): Promise<void> {
-  const processor = await FlatdataProcessor.create();
-  const stream = input
-    ? (await Deno.open(input, { read: true })).readable
-    : Deno.stdin.readable;
-  const enumerated = enumerate(stream).transform((input) =>
-    processor.lazyRowToRecord(input)
-  );
-  await (output
-    ? enumerated.writeTo(output)
-    : enumerated.writeTo(Deno.stdout.writable, { noclose: true }));
+export function record2tsv(input?: string, output?: string): Promise<void> {
+  return convert(input, output, viaRows(fromRecordToRows(), toTsv()));
 }
 
 // =============================================================================
 // CLI
 // =============================================================================
 
-// CSV input commands
 const csv2recordCmd = new Command()
   .description("Convert CSV to record format (\\x1F/\\x1E delimited)")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
@@ -255,17 +130,10 @@ const csv2recordCmd = new Command()
     await csv2record(input, output, separator);
   });
 
-const csv2lazyrowCmd = new Command()
-  .description("Convert CSV to binary lazyrow format")
-  .option("-d, --separator <char:string>", "Field separator", { default: "," })
-  .option("-i, --input <file:string>", "Input file (default: stdin)")
-  .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ separator, input, output }) => {
-    await csv2lazyrow(input, output, separator);
-  });
-
 const csv2tsvCmd = new Command()
-  .description("Convert CSV to TSV")
+  .description(
+    "Convert CSV to TSV; a field holding a tab, CR or LF is an error",
+  )
   .option("-d, --separator <char:string>", "CSV field separator", {
     default: ",",
   })
@@ -276,7 +144,6 @@ const csv2tsvCmd = new Command()
     await csv2tsv(input, output, separator);
   });
 
-// TSV input commands
 const tsv2recordCmd = new Command()
   .description("Convert TSV to record format (\\x1F/\\x1E delimited)")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
@@ -286,58 +153,33 @@ const tsv2recordCmd = new Command()
     await tsv2record(input, output);
   });
 
-const tsv2lazyrowCmd = new Command()
-  .description("Convert TSV to binary lazyrow format")
-  .option("-i, --input <file:string>", "Input file (default: stdin)")
-  .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ input, output }) => {
-    await tsv2lazyrow(input, output);
-  });
-
 const tsv2csvCmd = new Command()
   .description("Convert TSV to CSV with RFC 4180 quoting")
   .option("-d, --separator <char:string>", "CSV field separator", {
     default: ",",
   })
-  .option("--always-quote", "Quote all fields (default: only when needed)")
   .option("--crlf", "Use CRLF line endings (default: LF)")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "cat data.tsv | flatdata tsv2csv > data.csv")
-  .example("Always quote", "flatdata tsv2csv --always-quote < data.tsv")
   .example("Windows format", "flatdata tsv2csv --crlf -d ';' < data.tsv")
-  .action(async ({ separator, alwaysQuote, crlf, input, output }) => {
-    await tsv2csv(
-      input,
-      output,
-      separator,
-      !!alwaysQuote,
-      !!crlf,
-    );
+  .action(async ({ separator, crlf, input, output }) => {
+    await tsv2csv(input, output, separator, !!crlf);
   });
 
-// Record output commands
 const record2csvCmd = new Command()
   .description("Convert record format to CSV with RFC 4180 quoting")
   .option("-d, --separator <char:string>", "Field separator", { default: "," })
-  .option("--always-quote", "Quote all fields (default: only when needed)")
   .option("--crlf", "Use CRLF line endings (default: LF)")
   .option("-i, --input <file:string>", "Input file (default: stdin)")
   .option("-o, --output <file:string>", "Output file (default: stdout)")
   .example("Basic", "flatdata record2csv < data.rec > data.csv")
-  .example("Always quote", "flatdata record2csv --always-quote < data.rec")
   .example(
     "Pipeline",
     "cat huge.csv | flatdata csv2record | process | flatdata record2csv",
   )
-  .action(async ({ separator, alwaysQuote, crlf, input, output }) => {
-    await record2csv(
-      input,
-      output,
-      separator,
-      !!alwaysQuote,
-      !!crlf,
-    );
+  .action(async ({ separator, crlf, input, output }) => {
+    await record2csv(input, output, separator, !!crlf);
   });
 
 const record2tsvCmd = new Command()
@@ -349,43 +191,7 @@ const record2tsvCmd = new Command()
     await record2tsv(input, output);
   });
 
-// Lazyrow output commands (binary format)
-const lazyrow2csvCmd = new Command()
-  .description("Convert binary lazyrow format to CSV")
-  .option("-d, --separator <char:string>", "Field separator", { default: "," })
-  .option("-i, --input <file:string>", "Input file (default: stdin)")
-  .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ separator, input, output }) => {
-    await lazyrow2csv(input, output, separator);
-  });
-
-const lazyrow2tsvCmd = new Command()
-  .description("Convert binary lazyrow format to TSV")
-  .option("-i, --input <file:string>", "Input file (default: stdin)")
-  .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ input, output }) => {
-    await lazyrow2tsv(input, output);
-  });
-
-// Record <-> Lazyrow conversion commands
-const record2lazyrowCmd = new Command()
-  .description("Convert record format to binary lazyrow format")
-  .option("-i, --input <file:string>", "Input file (default: stdin)")
-  .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ input, output }) => {
-    await record2lazyrow(input, output);
-  });
-
-const lazyrow2recordCmd = new Command()
-  .description("Convert binary lazyrow format to record format")
-  .option("-i, --input <file:string>", "Input file (default: stdin)")
-  .option("-o, --output <file:string>", "Output file (default: stdout)")
-  .action(async ({ input, output }) => {
-    await lazyrow2record(input, output);
-  });
-
 if (import.meta.main) {
-  // Main command
   await new Command()
     .name("flatdata")
     .version(denoJson.version)
@@ -394,8 +200,7 @@ if (import.meta.main) {
 Formats:
   csv      RFC 4180 comma-separated values (configurable separator)
   tsv      Tab-separated values
-  record   Text format using \\x1F (field) and \\x1E (record) separators
-  lazyrow  Binary format with length-prefixed fields for efficient random access`)
+  record   Text format using \\x1F (field) and \\x1E (record) separators`)
     .example("CSV to record", "cat data.csv | flatdata csv2record | ./process")
     .example(
       "Record to CSV",
@@ -406,16 +211,10 @@ Formats:
       "flatdata csv2record -i huge.csv | ./analyze | flatdata record2csv -o results.csv",
     )
     .command("csv2record", csv2recordCmd)
-    .command("csv2lazyrow", csv2lazyrowCmd)
     .command("csv2tsv", csv2tsvCmd)
     .command("tsv2record", tsv2recordCmd)
-    .command("tsv2lazyrow", tsv2lazyrowCmd)
     .command("tsv2csv", tsv2csvCmd)
     .command("record2csv", record2csvCmd)
     .command("record2tsv", record2tsvCmd)
-    .command("record2lazyrow", record2lazyrowCmd)
-    .command("lazyrow2csv", lazyrow2csvCmd)
-    .command("lazyrow2tsv", lazyrow2tsvCmd)
-    .command("lazyrow2record", lazyrow2recordCmd)
     .parse(Deno.args);
 }

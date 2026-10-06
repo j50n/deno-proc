@@ -23,9 +23,11 @@ export {
 export {
   type CsvParseOptions,
   type CsvStringifyOptions,
+  csvToTsv,
   fromCsvToLazyRows,
   fromCsvToRows,
   toCsv,
+  tsvToCsv,
 } from "./csv.ts";
 
 // TSV transformers
@@ -33,9 +35,6 @@ export { fromTsvToLazyRows, fromTsvToRows, toTsv } from "./tsv.ts";
 
 // Record transformers
 export { fromRecordToLazyRows, fromRecordToRows, toRecord } from "./record.ts";
-
-// Binary LazyRow transformers
-export { fromLazyRowBinary, toLazyRowBinary } from "./lazyrow-binary.ts";
 
 // JSON transformers
 export { fromJsonToRows, type JsonOptions, toJson } from "./json.ts";

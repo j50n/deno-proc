@@ -83,6 +83,17 @@ await enumerate(data)
 - **No newlines in data**: Fields cannot contain line breaks
 - **Limited escaping**: No standard way to include tabs/newlines
 
+When reading, every CR is dropped (so CRLF files read like LF files), blank
+lines are skipped, and a UTF-8 byte order mark at the start is dropped. Quotes
+are ordinary characters. `toTsv()` refuses a field holding a tab, CR or LF
+rather than write a row that would read back as something else.
+
+TSV is read by the same WebAssembly reader as CSV, with quoting off, so
+`fromTsvToLazyRows()` gives rows that decode fields only when read, and
+`fieldEquals()` filters without decoding at all. To convert between TSV and CSV,
+`tsvToCsv()` and `csvToTsv()` work on the bytes directly; see
+[CSV → TSV](./csv.md#csv--tsv).
+
 ### When to Use TSV
 
 - Data doesn't contain tabs or newlines
@@ -441,7 +452,6 @@ if (errors.length > 0) {
 ### TSV vs Record
 
 - **Readability**: TSV is human-readable, Record is binary
-- **Speed**: Record is faster for large datasets
 - **Portability**: TSV works with any text editor
 - **Safety**: Record handles any UTF-8 content safely
 
