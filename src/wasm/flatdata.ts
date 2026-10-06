@@ -16,10 +16,19 @@
 import { FLATDATA_WASM_BASE64 } from "./flatdata-wasm.ts";
 import { BATCH_SIZE_BYTES, invalidCharacter } from "../transforms/common.ts";
 
-/** The module's exports. A `last` of 1 ends the stream. */
+/**
+ * The module's exports. A `last` of 1 ends the stream. A feed returns -1 once
+ * the input has had a byte refused, and the `invalid_*` functions, which take
+ * any handle, say which and where.
+ */
 interface Exports {
   memory: WebAssembly.Memory;
   _initialize(): void;
+
+  invalid_row(handle: number): number;
+  invalid_field(handle: number): number;
+  invalid_byte(handle: number): number;
+  invalid_in_output(handle: number): number;
 
   reader_new(separator: number, quoting: number, chunkCapacity: number): number;
   reader_input(reader: number): number;
@@ -33,9 +42,6 @@ interface Exports {
   csv2tsv_input(converter: number): number;
   csv2tsv_output(converter: number): number;
   csv2tsv_feed(converter: number, count: number, last: number): number;
-  csv2tsv_invalid_row(converter: number): number;
-  csv2tsv_invalid_field(converter: number): number;
-  csv2tsv_invalid_byte(converter: number): number;
 
   tsv2csv_new(separator: number, crlf: number, chunkCapacity: number): number;
   tsv2csv_input(converter: number): number;
@@ -57,6 +63,25 @@ async function instantiate(): Promise<Exports> {
 }
 
 /**
+ * The error for the byte a handle refused. `input` and `output` name the
+ * formats: the input's for a byte it doesn't allow where it is, the output's
+ * for one it can't hold.
+ */
+function refused(
+  wasm: Exports,
+  handle: number,
+  input: string,
+  output = input,
+): Error {
+  return invalidCharacter(
+    wasm.invalid_byte(handle),
+    wasm.invalid_in_output(handle) ? output : input,
+    wasm.invalid_row(handle),
+    wasm.invalid_field(handle) - 1,
+  );
+}
+
+/**
  * Whole rows of CSV or TSV, in record format (each field ends in 0x1F, the
  * last of a row in 0x1E), with the end of every field: `byteEnds[i]` in
  * `bytes` and `textEnds[i]` in UTF-16 code units of `bytes` decoded.
@@ -74,6 +99,9 @@ export interface RowBatch {
  * Read CSV, or TSV with `quoting` off and a tab separator, into batches of
  * whole rows; see `swift/Sources/CSV/CSVLexer.swift` for the rules. Batches
  * with no rows are skipped. A byte order mark at the start is dropped.
+ *
+ * A CR anywhere but before LF (outside quotes, in CSV) throws when the chunk
+ * holding it is read. Batches of earlier chunks have been yielded already.
  */
 export async function* readRows(
   bytes: AsyncIterable<Uint8Array>,
@@ -90,6 +118,7 @@ export async function* readRows(
     () => wasm.reader_input(reader),
     (count, last): RowBatch => {
       const size = wasm.reader_feed(reader, count, last ? 1 : 0);
+      if (size < 0) throw refused(wasm, reader, quoting ? "CSV" : "TSV");
       const fields = wasm.reader_fields(reader);
       const buffer = wasm.memory.buffer;
       return {
@@ -128,14 +157,7 @@ export async function* convertCsvToTsv(
     () => wasm.csv2tsv_input(converter),
     (count, last) => {
       const size = wasm.csv2tsv_feed(converter, count, last ? 1 : 0);
-      if (size < 0) {
-        throw invalidCharacter(
-          wasm.csv2tsv_invalid_byte(converter),
-          "TSV",
-          wasm.csv2tsv_invalid_row(converter),
-          wasm.csv2tsv_invalid_field(converter) - 1,
-        );
-      }
+      if (size < 0) throw refused(wasm, converter, "CSV", "TSV");
       return new Uint8Array(wasm.memory.buffer, output, size).slice();
     },
   ));
@@ -157,6 +179,7 @@ export async function* convertTsvToCsv(
     () => wasm.tsv2csv_input(converter),
     (count, last) => {
       const size = wasm.tsv2csv_feed(converter, count, last ? 1 : 0);
+      if (size < 0) throw refused(wasm, converter, "TSV");
       const output = wasm.tsv2csv_output(converter);
       return new Uint8Array(wasm.memory.buffer, output, size).slice();
     },

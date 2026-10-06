@@ -20,6 +20,24 @@ protocol CSVSink {
 
     /// The last field of a row ended. `utf8Excess` is as for `fieldEnd`.
     mutating func rowEnd(utf8Excess: Int)
+
+    /// The row and field the sink is in. The sinks count field and row ends
+    /// anyway, or nearly, so the lexer doesn't count them again for the rare
+    /// byte it refuses.
+    var position: Position { get }
+
+    /// Where the stream keeps the first byte refused (`StreamOperation`). The
+    /// lexer and the sink both refuse through it, so it holds the first in
+    /// input order.
+    var refusal: UnsafeMutablePointer<Invalid> { get }
+}
+
+extension CSVSink {
+    /// Refuses `b` where the sink is now, unless something was refused before.
+    @inline(__always)
+    func refuse(_ b: UInt8, inOutput: Bool = false) {
+        refusal.refuse(b, at: position, inOutput: inOutput)
+    }
 }
 
 /// An RFC 4180 lexer that takes CSV in chunks of any size and reports
@@ -29,14 +47,23 @@ protocol CSVSink {
 /// How it reads CSV, where RFC 4180 leaves room:
 /// - A quote opens a quoted field only at the start of a field; anywhere else
 ///   it is content. Text after a closing quote is content too, so `"a"b` is `ab`.
-/// - CR outside quotes is dropped, so CRLF files read like LF files. In TSV,
-///   which can't hold a CR in a field, that means every CR.
+/// - Rows end in LF or CRLF. Outside quotes, and so everywhere in TSV, a CR
+///   anywhere but right before LF is refused through the sink's `refusal`, a
+///   CR that ends the input included: a CR-only file is refused at its first
+///   line end, not read as one row. Inside quotes a CR is content.
 /// - A blank line is no row. A line holding only `""` is a row of one empty field.
 /// - A quote still open at the end of the input ends there, with what it held.
 ///
 /// It is a plain state machine over the special bytes only: quote, LF, CR, the
 /// separator, and `extra`, found 64 at a time with simd128. The bytes between
-/// them go to the sink as runs.
+/// them go to the sink as runs. A CR outside quotes looks at the byte after it;
+/// when the CR ends the chunk, the next chunk's first byte decides
+/// (`crEndsChunk`).
+///
+/// At a CR it refuses, the scan stops, so the sink is where the CR is and
+/// `refuse` finds its row and field there, after the loop. Refusing inside
+/// the loop kept what it needs live through every iteration, and the readers
+/// ran 10 to 20% slower for a path that almost never runs.
 ///
 /// The separator and `extra` must be ASCII. Between chunks it keeps only its
 /// state. The input must have `scanPadding` readable bytes past `count`.
@@ -51,6 +78,8 @@ struct CSVLexer {
     let extra: UInt8
     private var state = State.fieldStart
     private var rowIsEmpty = true
+    /// The last chunk ended in a CR outside quotes, so the next byte must be LF.
+    private var crEndsChunk = false
     private var utf8Excess = 0
 
     init(separator: UInt8, quoting: Bool = true, extra: UInt8 = ASCII.quote) {
@@ -75,15 +104,21 @@ struct CSVLexer {
 
     /// Ends a last row that had no trailing newline.
     mutating func finish<Sink: CSVSink>(into sink: inout Sink) {
+        if crEndsChunk { refuseCR(into: &sink) }
         if !rowIsEmpty || state != .fieldStart { sink.rowEnd(utf8Excess: utf8Excess) }
         state = .fieldStart
         rowIsEmpty = true
+        crEndsChunk = false
     }
 
     @inline(__always)
     private mutating func scanLocally<Sink: CSVSink>(
         _ input: UnsafePointer<UInt8>, count: Int, into sink: inout Sink
     ) {
+        if crEndsChunk && count > 0 {
+            crEndsChunk = false
+            if input[0] != ASCII.lf { return refuseCR(into: &sink) }
+        }
         var block = 0
         var runStart = 0
         while block < count {
@@ -119,7 +154,9 @@ struct CSVLexer {
                         &+ (continuations & before).nonzeroBitCount
                         &- (fourByteLeads & before).nonzeroBitCount
                 }
-                special(input[position], utf8Excess: excess, into: &sink)
+                if !special(input, at: position, count: count, utf8Excess: excess, into: &sink) {
+                    return refuseCR(into: &sink)
+                }
             }
             if Sink.tracksText {
                 utf8Excess = utf8Excess
@@ -143,20 +180,22 @@ struct CSVLexer {
         }
     }
 
-    /// One step of the state machine.
+    /// One step of the state machine, on `input[i]`. False at a CR to refuse.
     @inline(__always)
     private mutating func special<Sink: CSVSink>(
-        _ b: UInt8, utf8Excess: Int, into sink: inout Sink
-    ) {
+        _ input: UnsafePointer<UInt8>, at i: Int, count: Int, utf8Excess: Int,
+        into sink: inout Sink
+    ) -> Bool {
+        let b = input[i]
         switch state {
         case .quoted:
             if b == ASCII.quote { state = .quoteInQuoted } else { sink.byte(b) }
-            return
+            return true
         case .quoteInQuoted:
             if b == ASCII.quote {
                 sink.byte(ASCII.quote)
                 state = .quoted
-                return
+                return true
             }
             state = .unquoted
         case .fieldStart, .unquoted:
@@ -171,7 +210,12 @@ struct CSVLexer {
             state = .fieldStart
             rowIsEmpty = true
         } else if b == ASCII.cr {
-            // Dropped outside quotes.
+            // Nothing but a CRLF's CR, which its LF's row end covers.
+            if i &+ 1 == count {
+                crEndsChunk = true
+            } else if input[i &+ 1] != ASCII.lf {
+                return false
+            }
         } else if b == ASCII.quote && state == .fieldStart && quoting {
             state = .quoted
             rowIsEmpty = false
@@ -180,5 +224,13 @@ struct CSVLexer {
             state = .unquoted
             rowIsEmpty = false
         }
+        return true
     }
+}
+
+/// Refuses a CR where the sink is. Out of line, so that nothing it needs is
+/// kept live through the scan loop that calls it on the way out.
+@inline(never)
+private func refuseCR<Sink: CSVSink>(into sink: inout Sink) {
+    sink.refuse(ASCII.cr)
 }

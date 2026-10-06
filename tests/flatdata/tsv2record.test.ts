@@ -2,7 +2,7 @@
  * TSV to record format, as the flatdata CLI's tsv2record does it.
  */
 
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { enumerate } from "../../src/enumerable.ts";
 import { fromTsvToRows, toRecord } from "../../src/transforms/mod.ts";
 
@@ -72,14 +72,20 @@ Deno.test("tsv2record - strips \\r from \\r\\n", async () => {
   assertEquals(result, "a\x1Fb\x1E1\x1F2\x1E");
 });
 
-Deno.test("tsv2record - strips standalone \\r", async () => {
-  const result = await tsv2record("a\rb\tc\r\n");
-  assertEquals(result, "ab\x1Fc\x1E");
+Deno.test("tsv2record - a standalone \\r is an error", async () => {
+  await assertRejects(
+    () => tsv2record("a\tb\nc\rd\te\r\n"),
+    Error,
+    "Invalid character (CR) in TSV data at row 2, field 1",
+  );
 });
 
-Deno.test("tsv2record - strips multiple \\r", async () => {
-  const result = await tsv2record("a\r\r\rb\tc\n");
-  assertEquals(result, "ab\x1Fc\x1E");
+Deno.test("tsv2record - \\r\\r\\n is an error", async () => {
+  await assertRejects(
+    () => tsv2record("a\tb\r\r\n"),
+    Error,
+    "Invalid character (CR) in TSV data at row 1, field 2",
+  );
 });
 
 // Special characters

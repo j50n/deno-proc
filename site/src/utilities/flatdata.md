@@ -78,7 +78,9 @@ Options:
 - `-o, --output <file>` - Output file (default: stdout)
 
 TSV can't hold a tab, CR or LF inside a field, so `csv2tsv` and `record2tsv`
-stop with an error naming the row and field of the first one.
+stop with an error naming the row and field of the first one. Reading CSV or
+TSV, lines end in LF or CRLF, and any other CR (outside quotes, in CSV) stops
+with the same kind of error.
 
 ## Using with proc
 

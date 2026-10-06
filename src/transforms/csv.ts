@@ -46,10 +46,14 @@ function csvSeparator(separator = ","): string {
  * Parse CSV bytes into batches of string arrays.
  *
  * How it reads CSV, where RFC 4180 leaves room: a quote opens a quoted field
- * only at the start of a field, and is content anywhere else; CR outside
- * quotes is dropped, so CRLF files read like LF files; blank lines are
- * skipped; a quote left open at the end of the input ends there. A UTF-8
- * byte order mark at the start is dropped, and invalid UTF-8 is an error.
+ * only at the start of a field, and is content anywhere else; lines end in LF
+ * or CRLF; blank lines are skipped; a quote left open at the end of the input
+ * ends there. A UTF-8 byte order mark at the start is dropped.
+ *
+ * Invalid UTF-8 is an error, and so is a CR outside quotes anywhere but
+ * before LF (a CR-only file, say), naming its row and field. Inside quotes a
+ * CR is content. The error comes with the batch that holds it, after the
+ * batches before it.
  *
  * The parser is WebAssembly with SIMD; each batch holds the rows of about
  * 128 KB of input.

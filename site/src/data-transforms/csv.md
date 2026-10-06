@@ -250,10 +250,15 @@ await enumerate(salesData)
 The parser is lenient. It doesn't throw on rows of different lengths, on a stray
 quote inside an unquoted field, or on a quoted field left open at the end of the
 input; it keeps what it read. A quote opens a quoted field only at the start of
-a field, and text after a closing quote is kept (`"a"b` reads as `ab`). A CR
-outside quotes is dropped, so CRLF files read like LF files; blank lines are
-skipped; a UTF-8 byte order mark at the start is dropped. The one thing it
-rejects is invalid UTF-8, which throws a `TypeError`:
+a field, and text after a closing quote is kept (`"a"b` reads as `ab`). Lines
+end in LF or CRLF; blank lines are skipped; a UTF-8 byte order mark at the start
+is dropped.
+
+It rejects two things. A CR outside quotes that isn't the CR of a CRLF, as in a
+file with old Mac CR-only line ends, throws an `Error` such as
+`Invalid character (CR) in CSV data at row 1, field 2`; inside quotes a CR is
+kept. Invalid UTF-8 throws a `TypeError`. Either way, rows of earlier batches
+have already gone down the pipeline.
 
 ```typescript
 try {

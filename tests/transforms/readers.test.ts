@@ -23,6 +23,7 @@ import {
   EDGE_TSV,
   readCsvReference,
   readTsvReference,
+  rowsOrError,
 } from "./reference.ts";
 
 const encoder = new TextEncoder();
@@ -57,15 +58,39 @@ function assertLazyRow(row: LazyRow, expected: string[], what: string) {
   }
 }
 
+/**
+ * The WASM reader at `size`-byte chunks gives what the reference gives: the
+ * same rows, or an error with the same message.
+ */
+async function assertReadsAsReference(
+  text: string,
+  expected: string[][] | string,
+  size: number,
+  separator: number,
+  quoting: boolean,
+  what: string,
+) {
+  if (typeof expected === "string") {
+    await assertRejects(
+      () => readAt(text, size, separator, quoting),
+      Error,
+      expected,
+      what,
+    );
+    return;
+  }
+  const { strings, lazy } = await readAt(text, size, separator, quoting);
+  assertEquals(strings, expected, what);
+  assertEquals(lazy.length, expected.length, what);
+  lazy.forEach((row, r) => assertLazyRow(row, expected[r], what));
+}
+
 Deno.test("The CSV reader matches the reference on every edge case at every chunk size.", async () => {
   for (const [i, text] of EDGE_CSV.entries()) {
-    const expected = readCsvReference(text);
+    const expected = rowsOrError(() => readCsvReference(text));
     for (const size of CHUNK_SIZES) {
       const what = `fixture ${i}, chunks of ${size}`;
-      const { strings, lazy } = await readAt(text, size, COMMA, true);
-      assertEquals(strings, expected, what);
-      assertEquals(lazy.length, expected.length, what);
-      lazy.forEach((row, r) => assertLazyRow(row, expected[r], what));
+      await assertReadsAsReference(text, expected, size, COMMA, true, what);
     }
   }
 });
@@ -74,15 +99,16 @@ Deno.test("The CSV reader matches the reference with other separators.", async (
   for (const separator of [";", "|", "\t", "\x1F"]) {
     for (const [i, text] of EDGE_CSV.entries()) {
       const input = text.replaceAll(",", separator);
-      const expected = readCsvReference(input, separator);
+      const expected = rowsOrError(() => readCsvReference(input, separator));
       for (const size of [1, 64, 1000]) {
-        const { strings } = await readAt(
+        await assertReadsAsReference(
           input,
+          expected,
           size,
           separator.charCodeAt(0),
           true,
+          `${separator} ${i} ${size}`,
         );
-        assertEquals(strings, expected, `${separator} ${i} ${size}`);
       }
     }
   }
@@ -90,20 +116,19 @@ Deno.test("The CSV reader matches the reference with other separators.", async (
 
 Deno.test("The TSV reader matches the reference on every edge case at every chunk size.", async () => {
   for (const [i, text] of EDGE_TSV.entries()) {
-    const expected = readTsvReference(text);
+    const expected = rowsOrError(() => readTsvReference(text));
     for (const size of CHUNK_SIZES) {
       const what = `fixture ${i}, chunks of ${size}`;
-      const { strings, lazy } = await readAt(text, size, TAB, false);
-      assertEquals(strings, expected, what);
-      assertEquals(lazy.length, expected.length, what);
-      lazy.forEach((row, r) => assertLazyRow(row, expected[r], what));
+      await assertReadsAsReference(text, expected, size, TAB, false, what);
     }
   }
 });
 
 Deno.test("The public CSV and TSV readers match the reference, however the source is chunked.", async () => {
-  const csv = EDGE_CSV.join("\n");
-  const tsv = EDGE_TSV.join("\n");
+  const readable = (read: (text: string) => string[][]) => (text: string) =>
+    typeof rowsOrError(() => read(text)) !== "string";
+  const csv = EDGE_CSV.filter(readable(readCsvReference)).join("\n");
+  const tsv = EDGE_TSV.filter(readable(readTsvReference)).join("\n");
   for (const size of [1, 3, 4096]) {
     const csvSource = () => enumerate(chunked(encoder.encode(csv), size));
     const tsvSource = () => enumerate(chunked(encoder.encode(tsv), size));
@@ -126,6 +151,49 @@ Deno.test("The public CSV and TSV readers match the reference, however the sourc
       readTsvReference(tsv),
     );
   }
+});
+
+Deno.test("The public readers refuse a CR that doesn't end a line, naming its row and field.", async () => {
+  const cases = [
+    { csv: "a,b\rc,d\r", row: 1, field: 2 }, // CR-only line ends
+    { csv: "a,b\nc\r", row: 2, field: 1 }, // CR as the last byte
+    { csv: "a,b\n\nc,d\re\n", row: 2, field: 2 }, // blank lines aren't rows
+  ];
+  for (const { csv, row, field } of cases) {
+    const tsv = csv.replaceAll(",", "\t");
+    const at = `at row ${row}, field ${field}`;
+    const from = (text: string) => enumerate([encoder.encode(text)]);
+    const reads = [
+      ["CSV", () => from(csv).transform(fromCsvToRows()).collect()],
+      ["CSV", () => from(csv).transform(fromCsvToLazyRows()).collect()],
+      ["TSV", () => from(tsv).transform(fromTsvToRows()).collect()],
+      ["TSV", () => from(tsv).transform(fromTsvToLazyRows()).collect()],
+    ] as const;
+    for (const [format, read] of reads) {
+      await assertRejects(
+        read,
+        Error,
+        `Invalid character (CR) in ${format} data ${at}`,
+      );
+    }
+  }
+});
+
+Deno.test("Rows of earlier batches are read before a refused CR throws.", async () => {
+  const rows: string[][] = [];
+  const csv = "a,b\n".repeat(100) + "c\rd\n";
+  await assertRejects(
+    async () => {
+      const source = enumerate(chunked(encoder.encode(csv), 64));
+      for await (const batch of readRows(source, COMMA, true, 64)) {
+        rows.push(...batchRows(batch));
+      }
+    },
+    Error,
+    "Invalid character (CR) in CSV data at row 101, field 1",
+  );
+  assert(rows.length > 0 && rows.length < 101, `${rows.length} rows`);
+  assertEquals(rows, Array(rows.length).fill(["a", "b"]));
 });
 
 Deno.test("A character split across chunks is read whole.", async () => {

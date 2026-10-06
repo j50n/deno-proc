@@ -83,10 +83,12 @@ await enumerate(data)
 - **No newlines in data**: Fields cannot contain line breaks
 - **Limited escaping**: No standard way to include tabs/newlines
 
-When reading, every CR is dropped (so CRLF files read like LF files), blank
-lines are skipped, and a UTF-8 byte order mark at the start is dropped. Quotes
-are ordinary characters. `toTsv()` refuses a field holding a tab, CR or LF
-rather than write a row that would read back as something else.
+When reading, lines end in LF or CRLF, blank lines are skipped, and a UTF-8 byte
+order mark at the start is dropped. Any other CR, as in a file with CR-only line
+ends, is an error naming its row and field, such as
+`Invalid character (CR) in TSV data at row 1, field 2`. Quotes are ordinary
+characters. `toTsv()` refuses a field holding a tab, CR or LF rather than write
+a row that would read back as something else.
 
 TSV is read by the same WebAssembly reader as CSV, with quoting off, so
 `fromTsvToLazyRows()` gives rows that decode fields only when read, and

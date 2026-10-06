@@ -8,8 +8,8 @@ comments there carry the details.
 ## How it reads CSV
 
 It follows [RFC 4180](https://datatracker.ietf.org/doc/html/rfc4180) and is
-lenient where the RFC leaves room or the input breaks it. Nothing but invalid
-UTF-8 is an error.
+lenient where the RFC leaves room or the input breaks it. Two things are errors:
+invalid UTF-8, and a CR outside quotes that isn't the CR of a CRLF.
 
 | Input                               | Result                                 |
 | ----------------------------------- | -------------------------------------- |
@@ -18,7 +18,9 @@ UTF-8 is an error.
 | `"two` LF `lines"`                  | the newline is kept                    |
 | `ab"c` (quote inside a field)       | `ab"c`: the quote is content           |
 | `"a"b` (text after a closing quote) | `ab`                                   |
-| CR outside quotes                   | dropped, so CRLF reads like LF         |
+| CRLF line end                       | the same as LF                         |
+| any other CR outside quotes         | an error naming its row and field      |
+| CR inside quotes                    | kept                                   |
 | blank line                          | no row                                 |
 | `""` alone on a line                | a row of one empty field               |
 | a quote still open at the end       | the field ends there, with what it had |
@@ -27,7 +29,11 @@ UTF-8 is an error.
 
 The separator can be any ASCII character other than a quote, CR or LF. TSV is
 the same reader with a tab separator and quoting off, so in TSV a quote is an
-ordinary character and every CR is dropped.
+ordinary character and a CR anywhere but in a CRLF is an error.
+
+A CR-only file (old Mac line ends) is an error at its first line end rather than
+one long row. The error comes when the reader reaches it, so rows of earlier
+batches have already gone down the pipeline.
 
 ## How it works
 
@@ -38,10 +44,11 @@ and in UTF-16 code units. JavaScript then decodes the whole batch with one
 `TextDecoder` call and slices fields out of the string, or, for LazyRows,
 decodes or compares single fields only when asked.
 
-Inside, the reader is a four-state machine (field start, unquoted, quoted, quote
-in quoted) that visits only the bytes that can change its state: quotes,
-separators, CR and LF. It finds them 64 bytes at a time with wasm SIMD, and
-copies the runs between them 16 bytes at a time.
+Inside, the reader is a five-state machine (field start, unquoted, quoted, quote
+in quoted, after a CR) that visits only the bytes that can change its state:
+quotes, separators, CR and LF. It finds them 64 bytes at a time with wasm SIMD,
+and copies the runs between them 16 bytes at a time. A CR outside quotes waits
+for the next byte, even across chunks, to show whether it ends a line.
 
 `csvToTsv()` and `tsvToCsv()` use the same machinery to convert bytes to bytes
 without ever making a JavaScript string.

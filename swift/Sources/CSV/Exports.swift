@@ -7,6 +7,9 @@
 // Pointers into buffers that grow (the reader's output and ends, the TSV
 // converter's input and output) are valid until the next feed on the same
 // handle, and so are views of memory, since a feed may grow it.
+//
+// A feed returns -1 once its input has had a byte refused, and the
+// `invalid_*` functions, which take any handle, say which and where.
 
 typealias Handle = UnsafeMutableRawPointer
 
@@ -17,6 +20,30 @@ private func with<T: AnyObject, R>(_ handle: Handle, _ body: (T) -> R) -> R {
 
 private func retain(_ object: AnyObject) -> Handle {
     Unmanaged.passRetained(object).toOpaque()
+}
+
+// MARK: Any operation
+
+@_expose(wasm, "invalid_row") @_cdecl("invalid_row")
+func invalidRow(_ h: Handle) -> Int32 {
+    with(h) { (o: StreamOperation) in Int32(truncatingIfNeeded: o.invalid.row) }
+}
+
+@_expose(wasm, "invalid_field") @_cdecl("invalid_field")
+func invalidField(_ h: Handle) -> Int32 {
+    with(h) { (o: StreamOperation) in Int32(truncatingIfNeeded: o.invalid.field) }
+}
+
+@_expose(wasm, "invalid_byte") @_cdecl("invalid_byte")
+func invalidByte(_ h: Handle) -> Int32 {
+    with(h) { (o: StreamOperation) in Int32(o.invalid.byte) }
+}
+
+/// 1 when the output format can't hold the byte, 0 when the input format
+/// doesn't allow it where it was.
+@_expose(wasm, "invalid_in_output") @_cdecl("invalid_in_output")
+func invalidInOutput(_ h: Handle) -> Int32 {
+    with(h) { (o: StreamOperation) in o.invalid.inOutput ? 1 : 0 }
 }
 
 // MARK: CSV and TSV reader
@@ -32,7 +59,7 @@ func readerInput(_ h: Handle) -> UnsafeMutablePointer<UInt8> {
     with(h) { (r: CSVReader) in r.input }
 }
 
-/// Bytes of complete rows at `reader_output`.
+/// Bytes of complete rows at `reader_output`, or -1 once a CR is refused.
 @_expose(wasm, "reader_feed") @_cdecl("reader_feed")
 func readerFeed(_ h: Handle, _ count: Int32, _ last: Int32) -> Int32 {
     with(h) { (r: CSVReader) in Int32(r.feed(Int(count), last: last != 0)) }
@@ -76,26 +103,11 @@ func csvToTSVOutput(_ h: Handle) -> UnsafeMutablePointer<UInt8> {
     with(h) { (c: CSVToTSV) in c.output }
 }
 
-/// Bytes at `csv2tsv_output`, or -1 when the input has had a byte TSV can't
-/// hold; the `csv2tsv_invalid_*` functions say where.
+/// Bytes at `csv2tsv_output`, or -1 once a byte is refused: a CR the CSV
+/// doesn't allow, or a byte TSV can't hold.
 @_expose(wasm, "csv2tsv_feed") @_cdecl("csv2tsv_feed")
 func csvToTSVFeed(_ h: Handle, _ count: Int32, _ last: Int32) -> Int32 {
     with(h) { (c: CSVToTSV) in Int32(c.feed(Int(count), last: last != 0)) }
-}
-
-@_expose(wasm, "csv2tsv_invalid_row") @_cdecl("csv2tsv_invalid_row")
-func csvToTSVInvalidRow(_ h: Handle) -> Int32 {
-    with(h) { (c: CSVToTSV) in Int32(truncatingIfNeeded: c.invalid.row) }
-}
-
-@_expose(wasm, "csv2tsv_invalid_field") @_cdecl("csv2tsv_invalid_field")
-func csvToTSVInvalidField(_ h: Handle) -> Int32 {
-    with(h) { (c: CSVToTSV) in Int32(truncatingIfNeeded: c.invalid.field) }
-}
-
-@_expose(wasm, "csv2tsv_invalid_byte") @_cdecl("csv2tsv_invalid_byte")
-func csvToTSVInvalidByte(_ h: Handle) -> Int32 {
-    with(h) { (c: CSVToTSV) in Int32(c.invalid.byte) }
 }
 
 // MARK: TSV to CSV
@@ -117,7 +129,7 @@ func tsvToCSVOutput(_ h: Handle) -> UnsafeMutablePointer<UInt8> {
     with(h) { (c: TSVToCSV) in c.output.base }
 }
 
-/// Bytes at `tsv2csv_output`.
+/// Bytes at `tsv2csv_output`, or -1 once a CR is refused.
 @_expose(wasm, "tsv2csv_feed") @_cdecl("tsv2csv_feed")
 func tsvToCSVFeed(_ h: Handle, _ count: Int32, _ last: Int32) -> Int32 {
     with(h) { (c: TSVToCSV) in Int32(c.feed(Int(count), last: last != 0)) }

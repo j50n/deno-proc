@@ -21,6 +21,7 @@ import {
   EDGE_TSV,
   readCsvReference,
   readTsvReference,
+  rowsOrError,
   writeCsvReference,
   writeTsvReference,
 } from "./reference.ts";
@@ -39,6 +40,11 @@ async function text(chunks: AsyncIterable<Uint8Array>): Promise<string> {
 const source = (input: string, size: number) =>
   enumerate(chunked(encoder.encode(input), size));
 
+/** The edge-case TSV inputs that the reference reads without an error. */
+const READABLE_TSV = EDGE_TSV.filter((tsv) =>
+  typeof rowsOrError(() => readTsvReference(tsv)) !== "string"
+);
+
 /** The first field TSV can't hold, as csvToTsv reports it. */
 function firstInvalid(rows: string[][]): string | undefined {
   const names: Record<string, string> = { "\t": "tab", "\n": "LF", "\r": "CR" };
@@ -55,14 +61,16 @@ function firstInvalid(rows: string[][]): string | undefined {
 }
 
 Deno.test("csvToTsv writes the reference's rows as TSV, or refuses as the reference says, at every chunk size.", async () => {
+  // No fixture with a CR the reference refuses has a field TSV can't hold
+  // before it, so the reference's error is the first one.
   for (const [i, csv] of EDGE_CSV.entries()) {
-    const rows = readCsvReference(csv);
-    const invalid = firstInvalid(rows);
+    const rows = rowsOrError(() => readCsvReference(csv));
+    const invalid = typeof rows === "string" ? rows : firstInvalid(rows);
     for (const size of CHUNK_SIZES) {
       const converted = () =>
         text(convertCsvToTsv(source(csv, size), 0x2C, size));
       const what = `fixture ${i}, chunks of ${size}`;
-      if (invalid) {
+      if (typeof rows === "string" || invalid) {
         await assertRejects(converted, Error, invalid, what);
       } else {
         assertEquals(await converted(), writeTsvReference(rows), what);
@@ -92,22 +100,44 @@ Deno.test("csvToTsv names the row and field of a character TSV can't hold.", asy
   );
 });
 
-Deno.test("tsvToCsv writes the reference's rows as CSV at every chunk size.", async () => {
-  for (const [i, tsv] of EDGE_TSV.entries()) {
-    const expected = writeCsvReference(readTsvReference(tsv));
+Deno.test("csvToTsv reports whichever refusal comes first: a CR in the CSV, or a byte TSV can't hold.", async () => {
+  const cases = [
+    ['"a\tb"\rc\n', "Invalid character (tab) in TSV data at row 1, field 1"],
+    ['a\rb,"c\td"\n', "Invalid character (CR) in CSV data at row 1, field 1"],
+    ['"a\r"\rb\n', "Invalid character (CR) in TSV data at row 1, field 1"],
+    ['a,"b"\rc\n', "Invalid character (CR) in CSV data at row 1, field 2"],
+  ];
+  for (const [csv, message] of cases) {
     for (const size of CHUNK_SIZES) {
-      assertEquals(
-        await text(convertTsvToCsv(source(tsv, size), 0x2C, false, size)),
-        expected,
-        `fixture ${i}, chunks of ${size}`,
+      await assertRejects(
+        () => text(convertCsvToTsv(source(csv, size), 0x2C, size)),
+        Error,
+        message,
+        `${JSON.stringify(csv)}, chunks of ${size}`,
       );
+    }
+  }
+});
+
+Deno.test("tsvToCsv writes the reference's rows as CSV, or refuses as the reference says, at every chunk size.", async () => {
+  for (const [i, tsv] of EDGE_TSV.entries()) {
+    const rows = rowsOrError(() => readTsvReference(tsv));
+    for (const size of CHUNK_SIZES) {
+      const converted = () =>
+        text(convertTsvToCsv(source(tsv, size), 0x2C, false, size));
+      const what = `fixture ${i}, chunks of ${size}`;
+      if (typeof rows === "string") {
+        await assertRejects(converted, Error, rows, what);
+      } else {
+        assertEquals(await converted(), writeCsvReference(rows), what);
+      }
     }
   }
 });
 
 Deno.test("tsvToCsv takes a separator and CRLF line ends as toCsv does.", async () => {
   for (const options of [{ separator: ";" }, { crlf: true }, {}]) {
-    for (const [i, tsv] of EDGE_TSV.entries()) {
+    for (const [i, tsv] of READABLE_TSV.entries()) {
       const rows = readTsvReference(tsv);
       const viaRows = await text(enumerate([rows]).transform(toCsv(options)));
       const direct = await text(source(tsv, 7).transform(tsvToCsv(options)));
@@ -125,7 +155,7 @@ Deno.test("A field of several megabytes converts whole, both ways.", async () =>
 });
 
 Deno.test("TSV to CSV and back gives the same rows.", async () => {
-  const tsv = EDGE_TSV.join("\n");
+  const tsv = READABLE_TSV.join("\n");
   const csv = await text(source(tsv, 64).transform(tsvToCsv()));
   assertEquals(
     await source(csv, 64).transform(fromCsvToRows()).flatten().collect(),

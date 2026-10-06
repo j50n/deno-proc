@@ -11,10 +11,13 @@ const TSV_FORBIDDEN = /[\t\n\r]/;
  * Parse TSV bytes into batches of string arrays.
  *
  * Each line is a row and tabs separate its fields. TSV has no quoting and
- * can't hold a tab, LF or CR in a field: every CR is dropped, so CRLF files
- * read like LF files, and blank lines are skipped. A UTF-8 byte order mark
- * at the start is dropped, and invalid UTF-8 is an error. All rows are data;
- * there is no special header handling.
+ * can't hold a tab, LF or CR in a field. Lines end in LF or CRLF, and blank
+ * lines are skipped. A UTF-8 byte order mark at the start is dropped. All
+ * rows are data; there is no special header handling.
+ *
+ * Invalid UTF-8 is an error, and so is a CR anywhere but before LF (a CR-only
+ * file, say), naming its row and field. The error comes with the batch that
+ * holds it, after the batches before it.
  *
  * The reader is the WebAssembly CSV reader with quoting off; each batch
  * holds the rows of about 128 KB of input.

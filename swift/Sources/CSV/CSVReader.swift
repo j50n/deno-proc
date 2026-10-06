@@ -21,7 +21,11 @@
 ///
 /// `output`, `byteEnds` and `textEnds` may move at every feed; the caller
 /// reads their addresses afterwards. `input` stays put.
-final class CSVReader {
+///
+/// A CR the lexer refuses makes the feed return -1, with `refusal` saying
+/// where. The rows of that feed are not handed back; rows of earlier feeds
+/// have been.
+final class CSVReader: StreamOperation {
     let chunkCapacity: Int
     /// Where the caller writes each chunk of at most `chunkCapacity` bytes.
     let input: UnsafeMutablePointer<UInt8>
@@ -38,6 +42,8 @@ final class CSVReader {
     private var partialFields = 0
     /// The lexer's `utf8Excess` at offset 0 of `output`.
     private var excessBase = 0
+    /// Rows ended by earlier feeds.
+    private var rowsBefore = 0
 
     init(separator: UInt8, quoting: Bool, chunkCapacity: Int) {
         self.chunkCapacity = chunkCapacity
@@ -48,8 +54,9 @@ final class CSVReader {
         lexer = CSVLexer(separator: separator, quoting: quoting)
     }
 
-    /// Reads `count` bytes from `input` and returns `rowBytes`. When `last`,
-    /// the stream ends here, and every byte of output is in complete rows.
+    /// Reads `count` bytes from `input` and returns `rowBytes`, or -1 once the
+    /// input has had a byte refused. When `last`, the stream ends here, and
+    /// every byte of output is in complete rows.
     func feed(_ count: Int, last: Bool) -> Int {
         // Every input byte makes at most one output byte or terminator, and
         // the end of the stream one more terminator.
@@ -57,7 +64,7 @@ final class CSVReader {
         var sink = IndexingRecordWriter(
             out: output.base, count: partialBytes,
             byteEnds: byteEnds.base, textEnds: textEnds.base, fields: partialFields,
-            excessBase: excessBase)
+            excessBase: excessBase, rowsBefore: rowsBefore, refusal: refusal)
         var lexer = self.lexer
         lexer.scan(input, count: count, into: &sink)
         if last { lexer.finish(into: &sink) }
@@ -66,7 +73,8 @@ final class CSVReader {
         partialBytes = sink.count - rowBytes
         rowFields = sink.completeFields
         partialFields = sink.fields - rowFields
-        return rowBytes
+        rowsBefore &+= sink.rows
+        return refused ? -1 : rowBytes
     }
 
     /// Drops the rows the caller has seen, moves the partial row to the front,
@@ -104,11 +112,15 @@ struct IndexingRecordWriter: CSVSink {
     /// Output and terminators up to and including the last row's end.
     var completeBytes = 0
     var completeFields = 0
+    /// Rows ended before `out`, and since.
+    let rowsBefore: Int
+    var rows = 0
+    let refusal: UnsafeMutablePointer<Invalid>
 
     init(
         out: UnsafeMutablePointer<UInt8>, count: Int,
         byteEnds: UnsafeMutablePointer<UInt32>, textEnds: UnsafeMutablePointer<UInt32>,
-        fields: Int, excessBase: Int
+        fields: Int, excessBase: Int, rowsBefore: Int, refusal: UnsafeMutablePointer<Invalid>
     ) {
         self.out = out
         self.count = count
@@ -116,6 +128,13 @@ struct IndexingRecordWriter: CSVSink {
         self.textEnds = textEnds
         self.fields = fields
         self.excessBase = excessBase
+        self.rowsBefore = rowsBefore
+        self.refusal = refusal
+    }
+
+    /// The fields since the last row end are the current row's.
+    var position: Position {
+        Position(row: rowsBefore &+ rows &+ 1, field: fields &- completeFields &+ 1)
     }
 
     @inline(__always)
@@ -148,5 +167,6 @@ struct IndexingRecordWriter: CSVSink {
         terminate(ASCII.recordSeparator, utf8Excess: utf8Excess)
         completeBytes = count
         completeFields = fields
+        rows &+= 1
     }
 }
