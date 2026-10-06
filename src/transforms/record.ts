@@ -5,6 +5,10 @@ import {
   checkFields,
   FIELD_SEPARATOR,
   forbiddenBytes,
+  isBinaryLazyRowArray,
+  isRow,
+  isRowArray,
+  isStringLazyRowArray,
   RECORD_SEPARATOR,
   rowsToRecord,
   rowToRecord,
@@ -48,26 +52,30 @@ async function* recordBatches<T>(
 }
 
 /**
- * Parse Record format bytes into batches of string arrays.
+ * Parse the record format into batches of rows, each row a `string[]`.
  *
- * Record format uses ASCII control characters (RS=0x1E, US=0x1F) as separators,
- * making it binary-safe and faster to parse than CSV/TSV.
+ * The input is split into records on {@link RECORD_SEPARATOR} (`\x1E`) and
+ * each record into fields on {@link FIELD_SEPARATOR} (`\x1F`). Nothing else is
+ * special: tabs, quotes, and newlines are field text. Text after the last
+ * `\x1E` is a final record. Every piece between separators is a record, so an
+ * empty one reads as `[""]`, and a newline after the last `\x1E` (as `echo`
+ * adds) reads as a row `["\n"]`. Batches close at about 128 KiB of text
+ * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work row by row.
  *
- * **Performance**: Record format achieves ~93 MB/s, the fastest of all formats.
+ * Invalid UTF-8 throws a `TypeError`.
  *
- * @example Basic Record parsing
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
+ * @example Read rows another program wrote
+ * ```ts
+ * import { run } from "@j50n/proc";
+ * import { fromRecordToRows } from "@j50n/proc/transforms";
  *
- * const rows = await read("data.record")
+ * const rows = await run("./export-users")
  *   .transform(fromRecordToRows())
  *   .flatten()
  *   .collect();
- * // string[][] - each inner array is one row
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromRecordToRows(): TransformerFunction<Uint8Array, Row[]> {
   return (bytes: AsyncIterable<Uint8Array>): AsyncIterable<Row[]> =>
@@ -75,24 +83,26 @@ export function fromRecordToRows(): TransformerFunction<Uint8Array, Row[]> {
 }
 
 /**
- * Parse Record format bytes into batches of LazyRow objects.
+ * Parse the record format into batches of {@link LazyRow}s.
  *
- * Like {@link fromRecordToRows} but returns {@link LazyRow} objects for better
- * performance when accessing only specific fields.
+ * Parsing is the same as in {@link fromRecordToRows}. The rows are
+ * string-backed: each record is decoded and split as it is read, so this is no
+ * faster than {@link fromRecordToRows}. Use it when the code downstream takes
+ * `LazyRow`s.
  *
- * @example Efficient field access
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromRecordToLazyRows } from "jsr:@j50n/proc/transforms";
+ * @example
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromRecordToLazyRows } from "@j50n/proc/transforms";
  *
- * await read("large.record")
+ * await read("data.rec")
  *   .transform(fromRecordToLazyRows())
  *   .flatten()
- *   .filter(row => row.getField(0) === "active")
- *   .forEach(row => console.log(row.getField(1)));
+ *   .filter((row) => row.getField(0) === "active")
+ *   .forEach((row) => console.log(row.getField(1)));
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromRecordToLazyRows(): TransformerFunction<
   Uint8Array,
@@ -103,25 +113,31 @@ export function fromRecordToLazyRows(): TransformerFunction<
 }
 
 /**
- * Convert row data to Record format bytes.
+ * Write rows in the record format: fields joined by {@link FIELD_SEPARATOR}
+ * (`\x1F`), each row ended by {@link RECORD_SEPARATOR} (`\x1E`).
  *
- * Accepts batches of string arrays or LazyRow objects. Produces binary-safe
- * output using ASCII control characters as separators.
+ * A field can hold any text but those two characters. One that holds either
+ * throws an `Error` naming the row and field, counted from 1:
+ * `Invalid character (field separator) in record data at row 2, field 2`.
+ * Items before the one holding it have already been written.
  *
- * @example Write Record file
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromCsvToRows } from "jsr:@j50n/proc/transforms";
- * import { toRecord } from "jsr:@j50n/proc/transforms";
+ * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
+ * and yields one chunk of bytes.
  *
- * // Convert CSV to faster Record format
- * await read("data.csv")
+ * @example Hand CSV to a program as records
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromCsvToRows, toRecord } from "@j50n/proc/transforms";
+ *
+ * const report = await read("data.csv")
  *   .transform(fromCsvToRows())
  *   .transform(toRecord())
- *   .writeTo("data.record");
+ *   .run("./summarize")
+ *   .lines
+ *   .collect();
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function toRecord(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
@@ -186,31 +202,32 @@ export function toRecord(): TransformerFunction<
       return encode(rowsToRecord(stringRows));
     };
 
-    // deno-lint-ignore no-explicit-any
-    let handler: (item: any) => Uint8Array = (item: any) => {
+    // Pick the handler on the first item and keep it while items stay that
+    // kind; an item of another kind picks again.
+    type Item = Row | Row[] | LazyRow | LazyRow[];
+    const setup = (item: Item): Uint8Array => {
       if (Array.isArray(item) && item.length === 0) {
         return new Uint8Array(0);
       }
 
-      if (
-        Array.isArray(item) && item.length > 0 &&
-        item[0] instanceof LazyRow && item[0].isBinaryBacked()
-      ) {
-        handler = handleBinaryLazyRowArray;
-      } else if (
-        Array.isArray(item) && item.length > 0 && item[0] instanceof LazyRow
-      ) {
-        handler = handleStringLazyRowArray;
+      if (isBinaryLazyRowArray(item)) {
+        handler = handleBinaryLazyRowArray as typeof handler;
+        accepts = isBinaryLazyRowArray;
+      } else if (isStringLazyRowArray(item)) {
+        handler = handleStringLazyRowArray as typeof handler;
+        accepts = isStringLazyRowArray;
       } else if (item instanceof LazyRow && item.isBinaryBacked()) {
-        handler = handleBinaryLazyRow;
+        handler = handleBinaryLazyRow as typeof handler;
+        accepts = (it) => it instanceof LazyRow && it.isBinaryBacked();
       } else if (item instanceof LazyRow) {
-        handler = handleStringLazyRow;
-      } else if (
-        Array.isArray(item) && item.length > 0 && Array.isArray(item[0])
-      ) {
-        handler = handleRowArray;
-      } else if (Array.isArray(item)) {
-        handler = handleRow;
+        handler = handleStringLazyRow as typeof handler;
+        accepts = (it) => it instanceof LazyRow && !it.isBinaryBacked();
+      } else if (isRowArray(item)) {
+        handler = handleRowArray as typeof handler;
+        accepts = isRowArray;
+      } else if (isRow(item)) {
+        handler = handleRow as typeof handler;
+        accepts = isRow;
       } else {
         throw new TypeError(
           `Unsupported input type for toRecord: expected Row, Row[], LazyRow, or LazyRow[], got ${typeof item}`,
@@ -220,8 +237,11 @@ export function toRecord(): TransformerFunction<
       return handler(item);
     };
 
+    let handler: (item: Item) => Uint8Array = setup;
+    let accepts: (item: Item) => boolean = () => false;
+
     for await (const item of data) {
-      yield handler(item);
+      yield accepts(item) ? handler(item) : setup(item);
     }
   };
 }

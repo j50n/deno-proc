@@ -47,20 +47,6 @@
  * - Invalid CSV syntax (unclosed quotes, etc.) - currently lenient mode
  * - WASM memory allocation failures
  *
- * @example
- * ```ts
- * // Create processor instance
- * const processor = await FlatdataProcessor.create();
- *
- * // Convert CSV to record format
- * const records = processor.csvToRecordStreaming(csvBytes, 44);
- *
- * // Convert back to CSV
- * for await (const chunk of processor.recordToCsv(records, 44)) {
- *   await Deno.stdout.write(chunk);
- * }
- * ```
- *
  * @module
  */
 
@@ -408,23 +394,6 @@ function createOdinRuntime(memory: WebAssembly.Memory): WebAssembly.Imports {
  * - Allocates 64KB input buffer and 128KB output buffer on creation
  * - Buffers are reused across all operations
  * - No explicit cleanup needed (garbage collected with instance)
- *
- * @example
- * ```ts
- * const processor = await FlatdataProcessor.create();
- *
- * // CSV to record format
- * const fromCsv = processor.csvToRecordStreaming(csvBytes, 44); // comma
- *
- * // Tab-separated, quoted like CSV, to record format
- * const fromTabs = processor.csvToRecordStreaming(tabBytes, 9); // tab
- *
- * // Record to CSV with minimal quoting
- * const csv = processor.recordToCsv(fromCsv, 44, false);
- *
- * // CSV to binary lazyrow for efficient field access
- * await processor.csvToLazyRowBinary(stream, write, 44);
- * ```
  */
 export class FlatdataProcessor {
   /** Input buffer size (also used as chunk size) */
@@ -533,17 +502,6 @@ export class FlatdataProcessor {
    * @param input - Readable stream of CSV/TSV bytes
    * @param write - Writer function for output chunks
    * @param separator - Field separator character code (44 for comma, 9 for tab)
-   *
-   * @example
-   * ```ts
-   * const processor = await FlatdataProcessor.create();
-   *
-   * // Convert CSV to binary lazyrow
-   * await processor.csvToLazyRowBinary(stream, write, 44);
-   *
-   * // Later: read specific fields without parsing entire row
-   * // (see LazyRow class for field access)
-   * ```
    */
   async csvToLazyRowBinary(
     input: ReadableStream<Uint8Array>,
@@ -605,14 +563,6 @@ export class FlatdataProcessor {
    * @param write - Writer function for output chunks
    * @param separator - Field separator character code (44 for comma, 9 for tab)
    * @param quoteAll - If true, quote all fields; if false, only quote when necessary
-   *
-   * @example
-   * ```ts
-   * const processor = await FlatdataProcessor.create();
-   *
-   * // Convert binary lazyrow back to CSV
-   * await processor.lazyRowBinaryToCsv(stream, write, 44, false);
-   * ```
    */
   async lazyRowBinaryToCsv(
     input: ReadableStream<Uint8Array>,
@@ -732,12 +682,6 @@ export class FlatdataProcessor {
    *
    * @param input - Readable stream of record format bytes
    * @param write - Writer function for output chunks
-   *
-   * @example
-   * ```ts
-   * const processor = await FlatdataProcessor.create();
-   * await processor.recordToLazyRowBinary(stream, write);
-   * ```
    */
   async recordToLazyRowBinary(
     input: ReadableStream<Uint8Array>,

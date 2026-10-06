@@ -10,22 +10,32 @@ import type { Row } from "./types.ts";
 import { concat } from "../utility.ts";
 
 /**
- * Convert LazyRow or string array batches to binary lazyrow format.
+ * Write rows in the LazyRow binary format, which can hold any string in a
+ * field.
  *
- * Binary lazyrow format:
- * - Each row: [row_length:u32][field_count:u32][field_lengths:u32[]][field_data:bytes]
- * - row_length includes everything after itself
+ * Each row is a little-endian u32 byte length, then the row in the layout of
+ * {@link LazyRow.toBinary}: a u32 field count, a u32 byte length per field,
+ * and the fields' UTF-8 bytes. The length counts the bytes after itself.
+ * {@link fromLazyRowBinary} reads it back as binary-backed {@link LazyRow}s.
+ * Use it to store or pass rows between proc programs without quoting or
+ * re-parsing.
  *
- * @example Write binary lazyrow file
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromCsvToRows, toLazyRowBinary } from "jsr:@j50n/proc/transforms";
+ * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
+ * and may differ from the one before. Each yields one chunk of bytes. No field
+ * is refused.
+ *
+ * @example Store a CSV file's rows
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromCsvToLazyRows, toLazyRowBinary } from "@j50n/proc/transforms";
  *
  * await read("data.csv")
- *   .transform(fromCsvToRows())
+ *   .transform(fromCsvToLazyRows())
  *   .transform(toLazyRowBinary())
  *   .writeTo("data.lazyrow");
  * ```
+ *
+ * @returns A transformer for `.transform()`.
  */
 export function toLazyRowBinary(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
@@ -41,19 +51,27 @@ export function toLazyRowBinary(): TransformerFunction<
 }
 
 /**
- * Parse binary lazyrow format into LazyRow batches.
+ * Parse the LazyRow binary format written by {@link toLazyRowBinary} into
+ * batches of binary-backed {@link LazyRow}s.
  *
- * @example Read binary lazyrow file
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromLazyRowBinary } from "jsr:@j50n/proc/transforms";
+ * Fields are decoded only when read. Batches close at about 128 KiB
+ * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work row by row. Only the
+ * length prefixes are checked: input that ends partway through a row throws an
+ * `Error` after the complete rows have been yielded.
+ *
+ * @example
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromLazyRowBinary } from "@j50n/proc/transforms";
  *
  * await read("data.lazyrow")
  *   .transform(fromLazyRowBinary())
  *   .flatten()
- *   .filter(row => row.getField(0) === "active")
- *   .forEach(row => console.log(row.getField(1)));
+ *   .filter((row) => row.getField(0) === "active")
+ *   .forEach((row) => console.log(row.getField(1)));
  * ```
+ *
+ * @returns A transformer for `.transform()`.
  */
 export function fromLazyRowBinary(): TransformerFunction<
   Uint8Array,

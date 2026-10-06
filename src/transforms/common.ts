@@ -1,68 +1,41 @@
-/**
- * Common constants and utilities for transform functions.
- */
+// Constants and helpers shared by the transforms.
 
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
 /**
- * Target batch size in bytes for optimal async iteration performance.
- * Balances memory usage with async iteration overhead.
+ * The amount of text, about 128 KiB, at which the TSV, record, JSON-lines, and
+ * LazyRow binary parsers end a batch. A batch can run over by one row. (The CSV
+ * parsers batch by count instead: 100 rows.)
  */
-export const BATCH_SIZE_BYTES = 128 * 1024; // 128KB
+export const BATCH_SIZE_BYTES = 128 * 1024;
 
-/**
- * ASCII control characters for Record format.
- */
-export const RECORD_SEPARATOR = "\x1E"; // ASCII 30 - separates records
-export const FIELD_SEPARATOR = "\x1F"; // ASCII 31 - separates fields
+/** Ends each record in the record format: `"\x1E"` (ASCII RS). */
+export const RECORD_SEPARATOR = "\x1E";
 
-/**
- * Static buffer for writing 32-bit integers (reused to avoid allocations).
- */
+/** Separates the fields of a record in the record format: `"\x1F"` (ASCII US). */
+export const FIELD_SEPARATOR = "\x1F";
+
 const uint32Buffer = new Uint8Array(4);
 const uint32View = new Uint32Array(uint32Buffer.buffer);
 
-/**
- * Write a 32-bit unsigned integer to a static buffer in little-endian format.
- * Returns a slice (copy) of the static buffer containing the 4-byte integer.
- *
- * Note: The returned slice is a copy. The static buffer is reused on next call.
- *
- * @param value The integer value to write (0 to 4294967295)
- * @returns Uint8Array containing the 4-byte little-endian representation
- */
+/** `value` as 4 bytes, unsigned little-endian (on little-endian hosts). */
 export function writeUint32LE(value: number): Uint8Array {
   uint32View[0] = value;
   return uint32Buffer.slice();
 }
 
-/**
- * Convert a single row to record format string.
- * @param row Array of field values
- * @returns Record format string: fields joined by \x1F, terminated by \x1E
- */
+/** One row in the record format, `\x1E` included. Fields are not checked. */
 export function rowToRecord(row: string[]): string {
   return joinRow(row, FIELD_SEPARATOR, RECORD_SEPARATOR);
 }
 
-/**
- * Convert multiple rows to record format string.
- * @param rows Array of rows (each row is an array of field values)
- * @returns Record format string: all rows concatenated
- */
+/** Rows in the record format. Fields are not checked. */
 export function rowsToRecord(rows: string[][]): string {
   return joinRows(rows, FIELD_SEPARATOR, RECORD_SEPARATOR);
 }
 
-/**
- * Join a single row's fields with a separator and add a line terminator.
- * Optimized using string.concat() for better performance.
- * @param row Array of field values
- * @param fieldSep Field separator (e.g., "\t" for TSV)
- * @param lineSep Line separator (e.g., "\n")
- * @returns Joined string
- */
+/** Join a row's fields with `fieldSep` and end it with `lineSep`. */
 export function joinRow(
   row: string[],
   fieldSep: string,
@@ -76,14 +49,7 @@ export function joinRow(
   return result.concat(lineSep);
 }
 
-/**
- * Join fields with a separator and add a line terminator.
- * Optimized using string.concat() for better performance.
- * @param rows Array of rows (each row is an array of field values)
- * @param fieldSep Field separator (e.g., "\t" for TSV)
- * @param lineSep Line separator (e.g., "\n")
- * @returns Joined string with all rows
- */
+/** {@link joinRow} for each row, concatenated. */
 export function joinRows(
   rows: string[][],
   fieldSep: string,
@@ -144,6 +110,30 @@ export function asRows(
   return first instanceof LazyRow || Array.isArray(first)
     ? item as (Row | LazyRow)[]
     : [item as Row];
+}
+
+type Item = Row | Row[] | LazyRow | LazyRow[];
+
+/** A batch of LazyRows backed by binary data (as the CSV parser yields). */
+export function isBinaryLazyRowArray(item: Item): item is LazyRow[] {
+  return Array.isArray(item) && item[0] instanceof LazyRow &&
+    item[0].isBinaryBacked();
+}
+
+/** A batch of LazyRows backed by strings. */
+export function isStringLazyRowArray(item: Item): item is LazyRow[] {
+  return Array.isArray(item) && item[0] instanceof LazyRow &&
+    !item[0].isBinaryBacked();
+}
+
+/** A batch of string rows. */
+export function isRowArray(item: Item): item is Row[] {
+  return Array.isArray(item) && Array.isArray(item[0]);
+}
+
+/** One string row, with at least one field. */
+export function isRow(item: Item): item is Row {
+  return Array.isArray(item) && typeof item[0] === "string";
 }
 
 /** One row in the LazyRow binary format. */

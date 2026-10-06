@@ -1,5 +1,2 @@
-/**
- * A row of data represented as an array of strings.
- * Each element is a field/column value.
- */
+/** One row of tabular data: one string per field, in column order. */
 export type Row = string[];

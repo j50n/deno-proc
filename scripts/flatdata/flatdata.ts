@@ -1,28 +1,38 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 /**
- * flatdata - Tabular data format converter
+ * `flatdata`, a command-line converter between CSV, TSV, the record format,
+ * and the LazyRow binary format.
  *
- * A high-performance CLI tool for converting between tabular data formats.
- * Uses WebAssembly (Odin-compiled) for fast CSV/TSV parsing and stringification.
+ * Use it to take parsing out of your program: put `flatdata csv2record` in
+ * front of it, and it reads records (fields split on `\x1F`, records ended by
+ * `\x1E`) instead of CSV. The parsing runs in WebAssembly, in its own process.
+ * The formats are the ones `@j50n/proc/transforms` reads and writes.
  *
- * Supported formats:
- * - CSV: RFC 4180 comma-separated values (configurable separator)
- * - TSV: Tab-separated values
- * - Record: Text format using \x1F (field) and \x1E (record) separators
- * - LazyRow: Binary format with length-prefixed fields for efficient random access
+ * ```sh
+ * deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
+ * ```
  *
- * Performance: ~100+ MB/s for CSV parsing and stringification.
+ * Without `--allow-read --allow-write` it still works on stdin and stdout.
+ *
+ * Commands are named `<from>2<to>`: `csv2record`, `csv2tsv`, `csv2lazyrow`,
+ * `tsv2record`, `tsv2csv`, `tsv2lazyrow`, `record2csv`, `record2tsv`,
+ * `record2lazyrow`, `lazyrow2csv`, `lazyrow2tsv`, `lazyrow2record`. Each reads
+ * stdin and writes stdout, or `-i <file>` and `-o <file>`. Commands with CSV on
+ * one side take `-d <char>` for the separator (default `,`); `tsv2csv` and
+ * `record2csv` also take `--always-quote` and `--crlf`. `flatdata <command>
+ * --help` lists a command's options.
+ *
+ * What to watch for: it doesn't check fields. `csv2tsv` writes a tab or
+ * newline inside a field as it is, and `csv2record` the same for `\x1E` and
+ * `\x1F`, so the output has more fields or rows than the input. `lazyrow2csv`
+ * doesn't quote. A CSV field with text after its closing quote (`"ab" ,c`)
+ * stops parsing with no error and exit code 0, and the output is cut short,
+ * sometimes to nothing.
  *
  * @example
- * ```bash
- * # Convert CSV to record format
- * cat data.csv | flatdata csv2record > data.rec
- *
- * # Pipeline processing
- * flatdata csv2record -i huge.csv | ./process | flatdata record2csv -o results.csv
- *
- * # Binary lazyrow format for efficient field access
- * flatdata csv2lazyrow -i data.csv -o data.lazy
+ * ```sh
+ * cat data.csv | flatdata csv2record | ./process | flatdata record2csv -o out.csv
+ * flatdata csv2tsv -d ';' -i euro.csv -o data.tsv
  * ```
  *
  * @module

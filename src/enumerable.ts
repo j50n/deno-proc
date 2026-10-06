@@ -14,91 +14,102 @@ import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
 import type { Closer, Writer } from "@std/io/types";
 import { tee } from "@std/async/tee";
 
-type ElementType<T> = T extends Iterable<infer E> | AsyncIterable<infer E> ? E
+/**
+ * The item type of an iterable or async iterable `T`, or `never` if `T` is
+ * neither. The result type of {@link Enumerable.flatten}.
+ */
+export type ElementType<T> = T extends
+  Iterable<infer E> | AsyncIterable<infer E> ? E
   : never;
 
-type Tuple<T, N extends number> = N extends N
+/**
+ * `N` copies of `T` as a tuple when `N` is a literal number, or `T[]` when it
+ * is just `number`. The result type of {@link Enumerable.tee}.
+ */
+export type Tuple<T, N extends number> = N extends N
   ? number extends N ? T[] : TupleOf<T, N, []>
   : never;
-type TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
-  ? R
-  : TupleOf<T, N, [T, ...R]>;
 
-/** Type alias for TransformStream used in {@link Enumerable.transform}. */
+/** Builds the tuple for {@link Tuple}, one element at a time. */
+export type TupleOf<T, N extends number, R extends unknown[]> =
+  R["length"] extends N ? R
+    : TupleOf<T, N, [T, ...R]>;
+
+/**
+ * A `{ writable, readable }` pair that {@link Enumerable.transform} accepts,
+ * such as a `TransformStream` or `CompressionStream`: `R` goes in, `S` comes
+ * out.
+ */
 export type TransformStream<R, S> = ReadableWritablePair<S, R>;
 
 function isReadableWritablePair(item: unknown): item is ReadableWritablePair {
   return (item != null && typeof item === "object" && "writable" in item &&
     "readable" in item);
 }
-/** Conditional type for {@link Enumerable.unzip}. */
+/**
+ * What {@link Enumerable.unzip} returns: `[Enumerable<A>, Enumerable<B>]` for
+ * items of type `[A, B]`, and `never` for any other items.
+ */
 export type Unzip<T> = T extends [infer A, infer B]
   ? [Enumerable<A>, Enumerable<B>]
   : never;
 
-/** Conditional type for {@link Enumerable.lines}. */
+/**
+ * What {@link Enumerable.lines} returns: `Enumerable<string>` when the items
+ * are bytes, and `never` otherwise, so `.lines` on anything but bytes fails
+ * to type-check.
+ */
 export type Lines<T> = T extends Uint8Array ? Enumerable<string> : never;
 
-/** Conditional type for {@link Enumerable.chunkedLines}. */
+/**
+ * What {@link Enumerable.chunkedLines} returns: `Enumerable<string[]>` when
+ * the items are bytes, and `never` otherwise.
+ */
 export type ChunkedLines<T> = T extends Uint8Array ? Enumerable<string[]>
   : never;
 
-/** Conditional type for {@link Enumerable.toStdout}. */
+/**
+ * What {@link Enumerable.writeBytesTo} returns: `Promise<void>` when the
+ * items are bytes, and `never` otherwise.
+ */
 export type ByteSink<T> = T extends Uint8Array ? Promise<void> : never;
 
-/** Conditional type for {@link Enumerable.run}. */
+/**
+ * What {@link Enumerable.run} returns: a {@link ProcessEnumerable} when the
+ * items are text or bytes (`string`, `string[]`, `Uint8Array`, `Uint8Array[]`),
+ * and `never` otherwise.
+ */
 export type Run<S, T> = T extends Uint8Array | Uint8Array[] | string | string[]
   ? ProcessEnumerable<S>
   : never;
 
 /**
- * Create an Enumerable from any iterable or AsyncIterable.
+ * Wrap an iterable or async iterable as an {@link Enumerable}, to use its
+ * methods (`map`, `filter`, `collect`, `run`, ...).
  *
- * This is the factory function for creating Enumerable instances. It provides
- * a fluent API for working with async data streams, making it easy to chain
- * operations like map, filter, and transform.
+ * Arrays, Sets, generators, `ReadableStream`s, and anything else with
+ * `Symbol.iterator` or `Symbol.asyncIterator` work. `null` and `undefined`
+ * give an empty Enumerable, and an Enumerable comes back as it is.
  *
- * **Important**: This function wraps an iterable but does NOT add index counters.
- * To add index counters, call `.enum()` on the returned Enumerable.
+ * The items are not changed. Don't confuse this with
+ * {@link Enumerable.enum}, which numbers the items, turning each into
+ * `[item, index]`.
  *
- * **Why use Enumerable?**
- * - Composable operations via method chaining
- * - Works seamlessly with async data
- * - Integrates with process I/O
- * - Lazy evaluation for memory efficiency
- * - Type-safe transformations
- *
- * @example Convert array to AsyncIterable
+ * @example
  * ```typescript
- * import { enumerate } from "jsr:@j50n/proc";
+ * import { enumerate } from "@j50n/proc";
  *
- * const result = await enumerate([1, 2, 3]).collect();
- * // [1, 2, 3]
+ * const doubled = await enumerate([1, 2, 3]).map((n) => n * 2).collect();
+ * // [2, 4, 6]
  * ```
  *
- * @example Add index counters with .enum()
+ * @example Feed strings to a command
  * ```typescript
- * import { enumerate } from "jsr:@j50n/proc";
+ * import { enumerate } from "@j50n/proc";
  *
- * // .enum() adds [item, index] tuples
- * const result = await enumerate(["a", "b", "c"])
- *   .enum()
- *   .map(([item, i]) => `${i}: ${item}`)
- *   .collect();
- * // ["0: a", "1: b", "2: c"]
+ * const sorted = await enumerate(["pear", "apple"]).run("sort").lines.collect();
+ * // ["apple", "pear"]
  * ```
- *
- * @example Use with for await
- * ```typescript
- * import { enumerate } from "jsr:@j50n/proc";
- *
- * for await (const n of enumerate([1, 2, 3])) {
- *   console.log(n);
- * }
- * ```
- *
- * @param iter An Iterable, AsyncIterable, or null/undefined (treated as empty).
- * @returns An Enumerable wrapping the input.
  */
 export function enumerate<T>(
   iter?: AsyncIterable<T> | Iterable<T> | null,
@@ -123,10 +134,15 @@ export function enumerate<T>(
 }
 
 /**
- * Options for {@link Enumerable.concurrentMap} and {@link Enumerable.concurrentUnorderedMap}.
+ * Options for {@link Enumerable.concurrentMap} and
+ * {@link Enumerable.concurrentUnorderedMap}.
  */
 export interface ConcurrentOptions {
-  /** Maximum concurrency. */
+  /**
+   * How many calls of the mapping function may run at once. Default
+   * `navigator.hardwareConcurrency`. Fractions round up; below 1 throws an
+   * `Error` when reading starts.
+   */
   concurrency?: number;
 }
 
@@ -135,30 +151,61 @@ async function* identity<T>(iter: AsyncIterable<T>): AsyncIterableIterator<T> {
 }
 
 /**
- * Fluent wrapper for AsyncIterable with composable operations.
+ * An async sequence with Array-style methods. {@link run}, {@link read},
+ * {@link range}, and {@link enumerate} return one.
  *
- * Enumerable provides a rich set of operations for working with async data streams:
- * - Transformations: map, filter, flatMap
- * - Aggregations: reduce, count, collect
- * - Utilities: take, drop, concat, zip
- * - Process integration: run, lines, toStdout
- * - Concurrency: concurrentMap, concurrentUnorderedMap
+ * It wraps one async iterable and reads it once. A second pass, through the
+ * same Enumerable or another chain built on it, finds the source used up and
+ * yields nothing, without an error. To use the items twice, `collect` them,
+ * or split the sequence with {@link Enumerable.tee}.
  *
- * **Create instances using {@link enumerate}, not the constructor directly.**
+ * Methods that return an Enumerable are lazy: nothing is read until a
+ * consumer pulls. `.run()` is the exception: it starts its process and begins
+ * reading at the call.
  *
- * @typedef T The type of elements in the sequence.
+ * - Transform: `map`, `filter`, `filterNot`, `flatMap`, `flatten`, `enum`,
+ *   `transform`, `concurrentMap`, `concurrentUnorderedMap`.
+ * - Slice and combine: `take`, `drop`, `concat`, `zip`, `unzip`, `tee`.
+ * - Consume: `collect` (or `toArray`), `forEach`, `reduce`, `count`, `find`,
+ *   `some`, `every`, `first`, or `for await`. These return promises.
+ * - Text and processes: `lines` and `chunkedLines` decode bytes into lines of
+ *   text; `run` pipes the items into a command.
+ * - Write out: `writeTo`, `writeBytesTo`, `toStdout`.
+ *
+ * Callbacks may be async. `map`, `filter`, `forEach`, and the rest wait for
+ * each call before making the next; `concurrentMap` runs several at once.
+ *
+ * Errors, from a callback or a failed process, are thrown from the consumer,
+ * so one `try` around the `await` catches them. A callback's error arrives
+ * unchanged unless a `.run()` stands between it and the consumer; see
+ * {@link Enumerable.run}.
+ *
+ * A consumer that stops early (`take`, `first`, `find`, `some`, `every`, or a
+ * `break` out of `for await`) closes the source. For a process, that stops
+ * reading its output, and its exit code is not checked.
+ *
+ * @example
+ * ```typescript
+ * import { run } from "@j50n/proc";
+ *
+ * const errors = await run("cat", "app.log")
+ *   .lines
+ *   .filter((line) => line.includes("ERROR"))
+ *   .count();
+ * ```
+ *
+ * @typeParam T The type of the items.
  */
 export class Enumerable<T> implements AsyncIterable<T> {
   /**
-   * Construct a new enumerable wrapper.
-   * @param iter The iterator being wrapped.
+   * For subclasses. To wrap an iterable, call {@link enumerate}.
+   *
+   * @param iter The async iterable to wrap.
    */
   constructor(protected iter: AsyncIterable<T>) {
   }
 
-  /**
-   * Implement `AsyncIterable<T>`.
-   */
+  /** Iterate with `for await`. The items come once; see {@link Enumerable}. */
   [Symbol.asyncIterator](): AsyncGenerator<T, void, unknown> {
     if ("next" in this.iter) {
       return this.iter as AsyncGenerator<T, void, unknown>;
@@ -168,32 +215,21 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Adds a counter from 0 to `n`-1 of the items being enumerated.
+   * Number the items: each becomes `[item, index]`, counting from 0.
    *
-   * Returns tuples of [item, index] where index starts at 0.
+   * Don't confuse this with {@link enumerate}, which wraps an iterable as an
+   * Enumerable and leaves the items as they are.
    *
-   * @example Add indices to items
+   * @example
    * ```typescript
-   * import { enumerate } from "jsr:@j50n/proc";
+   * import { enumerate } from "@j50n/proc";
    *
-   * const result = await enumerate(["a", "b", "c"])
-   *   .enum()
-   *   .collect();
-   * // [["a", 0], ["b", 1], ["c", 2]]
-   * ```
-   *
-   * @example Format with indices
-   * ```typescript
-   * import { enumerate } from "jsr:@j50n/proc";
-   *
-   * const result = await enumerate(["apple", "banana"])
+   * const numbered = await enumerate(["apple", "pear"])
    *   .enum()
    *   .map(([item, i]) => `${i + 1}. ${item}`)
    *   .collect();
-   * // ["1. apple", "2. banana"]
+   * // ["1. apple", "2. pear"]
    * ```
-   *
-   * @returns An Enumerable of [item, index] tuples.
    */
   enum(): Enumerable<[T, number]> {
     let count = 0;
@@ -201,37 +237,54 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Write all data to a file.
+   * Write the bytes to a file, creating it or replacing what it held, and
+   * close it.
    *
-   * **Example**
+   * The items must be `Uint8Array`; turn text into bytes first with
+   * `.transform(toBytes)`. Other items fail with a `TypeError` ("Writable
+   * stream is closed or errored"). If the source throws, the file is closed
+   * holding what was written so far, and the error is thrown here.
    *
+   * @example
    * ```typescript
-   * read("input.csv")
+   * import { read } from "@j50n/proc";
+   * import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
+   *
+   * await read("data.csv")
    *   .transform(fromCsvToRows())
    *   .transform(toTsv())
-   *   .writeTo("output.tsv");
+   *   .writeTo("data.tsv");
    * ```
    *
-   * @param path The file path to write to.
+   * @param path The file to write.
    */
   async writeTo(path: string): Promise<void>;
 
   /**
-   * Write all data to a writer.
+   * Write each item to a `WritableStream` or a {@link Writable}, then close
+   * it.
    *
-   * **Example**
+   * Pass `{ noclose: true }` to leave it open, as for `Deno.stdout.writable`.
+   * Writing to a `Writable` stops early if it is closed meanwhile.
    *
-   * Write some numbers to `stdout`.
+   * If the source throws, a `WritableStream` is closed (not aborted) and the
+   * error is thrown here. A `Writable`, such as a {@link WritableIterable},
+   * gets the error through `close(error)` instead, so it reaches whoever
+   * reads the `Writable`, and this promise resolves; with `noclose`, the
+   * `Writable` stays open and the error is thrown here.
    *
+   * @example
    * ```typescript
-   * range({to: 99})
-   *   .map(n => n.toString())
+   * import { range, toBytes } from "@j50n/proc";
+   *
+   * await range({ to: 3 })
+   *   .map((n) => `${n}`)
    *   .transform(toBytes)
-   *   .writeTo(Deno.stdout.writable, {noclose: true});
+   *   .writeTo(Deno.stdout.writable, { noclose: true });
    * ```
    *
-   * @param writer The writer.
-   * @param options Options for writing. Set `noclose: true` to keep the writer open.
+   * @param writer Where the items go.
+   * @param options.noclose Leave `writer` open afterward. Default `false`.
    */
   async writeTo(
     writer: Writable<T> | WritableStream<T>,
@@ -290,18 +343,46 @@ export class Enumerable<T> implements AsyncIterable<T> {
           await writer.close();
         }
       } catch (e) {
-        if (!options?.noclose) {
-          await writer.close(e as Error | undefined);
-        }
+        if (options?.noclose) throw e;
+        await writer.close(e as Error | undefined);
       }
     }
   }
 
   /**
-   * Transform the iterable from one type to another with an opportunity to catch
-   * and handle errors.
+   * Pass the whole sequence through a transformer: a function from
+   * `AsyncIterable<T>` to `AsyncIterable<U>` (usually an async generator), or
+   * a `TransformStream` such as `CompressionStream`.
+   *
+   * This is how the data-format transforms (`fromCsvToRows()`, `toCsv()`,
+   * ...) and {@link toBytes} plug in. A transformer sees the whole sequence,
+   * so it can keep state, emit more or fewer items than it gets, and catch
+   * errors from upstream. An error from upstream of a `TransformStream` is
+   * thrown from the consumer unchanged.
+   *
+   * @example
+   * ```typescript
+   * import { read } from "@j50n/proc";
+   *
+   * await read("app.log")
+   *   .transform(new CompressionStream("gzip"))
+   *   .writeTo("app.log.gz");
+   * ```
+   *
+   * @example An async generator as a transformer
+   * ```typescript
+   * import { enumerate } from "@j50n/proc";
+   *
+   * async function* runningTotal(items: AsyncIterable<number>) {
+   *   let total = 0;
+   *   for await (const n of items) yield (total += n);
+   * }
+   *
+   * const totals = await enumerate([1, 2, 3]).transform(runningTotal).collect();
+   * // [1, 3, 6]
+   * ```
+   *
    * @param fn The transformer function or `TransformStream`.
-   * @returns The transformed iterable.
    */
   transform<U>(
     fn:
@@ -316,9 +397,18 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Map the iterator from one type to another.
-   * @param mapFn The mapping function.
-   * @returns An iterable of mapped values.
+   * Transform each item with `mapFn`, which may be async.
+   *
+   * One call at a time, in order. To run several at once, use
+   * {@link concurrentMap}.
+   *
+   * @example
+   * ```typescript
+   * import { run } from "@j50n/proc";
+   *
+   * const upper = await run("ls").lines.map((name) => name.toUpperCase())
+   *   .collect();
+   * ```
    */
   map<U>(mapFn: (item: T) => U | Promise<U>): Enumerable<U> {
     const iter = this.iter;
@@ -343,8 +433,22 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Flatten the iterable.
-   * @returns An iterator where a level of indirection has been "flattened" out.
+   * Replace each item, itself an iterable or async iterable, with its items.
+   *
+   * The data transforms (`fromCsvToRows()` and the rest) yield batches of
+   * rows; `.flatten()` gives one row at a time. A string is iterable too, so
+   * a string item becomes its characters.
+   *
+   * @example
+   * ```typescript
+   * import { read } from "@j50n/proc";
+   * import { fromCsvToRows } from "@j50n/proc/transforms";
+   *
+   * const rows = await read("data.csv")
+   *   .transform(fromCsvToRows())
+   *   .flatten()
+   *   .count();
+   * ```
    */
   flatten(): Enumerable<ElementType<T>> {
     const iter = this.iter as AsyncIterable<
@@ -360,36 +464,49 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Map each item to an iterable and flatten the results.
+   * Map each item to an iterable or async iterable, and yield the items of
+   * each in turn: {@link map}, then {@link flatten}.
    *
-   * Equivalent to calling map() followed by flatten().
-   *
-   * @example Duplicate and scale each number
+   * @example
    * ```typescript
-   * import { enumerate } from "jsr:@j50n/proc";
+   * import { enumerate } from "@j50n/proc";
    *
    * const result = await enumerate([1, 2, 3])
-   *   .flatMap(n => [n, n * 10])
+   *   .flatMap((n) => [n, n * 10])
    *   .collect();
    * // [1, 10, 2, 20, 3, 30]
    * ```
-   *
-   * @param mapFn The mapping function.
-   * @returns An Enumerable of flattened mapped values.
    */
   flatMap<U>(mapFn: (item: T) => U | Promise<U>): Enumerable<ElementType<U>> {
     return this.map(mapFn).flatten();
   }
 
   /**
-   * Map the sequence from one type to another, concurrently.
+   * Like {@link map}, but with up to `concurrency` calls of `mapFn` running at
+   * once. Results come out in input order.
    *
-   * Results are returned in order. The order of processing
-   * is concurrent, and therefore somewhat arbitrary.
+   * Because of the order, a slow item holds back the ones after it: their
+   * results wait behind it, and no new call starts until it finishes. When
+   * order doesn't matter, {@link concurrentUnorderedMap} keeps every slot
+   * busy.
    *
-   * @param mapFn The mapping function.
-   * @param options {@link ConcurrentOptions}
-   * @returns An iterable of mapped values.
+   * An error from `mapFn` is thrown from the consumer when its item's turn
+   * comes. Calls already started keep running.
+   *
+   * @example
+   * ```typescript
+   * import { enumerate } from "@j50n/proc";
+   *
+   * const urls = ["https://example.com/a", "https://example.com/b"];
+   * const pages = await enumerate(urls)
+   *   .concurrentMap(async (url) => (await fetch(url)).text(), {
+   *     concurrency: 4,
+   *   })
+   *   .collect();
+   * ```
+   *
+   * @param mapFn The async mapping function.
+   * @param options See {@link ConcurrentOptions}.
    */
   concurrentMap<U>(
     mapFn: (item: T) => Promise<U>,
@@ -402,19 +519,31 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Map the sequence from one type to another, concurrently.
+   * Like {@link map}, but with up to `concurrency` calls of `mapFn` running at
+   * once. Results come out as they finish, not in input order.
    *
-   * Items are iterated out of order. This allows maximum concurrency
-   * at all times, but the output order cannot be assumed to be the
-   * same as the input order.
+   * A new call starts as soon as any finishes, so a slow item doesn't hold
+   * up the rest. When the output must line up with the input, use
+   * {@link concurrentMap}, or carry the input along in the result.
    *
-   * This guarantees maximum concurrency whereas {@link concurrentMap} does
-   * not if the workload isn't balanced. Prefer {@link concurrentUnorderedMap}
-   * to {@link concurrentMap} for best/consistent performance.
+   * An error from `mapFn` is thrown from the consumer in the order it
+   * happened. Calls already started keep running.
    *
-   * @param mapFn The mapping function.
-   * @param options {@link ConcurrentOptions}
-   * @returns An iterable of mapped values.
+   * @example
+   * ```typescript
+   * import { enumerate, run } from "@j50n/proc";
+   *
+   * const files = ["a.log", "b.log", "c.log"];
+   * await enumerate(files)
+   *   .concurrentUnorderedMap(async (file) => {
+   *     await run("gzip", file).collect();
+   *     return file;
+   *   })
+   *   .forEach((file) => console.log(`compressed ${file}`));
+   * ```
+   *
+   * @param mapFn The async mapping function.
+   * @param options See {@link ConcurrentOptions}.
    */
   concurrentUnorderedMap<U>(
     mapFn: (item: T) => Promise<U>,
@@ -427,20 +556,15 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Keep only items that pass a test.
+   * Keep the items for which `filterFn` returns true.
    *
-   * @example Filter even numbers
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { range } from "@j50n/proc";
    *
-   * const evens = await range({ to: 5 })
-   *   .filter(n => n % 2 === 0)
-   *   .collect();
+   * const evens = await range({ to: 5 }).filter((n) => n % 2 === 0).collect();
    * // [0, 2, 4]
    * ```
-   *
-   * @param filterFn The test function.
-   * @returns An Enumerable of items that passed the test.
    */
   filter(
     filterFn: (item: T) => boolean | Promise<boolean>,
@@ -458,19 +582,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Find the first item that matches a condition.
+   * Resolve to the first item for which `findFn` returns a truthy value, or
+   * `undefined` if none does. Stops reading there and closes the source.
    *
-   * @example Find first item greater than 5
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { range } from "@j50n/proc";
    *
-   * const result = await range({ to: 10 })
-   *   .find(n => n > 5);
+   * const found = await range({ to: 10 }).find((n) => n > 5);
    * // 6
    * ```
-   *
-   * @param findFn The test function.
-   * @returns The first matching item, or undefined if none found.
    */
   async find(
     findFn: (element: T) => unknown | Promise<unknown>,
@@ -484,19 +605,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Test if every item satisfies a condition.
+   * Resolve to true if `everyFn` returns true for every item (or there are
+   * none). Stops reading at the first false and closes the source.
    *
-   * @example Check if all numbers are positive
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { range } from "@j50n/proc";
    *
-   * const allPositive = await range({ from: 1, to: 5 })
-   *   .every(n => n > 0);
+   * const allPositive = await range({ from: 1, to: 5 }).every((n) => n > 0);
    * // true
    * ```
-   *
-   * @param everyFn The test function.
-   * @returns True if all items pass the test.
    */
   async every(
     everyFn: (element: T) => boolean | Promise<boolean>,
@@ -510,19 +628,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Test if any item satisfies a condition.
+   * Resolve to true if `someFn` returns true for any item. Stops reading at
+   * the first true and closes the source.
    *
-   * @example Check if any number is even
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { range } from "@j50n/proc";
    *
-   * const hasEven = await range({ to: 5 })
-   *   .some(n => n % 2 === 0);
+   * const hasEven = await range({ to: 5 }).some((n) => n % 2 === 0);
    * // true
    * ```
-   *
-   * @param someFn The test function.
-   * @returns True if at least one item passes the test.
    */
   async some(
     someFn: (element: T) => boolean | Promise<boolean>,
@@ -536,9 +651,15 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Count the number of items; optionally with a filter.
-   * @param filterFn Includes items where filter returns `true`.
-   * @returns A count of the items.
+   * Resolve to the number of items, or, given `filterFn`, the number for
+   * which it returns true.
+   *
+   * @example
+   * ```typescript
+   * import { run } from "@j50n/proc";
+   *
+   * const files = await run("ls").lines.count();
+   * ```
    */
   async count(
     filterFn?: (item: T) => boolean | Promise<boolean>,
@@ -561,11 +682,18 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Filter the sequence to exclude the items that pass a test. This returns the
-   * inverse of {@link filter}.
+   * Drop the items for which `filterFn` returns true: the opposite of
+   * {@link filter}.
    *
-   * @param filterFn The filter function.
-   * @returns An iterator excluding the values that passed the filter function.
+   * @example
+   * ```typescript
+   * import { run } from "@j50n/proc";
+   *
+   * const nonBlank = await run("cat", "notes.txt")
+   *   .lines
+   *   .filterNot((line) => line.trim() === "")
+   *   .collect();
+   * ```
    */
   filterNot(
     filterFn: (item: T) => boolean | Promise<boolean>,
@@ -585,34 +713,43 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Reduce the sequence to a single value.
+   * Combine the items into one value, as `Array.prototype.reduce` does, with
+   * the first item as the starting value.
    *
-   * Executes a reducer function on each element, passing the accumulated result
-   * from one element to the next.
+   * The first call gets the first two items and index 1.
    *
-   * @example Sum numbers
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { range } from "@j50n/proc";
    *
-   * const sum = await range({ from: 1, until: 5 })
-   *   .reduce((acc, n) => acc + n, 0);
-   * // 15
+   * const largest = await range({ until: 5 }).reduce((a, b) => Math.max(a, b));
+   * // 5
    * ```
    *
-   * @param reduceFn The reducer function.
-   * @returns The final accumulated value.
-   * @throws TypeError if the iteration is empty and no initial value provided.
+   * @param reduceFn Gets the value so far, the item, and its index.
+   * @throws {TypeError} If the sequence is empty.
    */
   async reduce(
     reduceFn: (acc: T, item: T, index: number) => T | Promise<T>,
   ): Promise<T>;
 
   /**
-   * Reduce the sequence to a single value with an initial value.
+   * Combine the items into one value, starting from `zero`, as
+   * `Array.prototype.reduce` does.
    *
-   * @param reduceFn The reducer function.
-   * @param zero The initial accumulator value.
-   * @returns The final accumulated value.
+   * An empty sequence resolves to `zero`. A `zero` of `undefined` counts as
+   * no starting value: the first item is used instead.
+   *
+   * @example
+   * ```typescript
+   * import { range } from "@j50n/proc";
+   *
+   * const sum = await range({ from: 1, until: 5 }).reduce((acc, n) => acc + n, 0);
+   * // 15
+   * ```
+   *
+   * @param reduceFn Gets the value so far, the item, and its index (from 0).
+   * @param zero The starting value.
    */
   async reduce<U>(
     reduceFn: (acc: U, item: T, index: number) => U | Promise<U>,
@@ -656,8 +793,15 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Perform an operation for each item in the sequence.
-   * @param forEachFn The forEach function.
+   * Call `forEachFn` on each item, waiting for each call (if it is async)
+   * before making the next. Resolves when the sequence ends.
+   *
+   * @example
+   * ```typescript
+   * import { run } from "@j50n/proc";
+   *
+   * await run("ls", "-l").lines.forEach((line) => console.log(line));
+   * ```
    */
   async forEach(
     forEachFn: (item: T) => void | Promise<void>,
@@ -672,20 +816,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Collect all items from this async iterable into an array.
+   * Read every item into an array.
    *
-   * This consumes the entire iterable and returns a Promise that resolves
-   * to an array containing all items.
-   *
-   * @example Collect process output
+   * @example
    * ```typescript
-   * import { run } from "jsr:@j50n/proc";
+   * import { run } from "@j50n/proc";
    *
-   * const lines = await run("echo", "-e", "a\\nb\\nc").lines.collect();
-   * // ["a", "b", "c"]
+   * const files = await run("ls").lines.collect();
    * ```
-   *
-   * @returns A Promise resolving to an array of all items.
    */
   async collect(): Promise<T[]> {
     const result = [];
@@ -696,58 +834,63 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Collect all items from this async iterable into an array.
+   * The same as {@link collect}.
    *
-   * This is an alias for {@link collect} - both methods do exactly the same thing.
-   * Use whichever name feels more natural in your code.
-   *
-   * @example Basic usage
+   * @example
    * ```typescript
-   * import { enumerate } from "jsr:@j50n/proc";
+   * import { enumerate } from "@j50n/proc";
    *
-   * const result = await enumerate([1, 2, 3]).toArray();
+   * const result = await enumerate(new Set([1, 2, 3])).toArray();
    * // [1, 2, 3]
    * ```
-   *
-   * @returns A Promise resolving to an array of all items.
    */
   async toArray(): Promise<T[]> {
     return await this.collect();
   }
 
   /**
-   * Run a process, piping this iterable's output to its stdin.
+   * Run a command with the items as its stdin, and return its output, as
+   * `a | b` does in a shell.
    *
-   * This allows chaining processes together like shell pipes.
-   * The current iterable's data is written to the new process's stdin,
-   * and the new process's stdout becomes the new iterable.
+   * The process starts at the call, and this Enumerable is read into the
+   * command's stdin from then on, as fast as the command takes it, whether or
+   * not the output is being consumed yet; upstream callbacks run then too.
+   * Items can be `string` (written as a line, with `"\n"` added), `string[]`
+   * (each a line), `Uint8Array`, or `Uint8Array[]` (written as they are).
+   * For any other items the return type is `never`. stdout is piped; stderr
+   * is inherited, or piped to `fnStderr` when that is given.
    *
-   * @example Chain processes together
+   * An error in the source (an upstream process that failed, a callback that
+   * threw, an item that isn't text or bytes) stops the input and closes the
+   * command's stdin. The command's output is still delivered, and then the
+   * consumer throws: {@link UpstreamError} with the source's error as `cause`
+   * if the command succeeded, or the command's own {@link ExitCodeError} or
+   * {@link SignalError}, with the source's error as `cause`, if it failed.
+   * A command that exits without reading all its input, like `head -1`, is
+   * not an error. A missing command throws `Deno.errors.NotFound` from `run`
+   * itself.
+   *
+   * @example
    * ```typescript
-   * import { run } from "jsr:@j50n/proc";
+   * import { run } from "@j50n/proc";
    *
-   * // Equivalent to: echo "HELLO" | tr "A-Z" "a-z"
-   * const result = await run("echo", "HELLO")
-   *   .run("tr", "A-Z", "a-z")
-   *   .lines
-   *   .first;
-   * // "hello"
+   * const errors = await run("cat", "app.log").run("grep", "ERROR").lines
+   *   .collect();
    * ```
    *
-   * @example Multi-stage pipeline
+   * @example With options
    * ```typescript
-   * import { run } from "jsr:@j50n/proc";
+   * import { enumerate } from "@j50n/proc";
    *
-   * const result = await run("cat", "data.txt")
-   *   .run("grep", "error")
-   *   .run("wc", "-l")
+   * const listed = await enumerate(["b.txt", "a.txt"])
+   *   .run({ cwd: "/tmp" }, "xargs", "ls", "-l")
    *   .lines
-   *   .first;
+   *   .collect();
    * ```
    *
-   * @param cmd The command.
-   * @param options Options.
-   * @returns A child process instance.
+   * @param options `cwd`, `env`, `fnStderr`, `fnError`, `buffer`; see
+   *   {@link ProcessOptions}.
+   * @param cmd The command and its arguments.
    */
   run<S>(
     options: ProcessOptions<S>,
@@ -755,9 +898,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
   ): Run<S, T>;
 
   /**
-   * Run a process.
-   * @param cmd The command.
-   * @returns A child process instance.
+   * Run a command with the items as its stdin, and return its output. See the
+   * overload with options for the details.
+   *
+   * @param cmd The command and its arguments.
    */
   run(...cmd: Cmd): Run<unknown, T>;
 
@@ -785,23 +929,27 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Split the sequence into multiple identical streams.
+   * Split into `n` Enumerables (default 2) that each yield every item. The
+   * source is read once.
    *
-   * Useful when you need to process the same data in different ways.
-   * Uses buffering internally, so be mindful of memory with large datasets.
+   * Every item read stays in memory until all the branches are done with,
+   * even when they are read side by side, so use it on sequences that fit in
+   * memory. If the source throws, only the branch whose read hit the error
+   * throws; the others end early, without an error.
    *
-   * @example Split into two streams
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { range } from "@j50n/proc";
    *
    * const [a, b] = range({ to: 3 }).tee();
-   *
-   * const resultA = await a.collect();  // [0, 1, 2]
-   * const resultB = await b.collect();  // [0, 1, 2]
+   * const [sum, count] = await Promise.all([
+   *   a.reduce((acc, n) => acc + n, 0),
+   *   b.count(),
+   * ]);
+   * // 3, 3
    * ```
    *
-   * @param n The number of identical streams to create (default: 2).
-   * @returns A tuple of n identical Enumerables.
+   * @param n How many Enumerables to make. Default 2.
    */
   tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
     return tee(this.iter, n).map((it: AsyncIterable<T>) =>
@@ -813,20 +961,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Take the first n items from the sequence.
+   * Yield the first `n` items (default 1), and close the source.
    *
-   * @example Get first 3 items
+   * For a process, closing the source stops its output early:
+   * `run("yes").lines.take(2)` ends cleanly, and the exit code is not
+   * checked.
+   *
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { run } from "@j50n/proc";
    *
-   * const first3 = await range({ to: 10 })
-   *   .take(3)
-   *   .collect();
-   * // [0, 1, 2]
+   * const header = await run("cat", "data.csv").lines.take(1).collect();
    * ```
    *
-   * @param n The number of items to take (default: 1).
-   * @returns An Enumerable of the first n items.
+   * @param n How many items to keep. Default 1.
    */
   take<N extends number = 1>(n?: N): Enumerable<T> {
     const iter = this.iter;
@@ -837,12 +985,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
           let count = 0;
           const goal = n ?? 1;
           for await (const item of iter) {
-            if (count < goal) {
-              yield item;
-            } else {
-              break;
-            }
-            count += 1;
+            if (count >= goal) break;
+            yield item;
+            // Stop now, not when the next item arrives: it may never come.
+            if (++count >= goal) break;
           }
         },
       },
@@ -850,19 +996,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Get the first item in the sequence.
+   * The first item. A getter: `await e.first`, not `e.first()`.
    *
-   * Consumes the enumeration and returns the first element.
+   * It stops reading after that item and closes the source, so a second
+   * `.first` on the same Enumerable finds nothing and throws.
    *
-   * @example Get first item
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { run } from "@j50n/proc";
    *
-   * const first = await range({ from: 5, to: 10 }).first;
-   * // 5
+   * const branch = await run("git", "branch", "--show-current").lines.first;
    * ```
    *
-   * @throws RangeError if the sequence is empty.
+   * @throws {RangeError} If the sequence is empty. It never resolves to
+   *   `undefined`.
    */
   get first(): Promise<T> {
     return (async () => {
@@ -874,20 +1021,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Skip the first n items and return the rest.
+   * Skip the first `n` items (default 1), and yield the rest.
    *
-   * @example Skip first 2 items
+   * @example
    * ```typescript
-   * import { range } from "jsr:@j50n/proc";
+   * import { run } from "@j50n/proc";
    *
-   * const rest = await range({ to: 5 })
-   *   .drop(2)
-   *   .collect();
-   * // [2, 3, 4]
+   * const rows = await run("cat", "data.csv").lines.drop(1).collect();
    * ```
    *
-   * @param n The number of items to skip (default: 1).
-   * @returns An Enumerable of remaining items.
+   * @param n How many items to skip. Default 1.
    */
   drop<N extends number = 1>(n?: N): Enumerable<T> {
     const iter = this.iter;
@@ -909,20 +1052,18 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Concatenate this sequence with another.
+   * Yield this sequence's items, then `other`'s. `other` is not read until
+   * this one ends.
    *
-   * @example Join two sequences
+   * @example
    * ```typescript
-   * import { enumerate } from "jsr:@j50n/proc";
+   * import { enumerate } from "@j50n/proc";
    *
-   * const result = await enumerate([1, 2])
-   *   .concat(enumerate([3, 4]))
-   *   .collect();
+   * const all = await enumerate([1, 2]).concat(enumerate([3, 4])).collect();
    * // [1, 2, 3, 4]
    * ```
    *
-   * @param other The sequence to append.
-   * @returns An Enumerable of concatenated items.
+   * @param other The sequence to append. Wrap an array with {@link enumerate}.
    */
   concat(other: AsyncIterable<T>): Enumerable<T> {
     const iter = this.iter;
@@ -938,22 +1079,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Zip two {@link Enumerable}s together. If collections are unequal length,
-   * the longer collection is truncated.
+   * Pair items by position: `[mine, other's]`. Stops at the end of the
+   * shorter sequence and closes both.
    *
-   * **Example**
-   *
+   * @example
    * ```typescript
-   * const a = range({ from: 1, until: 3 });
-   * const b = enumerate(["A", "B", "C"]);
+   * import { enumerate, range } from "@j50n/proc";
    *
-   * const result = a.zip(b);
-   *
-   * // [[1, "A"], [2, "B"], [3, "C"]]
+   * const pairs = await range({ from: 1, until: 3 })
+   *   .zip(enumerate(["A", "B"]))
+   *   .collect();
+   * // [[1, "A"], [2, "B"]]
    * ```
    *
-   * @param other The other iterable.
-   * @returns The result of zipping
+   * @param other The sequence to pair with.
    */
   zip<U>(other: AsyncIterable<U>): Enumerable<[T, U]> {
     const iterA = identity(this);
@@ -995,22 +1134,21 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Unzip a collection of `[A, B]` into `Enumerable<A>` and `Enumerable<B>`.
+   * Split a sequence of pairs `[a, b]` into two Enumerables: the `a`s and the
+   * `b`s.
    *
-   * Note that this operations uses {@link tee}, so it will use memory during the
-   * iteration.
+   * It uses {@link tee}, with its costs: every item stays in memory until
+   * both are done with, and a source error is thrown from only one of them.
    *
-   * **Example**
-   *
+   * @example
    * ```typescript
-   * const pairs: [number, string][] = [[1, "A"], [2, "B"], [3, "C"]];
-   * const [a, b] = enumerate(pairs).unzip();
+   * import { enumerate } from "@j50n/proc";
    *
-   * // a is Enumerable<number> -> 1, 2, 3
-   * // b is Enumerable<string> -> "A", "B", "C"
+   * const pairs: [number, string][] = [[1, "A"], [2, "B"]];
+   * const [numbers, letters] = enumerate(pairs).unzip();
+   * console.log(await numbers.collect(), await letters.collect());
+   * // [1, 2] ["A", "B"]
    * ```
-   *
-   * @returns Two enumerables, one for the left side of the tuple and the other for the right.
    */
   unzip<A, B>(): Unzip<T> {
     const [a, b] = (this as Enumerable<[A, B]>).tee();
@@ -1022,33 +1160,22 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Convert byte stream to text lines.
+   * Decode bytes as UTF-8 into lines of text. A getter: `.lines`, not
+   * `.lines()`.
    *
-   * **Important**: This is a property, not a method. Use `.lines` not `.lines()`.
+   * Lines end at `"\n"`, and a `"\r"` before it is removed too, so CRLF text
+   * works. The line endings are not included, and a final newline doesn't
+   * make an empty last line. Invalid UTF-8 throws a `TypeError`. Only an
+   * Enumerable of bytes has lines; on anything else the type is `never`.
    *
-   * Returns an Enumerable<string> where each item is a line of text.
-   * Lines are split on `\n` or `\r\n`. Line endings are not included in the output.
+   * For output with a great many short lines, {@link chunkedLines} is several
+   * times faster.
    *
-   * Note that this should probably only be used with small data. Consider {@link chunkedLines}
-   * to improve performance with larger data.
-   *
-   * @example Get lines from process output
+   * @example
    * ```typescript
-   * import { run } from "jsr:@j50n/proc";
+   * import { run } from "@j50n/proc";
    *
-   * const lines = await run("ls", "-la").lines.collect();
-   * // Array of strings, one per line
-   * ```
-   *
-   * @example Process lines with transformations
-   * ```typescript
-   * import { run } from "jsr:@j50n/proc";
-   *
-   * const numbers = await run("echo", "-e", "1\\n2\\n3")
-   *   .lines
-   *   .map(line => parseInt(line))
-   *   .collect();
-   * // [1, 2, 3]
+   * const files = await run("ls", "-1").lines.collect();
    * ```
    */
   get lines(): Lines<T> {
@@ -1056,10 +1183,21 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Convert to text lines, grouped into arrays.
+   * The same lines as {@link lines}, in arrays: one array per chunk of bytes
+   * read. A getter.
    *
-   * For large data or data that is broken into many small lines, this can improve performance
-   * over {@link lines}.
+   * Handling an array at a time saves an `await` per line, which is much
+   * faster when there are many short lines.
+   *
+   * @example
+   * ```typescript
+   * import { run } from "@j50n/proc";
+   *
+   * let count = 0;
+   * await run("cat", "big.log").chunkedLines.forEach((lines) => {
+   *   count += lines.length;
+   * });
+   * ```
    */
   get chunkedLines(): ChunkedLines<T> {
     return enumerate(
@@ -1068,10 +1206,21 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Dump output to `stdout`. Non-locking.
+   * Write the items to stdout, and resolve when they are written. Stdout
+   * stays open.
    *
-   * Handles strings, string arrays, Uint8Arrays, and arrays of those.
-   * Strings automatically have newlines appended.
+   * A `string` is written with `"\n"` added, a `string[]` as one line per
+   * string, and `Uint8Array` or `Uint8Array[]` as the bytes are, with
+   * nothing added. Any other item throws a `TypeError`; the types don't
+   * catch it.
+   *
+   * @example
+   * ```typescript
+   * import { run } from "@j50n/proc";
+   *
+   * await run("ls", "-l").toStdout();
+   * await run("ls").lines.map((name) => `- ${name}`).toStdout();
+   * ```
    */
   toStdout(): Promise<void> {
     const iter = toBytes(
@@ -1090,11 +1239,23 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Dump output to a writer and close it.
+   * Write the bytes to a `Writer & Closer`, such as a `Deno.FsFile`, then
+   * close it.
    *
-   * This is a low-level asynchronous write of bytes without locking.
+   * The writer is closed even when the source throws, and the error is then
+   * thrown here. Only an Enumerable of bytes has this; on anything else the
+   * return type is `never`. For a path or a `WritableStream`, use
+   * {@link writeTo}.
    *
-   * @param writer The target writer.
+   * @example
+   * ```typescript
+   * import { run } from "@j50n/proc";
+   *
+   * const file = await Deno.create("listing.txt");
+   * await run("ls", "-l").writeBytesTo(file);
+   * ```
+   *
+   * @param writer Where the bytes go. It is closed afterward.
    */
   writeBytesTo(writer: Writer & Closer): ByteSink<T> {
     const iter = this.iter as AsyncIterable<Uint8Array>;
@@ -1117,78 +1278,71 @@ export class Enumerable<T> implements AsyncIterable<T> {
 }
 
 /**
- * Enumerable which may be substituted when we know we are returning `Uint8Array` data.
- */
-/**
- * Enumerable for process output with additional process-specific properties.
+ * A running process's output: an {@link Enumerable} of its stdout bytes,
+ * with its `pid` and `status`. {@link run} and {@link Enumerable.run} return
+ * one.
  *
- * Extends Enumerable<Uint8Array> with process management capabilities.
- * Use `.lines` property to get line-based output, or iterate over raw bytes.
+ * Use `.lines` for text, or iterate the bytes. The process is already running
+ * and its output must be read: a child that writes more than the pipe holds
+ * (about 64 KB) blocks until it is read, and if nothing reads it, the program
+ * hangs. The output can be read once.
  *
- * **Important**: Always consume the process output (via `.lines.collect()`,
- * `.lines.forEach()`, etc.) or the process will leak resources.
+ * A non-zero exit throws {@link ExitCodeError} from the consumer once every
+ * line of output has been delivered; death by a signal throws
+ * {@link SignalError}. Stopping early (`take`, `first`, `break`) closes
+ * stdout, and the exit code is not checked.
  *
- * **Error Handling**: Processes that exit with non-zero codes throw
- * `ExitCodeError` when you consume their output. Wrap in try-catch to handle.
- *
- * @example Basic usage
+ * @example
  * ```typescript
- * import { run } from "jsr:@j50n/proc";
- *
- * const lines = await run("ls", "-la").lines.collect();
- * ```
- *
- * @example Check exit status
- * ```typescript
- * import { run } from "jsr:@j50n/proc";
- *
- * const p = run("some-command");
- * await p.lines.collect(); // Consume output
- * const status = await p.status; // .status is a property, not a method
- * console.log(`Exit code: ${status.code}`);
- * ```
- *
- * @example Handle errors
- * ```typescript
- * import { run } from "jsr:@j50n/proc";
+ * import { ExitCodeError, run } from "@j50n/proc";
  *
  * try {
- *   await run("false").lines.collect();
+ *   await run("git", "status", "--short").lines.forEach(console.log);
  * } catch (error) {
- *   if (error.code) {
- *     console.error(`Failed with code ${error.code}`);
+ *   if (error instanceof ExitCodeError) {
+ *     console.error(`git exited with code ${error.code}`);
+ *   } else {
+ *     throw error;
  *   }
  * }
  * ```
+ *
+ * @typeParam S The type `fnStderr` returns and `fnError` receives; see
+ *   {@link ProcessOptions}.
  */
 export class ProcessEnumerable<S> extends Enumerable<Uint8Array<ArrayBuffer>> {
+  /**
+   * Wrap a {@link Process} whose stdout is piped. {@link run} does this for
+   * you.
+   *
+   * @param process The process.
+   * @throws {Deno.errors.NotConnected} If its stdout is not piped.
+   */
   constructor(protected process: Process<S>) {
     super(process.stdout);
   }
 
-  /** Process PID. */
+  /** The process ID. */
   get pid(): number {
     return this.process.pid;
   }
 
   /**
-   * Process exit status.
+   * The exit status, once the process exits. A getter: `await p.status`, not
+   * `p.status()`.
    *
-   * **Important**: This is a property that returns a Promise, not a method.
-   * Use `await p.status` not `await p.status()`.
+   * It doesn't throw for a non-zero exit; it reports `success`, `code`, and
+   * `signal`. It resolves only when the process exits, so for a child with
+   * more output than the pipe holds, read the output first or alongside, or
+   * it never resolves. Reading through a consumer already throws on failure,
+   * so `status` is for when you don't want the output, or have set `fnError`
+   * to handle failures.
    *
-   * The Promise resolves when the process exits. You should consume the
-   * process output before or concurrently with checking status to avoid
-   * resource leaks.
-   *
-   * @example Check exit code
+   * @example
    * ```typescript
-   * const p = run("some-command");
-   * await p.lines.collect(); // Consume output first
-   * const status = await p.status; // Property, not method
-   * if (status.code !== 0) {
-   *   console.error(`Failed with code ${status.code}`);
-   * }
+   * import { run } from "@j50n/proc";
+   *
+   * const { success } = await run("test", "-d", "/tmp").status;
    * ```
    */
   get status(): Promise<Deno.CommandStatus> {

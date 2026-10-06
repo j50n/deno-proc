@@ -4,6 +4,10 @@ import {
   checkBinaryFields,
   checkFields,
   forbiddenBytes,
+  isBinaryLazyRowArray,
+  isRow,
+  isRowArray,
+  isStringLazyRowArray,
   joinRow,
   joinRows,
   splitText,
@@ -55,36 +59,29 @@ async function* tsvBatches<T>(
 }
 
 /**
- * Parse TSV bytes into batches of string arrays.
+ * Parse TSV into batches of rows, each row a `string[]`.
  *
- * Streams TSV data efficiently, yielding batches of parsed rows (~128KB each).
- * All rows are treated as data - no special header handling.
+ * Each line is one row, split on tabs. There is no quoting: quotes are text. A
+ * CR before the LF is dropped, so CRLF files read like LF files. Blank lines
+ * are skipped, and the last line needs no LF. There is no header handling: the
+ * first row is data like the rest. Batches close at about 128 KiB of text
+ * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work row by row.
  *
- * **Performance**: TSV parsing is faster than CSV (72 MB/s vs 27 MB/s) because
- * it doesn't need to handle quoted fields or escaped characters.
+ * Invalid UTF-8 throws a `TypeError`.
  *
- * @example Basic TSV parsing
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToRows } from "jsr:@j50n/proc/transforms";
+ * @example Print the first field of each row whose third is "active"
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromTsvToRows } from "@j50n/proc/transforms";
  *
- * const rows = await read("data.tsv")
- *   .transform(fromTsvToRows())
- *   .flatten()
- *   .collect();
- * // string[][] - arrays of field values
- * ```
- *
- * @example Filter by field
- * ```typescript
  * await read("users.tsv")
  *   .transform(fromTsvToRows())
  *   .flatten()
- *   .filter(row => row[2] === "active")
- *   .forEach(row => console.log(row[0]));
+ *   .filter((row) => row[2] === "active")
+ *   .forEach((row) => console.log(row[0]));
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromTsvToRows(): TransformerFunction<Uint8Array, Row[]> {
   return (bytes: AsyncIterable<Uint8Array>): AsyncIterable<Row[]> =>
@@ -92,25 +89,25 @@ export function fromTsvToRows(): TransformerFunction<Uint8Array, Row[]> {
 }
 
 /**
- * Parse TSV bytes into batches of LazyRow objects.
+ * Parse TSV into batches of {@link LazyRow}s.
  *
- * Like {@link fromTsvToRows} but returns {@link LazyRow} objects for better
- * performance when accessing fields by index. Does not parse headers.
+ * Parsing is the same as in {@link fromTsvToRows}. The rows are string-backed:
+ * each line is decoded and split as it is read, so this is no faster than
+ * {@link fromTsvToRows}. Use it when the code downstream takes `LazyRow`s.
  *
- * @example Efficient field access by index
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToLazyRows } from "jsr:@j50n/proc/transforms";
+ * @example
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromTsvToLazyRows } from "@j50n/proc/transforms";
  *
- * await read("large.tsv")
+ * await read("log.tsv")
  *   .transform(fromTsvToLazyRows())
  *   .flatten()
- *   .drop(1) // Skip header row
- *   .filter(row => row.getField(2) === "ERROR")
- *   .forEach(row => console.log(row.getField(0)));
+ *   .filter((row) => row.getField(2) === "ERROR")
+ *   .forEach((row) => console.log(row.getField(0)));
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromTsvToLazyRows(): TransformerFunction<
   Uint8Array,
@@ -121,28 +118,29 @@ export function fromTsvToLazyRows(): TransformerFunction<
 }
 
 /**
- * Convert row data to TSV bytes.
+ * Write rows as TSV: fields joined by tabs, each row ended by LF.
  *
- * Accepts batches of row objects or LazyRow objects. Produces tab-separated
- * output without headers (caller should add headers if needed).
+ * TSV has no quoting, so a field can't hold a tab, CR, or LF. One that does
+ * throws an `Error` naming the row and field, counted from 1:
+ * `Invalid character (tab) in TSV data at row 2, field 1`. Items before the
+ * one holding it have already been written. For such data, use {@link toCsv}
+ * or {@link toRecord}.
  *
- * **Important**: TSV format does not support data containing tab (`\t`),
- * carriage return (`\r`), or line feed (`\n`) characters. This function
- * validates input and throws an error if invalid characters are found.
+ * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
+ * and yields one chunk of bytes.
  *
- * @example Write TSV file
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
+ * @example Convert CSV to TSV
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
  *
- * await read("input.tsv")
- *   .transform(fromTsvToRows())
+ * await read("data.csv")
+ *   .transform(fromCsvToRows())
  *   .transform(toTsv())
- *   .writeTo("output.tsv");
+ *   .writeTo("data.tsv");
  * ```
  *
- * @throws {Error} If data contains tab, CR, or LF characters
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function toTsv(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
@@ -214,31 +212,32 @@ export function toTsv(): TransformerFunction<
       return encode(joinRows(stringRows, "\t", "\n"));
     };
 
-    // deno-lint-ignore no-explicit-any
-    let handler: (item: any) => Uint8Array = (item: any) => {
+    // Pick the handler on the first item and keep it while items stay that
+    // kind; an item of another kind picks again.
+    type Item = Row | Row[] | LazyRow | LazyRow[];
+    const setup = (item: Item): Uint8Array => {
       if (Array.isArray(item) && item.length === 0) {
         return new Uint8Array(0);
       }
 
-      if (
-        Array.isArray(item) && item.length > 0 &&
-        item[0] instanceof LazyRow && item[0].isBinaryBacked()
-      ) {
-        handler = handleBinaryLazyRowArray;
-      } else if (
-        Array.isArray(item) && item.length > 0 && item[0] instanceof LazyRow
-      ) {
-        handler = handleStringLazyRowArray;
+      if (isBinaryLazyRowArray(item)) {
+        handler = handleBinaryLazyRowArray as typeof handler;
+        accepts = isBinaryLazyRowArray;
+      } else if (isStringLazyRowArray(item)) {
+        handler = handleStringLazyRowArray as typeof handler;
+        accepts = isStringLazyRowArray;
       } else if (item instanceof LazyRow && item.isBinaryBacked()) {
-        handler = handleBinaryLazyRow;
+        handler = handleBinaryLazyRow as typeof handler;
+        accepts = (it) => it instanceof LazyRow && it.isBinaryBacked();
       } else if (item instanceof LazyRow) {
-        handler = handleStringLazyRow;
-      } else if (
-        Array.isArray(item) && item.length > 0 && Array.isArray(item[0])
-      ) {
-        handler = handleRowArray;
-      } else if (Array.isArray(item)) {
-        handler = handleRow;
+        handler = handleStringLazyRow as typeof handler;
+        accepts = (it) => it instanceof LazyRow && !it.isBinaryBacked();
+      } else if (isRowArray(item)) {
+        handler = handleRowArray as typeof handler;
+        accepts = isRowArray;
+      } else if (isRow(item)) {
+        handler = handleRow as typeof handler;
+        accepts = isRow;
       } else {
         throw new TypeError(
           `Unsupported input type for toTsv: expected Row, Row[], LazyRow, or LazyRow[], got ${typeof item}`,
@@ -248,8 +247,11 @@ export function toTsv(): TransformerFunction<
       return handler(item);
     };
 
+    let handler: (item: Item) => Uint8Array = setup;
+    let accepts: (item: Item) => boolean = () => false;
+
     for await (const item of data) {
-      yield handler(item);
+      yield accepts(item) ? handler(item) : setup(item);
     }
   };
 }

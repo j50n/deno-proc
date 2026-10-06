@@ -1,89 +1,88 @@
 # Documentation Guidelines
 
-## Core Principles
+## Who reads these docs
 
-1. **Every public API must have JSDoc with a working example**
-2. **Every example must have a corresponding test**
-3. **Examples must be minimal and focused on one concept**
-4. **Documentation must explain WHY, not just WHAT**
-5. **Error handling is the PRIMARY selling point**
+Two readers, and the docs have to work for both:
 
-## Consistency Across Sources
+- **A developer who just found proc.** In a minute they should know what it is
+  for, and in five they should have it working in their project.
+- **An LLM helping someone use proc.** It reads the JSR page, the doc comments,
+  and the book, often only part of them, and then writes code. It learns the
+  library's idioms only from what we wrote, so a claim that is false or vague
+  turns straight into broken code in someone's project.
 
-- **mod.ts JSDoc**, **README.md**, and **site docs** must be consistent
-- Same terminology, same examples, same explanations across all three
-- Documentation link (https://j50n.github.io/deno-proc/) should be prominent
-- "Why proc?" benefits should be consistent
+Everything below follows from those two readers.
 
-## JSDoc Requirements
+## What makes a page or a comment good
 
-- Module-level JSDoc in mod.ts appears on JSR overview page
-- Include: tagline, documentation link, "Why proc?", Key Concepts, examples
-- Function-level JSDoc should include:
-  - Clear description
-  - `@param` for all parameters with types
-  - `@returns` with return type
-  - `@example` with working code examples
-- Mark technical details as "for advanced users" when appropriate
+**It says what the thing is for before how it works.** Lead with the purpose
+and when to reach for it. A reader who knows why a function exists can work out
+most of the details; a reader with only the details misuses it.
 
-## mdbook Documentation
+**It is true, and checked.** The code is the arbiter. Before writing a claim
+about behavior, read the code, and when the code doesn't settle it, run a probe.
+Vague phrases ("handles errors properly", "manages resources automatically")
+hide whether a claim is true; say what actually happens ("throws
+`ExitCodeError` after the last line of output").
 
-- All code examples must have test markers:
-  - `<!-- TESTED: tests/mdbook_examples.test.ts - "test-name" -->` for verified
-    examples
-  - `<!-- NOT TESTED: Illustrative example -->` for conceptual examples
-- Use visual callouts with emojis in blockquotes for emphasis
-- Organize into clear sections: Getting Started, Core Features, Advanced Topics,
-  etc.
-- Include "Key points" explanations after code examples
+**It names the traps.** Where people go wrong is the most useful thing to write
+down: what happens if they skip a step, and what they see when they do. "If you
+don't read stdout, a child that writes more than the pipe holds blocks forever,
+and your program hangs" is worth more than "always consume output."
 
-## Documentation Structure
+**It is short.** Say a thing once, in the place a reader would look for it, and
+link to it from elsewhere. No preambles, no summaries of what was just said, no
+"Key points" lists that repeat the prose.
 
-### Key Documentation Files
+**It sounds like a person who knows the library.** Plain, direct, specific. No
+marketing ("superpowers", "blazing", "seamless"), no emoji, no comparisons with
+Node streams or other libraries unless a reader needs one to choose.
 
-- **mod.ts**: Module-level JSDoc that appears on JSR overview page
-- **README.md**: GitHub landing page, consistent with mod.ts JSDoc
-- **site/src/**: mdbook documentation with comprehensive guides
+## Doc comments
 
-### Visual Enhancements (mdbook)
+Doc comments are the API reference: they appear in `deno doc`, on the JSR
+pages, and in editors, and an LLM often sees nothing else.
 
-- **site/theme/custom.css**: Professional styling with shadows, rounded corners,
-  hover effects
-- **site/theme/custom.js**: Interactive features like copy buttons and smooth
-  scrolling
-- **site/book.toml**: Navy theme, GitHub integration, enhanced search
+- The first sentence says what it does, in plain words. It is the summary shown
+  in lists, so it stands alone.
+- Then, where it applies: why you would use it, what to watch for, and how it
+  fails (what it throws, and when).
+- Name parameters and return values with `@param` and `@returns` when the
+  signature doesn't already make them obvious. Don't restate the type.
+- One or two `@example` blocks, each minimal and complete: it imports what it
+  uses from `@j50n/proc` (or `@j50n/proc/transforms`) and type-checks.
+- History, design derivations, and benchmarks don't go in comments. Put them in
+  the book if they matter.
+- Internal and private members get a short comment only where the code doesn't
+  explain itself.
 
-## Example Standards
+`src/shutdown.ts` is a good model.
 
-- Examples should be copy-paste ready (for TESTED examples)
-- Use realistic scenarios, not toy examples
-- Include comments explaining non-obvious parts
-- Show complete working code, not fragments
-- TESTED examples must match documentation exactly
+## The book
 
-## Test Markers
+The book (`site/src`) is for learning the library and for the topics that cross
+many functions: pipelines, errors, shutdown, data formats. It doesn't repeat
+the API reference; it links to it.
 
-All code examples in mdbook have HTML comments:
+- Each page answers one question a reader has ("How do I pipe one command into
+  another?"), and its title says which.
+- Examples come first and carry the explanation. Prose fills in what the code
+  can't show.
+- Code that runs lives in `site/examples/` as a file, and the page pulls it in
+  with `{{#include ../../examples/name.ts}}`. `tests/book_examples.test.ts`
+  checks and runs every file there, so an example can't drift from the code.
+- A fragment that can't stand alone (a deliberate mistake, a sketch) is marked
+  as such in the prose.
 
-- `<!-- TESTED: tests/mdbook_examples.test.ts - "test-name" -->` for verified
-  examples
-- `<!-- NOT TESTED: Illustrative example -->` for conceptual/comparison examples
+## The README and `mod.ts`
 
-## Maintenance Guidelines
+`mod.ts`'s module comment is the JSR landing page. It and the README say the
+same short thing: what proc is for, a handful of examples, the few concepts
+everyone needs, and a link to the book. Keep them in step.
 
-### When Adding New Features
+## Checking your work
 
-1. Add JSDoc to the function/class
-2. Add example to mod.ts if it's a common use case
-3. Update README if it's a key feature
-4. Add pattern to patterns.md if it's a common usage
-5. Consider if tests should be added
-6. Mark examples as TESTED or NOT TESTED
-
-### When Updating Documentation
-
-1. Keep README, mod.ts JSDoc, and site docs consistent
-2. Use same terminology across all docs
-3. Add test markers to all code examples
-4. Run both build scripts to verify
-5. Check that JSR overview page looks good
+```sh
+deno check --doc-only mod.ts src/   # every doc comment example type-checks
+deno test -A tests/book_examples.test.ts   # every book example runs
+```

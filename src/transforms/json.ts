@@ -1,21 +1,24 @@
 import type { TransformerFunction } from "../transformers.ts";
 import { BATCH_SIZE_BYTES, splitText } from "./common.ts";
 
-type ZodSchema<T = unknown> = { parse(value: unknown): T }; // Minimal Zod interface
-
 /**
- * Options for JSON Lines parsing.
+ * Anything with a `parse` method that returns the value when it is valid and
+ * throws when it isn't. A Zod schema fits as it is.
  */
+export type ZodSchema<T = unknown> = { parse(value: unknown): T };
+
+/** Options for {@link fromJsonToRows}. */
 export interface JsonOptions<T = unknown> {
   /**
-   * Optional Zod validation schema.
-   * When provided, each parsed object is validated against this schema.
+   * Checks each value: `schema.parse(value)` is called, and whatever it throws
+   * stops the stream. Its return value is ignored, so you get the value as
+   * `JSON.parse` made it: Zod transforms and defaults are not applied, and
+   * unknown keys are not stripped. Default: no check.
    */
   schema?: ZodSchema<T>;
   /**
-   * Validate only the first N rows.
-   * Useful for performance when you trust the data after initial validation.
-   * Default: validate all rows (when schema is provided).
+   * Check only the first `sampleSize` values with `schema`; the rest pass
+   * unchecked. Default: check every value.
    */
   sampleSize?: number;
 }
@@ -26,53 +29,42 @@ const encode = (() => {
 })();
 
 /**
- * Parse JSON Lines (JSONL) bytes into batches of objects.
+ * Parse JSON lines into batches of values, one value per line.
  *
- * Streams JSONL data efficiently, yielding batches of parsed objects (~128KB each).
- * Each line is expected to be a valid JSON object.
+ * Each line is parsed with `JSON.parse` and can hold any JSON value, not only
+ * an object. Blank lines are skipped. Batches close at about 128 KiB of text
+ * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work value by value.
  *
- * **Performance**: JSON parsing achieves ~70-98 MB/s depending on object complexity.
+ * `T` is only asserted unless you pass a `schema`. A line that isn't JSON
+ * throws the `SyntaxError` from `JSON.parse`, whose position counts from the
+ * start of that line; it doesn't say which line. Invalid UTF-8 throws a
+ * `TypeError`.
  *
- * @example Basic JSONL parsing
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromJsonToRows } from "jsr:@j50n/proc/transforms";
+ * @example Read events, checking each one
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromJsonToRows } from "@j50n/proc/transforms";
  *
- * const events = await read("events.jsonl")
- *   .transform(fromJsonToRows())
- *   .flatten()
- *   .collect();
- * // unknown[] - parsed JSON objects
- * ```
+ * type Event = { id: string; timestamp: number };
+ * const EventSchema = {
+ *   parse(value: unknown): Event {
+ *     const e = value as Partial<Event>;
+ *     if (typeof e?.id !== "string" || typeof e.timestamp !== "number") {
+ *       throw new TypeError(`not an event: ${JSON.stringify(value)}`);
+ *     }
+ *     return e as Event;
+ *   },
+ * };
  *
- * @example With TypeScript type
- * ```typescript
- * interface Event { id: string; timestamp: number; }
- *
- * const events = await read("events.jsonl")
- *   .transform(fromJsonToRows<Event>())
- *   .flatten()
- *   .filter(e => e.timestamp > Date.now() - 86400000)
- *   .collect();
- * ```
- *
- * @example With Zod validation
- * ```typescript
- * import { z } from "zod";
- *
- * const EventSchema = z.object({
- *   id: z.string(),
- *   timestamp: z.number()
- * });
- *
- * const events = await read("events.jsonl")
+ * const recent = await read("events.jsonl")
  *   .transform(fromJsonToRows({ schema: EventSchema }))
  *   .flatten()
+ *   .filter((e) => e.timestamp > Date.now() - 86_400_000)
  *   .collect();
  * ```
  *
- * @param options Parsing and validation options.
- * @returns A transformer function for use with `.transform()`.
+ * @param options A schema to check values with.
+ * @returns A transformer for `.transform()`.
  */
 export function fromJsonToRows<T = unknown>(
   options?: JsonOptions<T>,
@@ -114,35 +106,28 @@ export function fromJsonToRows<T = unknown>(
 }
 
 /**
- * Convert objects to JSON Lines (JSONL) bytes.
+ * Write batches of values as JSON lines, one `JSON.stringify` per line.
  *
- * Accepts batches of objects and produces newline-delimited JSON output.
+ * Each item must be a batch (an array of values), and yields one chunk of
+ * bytes; empty batches yield nothing. Watch for this after `.flatten()`: a
+ * stream of `Row`s is a stream of arrays, so each row is taken as a batch and
+ * each field lands on a line of its own. To write single values, wrap them:
+ * `.map((v) => [v])`. A value `JSON.stringify` can't represent, such as
+ * `undefined` or a function, is written as the text `undefined`.
  *
- * @example Write JSONL file
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromJsonToRows, toJson } from "jsr:@j50n/proc/transforms";
+ * @example Write CSV rows as JSON objects
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromCsvToRows, toJson } from "@j50n/proc/transforms";
  *
- * await read("input.jsonl")
- *   .transform(fromJsonToRows())
- *   .transform(toJson())
- *   .writeTo("output.jsonl");
- * ```
- *
- * @example Convert CSV to JSONL
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromCsvToRows } from "jsr:@j50n/proc/transforms";
- * import { toJson } from "jsr:@j50n/proc/transforms";
- *
- * await read("data.csv")
+ * await read("people.csv")
  *   .transform(fromCsvToRows())
- *   .map(batch => batch.map((row, i) => ({ index: i, fields: row })))
+ *   .map((batch) => batch.map(([name, age]) => ({ name, age: Number(age) })))
  *   .transform(toJson())
- *   .writeTo("data.jsonl");
+ *   .writeTo("people.jsonl");
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function toJson<T = unknown>(): TransformerFunction<T[], Uint8Array> {
   return async function* (data: AsyncIterable<T[]>): AsyncIterable<Uint8Array> {
