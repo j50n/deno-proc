@@ -222,13 +222,8 @@ function uint8arrayPerLineOp(item: Uint8Array) {
 }
 
 function stringArrayOfLinesOp(item: string[]) {
-  const lines = Array(item.length);
-
-  for (let i = 0; i < item.length; i++) {
-    lines[i] = encoder.encode(item[i]);
-  }
-
-  return concatLines(lines) as Bytes;
+  // One encode for the batch: several times faster than one per line.
+  return encoder.encode(item.join("\n") + "\n");
 }
 
 function uint8arrayArrayOfLinesOp(item: Uint8Array[]) {

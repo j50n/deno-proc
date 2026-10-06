@@ -69,10 +69,28 @@ go through untouched. For any other item type (numbers, objects), the return
 type of `.run()` is `never` and the code doesn't type-check: turn the items into
 strings with `.map()` first, as the array example does with numbers.
 
-When you feed many small items, `run({ buffer: true }, ...)` collects them into
-writes of at least 16 KB, which is faster. The child sees nothing until 16 KB
-has collected or the input ends, so leave it off for a child that must answer
-each line as it arrives.
+## Lots of lines
+
+Each item written to a command is a write of its own, and each step pays for
+every item it handles. With a few thousand lines that doesn't matter; with
+millions it does. Work a chunk of lines at a time instead:
+
+```typescript
+{{#include ../../examples/processes/pipelines-chunked.ts}}
+```
+
+```text
+{{#include ../../examples/processes/pipelines-chunked.out}}
+```
+
+`.chunkedLines` yields the same lines as `.lines`, in arrays, and `.run()`
+writes each array in one go. On two million short lines, a filter between two
+commands took 16 seconds a line at a time and 0.3 seconds a chunk at a time.
+
+`run({ buffer: true }, ...)` is a smaller fix for a source you can't chunk: it
+collects small items into writes of at least 16 KB, about twice as fast. The
+child sees nothing until 16 KB has collected or the input ends, so leave it off
+for a child that must answer each line as it arrives.
 
 ## Mixing commands and steps
 

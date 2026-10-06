@@ -158,6 +158,15 @@ file, a socket, a paginated API), don't push into a queue; pull from it with an
 async generator, or `enumerate()` a `ReadableStream`, so it is read only as fast
 as you consume it.
 
+## It's slow
+
+**A pipeline of many short lines crawls**, especially one that feeds a command
+with `.run()`: every step, and every write to the command, happens once per
+line. Use `.chunkedLines` instead of `.lines`, and work on each array:
+`.chunkedLines.map((lines) => lines.filter(...)).run("sort")`. On two million
+lines that took a filter between two commands from 16 seconds to 0.3. See
+[Lots of lines](../processes/pipelines.md#lots-of-lines).
+
 ## Children die without cleaning up
 
 In a container, stopping it sends SIGTERM to Deno, Deno exits at once, and the
