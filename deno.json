@@ -4,7 +4,6 @@
   "publish": {
     "exclude": [
       "**/warandpeace.txt.gz",
-      "dev/",
       "site/",
       "docs/",
       "benchmarks/",
@@ -14,7 +13,6 @@
       "build.sh",
       "build-site.sh",
       "MAINT.md",
-      "MEMORY.md",
       "swift/",
       "tools/",
       ".vscode/",
