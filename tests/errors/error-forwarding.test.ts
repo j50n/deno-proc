@@ -5,7 +5,7 @@ import {
   toBytes,
   UpstreamError,
 } from "../../mod.ts";
-import { resolve } from "../../tools/deps/path.ts";
+import { resolve } from "@std/path";
 
 async function* testTransform(
   lines: AsyncIterable<string>,

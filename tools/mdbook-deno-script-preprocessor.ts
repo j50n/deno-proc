@@ -1,14 +1,12 @@
-#!/usr/bin/env -S deno --unstable run
+#!/usr/bin/env -S deno run
 
-import { enumerate, isString, toLines } from "./deps/proc.ts";
-import { bestTypeNameOf } from "./deps/proc-hidden.ts";
-import { resolve, toFileUrl } from "./deps/path.ts";
-// import { toHashString } from "./deps/crypto.ts";
-import { blue, cyan, red } from "./deps/colors.ts";
-import { Command } from "./deps/cliffy.ts";
-import { retry } from "./deps/retry.ts";
+import { enumerate, isString, toLines } from "../mod.ts";
+import { bestTypeNameOf } from "../src/helpers.ts";
+import { resolve, toFileUrl } from "@std/path";
+import { blue, cyan, red } from "@std/fmt/colors";
+import { Command } from "@cliffy/command";
+import { retry } from "@std/async/retry";
 import config from "../deno.json" with { type: "json" };
-import { encodeHex } from "./deps/encode.ts";
 
 interface Chapter {
   Chapter: {
@@ -42,9 +40,9 @@ interface CacheEntry {
 }
 
 async function digestMessage(message: string) {
-  return encodeHex(
+  return new Uint8Array(
     await crypto.subtle.digest("SHA-1", new TextEncoder().encode(message)),
-  );
+  ).toHex();
 }
 
 if (Deno.args.length >= 2 && Deno.args[Deno.args.length - 2] === "supports") {
