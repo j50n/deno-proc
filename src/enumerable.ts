@@ -3,6 +3,7 @@ import { abandon, handled, parseArgs } from "./helpers.ts";
 import type { Cmd } from "./run.ts";
 import type { Writable } from "./writable-iterable.ts";
 import {
+  buffer,
   type StandardData,
   toBytes,
   toChunkedLines,
@@ -417,9 +418,13 @@ export class Enumerable<T> implements AsyncIterable<T> {
         abandon(this.iter);
         throw e;
       }
-      // Bytes as they are, strings as lines, as toStdout writes them.
+      // Bytes as they are, strings as lines, as toStdout writes them, in
+      // 64 KiB writes. Written with the file's own writes: Deno's
+      // `file.writable` loses an error from its last flush, so a full disk
+      // would look like success.
       await enumerate(toBytes(this.iter as AsyncIterable<StandardData>))
-        .writeTo(file.writable);
+        .transform(buffer(64 * 1024))
+        .writeBytesTo(file);
       return;
     }
 

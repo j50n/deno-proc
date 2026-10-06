@@ -354,7 +354,8 @@ export async function* toBufferSource(
  *
  * Chunks are held and joined until the total reaches `size`, then passed on
  * as one; a chunk already that big goes through as is. Chunks are never split,
- * and whatever is held at the end goes out as a last, smaller chunk. Fewer,
+ * and whatever is held at the end, or when the source throws, goes out as a
+ * last, smaller chunk before the error. Fewer,
  * larger writes are cheaper, but held data waits: a child reading interactive
  * input sees nothing until a chunk fills.
  *
@@ -382,15 +383,21 @@ export function buffer(
     let len = 0;
     let pieces: Uint8Array[] = [];
 
-    for await (const piece of iter) {
-      len += piece.length;
-      pieces.push(piece);
+    try {
+      for await (const piece of iter) {
+        len += piece.length;
+        pieces.push(piece);
 
-      if (len >= size) {
-        yield concat(pieces);
-        len = 0;
-        pieces = [];
+        if (len >= size) {
+          yield concat(pieces);
+          len = 0;
+          pieces = [];
+        }
       }
+    } catch (e) {
+      // What was read before the error still goes on, then the error.
+      if (pieces.length > 0) yield concat(pieces);
+      throw e;
     }
 
     if (pieces.length > 0) {

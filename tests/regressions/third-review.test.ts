@@ -370,3 +370,31 @@ Deno.test("An error that goes uncaught while main waits is reported, and the exi
   assertEquals(code, 1);
   assert(stderr.includes("late failure"), stderr);
 });
+
+Deno.test("writeTo(path) on a full disk throws, rather than losing the error.", async () => {
+  // In a Deno of its own: the tests may write only under /tmp.
+  const { code, stderr } = await deno(
+    `import { enumerate } from "${MOD}";
+     await enumerate(["x"]).writeTo("/dev/full");`,
+  );
+  assertEquals(code, 1);
+  assert(stderr.includes("No space left on device"), stderr);
+});
+
+Deno.test("buffer passes on what it holds before the source's error.", async () => {
+  async function* source() {
+    yield new Uint8Array([1]);
+    throw new Error("source failed");
+  }
+  const got: Uint8Array[] = [];
+  await assertRejects(
+    async () => {
+      for await (const chunk of enumerate(source()).transform(buffer(1024))) {
+        got.push(chunk);
+      }
+    },
+    Error,
+    "source failed",
+  );
+  assertEquals(got, [new Uint8Array([1])]);
+});
