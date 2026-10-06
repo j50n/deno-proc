@@ -16,7 +16,7 @@ class None {
  * @typeParam T The type of the items.
  */
 export interface Writable<T> {
-  /** Whether `close()` has been called. */
+  /** Whether it takes no more items: `close()` has been called, say. */
   get isClosed(): boolean;
 
   /**
@@ -91,9 +91,12 @@ export interface Writable<T> {
 export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
   private _closed = false;
 
-  /** Whether `close()` has been called. */
+  /**
+   * Whether it takes no more items: `close()` has been called, or the reader
+   * has stopped.
+   */
   get isClosed(): boolean {
-    return this._closed;
+    return this._closed || this.abandoned;
   }
 
   private queue: QueueEntry<Some<T> | None>[] = [];
@@ -127,7 +130,7 @@ export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
    * @param error Thrown to the reader after the items written before it.
    */
   async close(error?: Error): Promise<void> {
-    if (!this.isClosed) {
+    if (!this._closed) {
       this._closed = true;
       this.queue[this.queue.length - 1].resolve(new None(error));
       if (this.options?.onclose != null) {
@@ -144,7 +147,7 @@ export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
    * @param item The item.
    */
   async write(item: T): Promise<void> {
-    if (this.isClosed) {
+    if (this._closed) {
       throw new Error("writable is already closed");
     }
     if (this.abandoned) return;

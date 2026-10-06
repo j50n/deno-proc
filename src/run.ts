@@ -72,7 +72,7 @@ export type Cmd = [string | URL, ...string[]];
  *   await run("sh", "-c", "echo partial; exit 3").lines.forEach(console.log);
  * } catch (error) {
  *   if (error instanceof ExitCodeError) {
- *     console.error(`${error.command.join(" ")} exited with ${error.code}`);
+ *     console.error(`${error.command[0]} exited with ${error.code}`);
  *   } else {
  *     throw error;
  *   }

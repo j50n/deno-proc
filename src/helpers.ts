@@ -66,3 +66,17 @@ export function handled<T>(value: T): T {
   if (value instanceof Promise) value.catch(() => {});
   return value;
 }
+
+/**
+ * Close a source nothing will read, so a command feeding it isn't left
+ * blocked on its output. An async generator ignores `return()` until it has
+ * started, at every stage of a chain, so this starts it, takes at most one
+ * item, and stops. It runs in the background, since that item may be slow.
+ *
+ * @internal
+ */
+export function abandon(iter: AsyncIterable<unknown>): void {
+  handled((async () => {
+    for await (const _ of iter) break;
+  })());
+}

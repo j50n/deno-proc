@@ -310,3 +310,43 @@ Deno.test({
     assert(run.elapsedMs < 2000, `stopped at the limit (${run.elapsedMs} ms)`);
   },
 });
+
+/**
+ * A program under main whose child dies of the terminal's Ctrl-C, as most
+ * children do. Its exit code and stderr.
+ */
+async function ctrlC(): Promise<{ code: number; stderr: string }> {
+  const dir = await Deno.makeTempDir();
+  const script = `
+    import { main, run } from "${MOD}";
+    await main(async () => {
+      await run("sh", "-c", "touch ${dir}/ready; exec sleep 30").forEach(() => {});
+    });`;
+  const program = new Deno.Command("setsid", {
+    args: ["deno", "eval", script],
+    stdout: "null",
+    stderr: "piped",
+  }).spawn();
+  try {
+    assert(await waitForFile(`${dir}/ready`, 5000), "the child started");
+    await new Deno.Command("sh", {
+      args: ["-c", `kill -INT -- -${program.pid}`],
+    }).output();
+    const { code, stderr } = await program.output();
+    return { code, stderr: new TextDecoder().decode(stderr) };
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+}
+
+Deno.test({
+  name:
+    "Ctrl-C exits 130 quietly, even when a child dies of it before main hears it.",
+
+  async fn() {
+    // The race is lost now and then; a dozen at once lose it reliably.
+    const runs = await Promise.all(Array.from({ length: 12 }, ctrlC));
+    assertEquals(runs.map((run) => run.code), runs.map(() => 130));
+    assertEquals(runs.map((run) => run.stderr), runs.map(() => ""));
+  },
+});

@@ -1,5 +1,5 @@
 import { Process, type ProcessOptions } from "./process.ts";
-import { handled, parseArgs } from "./helpers.ts";
+import { abandon, handled, parseArgs } from "./helpers.ts";
 import type { Cmd } from "./run.ts";
 import type { Writable } from "./writable-iterable.ts";
 import {
@@ -268,9 +268,12 @@ export class Enumerable<T> implements AsyncIterable<T> {
    *
    * Items are written as {@link toStdout} writes them: bytes as they are,
    * each string as a line, an array of either as several. Any other item
-   * throws a `TypeError`. The file is emptied when writing starts, so a
+   * throws a `TypeError`. The file is emptied before anything is read, so a
    * failure leaves it holding only what was written before it: the old
-   * content is gone, and the error is thrown here.
+   * content is gone, and the error is thrown here. For the same reason,
+   * `read(path)` feeding `writeTo(path)` finds the file already empty. To
+   * replace a file only once everything has succeeded, or to rewrite it in
+   * place, write to a new file beside it and `Deno.rename` it over the old.
    *
    * @example
    * ```typescript
@@ -292,7 +295,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * it.
    *
    * Pass `{ noclose: true }` to leave it open, as for `Deno.stdout.writable`.
-   * Writing to a `Writable` stops early if it is closed meanwhile.
+   * Writing to a `Writable` stops early if it is closed meanwhile, which for a
+   * {@link WritableIterable} includes its reader stopping.
    *
    * If the source throws, a `WritableStream` is closed (not aborted) and the
    * error is thrown here. A `Writable`, such as a {@link WritableIterable},
@@ -325,11 +329,17 @@ export class Enumerable<T> implements AsyncIterable<T> {
     // Handle file path. Closing the stream closes the file. Closing the file
     // directly instead drops whatever the stream still buffers (Deno 2.9).
     if (typeof writer === "string") {
-      const file = await Deno.open(writer, {
-        write: true,
-        create: true,
-        truncate: true,
-      });
+      let file: Deno.FsFile;
+      try {
+        file = await Deno.open(writer, {
+          write: true,
+          create: true,
+          truncate: true,
+        });
+      } catch (e) {
+        abandon(this.iter);
+        throw e;
+      }
       // Bytes as they are, strings as lines, as toStdout writes them.
       await enumerate(toBytes(this.iter as AsyncIterable<StandardData>))
         .writeTo(file.writable);
@@ -339,7 +349,13 @@ export class Enumerable<T> implements AsyncIterable<T> {
     const iter = this.iter;
 
     if ("getWriter" in writer) {
-      const w = writer.getWriter();
+      let w: WritableStreamDefaultWriter<T>;
+      try {
+        w = writer.getWriter();
+      } catch (e) {
+        abandon(iter);
+        throw e;
+      }
       let failed = false;
 
       try {
@@ -942,9 +958,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     } catch (e) {
       // The command didn't start (NotFound, say), so nothing will read the
       // source. Close it, or a command upstream waits on its output forever.
-      handled((async () => {
-        for await (const _ of iter) break;
-      })());
+      abandon(iter);
       throw e;
     }
 
@@ -1001,7 +1015,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * const header = await run("cat", "data.csv").lines.take(1).collect();
    * ```
    *
-   * @param n How many items to keep. Default 1.
+   * @param n How many items to keep. Default 1; 0 or less (or NaN) keeps none.
    */
   take<N extends number = 1>(n?: N): Enumerable<T> {
     const iter = this.iter;
@@ -1011,6 +1025,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
         async *[Symbol.asyncIterator]() {
           let count = 0;
           const goal = n ?? 1;
+          if (!(goal > 0)) {
+            abandon(iter);
+            return;
+          }
           for await (const item of iter) {
             if (count >= goal) break;
             yield item;
@@ -1080,7 +1098,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Yield this sequence's items, then `other`'s. `other` is not read until
-   * this one ends.
+   * this one ends; stopping before then closes it.
    *
    * @example
    * ```typescript
@@ -1104,11 +1122,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
             reached = true;
             yield* other;
           } finally {
-            // Stopped before `other` began: start it so it can be closed. A
-            // command left unread would never exit.
-            if (!reached) {
-              for await (const _ of other) break;
-            }
+            // Stopped before `other` began. Close it, or a command feeding it
+            // would never exit.
+            if (!reached) abandon(other);
           }
         },
       },
@@ -1138,12 +1154,15 @@ export class Enumerable<T> implements AsyncIterable<T> {
     return enumerate(
       {
         async *[Symbol.asyncIterator]() {
+          let pending = false;
           try {
             for (;;) {
+              pending = true;
               const [a, b] = await Promise.all([
                 iterA.next(),
                 iterB.next(),
               ]);
+              pending = false;
 
               if (a.done || b.done) {
                 break;
@@ -1152,18 +1171,12 @@ export class Enumerable<T> implements AsyncIterable<T> {
               yield [a.value, b.value];
             }
           } finally {
-            await Promise.all([
-              (async () => {
-                for await (const _a of iterA) {
-                  break;
-                }
-              })(),
-              (async () => {
-                for await (const _b of iterB) {
-                  break;
-                }
-              })(),
-            ]);
+            // Close both without reading on. After one side fails, the
+            // other's pull may still be pending, and its close would wait
+            // behind it.
+            const closing = Promise.all([iterA.return?.(), iterB.return?.()]);
+            if (pending) handled(closing);
+            else await closing;
           }
         },
       },
@@ -1174,8 +1187,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * Split a sequence of pairs `[a, b]` into two Enumerables: the `a`s and the
    * `b`s.
    *
-   * It uses {@link tee}, with its costs: every item stays in memory until
-   * both are done with, and a source error is thrown from only one of them.
+   * It uses {@link tee}: every item stays in memory until both have read
+   * it, and a source error is thrown from both, after the items before it.
    *
    * @example
    * ```typescript
@@ -1294,10 +1307,19 @@ export class Enumerable<T> implements AsyncIterable<T> {
   writeBytesTo(writer: Writer & Closer): ByteSink<T> {
     const iter = this.iter as AsyncIterable<Uint8Array>;
     async function inner() {
+      let failed = false;
       try {
         await writeEach(iter, (buff) => writeAll(buff, writer));
+      } catch (e) {
+        failed = true;
+        throw e;
       } finally {
-        writer.close();
+        // After a failure, the first error is the one to report.
+        try {
+          writer.close();
+        } catch (e) {
+          if (!failed) throw e;
+        }
       }
     }
 

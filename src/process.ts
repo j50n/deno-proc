@@ -132,6 +132,10 @@ export interface ProcessStreamOptions<S> extends ProcessOptions<S> {
  *
  * `name` is the subclass's name. `cause` is the earlier error that led to this
  * one, if any; `options.cause` holds the same value.
+ *
+ * Printing one, or `JSON.stringify`, shows the message, the program and the
+ * cause, but not `command`'s arguments, which can hold secrets: read
+ * `command` to get them.
  */
 export abstract class ProcessError extends Error {
   /**
@@ -146,7 +150,13 @@ export abstract class ProcessError extends Error {
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
+    hide(this, "options");
   }
+}
+
+/** Keep `key` out of what printing and `JSON.stringify` show. */
+function hide(error: Error, key: string) {
+  Object.defineProperty(error, key, { enumerable: false });
 }
 
 /**
@@ -188,6 +198,7 @@ export class UpstreamError extends ProcessError {
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
+    hide(this, "command");
   }
 }
 
@@ -207,7 +218,7 @@ export class UpstreamError extends ProcessError {
  *   await run("sh", "-c", "echo partial; exit 3").lines.forEach(console.log);
  * } catch (error) {
  *   if (error instanceof ExitCodeError) {
- *     console.error(`${error.command.join(" ")} exited with ${error.code}`);
+ *     console.error(`${error.command[0]} exited with ${error.code}`);
  *   } else {
  *     throw error;
  *   }
@@ -231,6 +242,7 @@ export class ExitCodeError extends ProcessError {
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
+    hide(this, "command");
   }
 }
 
@@ -262,6 +274,7 @@ export class SignalError extends ProcessError {
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
+    hide(this, "command");
   }
 }
 
@@ -337,10 +350,11 @@ export class Process<S> implements Closer {
     }).spawn();
     track(this.process);
 
-    if (options.fnStderr != null) {
-      this.stderrResult = handled(
-        options.fnStderr(enumerate(this.process.stderr)),
-      );
+    const fnStderr = options.fnStderr;
+    if (fnStderr != null) {
+      // Async, so one that throws at once fails the output like any other.
+      const stderr = enumerate(this.process.stderr);
+      this.stderrResult = handled((async () => await fnStderr(stderr))());
     }
   }
 

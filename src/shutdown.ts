@@ -28,8 +28,25 @@ const SIGNALS: { signal: Deno.Signal; code: number; forward: boolean }[] =
 export function track(child: Deno.ChildProcess): void {
   running.add(child);
   const untrack = () => running.delete(child);
-  child.status.then(untrack, untrack);
+  child.status.then((status) => {
+    untrack();
+    if (
+      status.signal === "SIGINT" || status.signal === "SIGHUP" ||
+      status.code === 130 || status.code === 129
+    ) {
+      terminalSignalSeen = true;
+    }
+  }, untrack);
 }
+
+/**
+ * Whether a child ended because of a SIGINT or SIGHUP, so one is probably on
+ * its way to Deno as well: the terminal sends them to the whole group.
+ */
+let terminalSignalSeen = false;
+
+/** How long `main` gives that signal to arrive. */
+const SIGNAL_GRACE_MS = 500;
 
 /**
  * Send `signal` to every running child. One that exits between the lookup and
@@ -74,8 +91,17 @@ globalThis.addEventListener("unload", () => {
 export async function terminateAll(
   options?: { signal?: Deno.Signal; timeoutMs?: number },
 ): Promise<void> {
+  const timeoutMs = checkedTimeout(options?.timeoutMs);
   const children = signalAll(options?.signal ?? "SIGTERM");
-  await waitFor(children, options?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  await waitFor(children, timeoutMs);
+}
+
+/** `timeoutMs`, or the default; throws unless it is a number of at least 0. */
+function checkedTimeout(timeoutMs: number = DEFAULT_TIMEOUT_MS): number {
+  if (!(timeoutMs >= 0)) {
+    throw new RangeError(`timeoutMs must be at least 0; got ${timeoutMs}`);
+  }
+  return timeoutMs;
 }
 
 /** Wait until `children` have exited, or `timeoutMs` has passed. */
@@ -129,7 +155,15 @@ async function waitFor(
  *
  * A second signal exits at once without waiting. The wait is bounded by
  * `timeoutMs`; set it a little under the container's grace period, or proc
- * gives up first and the children's cleanup is cut short.
+ * gives up first and the children's cleanup is cut short. Children started
+ * during the wait get SIGTERM at the exit, but aren't waited for.
+ *
+ * A Ctrl-C usually reaches a child first, and the child dying of it can fail
+ * the program before the signal reaches `main`. When a child ends that way,
+ * `main` gives the signal half a second to arrive, so the exit is still 130
+ * and the error it caused isn't reported.
+ *
+ * Call it once, around the whole program: it ends the process.
  *
  * **Example**
  *
@@ -149,9 +183,10 @@ export async function main(
   program: () => void | number | Promise<void | number>,
   options?: { timeoutMs?: number },
 ): Promise<never> {
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs = checkedTimeout(options?.timeoutMs);
   let finishing = false;
   let signalsReceived = 0;
+  const signalArrived = Promise.withResolvers<void>();
 
   /**
    * Signal the children (unless they have been already), wait, exit. Only the
@@ -165,27 +200,45 @@ export async function main(
     Deno.exit(code);
   };
 
+  /**
+   * Finish because the program ended: it returned, it threw, or an error went
+   * uncaught. If a child just died of the terminal's signal, let the signal
+   * arrive first; then it decides the exit, and the error isn't reported.
+   */
+  const end = async (code: number, error?: { error: unknown }) => {
+    if (terminalSignalSeen) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        signalArrived.promise,
+        new Promise((resolve) => timer = setTimeout(resolve, SIGNAL_GRACE_MS)),
+      ]);
+      clearTimeout(timer);
+    }
+    if (finishing) return;
+    if (error) console.error(error.error);
+    await finish(code);
+  };
+
   for (const { signal, code, forward } of SIGNALS) {
     Deno.addSignalListener(signal, () => {
       signalsReceived += 1;
       if (signalsReceived > 1) Deno.exit(code);
       finish(code, forward);
+      signalArrived.resolve();
     });
   }
 
   const onUncaught = (event: ErrorEvent | PromiseRejectionEvent) => {
     event.preventDefault();
-    console.error(event instanceof ErrorEvent ? event.error : event.reason);
-    finish(1);
+    end(1, { error: event instanceof ErrorEvent ? event.error : event.reason });
   };
   globalThis.addEventListener("error", onUncaught);
   globalThis.addEventListener("unhandledrejection", onUncaught);
 
   try {
-    await finish((await program()) ?? 0);
-  } catch (e) {
-    console.error(e);
-    await finish(1);
+    await end((await program()) ?? 0);
+  } catch (error) {
+    await end(1, { error });
   }
 
   // A signal or an uncaught error got there first, and that finish exits.

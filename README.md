@@ -76,7 +76,7 @@ try {
   await run("deno", "test").lines.toStdout();
 } catch (error) {
   if (error instanceof ExitCodeError) {
-    console.error(`${error.command.join(" ")} exited with ${error.code}`);
+    console.error(`${error.command[0]} exited with ${error.code}`);
   } else {
     throw error;
   }
