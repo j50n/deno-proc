@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+            window.path_to_searchindex_js = "../searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -210,23 +210,27 @@ anything is read, so what it held before is gone either way, and a pipeline that
 reads the same file (<code>read(path)</code> … <code>writeTo(path)</code>) finds it already empty,
 as <code>cmd &lt; f &gt; f</code> does in a shell.</p>
 <p>To replace a file only once everything has worked, or to rewrite one in place,
-write to a new file beside it and rename that over the old one:</p>
+pass <code>{ atomic: true }</code>:</p>
 <pre><code class="language-typescript">import { read } from "@j50n/proc";
 
-// Rewrite fruit.txt in place: write a new file, then rename it over the old.
-const path = "fruit.txt";
-const temp = `${path}.tmp`;
-await read(path).lines.map((line) =&gt; line.toUpperCase()).writeTo(temp);
-await Deno.rename(temp, path);
+// Rewrite fruit.txt in place: atomic writes a new file and renames it over
+// the old one, so reading the old one while writing works.
+await read("fruit.txt")
+  .lines
+  .map((line) =&gt; line.toUpperCase())
+  .writeTo("fruit.txt", { atomic: true });
 
-console.log((await Deno.readTextFile(path)).trimEnd());
+console.log((await Deno.readTextFile("fruit.txt")).trimEnd());
 </code></pre>
 <pre><code class="language-text">CHERRY
 APPLE
 BANANA
 </code></pre>
-<p>A failure leaves the old file as it was, with the <code>.tmp</code> file beside it to
-remove.</p>
+<p>With <code>atomic</code>, proc writes a new file beside the old one and renames it into
+place once everything is written. A failure leaves the old file as it was, with
+nothing beside it. A symlink stays a symlink, and the file keeps its mode. It
+needs read permission on the file and write permission on its directory, and the
+result is a new file, so a hard link to the old one still shows the old content.</p>
 <p>To add to a file instead of replacing it, open it yourself and pass its
 <code>writable</code>:</p>
 <pre><code class="language-typescript">import { enumerate, toBytes } from "@j50n/proc";

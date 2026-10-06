@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+            window.path_to_searchindex_js = "../searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -217,11 +217,13 @@ options for <code>new Process</code>: <code>ProcessOptions</code> plus <code>std
 <h2 id="errors"><a class="header" href="#errors">Errors</a></h2>
 <ul>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/ProcessError"><code>ProcessError</code></a>: base class of
-the three below; catch it to handle any process failure.</li>
+the four below; catch it to handle any process failure.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/ExitCodeError"><code>ExitCodeError</code></a>: a command
 exited non-zero; <code>.code</code>, <code>.command</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/SignalError"><code>SignalError</code></a>: a command was
 killed by a signal; <code>.signal</code>, <code>.command</code>.</li>
+<li><a href="https://jsr.io/@j50n/proc/doc/~/TimeoutError"><code>TimeoutError</code></a>: a command ran
+past its <code>timeoutMs</code> and was stopped; <code>.timeoutMs</code>, <code>.command</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/UpstreamError"><code>UpstreamError</code></a>: a command
 succeeded but its input failed; <code>.cause</code> is the original error.</li>
 </ul>
@@ -318,8 +320,8 @@ whether any, or all, items pass <code>fn</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.first"><code>.first</code></a>: a
 promise of the first item; <code>RangeError</code> if there is none. A getter.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeTo"><code>writeTo(path | stream | writable)</code></a>:
-write to a file (bytes, or strings as lines), a <code>WritableStream</code>, or a
-<code>Writable</code>.</li>
+write to a file (bytes, or strings as lines; <code>{ atomic: true }</code> replaces it
+only once everything is written), a <code>WritableStream</code>, or a <code>Writable</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeBytesTo"><code>writeBytesTo(writer)</code></a>:
 write bytes to a <code>Writer &amp; Closer</code> such as a <code>Deno.FsFile</code>, then close it.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.toStdout"><code>toStdout()</code></a>:

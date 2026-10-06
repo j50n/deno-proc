@@ -174,7 +174,8 @@ that has the Enumerable methods. Read it as text with <code>.lines</code>, pipe 
 another command with <code>.run(...)</code>, and consume it with <code>.collect()</code>,
 <code>.forEach()</code>, <code>.first</code>, <code>for await</code>, and the rest. The methods are lazy; the
 process is not.</p>
-<p>Options go first: <code>run({ cwd, env, fnStderr, fnError, buffer }, ...cmd)</code>
+<p>Options go first:
+<code>run({ cwd, env, clearEnv, timeoutMs, fnStderr, fnError }, ...cmd)</code>
 (see <a href="../././~/ProcessOptions.html">ProcessOptions</a>). The child's stdin is closed (<code>&quot;null&quot;</code>), and its
 stderr goes to yours unless you pass <code>fnStderr</code>. A program that doesn't exist
 throws <code>Deno.errors.NotFound</code> from <code>run()</code> itself.</p>

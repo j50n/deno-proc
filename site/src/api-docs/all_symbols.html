@@ -767,7 +767,7 @@ a <code>TransformStream</code> such as <code>CompressionStream</code>.</p>
 close it.</p>
 </div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.html#method_writeto_0">
-                  <span>writeTo</span><span>(<span><span>path<span>: <span class="td-kw">string</span></span></span></span>)<span>: <span class="td-ref">Promise</span>&lt;<span class="td-kw">void</span>&gt;</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Write the items to a file, creating it or replacing what it held, and
+                  <span>writeTo</span><span>(<div class="ml-4"><div><span>path<span>: <span class="td-kw">string</span></span></span>,</div><div><span>options<span class="td-op">?</span><span>: { atomic<span class="td-op">?</span><span>: <span class="td-kw">boolean</span></span>;  }</span></span></div></div>)<span>: <span class="td-ref">Promise</span>&lt;<span class="td-kw">void</span>&gt;</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Write the items to a file, creating it or replacing what it held, and
 close it.</p>
 </div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.html#method_zip_0">
@@ -845,7 +845,8 @@ one.</p>
 <div class="namespaceItemContent">
 		    <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;ProcessError.html" title="ProcessError">
 			    <span>ProcessError</span><span>(<div class="ml-4"><div><span>message<span>: <span class="td-kw">string</span></span></span>,</div><div><span>options<span class="td-op">?</span><span>: { cause<span class="td-op">?</span><span>: <span class="td-ref">Error</span></span>;  }</span></span></div></div>)</span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>The base class of the errors a process throws when it fails:
-ExitCodeError, SignalError, and UpstreamError.
+ExitCodeError, SignalError, TimeoutError, and
+UpstreamError.
 Catch it to handle any of them.</p>
 </div></div></div>
     </div><div id="namespace_signalerror" class="namespaceItem" ><div class="docNodeKindIcon"><div class="text-Class bg-Class/15 dark:text-ClassDark dark:bg-ClassDark/15" title="Class">c</div></div>
@@ -853,6 +854,13 @@ Catch it to handle any of them.</p>
 		    <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;SignalError.html" title="SignalError">
 			    <span>SignalError</span><span>(<div class="ml-4"><div><span>message<span>: <span class="td-kw">string</span></span></span>,</div><div><span>command<span>: <span class="td-kw">string</span>[]</span></span>,</div><div><span>signal<span>: <span class="td-ref">Deno.Signal</span></span></span>,</div><div><span>options<span class="td-op">?</span><span>: { cause<span class="td-op">?</span><span>: <span class="td-ref">Error</span></span>;  }</span></span></div></div>)</span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Thrown when a process is killed by a signal, such as <code>&quot;SIGKILL&quot;</code>. It is
 thrown where you read the output, after the last line has been delivered.</p>
+</div></div></div>
+    </div><div id="namespace_timeouterror" class="namespaceItem" ><div class="docNodeKindIcon"><div class="text-Class bg-Class/15 dark:text-ClassDark dark:bg-ClassDark/15" title="Class">c</div></div>
+<div class="namespaceItemContent">
+		    <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;TimeoutError.html" title="TimeoutError">
+			    <span>TimeoutError</span><span>(<div class="ml-4"><div><span>message<span>: <span class="td-kw">string</span></span></span>,</div><div><span>command<span>: <span class="td-kw">string</span>[]</span></span>,</div><div><span>timeoutMs<span>: <span class="td-kw">number</span></span></span>,</div><div><span>options<span class="td-op">?</span><span>: { cause<span class="td-op">?</span><span>: <span class="td-ref">Error</span></span>;  }</span></span></div></div>)</span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Thrown when a process ran past its <code>timeoutMs</code> and proc stopped it. It is
+thrown where you read the output, after the last line has been delivered,
+whatever the exit code or signal: a run that was cut short didn't succeed.</p>
 </div></div></div>
     </div><div id="namespace_upstreamerror" class="namespaceItem" ><div class="docNodeKindIcon"><div class="text-Class bg-Class/15 dark:text-ClassDark dark:bg-ClassDark/15" title="Class">c</div></div>
 <div class="namespaceItemContent">
@@ -1105,6 +1113,14 @@ Enumerable.concurrentUnorderedMap.</p>
                   <span>buffer</span><span>: <span class="td-kw">boolean</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Collect what proc writes to the child's stdin into chunks of at least
 16 KB before each write. Default <code>false</code>.</p>
 </div></div></li><li>
+                <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;ProcessOptions.html#property_clearenv">
+                  <span>clearEnv</span><span>: <span class="td-kw">boolean</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Start the child with no environment but <code>env</code>, rather than this
+process's environment plus <code>env</code>. Use it to keep secrets in your
+environment from reaching the child. The program itself is still found
+on this process's <code>PATH</code>, but the child gets no <code>PATH</code> unless <code>env</code> has
+one, so a program it starts by name may not be found (shells fall back
+to a default). Default <code>false</code>.</p>
+</div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;ProcessOptions.html#property_cwd">
                   <span>cwd</span><span>: <span class="td-kw">string</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Working directory for the child. Default: this process's. A relative
 program path such as <code>&quot;./build.sh&quot;</code> is found from here, not from this
@@ -1120,6 +1136,15 @@ from untrusted input.</p>
 </div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;ProcessOptions.html#property_fnstderr">
                   <span>fnStderr</span><span>: <span class="td-ref">StderrHandler</span>&lt;<span class="td-ref">S</span>&gt;</span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Read the child's stderr. See StderrHandler.</p>
+</div></div></li><li>
+                <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;ProcessOptions.html#property_timeoutms">
+                  <span>timeoutMs</span><span>: <span class="td-kw">number</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Stop the child after this many milliseconds: proc sends it SIGTERM, and
+reading its output throws TimeoutError once it has exited,
+however it exited. The timer starts when the child does and stops when
+it exits, so it bounds a child you stopped reading early, too. A child
+that ignores SIGTERM keeps running; proc never sends SIGKILL. On
+Windows, Deno's SIGTERM can't be caught: the child is ended at once.
+Default: no limit.</p>
 </div></div></li></ul></div>
     </div><div id="namespace_processstreamoptions" class="namespaceItem" ><div class="docNodeKindIcon"><div class="text-Interface bg-Interface/15 dark:text-InterfaceDark dark:bg-InterfaceDark/15" title="Interface">I</div></div>
 <div class="namespaceItemContent">

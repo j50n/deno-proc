@@ -89,7 +89,7 @@ import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 ```
 
 For a one-off script without a `deno.json`, import from JSR directly:
-`import { run } from "jsr:@j50n/proc@0.26.1";`.
+`import { run } from "jsr:@j50n/proc@0.27.0";`.
 
 ## A first script
 
@@ -421,8 +421,15 @@ west: q3.txt
 environment the child inherits, or overrides them; it can't remove one. A `PATH`
 in `env` also changes where the program is looked up, so `run({ env }, "ls")`
 runs whatever `ls` comes first on that `PATH`. Don't build `env` from untrusted
-input. The other options, `fnStderr` and `fnError`, are about errors and are
-covered in [Errors](./errors.md). All of them are listed under
+input. `clearEnv: true` starts the child with only `env`, to keep secrets in
+your environment from reaching it. proc still finds the program on your `PATH`,
+but the child gets none unless `env` has one, so put a `PATH` in `env` if it
+starts other programs by name.
+
+`timeoutMs` stops a child that runs too long: proc sends it SIGTERM, and reading
+its output throws a `TimeoutError` ([Errors](./errors.md#timed-out)). The other
+options, `fnStderr` and `fnError`, are about errors and are covered in
+[Errors](./errors.md). All of them are listed under
 [`ProcessOptions`](https://jsr.io/@j50n/proc/doc/~/ProcessOptions).
 
 ## Status and PID
@@ -831,12 +838,13 @@ every command and every callback in the pipeline.
 | `ExitCodeError: grep exited with code 1`, no reason | the reason went to stderr                               | [Putting stderr into the error](#putting-stderr-into-the-error)                   |
 | `UpstreamError`, or an error with a `cause`         | an earlier command or callback failed                   | [Which error a pipeline throws](#which-error-a-pipeline-throws)                   |
 | `SignalError`                                       | the command was killed                                  | [Killed by a signal](#killed-by-a-signal)                                         |
+| `TimeoutError`                                      | the command ran past its `timeoutMs`                    | [Timed out](#timed-out)                                                           |
 | `NotFound` from `run()` or `read()`                 | the program or file isn't there                         | [A missing program or file](#a-missing-program-or-file)                           |
 | `NotCapable: Requires run access`                   | Deno's permissions                                      | [Install](../start/install.md#permissions)                                        |
 | `RangeError: .first: the sequence is empty`         | `.first` on empty output                                | [Reading the output](./running.md#reading-the-output)                             |
 | no error, the program just hangs                    | nothing reads a command's output                        | [Running a command](./running.md#waiting-for-a-command-you-dont-want-output-from) |
 
-All three process errors extend
+All four process errors extend
 [`ProcessError`](https://jsr.io/@j50n/proc/doc/~/ProcessError), so
 `error instanceof ProcessError` catches any of them. Narrow with `instanceof`
 before using `code`, `signal`, or `command`.
@@ -871,6 +879,33 @@ name in `signal`. `SIGKILL` usually means the out-of-memory killer or a
 `kill -9`; `SIGTERM` means something asked it to stop. A command you stopped
 early yourself (with `take`, `first`, or `break`) dies of `SIGPIPE`, but that
 throws nothing.
+
+## Timed out
+
+```typescript
+import { run, TimeoutError } from "@j50n/proc";
+
+try {
+  await run({ timeoutMs: 200 }, "sleep", "5").lines.collect();
+} catch (error) {
+  if (error instanceof TimeoutError) console.log(error.message);
+  else throw error;
+}
+```
+
+```text
+sleep timed out after 200 ms
+```
+
+With `timeoutMs`, proc sends the child SIGTERM when the time runs out, and its
+output throws [`TimeoutError`](https://jsr.io/@j50n/proc/doc/~/TimeoutError)
+once the child has exited, even if it caught the signal and exited cleanly: a
+run that was cut short didn't succeed. The timer runs from the start until the
+child exits, so it also stops a child whose output you stopped reading early. A
+child that ignores SIGTERM keeps running; proc never sends SIGKILL. And reading
+waits for the output to end, which a child's own children can hold open, as a
+wrapper script's do (see
+[Wrapper scripts must `exec`](./shutdown.md#wrapper-scripts-must-exec)).
 
 ## Which error a pipeline throws
 
@@ -1240,8 +1275,27 @@ needed.
 Call `main` once, around the whole program: however it ends, it ends the
 process.
 
-On Windows, only SIGINT is handled. Deno doesn't honor `nohup`: under it, a
-hangup still reaches Deno, and `main` handles it as above.
+Deno doesn't honor `nohup`: under it, a hangup still reaches Deno, and `main`
+handles it as above.
+
+## On Windows
+
+Windows has no signals a child can catch. Deno's `kill` ends a child at once,
+with exit code 1 (`TerminateProcess`), whatever signal it is given. So on
+Windows `main` and `terminateAll` can't ask a child to clean up; they can only
+end it. What still holds:
+
+- **Ctrl-C** reaches every process on the console, the children included, and
+  each can clean up after it. It is the only signal `main` handles there. It
+  then waits for the children, up to `timeoutMs`, without ending them, so their
+  cleanup isn't cut short, and exits 130.
+- **On return or an error**, children still running are ended at once, not
+  asked; Deno would end them as it exits anyway.
+- **`timeoutMs` on a command** ends the child at once.
+
+A child that must clean up on Windows has to be told to stop some other way,
+such as by closing its stdin or with a message of its own, before the program
+returns.
 
 ## How long it waits
 
@@ -1848,18 +1902,19 @@ reads the same file (`read(path)` ... `writeTo(path)`) finds it already empty,
 as `cmd < f > f` does in a shell.
 
 To replace a file only once everything has worked, or to rewrite one in place,
-write to a new file beside it and rename that over the old one:
+pass `{ atomic: true }`:
 
 ```typescript
 import { read } from "@j50n/proc";
 
-// Rewrite fruit.txt in place: write a new file, then rename it over the old.
-const path = "fruit.txt";
-const temp = `${path}.tmp`;
-await read(path).lines.map((line) => line.toUpperCase()).writeTo(temp);
-await Deno.rename(temp, path);
+// Rewrite fruit.txt in place: atomic writes a new file and renames it over
+// the old one, so reading the old one while writing works.
+await read("fruit.txt")
+  .lines
+  .map((line) => line.toUpperCase())
+  .writeTo("fruit.txt", { atomic: true });
 
-console.log((await Deno.readTextFile(path)).trimEnd());
+console.log((await Deno.readTextFile("fruit.txt")).trimEnd());
 ```
 
 ```text
@@ -1868,8 +1923,11 @@ APPLE
 BANANA
 ```
 
-A failure leaves the old file as it was, with the `.tmp` file beside it to
-remove.
+With `atomic`, proc writes a new file beside the old one and renames it into
+place once everything is written. A failure leaves the old file as it was, with
+nothing beside it. A symlink stays a symlink, and the file keeps its mode. It
+needs read permission on the file and write permission on its directory, and the
+result is a new file, so a hard link to the old one still shows the old content.
 
 To add to a file instead of replacing it, open it yourself and pass its
 `writable`:
@@ -2470,8 +2528,8 @@ day, not every time the script runs.
 
 This is a fragment, not a checked example, because Deno KV is unstable: the
 program needs `--unstable-kv` (or `"unstable": ["kv"]` in `deno.json`), and the
-book's examples run without it. Without the flag, `cache` throws `RetryError`
-with the real `TypeError` as its `cause`.
+book's examples run without it. Without the flag, `cache` throws a `TypeError`
+that says so.
 
 ```typescript
 import { cache, HOURS, run } from "@j50n/proc";
@@ -2484,9 +2542,10 @@ const branches = await cache(
 ```
 
 `null` and `undefined` are never stored, so `compute` runs every time for them.
-A value must fit in a KV entry (structured-cloneable, at most 64 KiB), or
-storing it throws `TypeError`. Two calls that miss at the same time both
-compute.
+A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
+cached; one that doesn't is returned without being stored, so `compute` runs
+every time for it. Each entry is deleted once it is older than the timeout it
+was stored with. Two calls that miss at the same time both compute.
 
 A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still
@@ -3529,12 +3588,12 @@ cat data.csv | flatdata csv2record | ./process | flatdata record2csv > out.csv
 Install it with Deno:
 
 ```sh
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.26.1/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.27.0/flatdata
 ```
 
 The permissions are for `-i` and `-o`; without them it still works on stdin and
 stdout. To run it without installing,
-`deno run jsr:@j50n/proc@0.26.1/flatdata csv2tsv < data.csv`.
+`deno run jsr:@j50n/proc@0.27.0/flatdata csv2tsv < data.csv`.
 `flatdata --help` lists the commands, and `flatdata <command> --help` a
 command's options.
 
@@ -4251,11 +4310,13 @@ import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 ## Errors
 
 - [`ProcessError`](https://jsr.io/@j50n/proc/doc/~/ProcessError): base class of
-  the three below; catch it to handle any process failure.
+  the four below; catch it to handle any process failure.
 - [`ExitCodeError`](https://jsr.io/@j50n/proc/doc/~/ExitCodeError): a command
   exited non-zero; `.code`, `.command`.
 - [`SignalError`](https://jsr.io/@j50n/proc/doc/~/SignalError): a command was
   killed by a signal; `.signal`, `.command`.
+- [`TimeoutError`](https://jsr.io/@j50n/proc/doc/~/TimeoutError): a command ran
+  past its `timeoutMs` and was stopped; `.timeoutMs`, `.command`.
 - [`UpstreamError`](https://jsr.io/@j50n/proc/doc/~/UpstreamError): a command
   succeeded but its input failed; `.cause` is the original error.
 
@@ -4354,8 +4415,8 @@ Consumers:
 - [`.first`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.first): a
   promise of the first item; `RangeError` if there is none. A getter.
 - [`writeTo(path | stream | writable)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeTo):
-  write to a file (bytes, or strings as lines), a `WritableStream`, or a
-  `Writable`.
+  write to a file (bytes, or strings as lines; `{ atomic: true }` replaces it
+  only once everything is written), a `WritableStream`, or a `Writable`.
 - [`writeBytesTo(writer)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeBytesTo):
   write bytes to a `Writer & Closer` such as a `Deno.FsFile`, then close it.
 - [`toStdout()`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.toStdout):
@@ -4568,9 +4629,8 @@ flag`.**
 Deno's permissions. Grant what the script uses: `--allow-run=grep`,
 `--allow-read=./logs`, `--allow-write=out.txt`.
 
-**`RetryError: Retrying exceeded the maxAttempts (3).`** from `cache()`, with
-`Caused by: TypeError: Deno.openKv is not a function`. `cache` uses Deno KV,
-which is unstable. Run with `--unstable-kv`, or add `"unstable": ["kv"]` to
+**`TypeError: cache needs Deno KV`** from `cache()`. `cache` uses Deno KV, which
+is unstable. Run with `--unstable-kv`, or add `"unstable": ["kv"]` to
 `deno.json`.
 
 **`BrokenPipe: Broken pipe (os error 32)`** when you pipe the script's output
@@ -4638,8 +4698,8 @@ the type is `never`. Strings are lines already, so drop the `.lines`; before a
 ## Wrong results, no error
 
 **The file came out empty.** `writeTo(path)` empties the file before anything is
-read, so a pipeline that reads the same file finds nothing. Write to a new file
-and rename it over the old one; see
+read, so a pipeline that reads the same file finds nothing. Pass
+`{ atomic: true }`, which writes a new file and renames it over the old one; see
 [Files](../iterables/files.md#writing-a-file).
 
 **The second pass finds nothing.** An `Enumerable` is used once; a second

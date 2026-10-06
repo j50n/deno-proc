@@ -172,6 +172,8 @@ handler that writes what it gathered after the exit gets to finish
 writing.</p>
 <p><a href="../././~/main.html">main</a> does this for you on the way out. Call it directly to stop the
 children without exiting.</p>
+<p>On Windows the signal can't be caught: Deno ends the child at once
+(TerminateProcess), with exit code 1, whatever <code>signal</code> is.</p>
 <p>proc signals only the processes it started. A child that is a wrapper script
 has to <code>exec</code> its real program or forward the signal, or the program under
 it never hears about the shutdown.</p>

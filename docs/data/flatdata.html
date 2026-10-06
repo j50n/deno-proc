@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+            window.path_to_searchindex_js = "../searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -185,11 +185,11 @@ CSV, with the parsing done in another process.</p>
 <pre><code class="language-sh">cat data.csv | flatdata csv2record | ./process | flatdata record2csv &gt; out.csv
 </code></pre>
 <p>Install it with Deno:</p>
-<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.26.1/flatdata
+<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.27.0/flatdata
 </code></pre>
 <p>The permissions are for <code>-i</code> and <code>-o</code>; without them it still works on stdin and
 stdout. To run it without installing,
-<code>deno run jsr:@j50n/proc@0.26.1/flatdata csv2tsv &lt; data.csv</code>.
+<code>deno run jsr:@j50n/proc@0.27.0/flatdata csv2tsv &lt; data.csv</code>.
 <code>flatdata --help</code> lists the commands, and <code>flatdata &lt;command&gt; --help</code> a
 command’s options.</p>
 <h2 id="commands"><a class="header" href="#commands">Commands</a></h2>

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+            window.path_to_searchindex_js = "../searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -266,8 +266,8 @@ they last across runs, which is the point: an expensive lookup is done once a
 day, not every time the script runs.</p>
 <p>This is a fragment, not a checked example, because Deno KV is unstable: the
 program needs <code>--unstable-kv</code> (or <code>"unstable": ["kv"]</code> in <code>deno.json</code>), and the
-book’s examples run without it. Without the flag, <code>cache</code> throws <code>RetryError</code>
-with the real <code>TypeError</code> as its <code>cause</code>.</p>
+book’s examples run without it. Without the flag, <code>cache</code> throws a <code>TypeError</code>
+that says so.</p>
 <pre><code class="language-typescript">import { cache, HOURS, run } from "@j50n/proc";
 
 const branches = await cache(
@@ -277,9 +277,10 @@ const branches = await cache(
 );
 </code></pre>
 <p><code>null</code> and <code>undefined</code> are never stored, so <code>compute</code> runs every time for them.
-A value must fit in a KV entry (structured-cloneable, at most 64 KiB), or
-storing it throws <code>TypeError</code>. Two calls that miss at the same time both
-compute.</p>
+A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
+cached; one that doesn’t is returned without being stored, so <code>compute</code> runs
+every time for it. Each entry is deleted once it is older than the timeout it
+was stored with. Two calls that miss at the same time both compute.</p>
 <p>A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still
 says it is the class; cache plain data.</p>

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+            window.path_to_searchindex_js = "../searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -271,8 +271,25 @@ SIGTERM as Deno exits but aren’t waited for.</li>
 </ul>
 <p>Call <code>main</code> once, around the whole program: however it ends, it ends the
 process.</p>
-<p>On Windows, only SIGINT is handled. Deno doesn’t honor <code>nohup</code>: under it, a
-hangup still reaches Deno, and <code>main</code> handles it as above.</p>
+<p>Deno doesn’t honor <code>nohup</code>: under it, a hangup still reaches Deno, and <code>main</code>
+handles it as above.</p>
+<h2 id="on-windows"><a class="header" href="#on-windows">On Windows</a></h2>
+<p>Windows has no signals a child can catch. Deno’s <code>kill</code> ends a child at once,
+with exit code 1 (<code>TerminateProcess</code>), whatever signal it is given. So on
+Windows <code>main</code> and <code>terminateAll</code> can’t ask a child to clean up; they can only
+end it. What still holds:</p>
+<ul>
+<li><strong>Ctrl-C</strong> reaches every process on the console, the children included, and
+each can clean up after it. It is the only signal <code>main</code> handles there. It
+then waits for the children, up to <code>timeoutMs</code>, without ending them, so their
+cleanup isn’t cut short, and exits 130.</li>
+<li><strong>On return or an error</strong>, children still running are ended at once, not
+asked; Deno would end them as it exits anyway.</li>
+<li><strong><code>timeoutMs</code> on a command</strong> ends the child at once.</li>
+</ul>
+<p>A child that must clean up on Windows has to be told to stop some other way,
+such as by closing its stdin or with a message of its own, before the program
+returns.</p>
 <h2 id="how-long-it-waits"><a class="header" href="#how-long-it-waits">How long it waits</a></h2>
 <p><code>main</code> waits up to <code>timeoutMs</code>, 30 seconds by default. Children still running
 then are left running, not killed, and Deno exits; in a container they die with

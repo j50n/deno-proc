@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6286a075.js";
+            window.path_to_searchindex_js = "searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-bde66083.js"></script>
@@ -249,7 +249,7 @@ use them.</p>
 import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 </code></pre>
 <p>For a one-off script without a <code>deno.json</code>, import from JSR directly:
-<code>import { run } from "jsr:@j50n/proc@0.26.1";</code>.</p>
+<code>import { run } from "jsr:@j50n/proc@0.27.0";</code>.</p>
 <h2 id="a-first-script"><a class="header" href="#a-first-script">A first script</a></h2>
 <p>Save this as <code>errors.ts</code>, next to a log file called <code>app.log</code>:</p>
 <pre><code class="language-typescript">import { run } from "@j50n/proc";
@@ -512,8 +512,14 @@ console.log(line);
 environment the child inherits, or overrides them; it can’t remove one. A <code>PATH</code>
 in <code>env</code> also changes where the program is looked up, so <code>run({ env }, "ls")</code>
 runs whatever <code>ls</code> comes first on that <code>PATH</code>. Don’t build <code>env</code> from untrusted
-input. The other options, <code>fnStderr</code> and <code>fnError</code>, are about errors and are
-covered in <a href="#errors">Errors</a>. All of them are listed under
+input. <code>clearEnv: true</code> starts the child with only <code>env</code>, to keep secrets in
+your environment from reaching it. proc still finds the program on your <code>PATH</code>,
+but the child gets none unless <code>env</code> has one, so put a <code>PATH</code> in <code>env</code> if it
+starts other programs by name.</p>
+<p><code>timeoutMs</code> stops a child that runs too long: proc sends it SIGTERM, and reading
+its output throws a <code>TimeoutError</code> (<a href="#timed-out">Errors</a>). The other
+options, <code>fnStderr</code> and <code>fnError</code>, are about errors and are covered in
+<a href="#errors">Errors</a>. All of them are listed under
 <a href="https://jsr.io/@j50n/proc/doc/~/ProcessOptions"><code>ProcessOptions</code></a>.</p>
 <h2 id="status-and-pid"><a class="header" href="#status-and-pid">Status and PID</a></h2>
 <pre><code class="language-typescript">import { run } from "@j50n/proc";
@@ -841,6 +847,7 @@ every command and every callback in the pipeline.</p>
 <tr><td><code>ExitCodeError: grep exited with code 1</code>, no reason</td><td>the reason went to stderr</td><td><a href="#putting-stderr-into-the-error">Putting stderr into the error</a></td></tr>
 <tr><td><code>UpstreamError</code>, or an error with a <code>cause</code></td><td>an earlier command or callback failed</td><td><a href="#which-error-a-pipeline-throws">Which error a pipeline throws</a></td></tr>
 <tr><td><code>SignalError</code></td><td>the command was killed</td><td><a href="#killed-by-a-signal">Killed by a signal</a></td></tr>
+<tr><td><code>TimeoutError</code></td><td>the command ran past its <code>timeoutMs</code></td><td><a href="#timed-out">Timed out</a></td></tr>
 <tr><td><code>NotFound</code> from <code>run()</code> or <code>read()</code></td><td>the program or file isn’t there</td><td><a href="#a-missing-program-or-file">A missing program or file</a></td></tr>
 <tr><td><code>NotCapable: Requires run access</code></td><td>Deno’s permissions</td><td><a href="#permissions">Install</a></td></tr>
 <tr><td><code>RangeError: .first: the sequence is empty</code></td><td><code>.first</code> on empty output</td><td><a href="#reading-the-output">Reading the output</a></td></tr>
@@ -848,7 +855,7 @@ every command and every callback in the pipeline.</p>
 </tbody>
 </table>
 </div>
-<p>All three process errors extend
+<p>All four process errors extend
 <a href="https://jsr.io/@j50n/proc/doc/~/ProcessError"><code>ProcessError</code></a>, so
 <code>error instanceof ProcessError</code> catches any of them. Narrow with <code>instanceof</code>
 before using <code>code</code>, <code>signal</code>, or <code>command</code>.</p>
@@ -877,6 +884,27 @@ name in <code>signal</code>. <code>SIGKILL</code> usually means the out-of-memor
 <code>kill -9</code>; <code>SIGTERM</code> means something asked it to stop. A command you stopped
 early yourself (with <code>take</code>, <code>first</code>, or <code>break</code>) dies of <code>SIGPIPE</code>, but that
 throws nothing.</p>
+<h2 id="timed-out"><a class="header" href="#timed-out">Timed out</a></h2>
+<pre><code class="language-typescript">import { run, TimeoutError } from "@j50n/proc";
+
+try {
+  await run({ timeoutMs: 200 }, "sleep", "5").lines.collect();
+} catch (error) {
+  if (error instanceof TimeoutError) console.log(error.message);
+  else throw error;
+}
+</code></pre>
+<pre><code class="language-text">sleep timed out after 200 ms
+</code></pre>
+<p>With <code>timeoutMs</code>, proc sends the child SIGTERM when the time runs out, and its
+output throws <a href="https://jsr.io/@j50n/proc/doc/~/TimeoutError"><code>TimeoutError</code></a>
+once the child has exited, even if it caught the signal and exited cleanly: a
+run that was cut short didn’t succeed. The timer runs from the start until the
+child exits, so it also stops a child whose output you stopped reading early. A
+child that ignores SIGTERM keeps running; proc never sends SIGKILL. And reading
+waits for the output to end, which a child’s own children can hold open, as a
+wrapper script’s do (see
+<a href="#wrapper-scripts-must-exec">Wrapper scripts must <code>exec</code></a>).</p>
 <h2 id="which-error-a-pipeline-throws"><a class="header" href="#which-error-a-pipeline-throws">Which error a pipeline throws</a></h2>
 <pre><code class="language-typescript">import { ExitCodeError, run, UpstreamError } from "@j50n/proc";
 
@@ -1196,8 +1224,25 @@ SIGTERM as Deno exits but aren’t waited for.</li>
 </ul>
 <p>Call <code>main</code> once, around the whole program: however it ends, it ends the
 process.</p>
-<p>On Windows, only SIGINT is handled. Deno doesn’t honor <code>nohup</code>: under it, a
-hangup still reaches Deno, and <code>main</code> handles it as above.</p>
+<p>Deno doesn’t honor <code>nohup</code>: under it, a hangup still reaches Deno, and <code>main</code>
+handles it as above.</p>
+<h2 id="on-windows"><a class="header" href="#on-windows">On Windows</a></h2>
+<p>Windows has no signals a child can catch. Deno’s <code>kill</code> ends a child at once,
+with exit code 1 (<code>TerminateProcess</code>), whatever signal it is given. So on
+Windows <code>main</code> and <code>terminateAll</code> can’t ask a child to clean up; they can only
+end it. What still holds:</p>
+<ul>
+<li><strong>Ctrl-C</strong> reaches every process on the console, the children included, and
+each can clean up after it. It is the only signal <code>main</code> handles there. It
+then waits for the children, up to <code>timeoutMs</code>, without ending them, so their
+cleanup isn’t cut short, and exits 130.</li>
+<li><strong>On return or an error</strong>, children still running are ended at once, not
+asked; Deno would end them as it exits anyway.</li>
+<li><strong><code>timeoutMs</code> on a command</strong> ends the child at once.</li>
+</ul>
+<p>A child that must clean up on Windows has to be told to stop some other way,
+such as by closing its stdin or with a message of its own, before the program
+returns.</p>
 <h2 id="how-long-it-waits"><a class="header" href="#how-long-it-waits">How long it waits</a></h2>
 <p><code>main</code> waits up to <code>timeoutMs</code>, 30 seconds by default. Children still running
 then are left running, not killed, and Deno exits; in a container they die with
@@ -1745,23 +1790,27 @@ anything is read, so what it held before is gone either way, and a pipeline that
 reads the same file (<code>read(path)</code> … <code>writeTo(path)</code>) finds it already empty,
 as <code>cmd &lt; f &gt; f</code> does in a shell.</p>
 <p>To replace a file only once everything has worked, or to rewrite one in place,
-write to a new file beside it and rename that over the old one:</p>
+pass <code>{ atomic: true }</code>:</p>
 <pre><code class="language-typescript">import { read } from "@j50n/proc";
 
-// Rewrite fruit.txt in place: write a new file, then rename it over the old.
-const path = "fruit.txt";
-const temp = `${path}.tmp`;
-await read(path).lines.map((line) =&gt; line.toUpperCase()).writeTo(temp);
-await Deno.rename(temp, path);
+// Rewrite fruit.txt in place: atomic writes a new file and renames it over
+// the old one, so reading the old one while writing works.
+await read("fruit.txt")
+  .lines
+  .map((line) =&gt; line.toUpperCase())
+  .writeTo("fruit.txt", { atomic: true });
 
-console.log((await Deno.readTextFile(path)).trimEnd());
+console.log((await Deno.readTextFile("fruit.txt")).trimEnd());
 </code></pre>
 <pre><code class="language-text">CHERRY
 APPLE
 BANANA
 </code></pre>
-<p>A failure leaves the old file as it was, with the <code>.tmp</code> file beside it to
-remove.</p>
+<p>With <code>atomic</code>, proc writes a new file beside the old one and renames it into
+place once everything is written. A failure leaves the old file as it was, with
+nothing beside it. A symlink stays a symlink, and the file keeps its mode. It
+needs read permission on the file and write permission on its directory, and the
+result is a new file, so a hard link to the old one still shows the old content.</p>
 <p>To add to a file instead of replacing it, open it yourself and pass its
 <code>writable</code>:</p>
 <pre><code class="language-typescript">import { enumerate, toBytes } from "@j50n/proc";
@@ -2238,8 +2287,8 @@ they last across runs, which is the point: an expensive lookup is done once a
 day, not every time the script runs.</p>
 <p>This is a fragment, not a checked example, because Deno KV is unstable: the
 program needs <code>--unstable-kv</code> (or <code>"unstable": ["kv"]</code> in <code>deno.json</code>), and the
-book’s examples run without it. Without the flag, <code>cache</code> throws <code>RetryError</code>
-with the real <code>TypeError</code> as its <code>cause</code>.</p>
+book’s examples run without it. Without the flag, <code>cache</code> throws a <code>TypeError</code>
+that says so.</p>
 <pre><code class="language-typescript">import { cache, HOURS, run } from "@j50n/proc";
 
 const branches = await cache(
@@ -2249,9 +2298,10 @@ const branches = await cache(
 );
 </code></pre>
 <p><code>null</code> and <code>undefined</code> are never stored, so <code>compute</code> runs every time for them.
-A value must fit in a KV entry (structured-cloneable, at most 64 KiB), or
-storing it throws <code>TypeError</code>. Two calls that miss at the same time both
-compute.</p>
+A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
+cached; one that doesn’t is returned without being stored, so <code>compute</code> runs
+every time for it. Each entry is deleted once it is older than the timeout it
+was stored with. Two calls that miss at the same time both compute.</p>
 <p>A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still
 says it is the class; cache plain data.</p>
@@ -3150,11 +3200,11 @@ CSV, with the parsing done in another process.</p>
 <pre><code class="language-sh">cat data.csv | flatdata csv2record | ./process | flatdata record2csv &gt; out.csv
 </code></pre>
 <p>Install it with Deno:</p>
-<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.26.1/flatdata
+<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.27.0/flatdata
 </code></pre>
 <p>The permissions are for <code>-i</code> and <code>-o</code>; without them it still works on stdin and
 stdout. To run it without installing,
-<code>deno run jsr:@j50n/proc@0.26.1/flatdata csv2tsv &lt; data.csv</code>.
+<code>deno run jsr:@j50n/proc@0.27.0/flatdata csv2tsv &lt; data.csv</code>.
 <code>flatdata --help</code> lists the commands, and <code>flatdata &lt;command&gt; --help</code> a
 command’s options.</p>
 <h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
@@ -3769,11 +3819,13 @@ options for <code>new Process</code>: <code>ProcessOptions</code> plus <code>std
 <h2 id="errors-3"><a class="header" href="#errors-3">Errors</a></h2>
 <ul>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/ProcessError"><code>ProcessError</code></a>: base class of
-the three below; catch it to handle any process failure.</li>
+the four below; catch it to handle any process failure.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/ExitCodeError"><code>ExitCodeError</code></a>: a command
 exited non-zero; <code>.code</code>, <code>.command</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/SignalError"><code>SignalError</code></a>: a command was
 killed by a signal; <code>.signal</code>, <code>.command</code>.</li>
+<li><a href="https://jsr.io/@j50n/proc/doc/~/TimeoutError"><code>TimeoutError</code></a>: a command ran
+past its <code>timeoutMs</code> and was stopped; <code>.timeoutMs</code>, <code>.command</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/UpstreamError"><code>UpstreamError</code></a>: a command
 succeeded but its input failed; <code>.cause</code> is the original error.</li>
 </ul>
@@ -3870,8 +3922,8 @@ whether any, or all, items pass <code>fn</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.first"><code>.first</code></a>: a
 promise of the first item; <code>RangeError</code> if there is none. A getter.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeTo"><code>writeTo(path | stream | writable)</code></a>:
-write to a file (bytes, or strings as lines), a <code>WritableStream</code>, or a
-<code>Writable</code>.</li>
+write to a file (bytes, or strings as lines; <code>{ atomic: true }</code> replaces it
+only once everything is written), a <code>WritableStream</code>, or a <code>Writable</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeBytesTo"><code>writeBytesTo(writer)</code></a>:
 write bytes to a <code>Writer &amp; Closer</code> such as a <code>Deno.FsFile</code>, then close it.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.toStdout"><code>toStdout()</code></a>:
@@ -4059,9 +4111,8 @@ the program isn’t installed or isn’t on <code>PATH</code>.</p>
 <p><strong><code>NotCapable: Requires run access to "grep", run again with the --allow-run flag</code>.</strong>
 Deno’s permissions. Grant what the script uses: <code>--allow-run=grep</code>,
 <code>--allow-read=./logs</code>, <code>--allow-write=out.txt</code>.</p>
-<p><strong><code>RetryError: Retrying exceeded the maxAttempts (3).</code></strong> from <code>cache()</code>, with
-<code>Caused by: TypeError: Deno.openKv is not a function</code>. <code>cache</code> uses Deno KV,
-which is unstable. Run with <code>--unstable-kv</code>, or add <code>"unstable": ["kv"]</code> to
+<p><strong><code>TypeError: cache needs Deno KV</code></strong> from <code>cache()</code>. <code>cache</code> uses Deno KV, which
+is unstable. Run with <code>--unstable-kv</code>, or add <code>"unstable": ["kv"]</code> to
 <code>deno.json</code>.</p>
 <p><strong><code>BrokenPipe: Broken pipe (os error 32)</code></strong> when you pipe the script’s output
 into <code>head</code> or <code>less</code> and quit early, from a write of your own to <code>Deno.stdout</code>.
@@ -4111,8 +4162,8 @@ the type is <code>never</code>. Strings are lines already, so drop the <code>.li
 <code>.transform(jsonStringify)</code>.</p>
 <h2 id="wrong-results-no-error"><a class="header" href="#wrong-results-no-error">Wrong results, no error</a></h2>
 <p><strong>The file came out empty.</strong> <code>writeTo(path)</code> empties the file before anything is
-read, so a pipeline that reads the same file finds nothing. Write to a new file
-and rename it over the old one; see
+read, so a pipeline that reads the same file finds nothing. Pass
+<code>{ atomic: true }</code>, which writes a new file and renames it over the old one; see
 <a href="#writing-a-file">Files</a>.</p>
 <p><strong>The second pass finds nothing.</strong> An <code>Enumerable</code> is used once; a second
 <code>collect()</code> on it, or on another chain built from it, yields nothing and throws

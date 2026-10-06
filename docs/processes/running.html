@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+            window.path_to_searchindex_js = "../searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -275,8 +275,14 @@ console.log(line);
 environment the child inherits, or overrides them; it can’t remove one. A <code>PATH</code>
 in <code>env</code> also changes where the program is looked up, so <code>run({ env }, "ls")</code>
 runs whatever <code>ls</code> comes first on that <code>PATH</code>. Don’t build <code>env</code> from untrusted
-input. The other options, <code>fnStderr</code> and <code>fnError</code>, are about errors and are
-covered in <a href="./errors.html">Errors</a>. All of them are listed under
+input. <code>clearEnv: true</code> starts the child with only <code>env</code>, to keep secrets in
+your environment from reaching it. proc still finds the program on your <code>PATH</code>,
+but the child gets none unless <code>env</code> has one, so put a <code>PATH</code> in <code>env</code> if it
+starts other programs by name.</p>
+<p><code>timeoutMs</code> stops a child that runs too long: proc sends it SIGTERM, and reading
+its output throws a <code>TimeoutError</code> (<a href="./errors.html#timed-out">Errors</a>). The other
+options, <code>fnStderr</code> and <code>fnError</code>, are about errors and are covered in
+<a href="./errors.html">Errors</a>. All of them are listed under
 <a href="https://jsr.io/@j50n/proc/doc/~/ProcessOptions"><code>ProcessOptions</code></a>.</p>
 <h2 id="status-and-pid"><a class="header" href="#status-and-pid">Status and PID</a></h2>
 <pre><code class="language-typescript">import { run } from "@j50n/proc";

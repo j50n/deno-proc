@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+            window.path_to_searchindex_js = "../searchindex-35924963.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -214,6 +214,7 @@ every command and every callback in the pipeline.</p>
 <tr><td><code>ExitCodeError: grep exited with code 1</code>, no reason</td><td>the reason went to stderr</td><td><a href="#putting-stderr-into-the-error">Putting stderr into the error</a></td></tr>
 <tr><td><code>UpstreamError</code>, or an error with a <code>cause</code></td><td>an earlier command or callback failed</td><td><a href="#which-error-a-pipeline-throws">Which error a pipeline throws</a></td></tr>
 <tr><td><code>SignalError</code></td><td>the command was killed</td><td><a href="#killed-by-a-signal">Killed by a signal</a></td></tr>
+<tr><td><code>TimeoutError</code></td><td>the command ran past its <code>timeoutMs</code></td><td><a href="#timed-out">Timed out</a></td></tr>
 <tr><td><code>NotFound</code> from <code>run()</code> or <code>read()</code></td><td>the program or file isn’t there</td><td><a href="#a-missing-program-or-file">A missing program or file</a></td></tr>
 <tr><td><code>NotCapable: Requires run access</code></td><td>Deno’s permissions</td><td><a href="../start/install.html#permissions">Install</a></td></tr>
 <tr><td><code>RangeError: .first: the sequence is empty</code></td><td><code>.first</code> on empty output</td><td><a href="./running.html#reading-the-output">Reading the output</a></td></tr>
@@ -221,7 +222,7 @@ every command and every callback in the pipeline.</p>
 </tbody>
 </table>
 </div>
-<p>All three process errors extend
+<p>All four process errors extend
 <a href="https://jsr.io/@j50n/proc/doc/~/ProcessError"><code>ProcessError</code></a>, so
 <code>error instanceof ProcessError</code> catches any of them. Narrow with <code>instanceof</code>
 before using <code>code</code>, <code>signal</code>, or <code>command</code>.</p>
@@ -250,6 +251,27 @@ name in <code>signal</code>. <code>SIGKILL</code> usually means the out-of-memor
 <code>kill -9</code>; <code>SIGTERM</code> means something asked it to stop. A command you stopped
 early yourself (with <code>take</code>, <code>first</code>, or <code>break</code>) dies of <code>SIGPIPE</code>, but that
 throws nothing.</p>
+<h2 id="timed-out"><a class="header" href="#timed-out">Timed out</a></h2>
+<pre><code class="language-typescript">import { run, TimeoutError } from "@j50n/proc";
+
+try {
+  await run({ timeoutMs: 200 }, "sleep", "5").lines.collect();
+} catch (error) {
+  if (error instanceof TimeoutError) console.log(error.message);
+  else throw error;
+}
+</code></pre>
+<pre><code class="language-text">sleep timed out after 200 ms
+</code></pre>
+<p>With <code>timeoutMs</code>, proc sends the child SIGTERM when the time runs out, and its
+output throws <a href="https://jsr.io/@j50n/proc/doc/~/TimeoutError"><code>TimeoutError</code></a>
+once the child has exited, even if it caught the signal and exited cleanly: a
+run that was cut short didn’t succeed. The timer runs from the start until the
+child exits, so it also stops a child whose output you stopped reading early. A
+child that ignores SIGTERM keeps running; proc never sends SIGKILL. And reading
+waits for the output to end, which a child’s own children can hold open, as a
+wrapper script’s do (see
+<a href="./shutdown.html#wrapper-scripts-must-exec">Wrapper scripts must <code>exec</code></a>).</p>
 <h2 id="which-error-a-pipeline-throws"><a class="header" href="#which-error-a-pipeline-throws">Which error a pipeline throws</a></h2>
 <pre><code class="language-typescript">import { ExitCodeError, run, UpstreamError } from "@j50n/proc";
 

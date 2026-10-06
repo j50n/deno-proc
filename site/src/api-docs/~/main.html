@@ -186,6 +186,10 @@ on, since the terminal sent it to the children as well. Give them a
 second to exit, then SIGTERM any still running (they got nothing if the
 signal came to Deno alone), wait, and exit 130 or 129.</li>
 </ul>
+<p>On Windows only SIGINT is handled, and after it <code>main</code> waits for the
+children, up to <code>timeoutMs</code>, without ending them: there, proc's signals
+can't be caught, and end a child at once. For the same reason, on the other
+endings the children are ended rather than asked.</p>
 <p>A second signal exits at once without waiting. The wait is bounded by
 <code>timeoutMs</code>; set it a little under the container's grace period, or proc
 gives up first and the children's cleanup is cut short. Children started

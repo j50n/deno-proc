@@ -173,19 +173,20 @@ path), so they last across runs and are shared with every program that
 opens the same database: with a <code>deno.json</code>, every script in the project;
 without one, each main script has its own. The database is an unencrypted
 file under <code>DENO_DIR</code>, so don't cache secrets. A key of <code>&quot;x&quot;</code> is the same
-as <code>[&quot;x&quot;]</code>. Age is
-checked when read, against the <code>timeout</code> of that call: an older entry is
-recomputed and replaced, and nothing is ever deleted.</p>
+as <code>[&quot;x&quot;]</code>. Age is checked when read, against the <code>timeout</code> of that call:
+an older entry is recomputed and replaced. Deno KV also deletes each entry
+once it is older than the <code>timeout</code> it was stored with, so the database
+doesn't grow without end.</p>
 <p>Things to know:</p>
 <ul>
 <li>Deno KV is unstable: run with <code>--unstable-kv</code> (or <code>&quot;unstable&quot;: [&quot;kv&quot;]</code> in
-<code>deno.json</code>). Without it, <code>cache</code> throws <code>RetryError</code> from <code>@std/async</code>,
-with the real <code>TypeError</code> as its <code>cause</code>.</li>
-<li><code>null</code> and <code>undefined</code> are not cached; <code>value</code> is called every time.</li>
-<li>The value must fit in a KV entry: structured-cloneable (no functions) and
-at most 64 KiB, or storing it throws <code>TypeError</code> (after <code>value</code> has run).
-A hit returns a structured clone: a class instance comes back as a plain
-object, whatever <code>T</code> says.</li>
+<code>deno.json</code>). Without it, <code>cache</code> throws a <code>TypeError</code> saying so.</li>
+<li><code>null</code> and <code>undefined</code> are not cached; <code>value</code> is called every time. Nor
+is anything with a <code>timeout</code> of 0.</li>
+<li>To be cached, the value must fit in a KV entry: structured-cloneable (no
+functions) and at most 64 KiB. One that doesn't is returned uncached, so
+<code>value</code> runs on every call. A hit returns a structured clone: a class
+instance comes back as a plain object, whatever <code>T</code> says.</li>
 <li>Two calls that miss at the same time both call <code>value</code>.</li>
 <li>An error thrown by <code>value</code> comes out of <code>cache</code> unchanged, and nothing is
 stored.</li>
