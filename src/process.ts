@@ -212,7 +212,7 @@ export class Process<S> implements Closer {
   }
 
   private _stderr: AsyncIterable<Uint8Array> | undefined;
-  private _stdout: AsyncIterable<Uint8Array> | undefined;
+  private _stdout: AsyncIterable<Uint8Array<ArrayBuffer>> | undefined;
   private _stdin:
     | WritableIterable<Uint8Array | Uint8Array[] | string | string[]>
     | undefined;
@@ -268,7 +268,7 @@ export class Process<S> implements Closer {
   }
 
   /** `stdout` of the process. */
-  get stdout(): AsyncIterable<Uint8Array> {
+  get stdout(): AsyncIterable<Uint8Array<ArrayBuffer>> {
     if (this.options.stdout !== "piped") {
       throw new Deno.errors.NotConnected("stdout only available when 'piped'");
     }

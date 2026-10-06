@@ -1161,7 +1161,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
  * }
  * ```
  */
-export class ProcessEnumerable<S> extends Enumerable<Uint8Array> {
+export class ProcessEnumerable<S> extends Enumerable<Uint8Array<ArrayBuffer>> {
   constructor(protected process: Process<S>) {
     super(process.stdout);
   }

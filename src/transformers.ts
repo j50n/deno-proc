@@ -157,12 +157,22 @@ export async function* toByteLines(
   }
 }
 
+/** Bytes in an `ArrayBuffer`, which `CompressionStream` and friends require. */
+type Bytes = Uint8Array<ArrayBuffer>;
+
+/** `bytes` as is, or copied if a view on a `SharedArrayBuffer`. */
+function ownBuffer(bytes: Uint8Array): Bytes {
+  return bytes.buffer instanceof ArrayBuffer
+    ? bytes as Bytes
+    : new Uint8Array(bytes);
+}
+
 function stringPerLineOp(item: string) {
-  return concatLines([encoder.encode(item)]);
+  return concatLines([encoder.encode(item)]) as Bytes;
 }
 
 function uint8arrayPerLineOp(item: Uint8Array) {
-  return item;
+  return ownBuffer(item);
 }
 
 function stringArrayOfLinesOp(item: string[]) {
@@ -172,11 +182,11 @@ function stringArrayOfLinesOp(item: string[]) {
     lines[i] = encoder.encode(item[i]);
   }
 
-  return concatLines(lines);
+  return concatLines(lines) as Bytes;
 }
 
 function uint8arrayArrayOfLinesOp(item: Uint8Array[]) {
-  return concat(item);
+  return ownBuffer(concat(item));
 }
 
 /**
@@ -215,10 +225,10 @@ function uint8arrayArrayOfLinesOp(item: Uint8Array[]) {
  */
 export async function* toBytes(
   iter: AsyncIterable<StandardData>,
-): AsyncIterable<Uint8Array> {
+): AsyncIterable<Uint8Array<ArrayBuffer>> {
   // Pick the op on the first item and keep it while items stay that type; an
   // item of another type picks again.
-  const setupOp: (item: StandardData) => Uint8Array = (
+  const setupOp: (item: StandardData) => Bytes = (
     item: StandardData,
   ) => {
     if (isString(item)) {
@@ -265,11 +275,10 @@ export async function* toBytes(
 }
 
 /**
- * For transformers that need `BufferSource` as input, this will convert
- * the type of the output; otherwise identical to {@link toBytes}.
+ * The same as {@link toBytes}, typed as `BufferSource`.
  *
- * This is needed for working directly with `CompressionStream` and
- * `DecompressionStream`.
+ * @deprecated `toBytes` output already goes straight into `CompressionStream`
+ * and `DecompressionStream`; use it instead.
  *
  * @param iter The iterable.
  */

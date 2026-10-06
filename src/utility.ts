@@ -20,8 +20,8 @@ const LF = "\n".charCodeAt(0);
  * @param path The path of the file.
  * @returns An Enumerable of byte chunks.
  */
-export function read(path: string | URL): Enumerable<Uint8Array> {
-  async function* openForRead(): AsyncIterable<Uint8Array> {
+export function read(path: string | URL): Enumerable<Uint8Array<ArrayBuffer>> {
+  async function* openForRead(): AsyncIterable<Uint8Array<ArrayBuffer>> {
     const file = await Deno.open(path);
     yield* file.readable;
   }
