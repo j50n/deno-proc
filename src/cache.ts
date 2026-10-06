@@ -27,6 +27,27 @@ function cacheKey(key: string | string[]): string[] {
   }
 }
 
+/** What {@link cache} stores under a key. */
+type Entry<T> = { timestamp: Date; value: T };
+
+/**
+ * Open Deno KV's default database. Without KV enabled, say how to enable it
+ * rather than fail later. Opening is retried, since another process can hold
+ * the database for a moment; a `TypeError` won't go away on its own, so it
+ * isn't.
+ */
+async function openKv(): Promise<Deno.Kv> {
+  if (typeof Deno.openKv !== "function") {
+    throw new TypeError(
+      'cache needs Deno KV: run with --unstable-kv, or add "unstable": ["kv"] to deno.json',
+    );
+  }
+  return await retry(() => Deno.openKv(), {
+    maxAttempts: 3,
+    isRetriable: (error) => !(error instanceof TypeError),
+  });
+}
+
 /**
  * Read the raw entry {@link cache} stored under `key`, whether or not it has
  * expired, for debugging. Use `cache` itself to get values.
@@ -39,47 +60,10 @@ function cacheKey(key: string | string[]): string[] {
  */
 export async function fetchRecord<T>(
   key: string | string[],
-): Promise<
-  Deno.KvEntryMaybe<{
-    timestamp: Date;
-    value: T;
-  }>
-> {
-  const kv = await retry(async () => await Deno.openKv(), { maxAttempts: 3 });
+): Promise<Deno.KvEntryMaybe<{ timestamp: Date; value: T }>> {
+  const kv = await openKv();
   try {
-    return await kv.get<{ timestamp: Date; value: T }>(cacheKey(key));
-  } finally {
-    kv.close();
-  }
-}
-
-async function fetch<T>(
-  key: string | string[],
-  options?: { timeout?: number },
-): Promise<T | null> {
-  const item = await fetchRecord<T>(key);
-  if (item.value == null) {
-    return null;
-  } else {
-    const now = new Date().getTime();
-
-    const tout = options?.timeout == null
-      ? 24 * 60 * 60 * 1000
-      : options.timeout;
-
-    if (now - item.value.timestamp.getTime() < tout) {
-      return item.value.value;
-    } else {
-      return null;
-    }
-  }
-}
-
-async function put<T>(key: string | string[], value: T): Promise<void> {
-  const kv = await Deno.openKv();
-  try {
-    await kv.delete(cacheKey(key));
-    await kv.set(cacheKey(key), { timestamp: new Date(), value });
+    return await kv.get<Entry<T>>(cacheKey(key));
   } finally {
     kv.close();
   }
@@ -94,20 +78,20 @@ async function put<T>(key: string | string[], value: T): Promise<void> {
  * opens the same database: with a `deno.json`, every script in the project;
  * without one, each main script has its own. The database is an unencrypted
  * file under `DENO_DIR`, so don't cache secrets. A key of `"x"` is the same
- * as `["x"]`. Age is
- * checked when read, against the `timeout` of that call: an older entry is
- * recomputed and replaced, and nothing is ever deleted.
+ * as `["x"]`. Age is checked when read, against the `timeout` of that call:
+ * an older entry is recomputed and replaced. Deno KV also deletes each entry
+ * once it is older than the `timeout` it was stored with, so the database
+ * doesn't grow without end.
  *
  * Things to know:
  *
  * - Deno KV is unstable: run with `--unstable-kv` (or `"unstable": ["kv"]` in
- *   `deno.json`). Without it, `cache` throws `RetryError` from `@std/async`,
- *   with the real `TypeError` as its `cause`.
+ *   `deno.json`). Without it, `cache` throws a `TypeError` saying so.
  * - `null` and `undefined` are not cached; `value` is called every time.
- * - The value must fit in a KV entry: structured-cloneable (no functions) and
- *   at most 64 KiB, or storing it throws `TypeError` (after `value` has run).
- *   A hit returns a structured clone: a class instance comes back as a plain
- *   object, whatever `T` says.
+ * - To be cached, the value must fit in a KV entry: structured-cloneable (no
+ *   functions) and at most 64 KiB. One that doesn't is returned uncached, so
+ *   `value` runs on every call. A hit returns a structured clone: a class
+ *   instance comes back as a plain object, whatever `T` says.
  * - Two calls that miss at the same time both call `value`.
  * - An error thrown by `value` comes out of `cache` unchanged, and nothing is
  *   stored.
@@ -138,13 +122,35 @@ export async function cache<T>(
   value: () => T | Promise<T>,
   options?: { timeout?: number },
 ): Promise<T> {
-  let v: T | null = await fetch(
-    key,
-    options,
-  );
-  if (v == null) {
-    v = await value();
-    await put(key, v);
+  const timeout = options?.timeout ?? DAYS;
+  const kv = await openKv();
+  try {
+    const stored = await kv.get<Entry<T>>(cacheKey(key));
+    if (
+      stored.value != null &&
+      Date.now() - stored.value.timestamp.getTime() < timeout
+    ) {
+      return stored.value.value;
+    }
+
+    const fresh = await value();
+    if (fresh != null) {
+      try {
+        await kv.set(
+          cacheKey(key),
+          { timestamp: new Date(), value: fresh },
+          // KV deletes the entry once it is this old; reads check age anyway.
+          Number.isFinite(timeout) && timeout > 0
+            ? { expireIn: timeout }
+            : undefined,
+        );
+      } catch {
+        // A value KV can't hold (too large, not cloneable) is returned, not
+        // stored: the call worked, only the caching didn't.
+      }
+    }
+    return fresh;
+  } finally {
+    kv.close();
   }
-  return v;
 }

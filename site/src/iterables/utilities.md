@@ -67,8 +67,8 @@ day, not every time the script runs.
 
 This is a fragment, not a checked example, because Deno KV is unstable: the
 program needs `--unstable-kv` (or `"unstable": ["kv"]` in `deno.json`), and the
-book's examples run without it. Without the flag, `cache` throws `RetryError`
-with the real `TypeError` as its `cause`.
+book's examples run without it. Without the flag, `cache` throws a `TypeError`
+that says so.
 
 ```typescript
 import { cache, HOURS, run } from "@j50n/proc";
@@ -81,9 +81,10 @@ const branches = await cache(
 ```
 
 `null` and `undefined` are never stored, so `compute` runs every time for them.
-A value must fit in a KV entry (structured-cloneable, at most 64 KiB), or
-storing it throws `TypeError`. Two calls that miss at the same time both
-compute.
+A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
+cached; one that doesn't is returned without being stored, so `compute` runs
+every time for it. Each entry is deleted once it is older than the timeout it
+was stored with. Two calls that miss at the same time both compute.
 
 A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still

@@ -62,9 +62,8 @@ flag`.**
 Deno's permissions. Grant what the script uses: `--allow-run=grep`,
 `--allow-read=./logs`, `--allow-write=out.txt`.
 
-**`RetryError: Retrying exceeded the maxAttempts (3).`** from `cache()`, with
-`Caused by: TypeError: Deno.openKv is not a function`. `cache` uses Deno KV,
-which is unstable. Run with `--unstable-kv`, or add `"unstable": ["kv"]` to
+**`TypeError: cache needs Deno KV`** from `cache()`. `cache` uses Deno KV, which
+is unstable. Run with `--unstable-kv`, or add `"unstable": ["kv"]` to
 `deno.json`.
 
 **`BrokenPipe: Broken pipe (os error 32)`** when you pipe the script's output
