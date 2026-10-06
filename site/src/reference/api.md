@@ -248,12 +248,12 @@ one row at a time. Writers take rows or batches and yield bytes. See
   [`fromTsvToLazyRows()`](https://jsr.io/@j50n/proc/doc/transforms/~/fromTsvToLazyRows):
   parse TSV.
 - [`toTsv()`](https://jsr.io/@j50n/proc/doc/transforms/~/toTsv): write TSV;
-  throws on a tab or newline in a field.
+  throws on a tab, CR, or LF in a field.
 - [`fromJsonToRows(options)`](https://jsr.io/@j50n/proc/doc/transforms/~/fromJsonToRows):
   parse JSON lines into batches of values, optionally checked by a schema.
-- [`toJson()`](https://jsr.io/@j50n/proc/doc/transforms/~/toJson): write batches
-  of values as JSON lines. Batches only: after `.flatten()`, wrap each value
-  with `.map((v) => [v])`.
+- [`toJson()`](https://jsr.io/@j50n/proc/doc/transforms/~/toJson): write one
+  value per item as JSON lines; throws a `TypeError` on an item with no JSON
+  form.
 - [`JsonOptions`](https://jsr.io/@j50n/proc/doc/transforms/~/JsonOptions):
   `schema` and `sampleSize`.
 - [`ZodSchema`](https://jsr.io/@j50n/proc/doc/transforms/~/ZodSchema): anything

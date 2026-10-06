@@ -36,7 +36,7 @@ deno run --allow-read=recipes-exports,manifest.txt --allow-write=manifest.txt \
 | `"$f"`               | `f`: each argument is its own string, so nothing needs quoting    |
 | `cmd \|\| true`      | `try`/`catch`, or an `fnError` handler                            |
 | `cat file`           | `await read("file").toStdout()`                                   |
-| `> file`             | `Deno.writeTextFile`, or `.transform(toBytes).writeTo("file")`    |
+| `> file`             | `Deno.writeTextFile`, or `.writeTo("file")`                       |
 | `cd dir && cmd`      | `run({ cwd: "dir" }, "cmd")`                                      |
 | `VAR=x cmd`          | `run({ env: { VAR: "x" } }, "cmd")`                               |
 | `cmd 2>/dev/null`    | `run({ fnStderr: (s) => s.forEach(() => {}) }, "cmd")`            |
@@ -58,9 +58,9 @@ read a file:
 
 ```text
 sha256sum: missing.csv: No such file or directory
-error: Uncaught (in promise) UpstreamError: exit code: 1
+error: Uncaught (in promise) UpstreamError: sha256sum exited with code 1
     ...
-Caused by: ExitCodeError: exit code: 1
+Caused by: ExitCodeError: sha256sum exited with code 1
 ```
 
 The first line is `sha256sum`'s own stderr, which goes to your terminal as it

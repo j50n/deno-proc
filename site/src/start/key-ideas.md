@@ -15,10 +15,11 @@ detail.
 
 A **source** produces items: `run()` (a command's output), `read()` (a file), or
 `enumerate()` (any iterable or async iterable). Each **step** (`lines`, `map`,
-`filter`, `take`, `run`, `transform`, ...) returns a new `Enumerable` and does
-nothing yet. The **consumer** (`collect`, `forEach`, `count`, `reduce`, `first`,
-`writeTo`, `toStdout`, or a `for await` loop) pulls items through one at a time
-and returns a promise. Await it.
+`filter`, `take`, `transform`, ...) returns a new `Enumerable` and does nothing
+yet; `.run()` is the exception, since it starts its command at once (point 2).
+The **consumer** (`collect`, `forEach`, `count`, `reduce`, `first`, `writeTo`,
+`toStdout`, or a `for await` loop) pulls items through one at a time and returns
+a promise. Await it.
 
 ## 2. A command starts when you call `run()`, and you must read its output
 
@@ -95,7 +96,8 @@ Everything else is a method.
 
 For speed, the parsers in `@j50n/proc/transforms` yield arrays of rows rather
 than one row at a time. Add `.flatten()` before a step that works on one row.
-The writers (`toCsv()`, `toTsv()`, ...) take either.
+The row writers (`toCsv()`, `toTsv()`, `toRecord()`) take either; `toJson()`
+takes one value per item.
 
 ## 8. Wrap a long-running program in `main()`
 
@@ -103,8 +105,10 @@ The writers (`toCsv()`, `toTsv()`, ...) take either.
 {{#include ../../examples/key-ideas/main.ts}}
 ```
 
-When Deno is told to stop (Ctrl-C, or a container's SIGTERM), it exits at once,
-and in a container the children are killed with it before they can clean up.
-`main()` runs your program, and however it ends (it returns, it throws, or a
-signal arrives), it asks every child to stop and waits for them, up to 30
-seconds, before exiting. See [Shutting down cleanly](../processes/shutdown.md).
+When Deno is told to stop (Ctrl-C, or a container's SIGTERM), it exits at once
+without telling its children; in a container they are killed with it before they
+can clean up. When an error goes uncaught, Deno kills its children as it exits,
+on any host. `main()` runs your program, and however it ends (it returns, it
+throws, or a signal arrives), it asks every child to stop and waits for them, up
+to 30 seconds, before exiting. See
+[Shutting down cleanly](../processes/shutdown.md).

@@ -161,9 +161,13 @@ have their answer, and close the source.
 
 - **An `Enumerable` is read once.** A second `collect()` gets nothing, without
   an error. Keep the array from the first, or `tee()` the sequence.
-- **`tee()` and `unzip()` hold items in memory** until every branch has read
-  them. If one branch races ahead of another, everything in between is kept. If
-  the source throws, only the branch whose read hit the error throws.
+- **`tee()` and `unzip()` keep an item until every branch has read it.**
+  Branches read side by side hold little; a branch that runs far ahead of
+  another makes everything in between pile up in memory. If the source throws,
+  every branch throws, after the items before the error.
+- **Read every branch of a `tee()`**, at least to a `break`. The source is
+  closed once every branch has stopped; a branch that is never read keeps it
+  open, and keeps every item from the start.
 - **`first` throws on an empty sequence** (`RangeError`), and `reduce` with no
   starting value throws `TypeError`. `find` returns `undefined` instead.
 - **There is no `sort`.** Sorting needs every item at once, so it isn't a step.

@@ -73,6 +73,5 @@ The same applies to grep in the middle of a pipeline:
   and closes the file.
 - **Structured logs** (one JSON object per line): `.transform(jsonParse)` after
   `.lines`, or see [JSON lines](../data/json.md).
-- **Writing the matches to a file**: end with
-  `.transform(toBytes).writeTo(path)` instead of `.toStdout()`. `writeTo` takes
-  bytes, not strings.
+- **Writing the matches to a file**: end with `.writeTo(path)` instead of
+  `.toStdout()`; it writes each line with a newline, as `toStdout` does.

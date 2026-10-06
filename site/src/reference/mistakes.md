@@ -27,13 +27,13 @@ fails.
 
 ## It throws
 
-**`ExitCodeError: exit code: 1` from `grep`.** grep exits 1 when nothing
-matches, and proc treats every non-zero exit as a failure. So do `diff` (files
-differ), `cmp`, and `test`. Fix: an `fnError` handler that lets code 1 through,
-as in [Searching logs](../recipes/logs.md#letting-grep-do-the-searching), or
-catch `ExitCodeError` and check `.code`.
+**`ExitCodeError: grep exited with code 1`.** grep exits 1 when nothing matches,
+and proc treats every non-zero exit as a failure. So do `diff` (files differ),
+`cmp`, and `test`. Fix: an `fnError` handler that lets code 1 through, as in
+[Searching logs](../recipes/logs.md#letting-grep-do-the-searching), or catch
+`ExitCodeError` and check `.code`.
 
-**`RangeError: enumeration missing head`.** `.first` on a sequence with no
+**`RangeError: .first: the sequence is empty`.** `.first` on a sequence with no
 items: a command that printed nothing and succeeded (one that failed throws its
 `ExitCodeError` instead), or a filter that matched nothing. `.first` never
 resolves to `undefined`. When the output may be empty, take an array of at most
@@ -45,18 +45,6 @@ one:
 
 ```text
 {{#include ../../examples/reference/first-empty.out}}
-```
-
-**`TypeError: Writable stream is closed or errored.`** from `writeTo(path)`. A
-file takes bytes, and the items were strings. Add `.transform(toBytes)`, which
-also puts a newline after each line:
-
-```typescript
-{{#include ../../examples/reference/write-strings.ts}}
-```
-
-```text
-{{#include ../../examples/reference/write-strings.out}}
 ```
 
 **`NotFound: Failed to spawn 'ls -la': entity not found`.** The whole command
@@ -83,7 +71,7 @@ into `head` or `less` and quit early. `toStdout()` throws when stdout closes;
 is not JSON. Filter blank lines out before it, or use `fromJsonToRows()` from
 `@j50n/proc/transforms`, which skips them.
 
-**The error says `exit code: 1` and nothing else.** The command's own
+**The error says `exited with code 1` and nothing else.** The command's own
 explanation went to stderr, which is your terminal by default. To put it in the
 error, capture it with `fnStderr` and rethrow from `fnError`; see
 [Errors](../processes/errors.md).
@@ -111,9 +99,8 @@ catch it, the counts are wrong:
 {{#include ../../examples/reference/flatten.out}}
 ```
 
-Add `.flatten()` after the parser. The reverse trap is `toJson()`, which takes
-batches only: after `.flatten()`, wrap each value, `.map((v) => [v])`, or each
-field of a row lands on its own line.
+Add `.flatten()` after the parser. `toJson()` takes one value per item, so
+flatten before it too: a batch left whole is written as one JSON array.
 
 **`'error' is of type 'unknown'.`** (TS18046), on `error.code` in a `catch`.
 Narrow first:
@@ -175,6 +162,7 @@ as you consume it.
 
 In a container, stopping it sends SIGTERM to Deno, Deno exits at once, and the
 container's end kills the children before their cleanup runs: temporary files
-are left behind, uploads cut off, locks held. Wrap the program in `main()`,
-which passes the signal on and waits for the children (30 seconds by default)
-before exiting. See [Shutting down cleanly](../processes/shutdown.md).
+are left behind, uploads cut off, locks held. On any host, an uncaught error
+does the same: Deno kills its children as it exits. Wrap the program in
+`main()`, which passes the signal on and waits for the children (30 seconds by
+default) before exiting. See [Shutting down cleanly](../processes/shutdown.md).

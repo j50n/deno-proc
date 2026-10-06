@@ -11,7 +11,9 @@
 [`run()`](https://jsr.io/@j50n/proc/doc/~/run) takes the program and its
 arguments as separate strings. No shell is involved, so nothing needs quoting,
 and `run("head -n 3 app.log")` looks for a program with that whole name. The
-program is looked up on `PATH`, or given as a path or a file URL.
+program is looked up on `PATH`, or given as a path or a file URL. A relative
+path such as `./build.sh` is found from the child's working directory, so with
+the `cwd` option below it is looked for in `cwd`, not where your program runs.
 
 The child starts at the call. `run()` returns a
 [`ProcessEnumerable`](https://jsr.io/@j50n/proc/doc/~/ProcessEnumerable): the
@@ -43,8 +45,9 @@ consumer's `await` throws (see [Errors](./errors.md)).
 - `.toStdout()` copies the output to your program's stdout. Use it when you only
   want the user to see it.
 
-The output can be read once; a second pass finds nothing
-([Key ideas](../start/key-ideas.md#5-an-enumerable-is-used-once)).
+The output can be read once
+([Key ideas](../start/key-ideas.md#5-an-enumerable-is-used-once)): a second pass
+finds nothing, and doesn't throw a failed command's error again.
 
 ## Working directory and environment
 
@@ -59,9 +62,11 @@ Options go before the command:
 ```
 
 `cwd` sets the child's working directory. `env` adds variables to the
-environment the child inherits, or overrides them; it can't remove one. The
-other options, `fnStderr` and `fnError`, are about errors and are covered in
-[Errors](./errors.md). All of them are listed under
+environment the child inherits, or overrides them; it can't remove one. A `PATH`
+in `env` also changes where the program is looked up, so `run({ env }, "ls")`
+runs whatever `ls` comes first on that `PATH`. Don't build `env` from untrusted
+input. The other options, `fnStderr` and `fnError`, are about errors and are
+covered in [Errors](./errors.md). All of them are listed under
 [`ProcessOptions`](https://jsr.io/@j50n/proc/doc/~/ProcessOptions).
 
 ## Status and PID

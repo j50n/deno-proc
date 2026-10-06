@@ -83,7 +83,18 @@ const branches = await cache(
 `null` and `undefined` are never stored, so `compute` runs every time for them.
 A value must fit in a KV entry (structured-cloneable, at most 64 KiB), or
 storing it throws `TypeError`. Two calls that miss at the same time both
-compute. See the [API reference](https://jsr.io/@j50n/proc/doc/~/cache).
+compute.
+
+A value read back from the cache is a structured clone. A class instance comes
+back as a plain object, without its methods or getters, though its type still
+says it is the class; cache plain data.
+
+Deno picks which database "default" means. With a `deno.json`, every script in
+that project shares one, so two scripts that both use the key `"config"` get
+each other's values; without one, each main script has its own. The database is
+a SQLite file under Deno's cache directory (`DENO_DIR`), unencrypted, and
+`cache` never deletes an entry, so don't cache secrets such as tokens. See the
+[API reference](https://jsr.io/@j50n/proc/doc/~/cache).
 
 ## `debug`
 

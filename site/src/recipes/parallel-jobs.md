@@ -22,7 +22,7 @@ Three pieces do the work:
 - **`fnStderr` and `fnError`** capture what `gzip` wrote to stderr and put it in
   the error, so the report says why each file failed. Without them, each child's
   stderr goes straight to your terminal, interleaved with the others, and the
-  error says only `exit code: 1`.
+  error says only `gzip exited with code 1`.
 
 The script needs `--allow-read=recipes-backups --allow-run=gzip`.
 

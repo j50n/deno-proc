@@ -19,13 +19,11 @@ shorthand for `read(path).lines`.
 ## Writing a file
 
 `writeTo(path)` creates the file, or replaces what it held, and closes it when
-the sequence ends. If the source throws, including a command in the pipeline
-that fails, the file is closed holding what was written so far, and the error
-comes out of `writeTo`.
-
-It takes bytes. Lines of text need `.transform(toBytes)` first, which encodes
-each string as UTF-8 and adds a `"\n"`. Without it, `writeTo` fails with
-`TypeError: Writable stream is closed or errored`, and leaves the file empty.
+the sequence ends. It writes items as `toStdout()` does: bytes as they are, and
+each string as a line, with a `"\n"` added. If the source throws, including a
+command in the pipeline that fails, the file is closed holding what was written
+so far, and the error comes out of `writeTo`. The file was emptied when writing
+started, so what it held before is gone either way.
 
 To add to a file instead of replacing it, open it yourself and pass its
 `writable`:
@@ -53,6 +51,9 @@ closes the file too.
 
 `toStdout()` writes each string with a `"\n"` added, and bytes as they are, and
 leaves stdout open. Use it for a command's output too: `run("ls").toStdout()`.
+When stdout closes before the program is done writing, as when its output is
+piped into `head`, `toStdout()` throws `Deno.errors.BrokenPipe`; see
+[Common mistakes](../reference/mistakes.md#it-throws).
 
 `writeTo(Deno.stdout.writable)` works, but closes stdout when it finishes unless
 you pass `{ noclose: true }`. After that, every `console.log` in the program

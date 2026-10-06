@@ -71,9 +71,14 @@ large, make it a generator instead and let the reader pull.
 promise, so the rejection is unhandled and ends the program. Catch it, as the
 example does, or check `isClosed` first.
 
-**One reader, once.** Read it with a single loop or chain. Two readers at once
-lose items, and one of them throws `TypeError`. Reading it again after it has
-ended throws `TypeError` too.
+**A reader that stops doesn't stop the producer.** After a `break`, `take`, or
+`first`, `write()` still succeeds, but the items go nowhere. If the producer
+should stop when the reader does, close the queue yourself when the loop ends,
+in a `finally`, and have the producer check `isClosed`.
+
+**One reader, once.** Read it with a single loop or chain. A second reader, at
+the same time or after the first, throws
+`TypeError: a WritableIterable can be read only once`.
 
 The constructor takes an `onclose` callback, called on the first `close()`,
 which waits for it: a place to remove event listeners or clear a timer. See the

@@ -117,9 +117,9 @@ When a pipeline is cut short, the commands before the cut may or may not have
 finished, so don't rely on their failures being reported. A command whose output
 proc read to the end has its exit code checked; one that was closed early
 doesn't. With `head` in the middle, which of the two happens depends on timing:
-`run("sh", "-c", "echo a; echo b; exit 3").run("head", "-n", "1")` usually
-throws an `UpstreamError` for the exit 3, and sometimes returns `["a"]` without
-one.
+`run("sh", "-c", "echo a; echo b; exit 3").run("head", "-n", "1")` throws an
+`UpstreamError` for the exit 3 on some runs, and returns `["a"]` without one on
+others.
 
 ## Pipelines run for their side effects
 

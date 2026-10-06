@@ -11,22 +11,23 @@
 A command that exits with a non-zero code throws
 [`ExitCodeError`](https://jsr.io/@j50n/proc/doc/~/ExitCodeError) from the
 consumer's `await`, after every line it wrote has been delivered: `partial`
-printed first. Its `message` says only `exit code: 3`; `command` and `code` say
-which command and how it failed. One `try` around the consumer catches the
-errors of every command and every callback in the pipeline.
+printed first. Its `message` names the program and the code; `command` holds the
+whole command line (left out of the message, since arguments can hold secrets),
+and `code` the exit code. One `try` around the consumer catches the errors of
+every command and every callback in the pipeline.
 
 ## What you see, and what to do
 
-| What you see                                   | What it means                                           | Where to look                                                                     |
-| ---------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `ExitCodeError`, and the code is expected      | `grep` found nothing (1), `diff` found a difference (1) | [Accepting expected exit codes](#accepting-expected-exit-codes)                   |
-| `ExitCodeError: exit code: 1` and nothing else | the reason went to stderr                               | [Putting stderr into the error](#putting-stderr-into-the-error)                   |
-| `UpstreamError`, or an error with a `cause`    | an earlier command or callback failed                   | [Which error a pipeline throws](#which-error-a-pipeline-throws)                   |
-| `SignalError`                                  | the command was killed                                  | [Killed by a signal](#killed-by-a-signal)                                         |
-| `NotFound` from `run()` or `read()`            | the program or file isn't there                         | [A missing program or file](#a-missing-program-or-file)                           |
-| `NotCapable: Requires run access`              | Deno's permissions                                      | [Install](../start/install.md#permissions)                                        |
-| `RangeError: enumeration missing head`         | `.first` on empty output                                | [Reading the output](./running.md#reading-the-output)                             |
-| no error, the program just hangs               | nothing reads a command's output                        | [Running a command](./running.md#waiting-for-a-command-you-dont-want-output-from) |
+| What you see                                        | What it means                                           | Where to look                                                                     |
+| --------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `ExitCodeError`, and the code is expected           | `grep` found nothing (1), `diff` found a difference (1) | [Accepting expected exit codes](#accepting-expected-exit-codes)                   |
+| `ExitCodeError: grep exited with code 1`, no reason | the reason went to stderr                               | [Putting stderr into the error](#putting-stderr-into-the-error)                   |
+| `UpstreamError`, or an error with a `cause`         | an earlier command or callback failed                   | [Which error a pipeline throws](#which-error-a-pipeline-throws)                   |
+| `SignalError`                                       | the command was killed                                  | [Killed by a signal](#killed-by-a-signal)                                         |
+| `NotFound` from `run()` or `read()`                 | the program or file isn't there                         | [A missing program or file](#a-missing-program-or-file)                           |
+| `NotCapable: Requires run access`                   | Deno's permissions                                      | [Install](../start/install.md#permissions)                                        |
+| `RangeError: .first: the sequence is empty`         | `.first` on empty output                                | [Reading the output](./running.md#reading-the-output)                             |
+| no error, the program just hangs                    | nothing reads a command's output                        | [Running a command](./running.md#waiting-for-a-command-you-dont-want-output-from) |
 
 All three process errors extend
 [`ProcessError`](https://jsr.io/@j50n/proc/doc/~/ProcessError), so

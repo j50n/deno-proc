@@ -26,6 +26,9 @@ and the runtime kills every child still running before its cleanup code can run.
 A child holding a lock, a temp directory, or a cloud resource never gets the
 chance to release it.
 
+An uncaught error is worse, on any host: Deno kills its children itself as it
+exits, and their SIGTERM handlers never run.
+
 This program starts the same service twice, once under `main` and once without,
 and sends SIGTERM to each as soon as the service is ready:
 
@@ -56,9 +59,9 @@ needed.
 - **On an error**, `main` prints it to stderr before it signals the children.
   That includes an unhandled promise rejection or an error thrown in a timer.
 - **On a signal**, `main` passes that signal on and waits. A second signal exits
-  at once, without waiting, so a person pressing Ctrl-C twice always gets out.
-  (In a terminal, Ctrl-C also sends SIGINT straight to the children, which are
-  in the same process group.)
+  at once, without waiting, so a person pressing Ctrl-C twice always gets out;
+  children still running get SIGTERM on the way out. (In a terminal, Ctrl-C also
+  sends SIGINT straight to the children, which are in the same process group.)
 - **The first ending wins.** If the program fails and the container's SIGTERM
   arrives while the children are still cleaning up, `main` keeps waiting for
   them and still exits 1.
