@@ -130,8 +130,9 @@ neither is an error:
 
 A command that goes quiet instead keeps running after the `await` has returned,
 until it writes again, exits, or is stopped. That is what lets you start a
-server and wait for its "ready" line: under `main()`, the server is stopped when
-the program ends.
+server and wait for its "ready" line. Deno doesn't exit while a child is still
+running, though, so without `main()` the script ends only when the server does;
+under `main()`, the server is stopped when the program ends.
 
 When a pipeline is cut short, the commands before the cut may or may not have
 finished, so don't rely on their failures being reported. A command whose output

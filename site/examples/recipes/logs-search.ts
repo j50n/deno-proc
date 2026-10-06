@@ -14,7 +14,10 @@ const files: string[] = [];
 for await (const entry of Deno.readDir(dir)) {
   if (entry.name.startsWith("app.log")) files.push(`${dir}/${entry.name}`);
 }
-files.sort().reverse(); // oldest first
+// Oldest first: app.log.2.gz, app.log.1.gz, app.log (a plain sort would put
+// app.log.10.gz before app.log.2.gz).
+const age = (path: string) => Number(path.match(/\.(\d+)\.gz$/)?.[1] ?? 0);
+files.sort((a, b) => age(b) - age(a));
 
 await enumerate(files)
   .flatMap(logLines)

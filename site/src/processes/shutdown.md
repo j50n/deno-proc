@@ -39,8 +39,7 @@ and sends SIGTERM to each as soon as the service is ready:
 Under `main`, the service got SIGTERM, removed its lock, and the program exited
 with 143, as a program killed by SIGTERM reports itself. Without `main`, Deno
 died at once; the service never heard anything, and was still running with its
-lock held when Deno was gone. (The driver,
-`site/examples/processes/shutdown-sigterm.ts`, then stopped it.)
+lock held when Deno was gone. (The program that ran the two then stopped it.)
 
 ## What `main` does
 
@@ -73,7 +72,15 @@ needed.
   out.
 - **The first ending wins.** If the program fails and the container's SIGTERM
   arrives while the children are still cleaning up, `main` keeps waiting for
-  them and still exits 1.
+  them and still exits 1. One exception: a Ctrl-C usually reaches a child first,
+  and a child dying of it fails the program before the signal reaches `main`.
+  When a child ends that way, `main` gives the signal half a second to arrive,
+  so the exit is still 130 and the error isn't printed.
+- **Children started during the wait**, by a program that carries on, get
+  SIGTERM as Deno exits but aren't waited for.
+
+Call `main` once, around the whole program: however it ends, it ends the
+process.
 
 On Windows, only SIGINT is handled. Deno doesn't honor `nohup`: under it, a
 hangup still reaches Deno, and `main` handles it as above.
@@ -111,6 +118,19 @@ your program never gets to exit with its own code. Too low, and `main` gives up
 while the children could still have finished. Under Docker's default 10 seconds,
 the default of 30 is too high; set about `8_000`, or give the container a longer
 stop timeout.
+
+## Several children at once
+
+A supervisor runs several long-lived children and waits on all of them:
+
+```typescript
+{{#include ../../examples/processes/shutdown-supervisor.ts}}
+```
+
+`Promise.all` rejects as soon as one worker fails, so `main` prints that error,
+sends SIGTERM to the others, waits for them, and exits 1. On SIGTERM or Ctrl-C,
+every worker is stopped as described above. Each worker's stderr goes to yours
+untagged; to tag it as well, read it with `fnStderr`.
 
 ## Stopping the children without exiting
 

@@ -127,6 +127,10 @@ same input.
   can't pass 4 GiB. A row of around a gigabyte is too large, and throws
   `Row too large for the WebAssembly module's memory in CSV data at row 7`.
   `tsvToCsv()` holds the longest field whole instead, with about the same limit.
+  The memory a row took isn't given back until the stream ends, and it grows by
+  doubling, so untrusted input can use about three times its size: a quote
+  opened near the start and never closed holds all the rest before the error.
+  Each open stream also holds a floor of about 1 MiB.
 
 See [`fromCsvToRows`](https://jsr.io/@j50n/proc/doc/transforms/~/fromCsvToRows),
 [`toCsv`](https://jsr.io/@j50n/proc/doc/transforms/~/toCsv), and

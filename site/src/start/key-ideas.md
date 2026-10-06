@@ -63,7 +63,9 @@ When a consumer stops before the end (`take`, `first`, `find`, a `break` out of
 `for await`), proc closes the pipeline behind it, and the `await` returns at
 once, without an error. A command that is still writing dies at its next write;
 one that runs on quietly, like a server that printed "ready", keeps running
-until it exits, or until `main()` stops it on the way out.
+until it exits, or until `main()` stops it on the way out. Deno doesn't exit
+while a child is running, so without `main()` the script ends only when that
+child does.
 
 ## 5. An `Enumerable` is used once
 

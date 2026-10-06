@@ -182,7 +182,8 @@ async function writeEach<T>(
  *
  * It wraps one async iterable and reads it once. A second pass, through the
  * same Enumerable or another chain built on it, finds the source used up and
- * yields nothing, without an error. To use the items twice, `collect` them,
+ * yields nothing, without an error: proc's own sources, arrays given to
+ * `enumerate`, generators and streams all work this way. To use the items twice, `collect` them,
  * or split the sequence with {@link Enumerable.tee}.
  *
  * Methods that return an Enumerable are lazy: nothing is read until a

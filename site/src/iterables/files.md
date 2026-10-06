@@ -22,8 +22,24 @@ shorthand for `read(path).lines`.
 the sequence ends. It writes items as `toStdout()` does: bytes as they are, and
 each string as a line, with a `"\n"` added. If the source throws, including a
 command in the pipeline that fails, the file is closed holding what was written
-so far, and the error comes out of `writeTo`. The file was emptied when writing
-started, so what it held before is gone either way.
+so far, and the error comes out of `writeTo`. The file is emptied before
+anything is read, so what it held before is gone either way, and a pipeline that
+reads the same file (`read(path)` ... `writeTo(path)`) finds it already empty,
+as `cmd < f > f` does in a shell.
+
+To replace a file only once everything has worked, or to rewrite one in place,
+write to a new file beside it and rename that over the old one:
+
+```typescript
+{{#include ../../examples/iterables/rewrite.ts}}
+```
+
+```text
+{{#include ../../examples/iterables/rewrite.out}}
+```
+
+A failure leaves the old file as it was, with the `.tmp` file beside it to
+remove.
 
 To add to a file instead of replacing it, open it yourself and pass its
 `writable`:

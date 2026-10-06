@@ -157,9 +157,11 @@ upstream. The same `try` catches both.
 ```
 
 Both throw `Deno.errors.NotFound`, at different times. `run()` throws it itself,
-at the call, before any consumer runs; keep the call inside the `try`. `read()`
-throws it from the consumer, when reading starts. Fed into a command with
-`.run()`, a missing file becomes the `cause` of that command's error
+at the call, before any consumer runs; keep the call inside the `try`. A `cwd`
+that doesn't exist throws it from `run()` too, with `No such cwd` in the
+message. `read()` throws it from the consumer, when reading starts. Fed into a
+command with `.run()`, a missing file becomes the `cause` of that command's
+error
 ([Feeding a command from a file](./pipelines.md#feeding-a-command-from-a-file)).
 
 ## Stopping early skips the check

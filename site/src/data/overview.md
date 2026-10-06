@@ -157,6 +157,27 @@ Your numbers will differ; the ratios are what matter.
 The LazyRow parsers are fast because they make no strings until asked, and
 converting between CSV and TSV never makes any.
 
+### Lots of rows
+
+The figures above are for a program that handles each batch with plain code. A
+step after `.flatten()` (`filter`, `map`, `forEach`) is an `await` per row,
+about a microsecond each, which on small rows costs more than the parsing. With
+millions of rows, work a batch at a time, with the array's own methods inside
+one step:
+
+```typescript
+{{#include ../../examples/data/rows-batch.ts}}
+```
+
+```text
+{{#include ../../examples/data/rows-batch.out}}
+```
+
+Both count the same rows. On 100,000 rows of 20 fields, the filter ran at about
+290 MB/s a batch at a time and 135 MB/s row by row; on rows of 25 bytes, row by
+row fell to about 25 MB/s. It is the same advice as `.chunkedLines` for lines of
+text.
+
 ### Against other JavaScript
 
 From `benchmarks/compare.ts`, on the same data. Here every reader keeps all

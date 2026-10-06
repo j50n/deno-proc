@@ -38,8 +38,9 @@ export type Cmd = [string | URL, ...string[]];
  * child with more output than that, it never exits, so awaiting `.status`
  * hangs and so does your program. Stopping early (`.take(2)`, `break`) is fine:
  * the consumer returns at once and throws nothing, and the child dies of
- * SIGPIPE the next time it writes. One that keeps running quietly is stopped
- * by {@link main} on the way out.
+ * SIGPIPE the next time it writes. One that keeps running quietly keeps your
+ * program from exiting, since Deno waits for running children; {@link main}
+ * stops it on the way out.
  *
  * **Errors** are thrown where you consume the output, after every line has
  * been delivered. A non-zero exit throws {@link ExitCodeError} (`.code`), and

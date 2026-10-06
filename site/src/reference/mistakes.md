@@ -21,6 +21,11 @@ hangs on real data. Fix: end every command's pipeline with a consumer,
 away. `.status` is for after, or alongside, reading. The same goes for
 `fnStderr`: read stderr to the end, or a child that writes a lot to it blocks.
 
+**It finished its work, but doesn't exit.** A command it stopped reading early
+is still running, such as a server whose "ready" line `.first` returned, and
+Deno doesn't exit while a child runs. Wrap the program in `main()`, which stops
+the children on the way out, or stop that one yourself with `Deno.kill(p.pid)`.
+
 **A `WritableIterable` is never closed.** The reader waits for more items after
 the last one. Call `close()` when the data ends, and `close(error)` when it
 fails.
@@ -117,6 +122,11 @@ the type is `never`. Strings are lines already, so drop the `.lines`; before a
 `.transform(jsonStringify)`.
 
 ## Wrong results, no error
+
+**The file came out empty.** `writeTo(path)` empties the file before anything is
+read, so a pipeline that reads the same file finds nothing. Write to a new file
+and rename it over the old one; see
+[Files](../iterables/files.md#writing-a-file).
 
 **The second pass finds nothing.** An `Enumerable` is used once; a second
 `collect()` on it, or on another chain built from it, yields nothing and throws
