@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Understanding Enumerable - proc</title>
+        <title>Enumerable and its methods - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f85fc4bd.js";
+            window.path_to_searchindex_js = "../searchindex-6286a075.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b062a3f8.js"></script>
+        <script src="../toc-bde66083.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,290 +178,268 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="understanding-enumerable"><a class="header" href="#understanding-enumerable">Understanding Enumerable</a></h1>
-<p>Enumerable is the core of proc’s AsyncIterable support. It wraps any iterable
-and provides Array-like methods for working with async data streams.</p>
-<h2 id="what-is-enumerable"><a class="header" href="#what-is-enumerable">What is Enumerable?</a></h2>
-<p>Think of Enumerable as an Array, but for async data. It gives you familiar
-methods like <code>map</code>, <code>filter</code>, and <code>reduce</code>—but for data that arrives over time
-rather than all at once:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { enumerate } from "jsr:@j50n/proc@0.24.6";
+                        <h1 id="enumerable-and-its-methods"><a class="header" href="#enumerable-and-its-methods">Enumerable and its methods</a></h1>
+<p>An <code>Enumerable</code> is an async sequence with the methods you know from arrays.
+<code>run()</code>, <code>read()</code>, and <code>range()</code> return one, and <code>enumerate()</code> wraps anything
+else you can iterate: an array, a Set, a generator, a <code>ReadableStream</code>.</p>
+<pre><code class="language-typescript">import { read } from "@j50n/proc";
 
-// Wrap any iterable
-const nums = enumerate([1, 2, 3, 4, 5]);
-
-// Use Array methods
-const doubled = await nums
-  .map((n) =&gt; n * 2)
-  .filter((n) =&gt; n &gt; 5)
-  .collect();
-
-console.log(doubled); // [6, 8, 10]
-</code></pre>
-<h2 id="the-problem-with-traditional-streams"><a class="header" href="#the-problem-with-traditional-streams">The Problem with Traditional Streams</a></h2>
-<p>JavaScript has Arrays for sync data and Streams for async data, but Streams are
-awkward to work with. They require verbose transformation chains and complex
-error handling:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// Streams are verbose
-const stream = readableStream
-  .pipeThrough(
-    new TransformStream({
-      transform(chunk, controller) {
-        controller.enqueue(chunk * 2);
-      },
-    }),
-  )
-  .pipeThrough(
-    new TransformStream({
-      transform(chunk, controller) {
-        if (chunk &gt; 5) controller.enqueue(chunk);
-      },
-    }),
-  );
-</code></pre>
-<p>Enumerable makes the same operations clean and readable:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// Enumerable is clean
-const result = await enumerate(asyncIterable)
-  .map((n) =&gt; n * 2)
-  .filter((n) =&gt; n &gt; 5)
-  .collect();
-</code></pre>
-<h2 id="creating-enumerables"><a class="header" href="#creating-enumerables">Creating Enumerables</a></h2>
-<h3 id="from-arrays"><a class="header" href="#from-arrays">From Arrays</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const nums = enumerate([1, 2, 3]);
-</code></pre>
-<h3 id="from-async-generators"><a class="header" href="#from-async-generators">From Async Generators</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">async function* generate() {
-  yield 1;
-  yield 2;
-  yield 3;
-}
-
-const nums = enumerate(generate());
-</code></pre>
-<h3 id="from-process-output"><a class="header" href="#from-process-output">From Process Output</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { run } from "jsr:@j50n/proc@0.24.6";
-
-const lines = run("ls", "-la").lines;
-// lines is already an Enumerable&lt;string&gt;
-</code></pre>
-<h3 id="from-files"><a class="header" href="#from-files">From Files</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { read } from "jsr:@j50n/proc@0.24.6";
-
-const bytes = read("file.txt");
-// bytes is Enumerable&lt;Uint8Array&gt;
-
-const lines = read("file.txt").lines;
-// lines is Enumerable&lt;string&gt;
-</code></pre>
-<h2 id="consuming-enumerables"><a class="header" href="#consuming-enumerables">Consuming Enumerables</a></h2>
-<h3 id="collect-to-array"><a class="header" href="#collect-to-array">Collect to Array</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const array = await enumerate([1, 2, 3]).collect();
-// [1, 2, 3]
-</code></pre>
-<h3 id="iterate-with-for-await"><a class="header" href="#iterate-with-for-await">Iterate with for-await</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">for await (const item of enumerate([1, 2, 3])) {
-  console.log(item);
-}
-</code></pre>
-<h3 id="process-each-item"><a class="header" href="#process-each-item">Process Each Item</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">await enumerate([1, 2, 3]).forEach((item) =&gt; {
-  console.log(item);
-});
-</code></pre>
-<h3 id="get-first-or-last"><a class="header" href="#get-first-or-last">Get First or Last</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const first = await enumerate([1, 2, 3]).first;
-const last = await enumerate([1, 2, 3]).last;
-</code></pre>
-<h2 id="lazy-evaluation"><a class="header" href="#lazy-evaluation">Lazy Evaluation</a></h2>
-<p>Enumerables are <strong>lazy</strong>—nothing happens until you consume them:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// This doesn't run anything yet
-const pipeline = enumerate([1, 2, 3])
-  .map((n) =&gt; {
-    console.log(`Processing ${n}`);
-    return n * 2;
-  });
-
-// Now it runs
-const result = await pipeline.collect();
-// Logs: Processing 1, Processing 2, Processing 3
-</code></pre>
-<p>This is powerful for large datasets:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// Processes one line at a time, never loads entire file
-for await (const line of read("huge-file.txt").lines) {
-  process(line);
-}
-</code></pre>
-<h2 id="chaining-operations"><a class="header" href="#chaining-operations">Chaining Operations</a></h2>
-<p>Chain as many operations as you want:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const result = await enumerate([1, 2, 3, 4, 5])
-  .map((n) =&gt; n * 2) // [2, 4, 6, 8, 10]
-  .filter((n) =&gt; n &gt; 5) // [6, 8, 10]
-  .map((n) =&gt; n.toString()) // ["6", "8", "10"]
-  .collect();
-</code></pre>
-<p>Each operation returns a new Enumerable, so you can keep chaining.</p>
-<h2 id="type-safety"><a class="header" href="#type-safety">Type Safety</a></h2>
-<p>Enumerable is fully typed:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const nums: Enumerable&lt;number&gt; = enumerate([1, 2, 3]);
-
-const strings: Enumerable&lt;string&gt; = nums.map((n) =&gt; n.toString());
-//    ^-- TypeScript knows this is Enumerable&lt;string&gt;
-
-const result: string[] = await strings.collect();
-//    ^-- TypeScript knows this is string[]
-</code></pre>
-<p>Your IDE will guide you with autocomplete and type errors.</p>
-<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
-<h3 id="transform-and-collect"><a class="header" href="#transform-and-collect">Transform and Collect</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const result = await enumerate(data)
-  .map(transform)
-  .collect();
-</code></pre>
-<h3 id="filter-and-count"><a class="header" href="#filter-and-count">Filter and Count</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const count = await enumerate(data)
-  .filter(predicate)
-  .count();
-</code></pre>
-<h3 id="find-first-match"><a class="header" href="#find-first-match">Find First Match</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const match = await enumerate(data)
-  .find(predicate);
-</code></pre>
-<h3 id="check-if-anyall"><a class="header" href="#check-if-anyall">Check if Any/All</a></h3>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const hasMatch = await enumerate(data).some(predicate);
-const allMatch = await enumerate(data).every(predicate);
-</code></pre>
-<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
-<p>Enumerable is designed for efficiency and scalability. It processes data in a
-streaming fashion, handling one item at a time rather than loading everything
-into memory. This lazy evaluation means operations only run when you actually
-consume the results, making it possible to work with datasets larger than
-available RAM:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">// This processes a 10GB file using constant memory
-await read("huge-file.txt")
+// How many lines at each level, leaving out INFO.
+const levels = await read("app.log")
   .lines
-  .filter((line) =&gt; line.includes("ERROR"))
-  .forEach(console.log);
+  .map((line) =&gt; line.split(/\s+/)[2]) // "INFO", "ERROR", "WARN"
+  .filterNot((level) =&gt; level === "INFO")
+  .reduce(
+    (counts, level) =&gt; counts.set(level, (counts.get(level) ?? 0) + 1),
+    new Map&lt;string, number&gt;(),
+  );
+
+console.log(levels);
 </code></pre>
-<h2 id="enumerable-vs-array-comparison"><a class="header" href="#enumerable-vs-array-comparison">Enumerable vs Array Comparison</a></h2>
-<p>Understanding when to use each approach helps you choose the right tool:</p>
+<pre><code class="language-text">Map(2) { "ERROR" =&gt; 2, "WARN" =&gt; 1 }
+</code></pre>
+<p>Each step returns a new <code>Enumerable</code>, and the consumer at the end (<code>reduce</code>
+here) pulls the items through and returns a promise. Callbacks may be async;
+each call is awaited before the next one starts. To run several at once, use
+<a href="./concurrency.html"><code>concurrentMap</code></a>. <a href="../start/key-ideas.html">Key ideas</a> covers
+how sources, steps, and consumers fit together.</p>
+<h2 id="enumerate-is-not-enum"><a class="header" href="#enumerate-is-not-enum"><code>enumerate()</code> is not <code>.enum()</code></a></h2>
+<pre><code class="language-typescript">import { enumerate } from "@j50n/proc";
+
+// enumerate() wraps an iterable. The items stay as they are.
+console.log(await enumerate(["apple", "pear"]).collect());
+
+// .enum() numbers the items. Each becomes [item, index].
+console.log(await enumerate(["apple", "pear"]).enum().collect());
+</code></pre>
+<pre><code class="language-text">[ "apple", "pear" ]
+[ [ "apple", 0 ], [ "pear", 1 ] ]
+</code></pre>
+<p><code>enumerate(iterable)</code> is a function: it wraps an iterable so you can call the
+methods on it, and leaves the items alone. <code>.enum()</code> is a method on an
+<code>Enumerable</code>: it numbers the items, turning each into <code>[item, index]</code> from 0.
+Python’s <code>enumerate</code> is proc’s <code>.enum()</code>.</p>
+<h2 id="the-methods"><a class="header" href="#the-methods">The methods</a></h2>
+<p>Change items:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature</th><th>Array</th><th>Enumerable</th></tr>
+<tr><th>Member</th><th>What it does</th></tr>
 </thead>
 <tbody>
-<tr><td>Data</td><td>Sync</td><td>Async</td></tr>
-<tr><td>Memory</td><td>All in memory</td><td>Streaming</td></tr>
-<tr><td>Size</td><td>Limited by RAM</td><td>Unlimited</td></tr>
-<tr><td>Methods</td><td>map, filter, etc.</td><td>map, filter, etc.</td></tr>
-<tr><td>Lazy</td><td>No</td><td>Yes</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.map"><code>map(fn)</code></a></td><td>Replace each item with <code>fn(item)</code>, one call at a time.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.enum"><code>enum()</code></a></td><td>Number the items: each becomes <code>[item, index]</code>.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.concurrentMap"><code>concurrentMap(fn, opts)</code></a></td><td><code>map</code> with several calls at once; results in input order.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.concurrentUnorderedMap"><code>concurrentUnorderedMap(fn, opts)</code></a></td><td><code>map</code> with several calls at once; results as they finish.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.transform"><code>transform(step)</code></a></td><td>Pass the whole sequence through a generator or <code>TransformStream</code>.</td></tr>
 </tbody>
 </table>
 </div>
-<p>Use Arrays for small, synchronous data that fits comfortably in memory. Use
-Enumerable for large datasets, async data sources, or when you need streaming
-processing capabilities.</p>
-<h2 id="caching-iterables"><a class="header" href="#caching-iterables">Caching Iterables</a></h2>
-<p>Sometimes you need to reuse an iterable’s results multiple times. Use <code>cache()</code>
-to store results for replay, which is particularly useful for expensive
-computations or when you need to iterate over the same data multiple times:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { cache, enumerate } from "jsr:@j50n/proc@0.24.6";
+<p>Filter:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Member</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.filter"><code>filter(fn)</code></a></td><td>Keep the items for which <code>fn</code> is true.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.filterNot"><code>filterNot(fn)</code></a></td><td>Drop the items for which <code>fn</code> is true.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Slice:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Member</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.take"><code>take(n)</code></a></td><td>The first <code>n</code> items (default 1); then close the source.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.drop"><code>drop(n)</code></a></td><td>Skip the first <code>n</code> items (default 1).</td></tr>
+</tbody>
+</table>
+</div>
+<p>Combine:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Member</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.concat"><code>concat(other)</code></a></td><td>These items, then <code>other</code>’s.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.zip"><code>zip(other)</code></a></td><td>Pairs <code>[mine, other's]</code>, ending with the shorter sequence.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.flatten"><code>flatten()</code></a></td><td>Replace each item, itself iterable, with its items.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.flatMap"><code>flatMap(fn)</code></a></td><td><code>map</code>, then <code>flatten</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Split:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Member</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.tee"><code>tee(n)</code></a></td><td><code>n</code> Enumerables (default 2), each with every item.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.unzip"><code>unzip()</code></a></td><td>Pairs <code>[a, b]</code> into two Enumerables, the <code>a</code>s and the <code>b</code>s.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Consume (each returns a promise):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Member</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.collect"><code>collect()</code></a></td><td>Every item, in an array. <code>toArray()</code> is the same.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.forEach"><code>forEach(fn)</code></a></td><td>Call <code>fn</code> on each item.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.reduce"><code>reduce(fn, zero)</code></a></td><td>Fold into one value, as <code>Array.prototype.reduce</code> does.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.count"><code>count(fn)</code></a></td><td>How many items, or how many for which <code>fn</code> is true.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.first"><code>first</code></a></td><td>The first item. A getter; throws <code>RangeError</code> if there is none.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.find"><code>find(fn)</code></a></td><td>The first item for which <code>fn</code> is true, or <code>undefined</code>.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.some"><code>some(fn)</code></a></td><td>Whether <code>fn</code> is true for any item; stops at the first.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.every"><code>every(fn)</code></a></td><td>Whether <code>fn</code> is true for all items; stops at the first false.</td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>for await</code> loop is a consumer too.</p>
+<p>Text, processes, and output:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Member</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.lines"><code>lines</code></a></td><td>Bytes decoded as UTF-8 lines of text. A getter.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.chunkedLines"><code>chunkedLines</code></a></td><td>The same lines in arrays, one per chunk read; faster. A getter.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.run"><code>run(...cmd)</code></a></td><td>Pipe the items into a command’s stdin; yields its stdout.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeTo"><code>writeTo(path)</code></a></td><td>Write bytes to a file, or items to a <code>WritableStream</code>.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeBytesTo"><code>writeBytesTo(writer)</code></a></td><td>Write bytes to a <code>Writer &amp; Closer</code>, such as a <code>Deno.FsFile</code>.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.toStdout"><code>toStdout()</code></a></td><td>Write lines or bytes to stdout.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The output of <code>run()</code> also has
+<a href="https://jsr.io/@j50n/proc/doc/~/ProcessEnumerable.prototype.pid"><code>pid</code></a> and
+<a href="https://jsr.io/@j50n/proc/doc/~/ProcessEnumerable.prototype.status"><code>status</code></a>;
+see <a href="../processes/running.html">Running a command</a>. Files and stdout are in
+<a href="./files.html">Files and standard streams</a>.</p>
+<h2 id="steps-to-pass-to-transform"><a class="header" href="#steps-to-pass-to-transform">Steps to pass to <code>transform()</code></a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/toBytes"><code>toBytes</code></a></td><td>Lines of text (or bytes) into byte chunks, a <code>"\n"</code> after each line.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/toLines"><code>toLines</code></a></td><td>Bytes into lines; what <code>.lines</code> uses.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/toChunkedLines"><code>toChunkedLines</code></a></td><td>Bytes into arrays of lines; what <code>.chunkedLines</code> uses.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/toByteLines"><code>toByteLines</code></a></td><td>Bytes split into lines without decoding, in arrays.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/buffer"><code>buffer(size)</code></a></td><td>Join small byte chunks into chunks of at least <code>size</code> bytes.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/gzip"><code>gzip</code></a>, <a href="https://jsr.io/@j50n/proc/doc/~/gunzip"><code>gunzip</code></a></td><td>Compress or decompress; take lines or bytes.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/jsonStringify"><code>jsonStringify</code></a>, <a href="https://jsr.io/@j50n/proc/doc/~/jsonParse"><code>jsonParse</code></a></td><td>One JSON value per string, each way.</td></tr>
+<tr><td><a href="https://jsr.io/@j50n/proc/doc/~/debug"><code>debug</code></a></td><td>Print each item as it passes, unchanged.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The data formats (<code>fromCsvToRows()</code>, <code>toTsv()</code>, …) are steps too, from
+<code>@j50n/proc/transforms</code>; see <a href="../data/overview.html">Data formats</a>. To write your
+own, see <a href="./custom-steps.html">Writing your own steps</a>.</p>
+<h2 id="more-examples"><a class="header" href="#more-examples">More examples</a></h2>
+<pre><code class="language-typescript">import { enumerate, range } from "@j50n/proc";
 
-const expensive = enumerate(data)
-  .map(expensiveOperation);
+const words = ["one", "two", "three", "four", "five"];
 
-const cached = cache(expensive);
-
-// First time - runs the operations
-const result1 = await cached.collect();
-
-// Second time - uses cached results, doesn't re-run
-const result2 = await cached.collect();
+console.log(await enumerate(words).drop(1).take(2).collect());
+console.log(await range({ from: 1, to: 4 }).zip(enumerate(words)).collect());
+console.log(
+  await enumerate(["a b", "c"]).flatMap((s) =&gt; s.split(" ")).collect(),
+);
+console.log(
+  await enumerate(["x", "y"]).concat(enumerate(["z"])).collect(),
+);
 </code></pre>
-<p>Caching is ideal for reusing expensive computations, replaying iterables
-multiple times, or sharing results across operations. However, be mindful that
-caching stores all results in memory, so only use it when the dataset is small
-enough to fit in memory, you need to iterate multiple times, and the computation
-is expensive enough to justify the memory usage.</p>
-<h2 id="writable-iterables"><a class="header" href="#writable-iterables">Writable Iterables</a></h2>
-<p><strong>Need to convert callbacks or events into async iterables?</strong> See the dedicated
-<a href="../utilities/writable-iterable.html">WritableIterable</a> page for complete
-documentation.</p>
-<p>Create async iterables you can write to programmatically, which bridges the gap
-between push-based and pull-based data models:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">import { WritableIterable } from "jsr:@j50n/proc@0.24.6";
-
-const writable = new WritableIterable&lt;string&gt;();
-
-// Write to it
-await writable.write("item1");
-await writable.write("item2");
-await writable.write("item3");
-await writable.close();
-
-// Read from it
-const items = await writable.collect();
-// ["item1", "item2", "item3"]
+<pre><code class="language-text">[ "two", "three" ]
+[ [ 1, "one" ], [ 2, "two" ], [ 3, "three" ] ]
+[ "a", "b", "c" ]
+[ "x", "y", "z" ]
 </code></pre>
-<p>WritableIterable is perfect for generating data programmatically, bridging
-between push and pull models, creating custom data sources, or implementing
-producer-consumer patterns. Here’s an example of event-driven data processing:</p>
-<!-- NOT TESTED: Illustrative example -->
-<pre><code class="language-typescript">const events = new WritableIterable&lt;Event&gt;();
+<p><code>concat</code> and <code>zip</code> take an async iterable, so wrap an array in <code>enumerate()</code>
+first; the types refuse a plain array.</p>
+<pre><code class="language-typescript">import { enumerate, range } from "@j50n/proc";
 
-// Producer: write events as they occur
-eventEmitter.on("data", async (event) =&gt; {
-  await events.write(event);
-});
+const numbers = () =&gt; range({ from: 1, until: 6 }); // 1 to 6, a new one each time
 
-eventEmitter.on("end", async () =&gt; {
-  await events.close();
-});
+console.log(await numbers().count((n) =&gt; n % 2 === 0)); // 3
+console.log(await numbers().find((n) =&gt; n &gt; 4)); // 5
+console.log(await numbers().find((n) =&gt; n &gt; 10)); // undefined
+console.log(await numbers().some((n) =&gt; n &gt; 5)); // true
+console.log(await numbers().every((n) =&gt; n &gt; 5)); // false
+console.log(await numbers().first); // 1, a getter
 
-// Consumer: process events as they arrive
-for await (const event of events) {
-  processEvent(event);
+try {
+  await enumerate&lt;number&gt;([]).first;
+} catch (error) {
+  if (error instanceof RangeError) console.log("empty: no first item");
 }
 </code></pre>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<pre><code class="language-text">3
+5
+undefined
+true
+false
+1
+empty: no first item
+</code></pre>
+<p><code>numbers()</code> makes a new <code>Enumerable</code> for each line because each one can be read
+only once. <code>find</code>, <code>some</code>, <code>every</code>, and <code>first</code> stop reading as soon as they
+have their answer, and close the source.</p>
+<pre><code class="language-typescript">import { read } from "@j50n/proc";
+
+// Read the file once, and go over the lines two ways side by side.
+const [a, b] = read("app.log").lines.tee();
+
+const [total, errors] = await Promise.all([
+  a.count(),
+  b.count((line) =&gt; line.includes("ERROR")),
+]);
+
+console.log(`${errors} of ${total} lines are errors`);
+</code></pre>
+<pre><code class="language-text">2 of 7 lines are errors
+</code></pre>
+<h2 id="traps"><a class="header" href="#traps">Traps</a></h2>
 <ul>
-<li><a href="./array-methods.html">Array-Like Methods</a> - All the methods available</li>
-<li><a href="./transformations.html">Transformations</a> - map, flatMap, transform</li>
-<li><a href="./aggregations.html">Aggregations</a> - reduce, count, sum</li>
+<li><strong>An <code>Enumerable</code> is read once.</strong> A second <code>collect()</code> gets nothing, without
+an error. Keep the array from the first, or <code>tee()</code> the sequence.</li>
+<li><strong><code>tee()</code> and <code>unzip()</code> keep an item until every branch has read it.</strong>
+Branches read side by side hold little; a branch that runs far ahead of
+another makes everything in between pile up in memory. If the source throws,
+every branch throws, after the items before the error.</li>
+<li><strong>Read every branch of a <code>tee()</code></strong>, at least to a <code>break</code>. The source is
+closed once every branch has stopped; a branch that is never read keeps it
+open, and keeps every item from the start.</li>
+<li><strong><code>first</code> throws on an empty sequence</strong> (<code>RangeError</code>), and <code>reduce</code> with no
+starting value throws <code>TypeError</code>. <code>find</code> returns <code>undefined</code> instead.</li>
+<li><strong>There is no <code>sort</code>.</strong> Sorting needs every item at once, so it isn’t a step.
+Filter first to keep only what you need, <code>collect()</code>, and sort the array (or
+pipe lines through the <code>sort</code> command, which handles more than fits in
+memory).</li>
+<li><strong><code>flatten()</code> on strings gives characters</strong>, because a string is iterable.</li>
+<li><strong><code>lines</code> and <code>chunkedLines</code> are getters</strong>: <code>.lines</code>, not <code>.lines()</code>. Only an
+<code>Enumerable</code> of bytes has them; on anything else the type is <code>never</code>.</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../core/resources.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../processes/shutdown.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../iterables/array-methods.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../iterables/concurrency.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -471,11 +449,11 @@ for await (const event of events) {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../core/resources.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../processes/shutdown.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../iterables/array-methods.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../iterables/concurrency.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -497,11 +475,11 @@ for await (const event of events) {
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../theme/custom-285056d7.js"></script>

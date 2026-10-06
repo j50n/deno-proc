@@ -1,0 +1,65 @@
+# proc
+
+> proc runs child processes from Deno the way a shell pipes them, with errors that reach one `catch`. It also gives any async iterable the Array methods you already know: `map`, `filter`, `reduce`, `take`, and concurrent versions of `map`.
+
+Deno library, version 0.26.1, on JSR as `@j50n/proc` (`deno add jsr:@j50n/proc`). Data transforms are a separate entry point, `@j50n/proc/transforms`. Read "Key ideas" first: it covers how every part behaves and the traps.
+
+- [The whole book as one file](https://j50n.github.io/deno-proc/llms-full.txt)
+- [API reference on JSR](https://jsr.io/@j50n/proc/doc)
+
+## Introduction
+
+- [proc](https://j50n.github.io/deno-proc/introduction.html)
+
+## Getting started
+
+- [Install and run a first script](https://j50n.github.io/deno-proc/start/install.html)
+- [Key ideas](https://j50n.github.io/deno-proc/start/key-ideas.html)
+
+## Running commands
+
+- [Running a command](https://j50n.github.io/deno-proc/processes/running.html)
+- [Pipelines and input](https://j50n.github.io/deno-proc/processes/pipelines.html)
+- [Errors](https://j50n.github.io/deno-proc/processes/errors.html)
+- [Shutting down cleanly](https://j50n.github.io/deno-proc/processes/shutdown.html)
+
+## Working with iterables
+
+- [Enumerable and its methods](https://j50n.github.io/deno-proc/iterables/enumerable.html)
+- [Doing work concurrently](https://j50n.github.io/deno-proc/iterables/concurrency.html)
+- [Files and standard streams](https://j50n.github.io/deno-proc/iterables/files.html)
+- [From callbacks to iterables](https://j50n.github.io/deno-proc/iterables/writable-iterable.html)
+- [Writing your own steps](https://j50n.github.io/deno-proc/iterables/custom-steps.html)
+- [Utilities](https://j50n.github.io/deno-proc/iterables/utilities.html)
+
+## Data formats
+
+- [Overview](https://j50n.github.io/deno-proc/data/overview.html)
+- [CSV](https://j50n.github.io/deno-proc/data/csv.html)
+- [TSV](https://j50n.github.io/deno-proc/data/tsv.html)
+- [JSON lines](https://j50n.github.io/deno-proc/data/json.html)
+- [Record format](https://j50n.github.io/deno-proc/data/record.html)
+- [LazyRow](https://j50n.github.io/deno-proc/data/lazyrow.html)
+- [The flatdata CLI](https://j50n.github.io/deno-proc/data/flatdata.html)
+
+## Recipes
+
+- [Replacing a shell script](https://j50n.github.io/deno-proc/recipes/shell-script.html)
+- [Searching logs](https://j50n.github.io/deno-proc/recipes/logs.html)
+- [Running jobs in parallel](https://j50n.github.io/deno-proc/recipes/parallel-jobs.html)
+- [Counting words](https://j50n.github.io/deno-proc/recipes/word-count.html)
+
+## Reference
+
+- [API at a glance](https://j50n.github.io/deno-proc/reference/api.html)
+- [Common mistakes](https://j50n.github.io/deno-proc/reference/mistakes.html)
+
+## Contributing
+
+- [Overview](https://j50n.github.io/deno-proc/contributor/README.html)
+- [Architecture](https://j50n.github.io/deno-proc/contributor/architecture.html)
+- [Coding standards](https://j50n.github.io/deno-proc/contributor/coding-standards.html)
+- [Documentation guidelines](https://j50n.github.io/deno-proc/contributor/documentation.html)
+- [Testing](https://j50n.github.io/deno-proc/contributor/testing.html)
+- [Building and releasing](https://j50n.github.io/deno-proc/contributor/build-process.html)
+- [The CSV reader](https://j50n.github.io/deno-proc/contributor/csv-parser.html)

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Enumerable.prototype.filter - proc documentation</title>
+  <title>Enumerable.prototype.filter - default - proc documentation</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="doc-current-file" content=".">
@@ -15,7 +15,10 @@
 <div class="ddoc">
 <div><nav id="topnav">
   <div class="h-full">
-    <div class="flex items-center"><ul class="breadcrumbs"><li><a href="..&#x2F;" class="contextLink">proc</a></li><span class="text-black dark:text-white"><svg
+    <div class="flex items-center"><ul class="breadcrumbs">
+  <li>
+    <a href="..&#x2F;" class="contextLink">proc</a>
+  </li><span class="text-black dark:text-white"><svg
   width="16"
   height="16"
   viewBox="0 0 16 16"
@@ -29,7 +32,25 @@
     fill="currentColor"
   />
 </svg>
-</span><ul><li><a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.html" class="contextLink">Enumerable</a></li><span>.</span><li><a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.prototype.html" class="contextLink">prototype</a></li><span>.</span><li>filter</li></ul></ul>
+</span><a href="..&#x2F;" class="contextLink">default</a><span class="text-black dark:text-white"><svg
+  width="16"
+  height="16"
+  viewBox="0 0 16 16"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M5.76748 11.8159C5.5378 11.577 5.54525 11.1972 5.78411 10.9675L8.93431 8L5.78411 5.0325C5.54525 4.80282 5.5378 4.423 5.76748 4.18413C5.99715 3.94527 6.37698 3.93782 6.61584 4.1675L10.2158 7.5675C10.3335 7.68062 10.4 7.83679 10.4 8C10.4 8.16321 10.3335 8.31938 10.2158 8.4325L6.61584 11.8325C6.37698 12.0622 5.99715 12.0547 5.76748 11.8159Z"
+    fill="currentColor"
+  />
+</svg>
+</span>
+
+    <ul><li><span>.</span>
+            <a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.html" class="contextLink">Enumerable</a></li><li><span>.</span>
+            <a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.prototype.html" class="contextLink">prototype</a></li><li>filter</li></ul></ul>
 </div>
 
     <div class="flex items-center gap-2">
@@ -100,7 +121,7 @@
             <span class="text-Method">method</span>&nbsp;<span class="font-bold">Enumerable.prototype.filter</span>
           </div></div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -123,8 +144,8 @@
   />
 </svg>
 </a>
-</div><div><div class="mt-3 space-y-8"><div class="scroll-mt-16" id="function_Enumerable_prototype_filter_0">
-      <code class="anchorable text-base break-words"><a href="#function_Enumerable_prototype_filter_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
+</div><div><div class="mt-3 space-y-8"><div class="scroll-mt-16" id="function_enumerable_prototype_filter_0">
+      <code class="anchorable text-base break-words"><a href="#function_enumerable_prototype_filter_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
   height="16"
   viewBox="0 0 14 14"
@@ -146,8 +167,8 @@
   </defs>
 </svg>
 </a>
-<span class="font-bold">Enumerable.prototype.filter</span><span class="font-medium">(<span><span>filterFn<span>: (<span><span>item<span>: <span>T</span></span></span></span>) =&gt; <span><span>boolean</span><span> | </span><span>Promise</span>&lt;<span>boolean</span>&gt;</span></span></span></span>)<span>: <a href="../././~/Enumerable.html" class="link">Enumerable</a>&lt;<span>T</span>&gt;</span> </span>
-      </code><div class="space-y-7" id=""><div class="markdown"><p>Keep only items that pass a test.</p>
+<span class="font-bold">Enumerable.prototype.filter</span><span class="font-medium">(<span><span>filterFn<span>: (<span><span>item<span>: <a href="../././~/Enumerable.html#type_param_t" class="link td-ref">T</a></span></span></span>) =&gt; <span><span class="td-kw">boolean</span><span class="td-op"> | </span><span class="td-ref">Promise</span>&lt;<span class="td-kw">boolean</span>&gt;</span></span></span></span>)<span>: <a href="../././~/Enumerable.html" class="link td-ref">Enumerable</a>&lt;<a href="../././~/Enumerable.html#type_param_t" class="link td-ref">T</a>&gt;</span> </span>
+      </code><div class="space-y-7" id=""><div class="markdown"><p>Keep the items for which <code>filterFn</code> returns true.</p>
 </div><section class="section"  id="examples"><div>
       <h2 class="anchorable mb-1"><a href="#examples" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
@@ -171,7 +192,7 @@
   </defs>
 </svg>
 </a>
-Examples</h2></div><div class="space-y-8"><div class="anchorable"><a href="#example_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
+Examples</h2></div><div class="space-y-8"><div class="anchorable" id="example_0"><a href="#example_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
   height="16"
   viewBox="0 0 14 14"
@@ -193,19 +214,15 @@ Examples</h2></div><div class="space-y-8"><div class="anchorable"><a href="#exam
   </defs>
 </svg>
 </a>
-<h3 class="example-header"><div class="markdown"><p>Filter even numbers</p>
+<h3 class="example-header"><div class="markdown"><p>Example 1</p>
 </div></h3>
-  <div><div class="markdown"><pre class="highlight"><code class="language-typescript">import { range } from &quot;jsr:@j50n/proc&quot;;
+  <div><div class="markdown"><pre class="highlight"><code class="language-typescript">import { range } from &quot;@j50n/proc&quot;;
 
-const evens = await range({ to: 5 })
-  .filter(n =&gt; n % 2 === 0)
-  .collect();
+const evens = await range({ to: 5 }).filter((n) =&gt; n % 2 === 0).collect();
 // [0, 2, 4]
-</code><button class="copyButton" data-copy="import { range } from &quot;jsr:@j50n/proc&quot;;
+</code><button class="copyButton" data-copy="import { range } from &quot;@j50n/proc&quot;;
 
-const evens = await range({ to: 5 })
-  .filter(n =&gt; n % 2 === 0)
-  .collect();
+const evens = await range({ to: 5 }).filter((n) =&gt; n % 2 === 0).collect();
 // [0, 2, 4]
 "><svg
   class="copy"
@@ -289,11 +306,11 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
   </defs>
 </svg>
 </a>
-<span class="font-bold font-lg">filterFn</span><span class="font-medium text-stone-500 dark:text-stone-200"><span>: (<span><span>item<span>: <span>T</span></span></span></span>) =&gt; <span><span>boolean</span><span> | </span><span>Promise</span>&lt;<span>boolean</span>&gt;</span></span></span>
+<span class="font-bold font-lg">filterFn</span><span class="font-medium text-stone-500 dark:text-stone-200"><span>: (<span><span>item<span>: <a href="../././~/Enumerable.html#type_param_t" class="link td-ref">T</a></span></span></span>) =&gt; <span><span class="td-kw">boolean</span><span class="td-op"> | </span><span class="td-ref">Promise</span>&lt;<span class="td-kw">boolean</span>&gt;</span></span></span>
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -316,8 +333,7 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
   />
 </svg>
 </a>
-</div><div class="max-w-[75ch]"><div class="markdown"><p>The test function.</p>
-</div></div></div>
+</div></div>
 </div></section>
 <section class="section"  id="return-type"><div>
       <h2 class="anchorable mb-1"><a href="#return-type" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
@@ -342,14 +358,14 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
   </defs>
 </svg>
 </a>
-Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function_Enumerable_prototype_filter_0_return">
+Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function_enumerable_prototype_filter_0_return">
 
   <div class="docEntryHeader">
-    <div><code><span class="font-medium text-stone-500 dark:text-stone-200"><a href="../././~/Enumerable.html" class="link">Enumerable</a>&lt;<span>T</span>&gt;</span>
+    <div><code><span class="font-medium text-stone-500 dark:text-stone-200"><a href="../././~/Enumerable.html" class="link td-ref">Enumerable</a>&lt;<a href="../././~/Enumerable.html#type_param_t" class="link td-ref">T</a>&gt;</span>
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -372,8 +388,7 @@ Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function
   />
 </svg>
 </a>
-</div><div class="max-w-[75ch]"><div class="markdown"><p>An Enumerable of items that passed the test.</p>
-</div></div></div>
+</div></div>
 </div></section>
 </div>
 </div></div>
@@ -415,7 +430,7 @@ Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function
 </svg>
 </button><code></code></pre>
 </div></div><nav class="documentNavigation">
-          <h3>Document Navigation</h3><ul><li><a href="#examples" title="Examples">Examples</a></li><li><ul><li><a href="#example_0" title="Filter even numbers">Filter even numbers</a></li></ul></li><li><a href="#parameters" title="Parameters">Parameters</a></li><li><ul><li><a href="#function_enumerable_prototype_filter_0_parameter_filterfn" title="filterFn">filterFn</a></li></ul></li><li><a href="#return-type" title="Return Type">Return Type</a></li></ul></nav></div>
+          <h3>Document Navigation</h3><ul><li><a href="#examples" title="Examples">Examples</a></li><li><ul><li><a href="#example_0" title="Example 1">Example 1</a></li></ul></li><li><a href="#parameters" title="Parameters">Parameters</a></li><li><ul><li><a href="#function_enumerable_prototype_filter_0_parameter_filterfn" title="filterFn">filterFn</a></li></ul></li><li><a href="#return-type" title="Return Type">Return Type</a></li></ul></nav></div>
   </div></div>
 </div>
 </div>

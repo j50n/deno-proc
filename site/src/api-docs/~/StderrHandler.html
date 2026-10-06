@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>StderrHandler - proc documentation</title>
+  <title>StderrHandler - default - proc documentation</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="doc-current-file" content=".">
@@ -15,7 +15,10 @@
 <div class="ddoc">
 <div><nav id="topnav">
   <div class="h-full">
-    <div class="flex items-center"><ul class="breadcrumbs"><li><a href="..&#x2F;" class="contextLink">proc</a></li><span class="text-black dark:text-white"><svg
+    <div class="flex items-center"><ul class="breadcrumbs">
+  <li>
+    <a href="..&#x2F;" class="contextLink">proc</a>
+  </li><span class="text-black dark:text-white"><svg
   width="16"
   height="16"
   viewBox="0 0 16 16"
@@ -29,7 +32,23 @@
     fill="currentColor"
   />
 </svg>
-</span><ul><li>StderrHandler</li></ul></ul>
+</span><a href="..&#x2F;" class="contextLink">default</a><span class="text-black dark:text-white"><svg
+  width="16"
+  height="16"
+  viewBox="0 0 16 16"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M5.76748 11.8159C5.5378 11.577 5.54525 11.1972 5.78411 10.9675L8.93431 8L5.78411 5.0325C5.54525 4.80282 5.5378 4.423 5.76748 4.18413C5.99715 3.94527 6.37698 3.93782 6.61584 4.1675L10.2158 7.5675C10.3335 7.68062 10.4 7.83679 10.4 8C10.4 8.16321 10.3335 8.31938 10.2158 8.4325L6.61584 11.8325C6.37698 12.0622 5.99715 12.0547 5.76748 11.8159Z"
+    fill="currentColor"
+  />
+</svg>
+</span>
+
+    <ul><li>StderrHandler</li></ul></ul>
 </div>
 
     <div class="flex items-center gap-2">
@@ -100,7 +119,7 @@
             <span class="text-TypeAlias">type alias</span>&nbsp;<span class="font-bold">StderrHandler</span>
           </div></div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -123,10 +142,20 @@
   />
 </svg>
 </a>
-</div><div><div class="space-y-7" id=""><div class="markdown"><p>Optionally handle lines of stderr (passed as text lines), and also
-optionally return a value that is passed to your custom <code>ErrorHandler</code>. <strong>You are
-not allowed to throw an error from this function</strong>. If you wish to throw an error
-based on <code>stderr</code> data, the <code>ErrorHandler</code> function is where you do that.</p>
+</div><div><div class="space-y-7" id=""><div class="markdown"><p>Read a process's stderr, and return a value to hand to <code>fnError</code>. Set it as
+<code>fnStderr</code> in <a href="../././~/ProcessOptions.html">ProcessOptions</a>.</p>
+<p>It is called when the child starts, with stderr as raw bytes; use <code>.lines</code>
+for text. With <a href="../././~/run.html">run</a> and <code>.run()</code>, setting it pipes stderr here
+instead of to your terminal; <code>new Process</code> needs <code>stderr: &quot;piped&quot;</code>, or the
+constructor throws <code>TypeError</code>.</p>
+<p>Read stderr to the end. A child that writes more to stderr than its pipe
+holds (about 64 KB) blocks until it is read, and if this function returns
+without reading, the program hangs. Iteration of stdout doesn't finish until
+the returned promise settles, and <a href="../././~/main.html">main</a> and <a href="../././~/terminateAll.html">terminateAll</a> wait
+for it too, so it can write what it gathered after the child exits.</p>
+<p>Don't throw from it to fail the process. A throw replaces the process's own
+error, so the exit code is lost. Return what you need and throw from
+<code>fnError</code>.</p>
 </div><section class="section"  id="type-parameters"><div>
       <h2 class="anchorable mb-1"><a href="#type-parameters" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
@@ -179,7 +208,7 @@ Type Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -227,14 +256,14 @@ Type Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry
   </defs>
 </svg>
 </a>
-Definition</h2></div><div class="space-y-8"><div class=" docEntry" id="typeAlias_StderrHandler">
+Definition</h2></div><div class="space-y-8"><div class=" docEntry" id="typealias_stderrhandler">
 
   <div class="docEntryHeader">
-    <div><code><span class="font-medium text-stone-500 dark:text-stone-200">(<span><span>it<span>: <a href="../././~/Enumerable.html" class="link">Enumerable</a>&lt;<a href="https://deno.land/api@v2.6.5?s=Uint8Array" class="link">Uint8Array</a>&gt;</span></span></span>) =&gt; <span>Promise</span>&lt;<a href="#type_param_S" class="link">S</a>&gt;</span>
+    <div><code><span class="font-medium text-stone-500 dark:text-stone-200">(<span><span>it<span>: <a href="../././~/Enumerable.html" class="link td-ref">Enumerable</a>&lt;<a href="https://deno.land/api@v2.9.7?s=Uint8Array" class="link td-ref">Uint8Array</a>&gt;</span></span></span>) =&gt; <span class="td-ref">Promise</span>&lt;<a href="#type_param_s" class="link td-ref">S</a>&gt;</span>
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"

@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f85fc4bd.js";
+            window.path_to_searchindex_js = "../searchindex-6286a075.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b062a3f8.js"></script>
+        <script src="../toc-bde66083.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,39 +178,78 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="contributing-to-proc"><a class="header" href="#contributing-to-proc">Contributing to proc</a></h1>
-<p>This section contains documentation for maintainers and contributors to the proc
-library.</p>
-<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>The proc library provides a fluent API for running child processes and working
-with async iterables in Deno. It emphasizes composable operations, automatic
-resource cleanup, and proper error propagation.</p>
-<p><strong>Key Goals:</strong></p>
+                        <h1 id="contributing"><a class="header" href="#contributing">Contributing</a></h1>
+<p>These pages are for working on proc itself: where the code is, how it fits
+together, how it is tested, and how a release goes out. To use proc, start at
+<a href="../start/install.html">Install and run a first script</a> instead.</p>
+<h2 id="whats-where"><a class="header" href="#whats-where">What’s where</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Path</th><th>What it holds</th></tr>
+</thead>
+<tbody>
+<tr><td><code>mod.ts</code></td><td>the <code>@j50n/proc</code> entry point; its module comment is the JSR front page</td></tr>
+<tr><td><code>src/</code></td><td>the library; see <a href="./architecture.html">Architecture</a></td></tr>
+<tr><td><code>src/transforms/mod.ts</code></td><td>the <code>@j50n/proc/transforms</code> entry point (CSV, TSV, JSON lines, …)</td></tr>
+<tr><td><code>scripts/flatdata/</code></td><td>the <code>flatdata</code> CLI, exported as <code>@j50n/proc/flatdata</code></td></tr>
+<tr><td><code>swift/</code></td><td>the Embedded Swift source of the WebAssembly CSV and TSV module</td></tr>
+<tr><td><code>wasm/flatdata.wasm</code></td><td>the built module, committed so that Swift is needed only to change it</td></tr>
+<tr><td><code>tests/</code></td><td>the tests; see <a href="./testing.html">Testing</a></td></tr>
+<tr><td><code>site/src/</code></td><td>this book (mdBook), and <code>site/examples/</code>, the code it shows</td></tr>
+<tr><td><code>docs/</code></td><td>the built site, committed; GitHub Pages serves it from <code>main</code></td></tr>
+<tr><td><code>tools/</code></td><td>build helpers: WASM embedding, the book’s example runner, <code>llms.txt</code></td></tr>
+<tr><td><code>benchmarks/</code></td><td>performance studies; nothing in the library uses them</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>deno publish</code> sends JSR every file that <code>.gitignore</code> and the <code>"publish"</code>
+<code>"exclude"</code> list in <code>deno.json</code> don’t leave out: meant to be <code>mod.ts</code>, <code>src/</code>,
+<code>scripts/flatdata/</code>, the README, and the license. A stray file or directory in
+the working tree goes too, so check <code>deno publish --dry-run</code> before a release.</p>
+<h2 id="getting-set-up"><a class="header" href="#getting-set-up">Getting set up</a></h2>
+<p>You need <a href="https://deno.com">Deno</a>. That is enough to change the TypeScript, run
+the tests, and type-check everything. Two more tools are needed only for some
+jobs:</p>
 <ul>
-<li>Composable operations via method chaining</li>
-<li>Automatic resource cleanup (no leaked processes)</li>
-<li>Proper error propagation from stderr</li>
-<li>AsyncIterable streams (easier than manual stream handling)</li>
-<li>Type-safe transformations with minimal boilerplate</li>
+<li><a href="https://www.swift.org/">Swift</a> 6.3.2 with its Embedded WebAssembly SDK
+(<code>swift-6.3.2-RELEASE_wasm-embedded</code>), to rebuild the WebAssembly module after
+a change under <code>swift/</code>.</li>
+<li><a href="https://rust-lang.github.io/mdBook/">mdBook</a> (installed with Rust’s <code>cargo</code>),
+to build the site.</li>
 </ul>
-<h2 id="quick-navigation"><a class="header" href="#quick-navigation">Quick Navigation</a></h2>
+<p>The day-to-day loop, from the repository root:</p>
+<pre><code class="language-sh">deno fmt
+deno lint
+deno check mod.ts src/transforms/mod.ts
+deno test --allow-read --allow-write=/tmp/ --allow-run ./tests
+</code></pre>
+<p><code>./build.sh</code> does all of that and more (it also rebuilds the WASM and updates
+the toolchain and dependencies); <a href="./build-process.html">Building and releasing</a>
+says what each script does.</p>
+<h2 id="pages-in-this-section"><a class="header" href="#pages-in-this-section">Pages in this section</a></h2>
 <ul>
-<li><a href="./architecture.html">Project Architecture</a> - Core modules and design concepts</li>
-<li><a href="./coding-standards.html">Coding Standards</a> - TypeScript standards, testing, and
-workflows</li>
-<li><a href="./api-design.html">API Design</a> - Patterns and conventions for the public API</li>
-<li><a href="./documentation.html">Documentation Guidelines</a> - How to write and maintain
-docs</li>
-<li><a href="./testing.html">Testing Strategy</a> - Test coverage and verification approach</li>
-<li><a href="./build-process.html">Build Process</a> - Building, releasing, and maintaining the
-project</li>
+<li><a href="./architecture.html">Architecture</a>: the modules, and how a pipeline, its
+errors, and shutdown work inside.</li>
+<li><a href="./coding-standards.html">Coding standards</a>: the conventions the code and the
+public API follow.</li>
+<li><a href="./documentation.html">Documentation guidelines</a>: who the docs are for, and how
+doc comments and book pages are written.</li>
+<li><a href="./testing.html">Testing</a>: the test suites, including the one that runs every
+example in this book.</li>
+<li><a href="./build-process.html">Building and releasing</a>: the build scripts, the WASM
+build, and the release.</li>
+<li><a href="./csv-parser.html">The CSV reader</a>: what the WebAssembly module reads, how, and
+how it is tested.</li>
 </ul>
+<p>Bugs and questions go to
+<a href="https://github.com/j50n/deno-proc/issues">GitHub issues</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../appendix/csv-parser.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../reference/mistakes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -224,7 +263,7 @@ project</li>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../appendix/csv-parser.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../reference/mistakes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
@@ -250,11 +289,11 @@ project</li>
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../theme/custom-285056d7.js"></script>

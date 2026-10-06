@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ErrorHandler - proc documentation</title>
+  <title>ErrorHandler - default - proc documentation</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="doc-current-file" content=".">
@@ -15,7 +15,10 @@
 <div class="ddoc">
 <div><nav id="topnav">
   <div class="h-full">
-    <div class="flex items-center"><ul class="breadcrumbs"><li><a href="..&#x2F;" class="contextLink">proc</a></li><span class="text-black dark:text-white"><svg
+    <div class="flex items-center"><ul class="breadcrumbs">
+  <li>
+    <a href="..&#x2F;" class="contextLink">proc</a>
+  </li><span class="text-black dark:text-white"><svg
   width="16"
   height="16"
   viewBox="0 0 16 16"
@@ -29,7 +32,23 @@
     fill="currentColor"
   />
 </svg>
-</span><ul><li>ErrorHandler</li></ul></ul>
+</span><a href="..&#x2F;" class="contextLink">default</a><span class="text-black dark:text-white"><svg
+  width="16"
+  height="16"
+  viewBox="0 0 16 16"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M5.76748 11.8159C5.5378 11.577 5.54525 11.1972 5.78411 10.9675L8.93431 8L5.78411 5.0325C5.54525 4.80282 5.5378 4.423 5.76748 4.18413C5.99715 3.94527 6.37698 3.93782 6.61584 4.1675L10.2158 7.5675C10.3335 7.68062 10.4 7.83679 10.4 8C10.4 8.16321 10.3335 8.31938 10.2158 8.4325L6.61584 11.8325C6.37698 12.0622 5.99715 12.0547 5.76748 11.8159Z"
+    fill="currentColor"
+  />
+</svg>
+</span>
+
+    <ul><li>ErrorHandler</li></ul></ul>
 </div>
 
     <div class="flex items-center gap-2">
@@ -100,7 +119,7 @@
             <span class="text-TypeAlias">type alias</span>&nbsp;<span class="font-bold">ErrorHandler</span>
           </div></div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -123,14 +142,24 @@
   />
 </svg>
 </a>
-</div><div><div class="space-y-7" id=""><div class="markdown"><p>Optionally change or suppress the error before it is thrown. Note that this will only
-be called if either one or both of <code>error</code> and <code>stderrData</code> is defined (non-<code>null</code>).</p>
-<p>This is a chance to throw a custom error or to suppress throwing an error.
-You can pass any type of data from the <code>stderr</code> handler to the error handler
-since you own both functions.</p>
-<p>Throw the error you want to be thrown from the process. If you want to suppress
-the error, just don't throw an error and return normally. It is good practice to
-set the error <code>cause</code> when wrapping a thrown error.</p>
+</div><div><div class="space-y-7" id=""><div class="markdown"><p>Decide what a process's failure throws: rethrow it, throw your own error, or
+return normally to throw nothing. Set it as <code>fnError</code> in
+<a href="../././~/ProcessOptions.html">ProcessOptions</a>.</p>
+<p>It is called once, after stdout has ended, the child has exited, and
+<code>fnStderr</code> has finished, and only when there is something to report: an
+<code>error</code>, or <code>stderrData</code> that is not <code>null</code> or <code>undefined</code>. It is not called
+when the consumer stops reading early.</p>
+<ul>
+<li><code>error</code> is the <a href="../././~/ExitCodeError.html">ExitCodeError</a>, <a href="../././~/SignalError.html">SignalError</a>, or
+<a href="../././~/UpstreamError.html">UpstreamError</a> the process would throw, or the error <code>fnStderr</code>
+threw; <code>undefined</code> if the process succeeded.</li>
+<li><code>stderrData</code> is what <code>fnStderr</code> resolved to; <code>undefined</code> if there is no
+<code>fnStderr</code> or it threw.</li>
+</ul>
+<p>Whatever it throws is what the consumer's <code>await</code> throws; set <code>cause</code> when
+you wrap <code>error</code>. If it returns normally, iteration ends with no error. Every
+line of output has been delivered either way. It may be <code>async</code>; the
+consumer waits for it.</p>
 </div><section class="section"  id="type-parameters"><div>
       <h2 class="anchorable mb-1"><a href="#type-parameters" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
@@ -183,7 +212,7 @@ Type Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -231,14 +260,14 @@ Type Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry
   </defs>
 </svg>
 </a>
-Definition</h2></div><div class="space-y-8"><div class=" docEntry" id="typeAlias_ErrorHandler">
+Definition</h2></div><div class="space-y-8"><div class=" docEntry" id="typealias_errorhandler">
 
   <div class="docEntryHeader">
-    <div><code><span class="font-medium text-stone-500 dark:text-stone-200">(<div class="ml-4"><div><span>error?<span>: <span>Error</span></span></span>,</div><div><span>stderrData?<span>: <a href="#type_param_S" class="link">S</a></span></span>,</div></div>) =&gt; <span>void</span></span>
+    <div><code><span class="font-medium text-stone-500 dark:text-stone-200">(<div class="ml-4"><div><span>error<span class="td-op">?</span><span>: <span class="td-ref">Error</span></span></span>,</div><div><span>stderrData<span class="td-op">?</span><span>: <a href="#type_param_s" class="link td-ref">S</a></span></span></div></div>) =&gt; <span><span class="td-kw">void</span><span class="td-op"> | </span><span class="td-ref">Promise</span>&lt;<span class="td-kw">void</span>&gt;</span></span>
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;process.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Build Process - proc</title>
+        <title>Building and releasing - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f85fc4bd.js";
+            window.path_to_searchindex_js = "../searchindex-6286a075.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b062a3f8.js"></script>
+        <script src="../toc-bde66083.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,73 +178,70 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="build-process"><a class="header" href="#build-process">Build Process</a></h1>
-<h2 id="version-management"><a class="header" href="#version-management">Version Management</a></h2>
-<ul>
-<li>Single source of truth: <code>deno.json</code> version field</li>
-<li>No separate version.json file</li>
-<li>Update version before release commits</li>
-</ul>
-<h2 id="build-scripts"><a class="header" href="#build-scripts">Build Scripts</a></h2>
-<h3 id="buildsh"><a class="header" href="#buildsh">build.sh</a></h3>
-<p>Runs tests, lint, type checking:</p>
-<ul>
-<li>Updates Rust and mdbook</li>
-<li>Updates Deno</li>
-<li>Formats markdown and TypeScript</li>
-<li>Fixes shebang pattern (sed command)</li>
-<li>Lints TypeScript</li>
-<li>Type checks TypeScript</li>
-<li>Runs tests with specific allowed commands
-<ul>
-<li>Must include ‘false’ in allowed run commands for error handling tests</li>
-<li>All 172 tests must pass</li>
-</ul>
-</li>
-</ul>
-<h3 id="build-sitesh"><a class="header" href="#build-sitesh">build-site.sh</a></h3>
-<p>Generates API docs, builds mdbook site:</p>
-<ul>
-<li>Updates Rust and mdbook</li>
-<li>Generates API docs with <code>deno doc --html</code></li>
-<li>Formats site source files</li>
-<li>Builds mdbook site</li>
-<li>Copies to docs/ directory</li>
-</ul>
-<h2 id="release-process"><a class="header" href="#release-process">Release Process</a></h2>
+                        <h1 id="building-and-releasing"><a class="header" href="#building-and-releasing">Building and releasing</a></h1>
+<p>Two scripts at the repository root do the building: <code>build.sh</code> checks and tests
+the library, and <code>build-site.sh</code> builds this book into <code>docs/</code>. The release
+itself is a short manual process, written down in
+<a href="https://github.com/j50n/deno-proc/blob/main/MAINT.md">MAINT.md</a>.</p>
+<h2 id="buildsh"><a class="header" href="#buildsh"><code>build.sh</code></a></h2>
+<p>In order, it:</p>
 <ol>
-<li>Update version in deno.json</li>
-<li>Run <code>./build.sh</code> to verify all tests pass</li>
-<li>Run <code>./build-site.sh</code> to regenerate documentation</li>
-<li>Commit with descriptive message</li>
-<li>Push to GitHub</li>
-<li>JSR automatically publishes from git tags</li>
+<li>Updates the toolchain: <code>rustup update</code>, then <code>cargo install mdbook</code>.</li>
+<li>Rebuilds the WebAssembly module with <code>./swift/build.sh</code> if anything under
+<code>swift/</code> is newer than <code>wasm/flatdata.wasm</code>, and embeds it with
+<code>tools/embed-wasm.ts</code> (below).</li>
+<li>Updates every dependency to its latest version with <code>deno update --latest</code>.
+The versions in <code>deno.json</code> are pinned exactly, so this is the only thing
+that moves them; review the diff.</li>
+<li>Formats the Markdown and TypeScript with <code>deno fmt</code>.</li>
+<li>Runs <code>deno lint</code> and <code>deno check</code> on the TypeScript.</li>
+<li>Runs the tests in <code>./tests</code> with <code>--allow-run</code> limited to the commands they
+use, and then the benchmarks in <code>tests/comprehensive_benchmarks.test.ts</code>.</li>
 </ol>
-<h2 id="current-status"><a class="header" href="#current-status">Current Status</a></h2>
-<p><strong>Version:</strong> 0.23.2<br><strong>Registry:</strong> JSR (jsr.io)<br><strong>License:</strong> MIT<br><strong>Test Coverage:</strong> 172 tests (all passing)</p>
-<p><strong>Recent Improvements:</strong></p>
-<ul>
-<li>Enhanced documentation for accessibility</li>
-<li>Added Common Patterns guide</li>
-<li>Visual enhancements to mdbook site (custom CSS/JS)</li>
-<li>Aligned JSDoc with README for consistency</li>
-<li>All documentation sources consistent</li>
-</ul>
-<h2 id="build-tools"><a class="header" href="#build-tools">Build Tools</a></h2>
-<ul>
-<li><strong>tools/mdbook-deno-script-preprocessor.ts</strong>: Processes Deno code blocks in
-documentation</li>
-<li><strong>site/gitv.ts</strong>: Git version preprocessor for mdbook</li>
-<li><strong>site/theme/</strong>: Custom CSS and JavaScript for enhanced documentation
-experience</li>
-</ul>
-<h2 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h2>
-<ul>
-<li><strong>Deno</strong>: Runtime and tooling</li>
-<li><strong>mdbook</strong>: Documentation site generator</li>
-<li><strong>Rust toolchain</strong>: Required for mdbook</li>
-<li><strong>Git</strong>: Version control and preprocessor data</li>
-</ul>
+<p>It stops at the first failure (<code>set -e</code>).</p>
+<h2 id="the-webassembly-module"><a class="header" href="#the-webassembly-module">The WebAssembly module</a></h2>
+<p>The CSV and TSV readers and the CSV-TSV converters run in WebAssembly built from
+Embedded Swift in <code>swift/</code>. <code>swift/build.sh</code> compiles the package in release
+mode with the Embedded WebAssembly SDK (<code>SWIFT_SDK</code> names another) and copies
+the result to <code>wasm/flatdata.wasm</code>. <code>swift/Package.swift</code> explains the compiler
+flags: SIMD on for the Swift code too, and no stack protector, which keeps the
+module free of imports. <code>tools/embed-wasm.ts</code> then writes the file,
+base64-encoded, into <code>src/wasm/flatdata-wasm.ts</code>, which is what the library
+loads: a package installed from JSR has <code>https:</code> module URLs and can’t read a
+<code>.wasm</code> file next to it.</p>
+<p>Both the <code>.wasm</code> and the generated <code>.ts</code> are committed, so Swift is needed only
+when something under <code>swift/</code> changes, and <code>build.sh</code> skips the build otherwise:
+the compiler embeds a hash that differs on every build, so rebuilding unchanged
+sources would still change the bytes. To see what the compiler made of a loop,
+disassemble the module with <code>llvm-objdump -d wasm/flatdata.wasm</code>. If the two
+files ever disagree, <code>tests/packaging.test.ts</code> fails and says to run
+<code>tools/embed-wasm.ts</code>.</p>
+<h2 id="build-sitesh"><a class="header" href="#build-sitesh"><code>build-site.sh</code></a></h2>
+<ol>
+<li>Updates <code>rustup</code> and mdBook, as <code>build.sh</code> does.</li>
+<li>Generates the HTML API docs with <code>deno doc --html</code> into <code>site/src/api-docs/</code>.</li>
+<li>Formats the book’s Markdown and TypeScript.</li>
+<li>Builds the book with <code>mdbook build</code>, using <code>site/book.toml</code>. Two
+preprocessors run: <code>site/gitv.ts</code> fills in the version placeholder (<code>gitv</code> in
+double braces) with the latest git tag, and
+<code>tools/mdbook-deno-script-preprocessor.ts</code> runs <code>&lt;script&gt;</code> blocks in pages
+(see its <code>.md</code> file).</li>
+<li>Replaces <code>docs/</code> with the built site. GitHub Pages serves <code>docs/</code> from
+<code>main</code>.</li>
+<li>Writes <code>llms.txt</code> (an index of the pages) and <code>llms-full.txt</code> (the whole
+book, examples and output included) into <code>docs/</code> with <code>tools/llms-txt.ts</code>,
+for LLMs, which read those more reliably than HTML.</li>
+</ol>
+<p>Because the version shown in the book comes from the latest tag, build the site
+after tagging a release, not before. Commit <code>docs/</code> on its own: the generated
+files make a noisy diff that shouldn’t hide source changes.</p>
+<h2 id="releasing"><a class="header" href="#releasing">Releasing</a></h2>
+<p><a href="https://github.com/j50n/deno-proc/blob/main/MAINT.md">MAINT.md</a> has the
+commands. In outline: set the version in <code>deno.json</code> (JSR takes it from there),
+commit, tag that commit with the same version and push the tag, run
+<code>deno publish</code>, build and commit the site, and finally import the new version in
+a clean directory to check the published package, since the tests only ever see
+local files.</p>
 
                     </main>
 
@@ -254,6 +251,9 @@ experience</li>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="../contributor/csv-parser.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -265,6 +265,9 @@ experience</li>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="../contributor/csv-parser.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>
@@ -284,11 +287,11 @@ experience</li>
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../theme/custom-285056d7.js"></script>

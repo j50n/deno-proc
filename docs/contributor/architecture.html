@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Project Architecture - proc</title>
+        <title>Architecture - proc</title>
 
 
         <!-- Custom HTML head -->
@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f85fc4bd.js";
+            window.path_to_searchindex_js = "../searchindex-6286a075.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b062a3f8.js"></script>
+        <script src="../toc-bde66083.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,73 +178,127 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="project-architecture"><a class="header" href="#project-architecture">Project Architecture</a></h1>
-<h2 id="core-modules"><a class="header" href="#core-modules">Core Modules</a></h2>
+                        <h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
+<p>proc is a few small layers over two things Deno already has: async iterables and
+<code>Deno.Command</code>. This page follows a pipeline down through them.</p>
+<h2 id="the-modules"><a class="header" href="#the-modules">The modules</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>File</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><code>src/enumerable.ts</code></td><td><code>Enumerable</code> (every step and consumer), <code>ProcessEnumerable</code>, <code>enumerate</code></td></tr>
+<tr><td><code>src/run.ts</code></td><td><code>run()</code> and the <code>Cmd</code> type</td></tr>
+<tr><td><code>src/process.ts</code></td><td><code>Process</code>, the error classes, and the option and handler types</td></tr>
+<tr><td><code>src/concurrent.ts</code></td><td>the two concurrent maps</td></tr>
+<tr><td><code>src/transformers.ts</code></td><td>the functions for <code>.transform()</code>: lines, bytes, gzip, JSON, <code>buffer</code></td></tr>
+<tr><td><code>src/writable-iterable.ts</code></td><td><code>WritableIterable</code> and the <code>Writable</code> interface</td></tr>
+<tr><td><code>src/shutdown.ts</code></td><td><code>main()</code>, <code>terminateAll()</code>, and the set of running children</td></tr>
+<tr><td><code>src/utility.ts</code></td><td><code>read</code>, <code>readLines</code>, <code>range</code>, <code>sleep</code>, and small byte helpers</td></tr>
+<tr><td><code>src/cache.ts</code></td><td><code>cache()</code> over Deno KV, and the time constants</td></tr>
+<tr><td><code>src/helpers.ts</code></td><td>internal: argument parsing for <code>run()</code>, <code>handled()</code></td></tr>
+<tr><td><code>src/transforms/</code></td><td>the data formats (<code>@j50n/proc/transforms</code>)</td></tr>
+<tr><td><code>src/wasm/</code></td><td>the loader and wrapper for the WebAssembly module</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>mod.ts</code> re-exports the modules in <code>src/</code> but <code>concurrent.ts</code> and <code>helpers.ts</code>,
+which are internal, and <code>transforms/</code> and <code>wasm/</code>.</p>
+<h2 id="enumerable"><a class="header" href="#enumerable">Enumerable</a></h2>
+<p><code>Enumerable&lt;T&gt;</code> wraps one <code>AsyncIterable&lt;T&gt;</code>. Each step (<code>map</code>, <code>filter</code>,
+<code>take</code>, …) is an async generator over the one before, returned in a new
+<code>Enumerable</code>, so nothing runs until a consumer pulls. Errors need no special
+handling: an exception thrown anywhere in the chain unwinds through the
+generators to the consumer’s <code>await</code>. Stopping early works the same way in
+reverse: when a consumer stops, <code>return()</code> is called down the chain, and each
+generator’s <code>finally</code> closes what it holds.</p>
+<p>Because the wrapped iterable is read once, so is the <code>Enumerable</code>. A second pass
+gets an exhausted generator, which yields nothing.</p>
+<p><code>lines</code>, <code>run</code>, <code>writeBytesTo</code>, and the rest of the methods that only make sense
+for some item types use conditional types (<code>Lines&lt;T&gt;</code>, <code>Run&lt;S, T&gt;</code>, …) that
+resolve to <code>never</code> for the wrong items, so the mistake fails to type-check
+instead of failing at run time.</p>
+<h2 id="a-command"><a class="header" href="#a-command">A command</a></h2>
+<p><code>run(...cmd)</code> parses its arguments (an options object may come first) and builds
+a <code>Process</code>, with stdin <code>"null"</code>, stdout <code>"piped"</code>, and stderr <code>"inherit"</code>, or
+<code>"piped"</code> when there is an <code>fnStderr</code>. The <code>Process</code> constructor calls
+<code>Deno.Command(...).spawn()</code> at once, which is why a missing program throws from
+<code>run()</code> itself, and registers the child with <code>shutdown.ts</code>. <code>run()</code> returns a
+<code>ProcessEnumerable</code>, an <code>Enumerable</code> over <code>Process.stdout</code>.</p>
+<p><code>Process.stdout</code> is where failures become errors. It is an async generator that
+yields the child’s stdout chunks; after the last one, in a <code>finally</code>, it awaits
+the exit status and the <code>fnStderr</code> promise, and then throws <code>SignalError</code> or
+<code>ExitCodeError</code> for a failed exit, or <code>UpstreamError</code> if the child succeeded but
+its input failed. If there is an <code>fnError</code>, the error goes to it instead, and
+whatever it throws is what the consumer sees. Since all of this happens after
+the last chunk, the consumer has every line before the error arrives. If the
+consumer stops early, the generator is closed before the check, so no exit code
+is examined.</p>
+<h2 id="a-pipeline"><a class="header" href="#a-pipeline">A pipeline</a></h2>
+<p><code>.run(...cmd)</code> on an <code>Enumerable</code> builds a <code>Process</code> with stdin <code>"piped"</code> and
+calls <code>writeToStdin(this)</code> straight away. That starts a loop that reads the
+upstream <code>Enumerable</code> and writes each item to the child’s stdin (through
+<code>toBytes</code>, and <code>buffer</code> when <code>buffer: true</code>), without waiting for anyone to read
+the output. So <code>.run()</code> is the one step that is not lazy.</p>
+<p>When the upstream iterable throws, <code>writeToStdin</code> keeps the error as the
+process’s “pass error” and closes stdin. The child sees end of input, finishes,
+and exits; <code>Process.stdout</code> then attaches the pass error as <code>cause</code> to its own
+<code>ExitCodeError</code>, or throws an <code>UpstreamError</code> around it if the child exited 0.
+That is how an error from the first command in a chain reaches the <code>catch</code> after
+the last. A child that exits before reading all its input (<code>head -1</code>) makes the
+next write fail with <code>BrokenPipe</code>; the loop ignores that error and stops reading
+upstream, which closes it like any early stop.</p>
+<h2 id="concurrency"><a class="header" href="#concurrency">Concurrency</a></h2>
+<p><code>concurrentMap</code> and <code>concurrentUnorderedMap</code> in <code>src/concurrent.ts</code> keep up to
+<code>concurrency</code> promises from the mapping function in flight. The ordered one
+yields from the front of its buffer, so a slow item holds back the rest; the
+unordered one yields whichever settles first. Neither cancels calls already
+started when the consumer stops or an error is thrown.</p>
+<h2 id="shutdown"><a class="header" href="#shutdown">Shutdown</a></h2>
+<p><code>shutdown.ts</code> keeps a set of the children proc started, adding each in the
+<code>Process</code> constructor and removing it when its status resolves. <code>main()</code>
+installs listeners for SIGTERM, SIGINT, and SIGHUP (only SIGINT on Windows) and
+for uncaught errors and unhandled rejections, then runs the program. However it
+ends, the first ending wins: it signals every child in the set (except after
+SIGINT or SIGHUP, which the terminal already sent them), waits up to <code>timeoutMs</code>
+for them to exit, and calls <code>Deno.exit</code> with the code for that ending. A second
+signal exits at once. <code>terminateAll()</code> is the signal-and-wait half on its own.
+An <code>unload</code> listener sends SIGTERM to the children if the program exits some
+other way, though it can’t wait for them.</p>
+<h2 id="small-pieces"><a class="header" href="#small-pieces">Small pieces</a></h2>
 <ul>
-<li><strong>src/run.ts</strong> - Main entry point, <code>run()</code> function</li>
-<li><strong>src/process.ts</strong> - Process wrapper class</li>
-<li><strong>src/enumerable.ts</strong> - Enumerable class with AsyncIterable operations</li>
-<li><strong>src/transformers.ts</strong> - Data transformation functions (toBytes, JSON, gzip)</li>
-<li><strong>src/utility.ts</strong> - Helper functions (range, concat, read, etc.)</li>
-<li><strong>src/concurrent.ts</strong> - Concurrent mapping operations</li>
-<li><strong>src/writable-iterable.ts</strong> - WritableIterable for push-based iteration</li>
-<li><strong>src/cache.ts</strong> - KV-based caching utilities</li>
-<li><strong>src/helpers.ts</strong> - Internal helper functions</li>
+<li><strong><code>WritableIterable</code></strong> is an unbounded queue of promises: <code>write()</code> resolves
+the promise at the tail and adds a new one, and the iterator awaits them in
+order. It has no backpressure by design; it is for push-style sources that
+can’t wait anyway. A process’s <code>stdin</code> is one.</li>
+<li><strong><code>helpers.handled(promise)</code></strong> attaches an empty <code>catch</code> to a promise that
+will be awaited later, so that a rejection before then isn’t reported as
+unhandled. It is used wherever proc holds a promise while doing something
+else: <code>map</code> and <code>forEach</code> read the next item before awaiting the call on the
+last one, the concurrent maps hold many, and the <code>fnStderr</code> reader runs beside
+stdout.</li>
+<li><strong><code>cache()</code></strong> stores <code>{ timestamp, value }</code> under the key in Deno KV’s default
+database and checks the age on read.</li>
 </ul>
-<h2 id="key-concepts"><a class="header" href="#key-concepts">Key Concepts</a></h2>
-<p><strong>Enumerable:</strong> Wrapper around AsyncIterable providing composable operations</p>
-<ul>
-<li>Created via <code>enumerate()</code> factory function</li>
-<li>Supports map, filter, reduce, take, drop, concat, etc.</li>
-<li>Integrates with process I/O via <code>.run()</code> and <code>.lines</code></li>
-</ul>
-<p><strong>ProcessEnumerable:</strong> Extends Enumerable for process output</p>
-<ul>
-<li>Returned by <code>run()</code> function</li>
-<li>Provides access to process PID and status</li>
-<li>Automatically handles resource cleanup</li>
-</ul>
-<p><strong>Transformers:</strong> Functions that convert between data types</p>
-<ul>
-<li><code>toBytes()</code> - Convert strings/arrays to Uint8Array</li>
-<li><code>toLines()</code> - Convert bytes to text lines</li>
-<li><code>jsonStringify()</code> / <code>jsonParse()</code> - JSON serialization</li>
-<li><code>gzip()</code> / <code>gunzip()</code> - Compression</li>
-</ul>
-<h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
-<h3 id="properties-vs-methods"><a class="header" href="#properties-vs-methods">Properties vs Methods</a></h3>
-<ul>
-<li><strong>Properties</strong> (no parentheses): Return new objects or promises
-<ul>
-<li>Examples: <code>.lines</code>, <code>.status</code>, <code>.first</code>, <code>.last</code></li>
-</ul>
-</li>
-<li><strong>Methods</strong> (with parentheses): Functions that take parameters or perform
-actions
-<ul>
-<li>Examples: <code>.collect()</code>, <code>.map()</code>, <code>.filter()</code>, <code>.count()</code></li>
-</ul>
-</li>
-</ul>
-<h3 id="resource-management"><a class="header" href="#resource-management">Resource Management</a></h3>
-<ul>
-<li>Always consume process output to avoid resource leaks</li>
-<li>Terminal operations: <code>.collect()</code>, <code>.forEach()</code>, <code>.count()</code>, etc.</li>
-<li>Document resource management requirements clearly</li>
-</ul>
-<h3 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h3>
-<ul>
-<li>Errors flow through pipelines naturally</li>
-<li>No need for error handling at each step</li>
-<li>One try-catch at the end handles everything</li>
-<li>This is a key differentiator of the library</li>
-</ul>
-<h3 id="type-safety"><a class="header" href="#type-safety">Type Safety</a></h3>
-<ul>
-<li>Full TypeScript support required</li>
-<li>Generic types where appropriate: <code>Enumerable&lt;T&gt;</code>, <code>ProcessEnumerable&lt;S&gt;</code></li>
-<li>Type inference should work naturally</li>
-</ul>
+<h2 id="data-formats-and-webassembly"><a class="header" href="#data-formats-and-webassembly">Data formats and WebAssembly</a></h2>
+<p><code>src/transforms/</code> holds one file per format. The CSV and TSV parsers, and
+<code>csvToTsv()</code> and <code>tsvToCsv()</code>, run in a WebAssembly module;
+<code>src/wasm/flatdata.ts</code> wraps it, compiling it once and making an instance per
+stream. The reader hands back whole rows a batch at a time, with the end of
+every field, and <code>common.ts</code> and <code>lazy-row.ts</code> turn a batch into string rows or
+LazyRows. The record and JSON-lines parsers are TypeScript: <code>common.ts</code> splits
+the input on a separator and groups rows into batches of about 128 KiB. The
+writers are TypeScript too: each builds one string per item and encodes it once,
+which is faster than crossing into WebAssembly when the strings already live in
+JavaScript.</p>
+<p>The module is built from <code>swift/</code> (Embedded Swift, with SIMD classifiers in C)
+into <code>wasm/flatdata.wasm</code>. <code>tools/embed-wasm.ts</code> writes it, base64-encoded, into
+<code>src/wasm/flatdata-wasm.ts</code>, because a package loaded from JSR has <code>https:</code>
+module URLs and can’t read a <code>.wasm</code> file beside it. The module has no imports.
+The <code>flatdata</code> CLI in <code>scripts/flatdata/</code> runs the same transforms. See
+<a href="./build-process.html">Building and releasing</a> for the build, and
+<a href="./csv-parser.html">The CSV reader</a> for how the module reads.</p>
 
                     </main>
 
@@ -290,11 +344,11 @@ actions
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../theme/custom-285056d7.js"></script>

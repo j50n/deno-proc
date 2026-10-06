@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Enumerable.prototype.tee - proc documentation</title>
+  <title>Enumerable.prototype.tee - default - proc documentation</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="doc-current-file" content=".">
@@ -15,7 +15,10 @@
 <div class="ddoc">
 <div><nav id="topnav">
   <div class="h-full">
-    <div class="flex items-center"><ul class="breadcrumbs"><li><a href="..&#x2F;" class="contextLink">proc</a></li><span class="text-black dark:text-white"><svg
+    <div class="flex items-center"><ul class="breadcrumbs">
+  <li>
+    <a href="..&#x2F;" class="contextLink">proc</a>
+  </li><span class="text-black dark:text-white"><svg
   width="16"
   height="16"
   viewBox="0 0 16 16"
@@ -29,7 +32,25 @@
     fill="currentColor"
   />
 </svg>
-</span><ul><li><a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.html" class="contextLink">Enumerable</a></li><span>.</span><li><a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.prototype.html" class="contextLink">prototype</a></li><span>.</span><li>tee</li></ul></ul>
+</span><a href="..&#x2F;" class="contextLink">default</a><span class="text-black dark:text-white"><svg
+  width="16"
+  height="16"
+  viewBox="0 0 16 16"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M5.76748 11.8159C5.5378 11.577 5.54525 11.1972 5.78411 10.9675L8.93431 8L5.78411 5.0325C5.54525 4.80282 5.5378 4.423 5.76748 4.18413C5.99715 3.94527 6.37698 3.93782 6.61584 4.1675L10.2158 7.5675C10.3335 7.68062 10.4 7.83679 10.4 8C10.4 8.16321 10.3335 8.31938 10.2158 8.4325L6.61584 11.8325C6.37698 12.0622 5.99715 12.0547 5.76748 11.8159Z"
+    fill="currentColor"
+  />
+</svg>
+</span>
+
+    <ul><li><span>.</span>
+            <a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.html" class="contextLink">Enumerable</a></li><li><span>.</span>
+            <a href="..&#x2F;.&#x2F;.&#x2F;~&#x2F;Enumerable.prototype.html" class="contextLink">prototype</a></li><li>tee</li></ul></ul>
 </div>
 
     <div class="flex items-center gap-2">
@@ -100,7 +121,7 @@
             <span class="text-Method">method</span>&nbsp;<span class="font-bold">Enumerable.prototype.tee</span>
           </div></div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -123,8 +144,8 @@
   />
 </svg>
 </a>
-</div><div><div class="mt-3 space-y-8"><div class="scroll-mt-16" id="function_Enumerable_prototype_tee_0">
-      <code class="anchorable text-base break-words"><a href="#function_Enumerable_prototype_tee_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
+</div><div><div class="mt-3 space-y-8"><div class="scroll-mt-16" id="function_enumerable_prototype_tee_0">
+      <code class="anchorable text-base break-words"><a href="#function_enumerable_prototype_tee_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
   height="16"
   viewBox="0 0 14 14"
@@ -146,10 +167,15 @@
   </defs>
 </svg>
 </a>
-<span class="font-bold">Enumerable.prototype.tee</span><span class="font-medium"><span>&lt;<span><span>N</span><span><span> extends </span><span>number</span></span><span><span> = </span><span>2</span></span></span>&gt;</span>(<span><span>n?<span>: <span>N</span></span></span></span>)<span>: <span>Tuple</span>&lt;<a href="../././~/Enumerable.html" class="link">Enumerable</a>&lt;<span>T</span>&gt;<span>, </span><span>N</span>&gt;</span> </span>
-      </code><div class="space-y-7" id=""><div class="markdown"><p>Split the sequence into multiple identical streams.</p>
-<p>Useful when you need to process the same data in different ways.
-Uses buffering internally, so be mindful of memory with large datasets.</p>
+<span class="font-bold">Enumerable.prototype.tee</span><span class="font-medium"><span>&lt;<span><span class="td-tp">N</span><span><span class="td-kw"> extends </span><span class="td-kw">number</span></span><span><span> = </span><span class="td-lit">2</span></span></span>&gt;</span>(<span><span>n<span class="td-op">?</span><span>: <span class="td-ref">N</span></span></span></span>)<span>: <a href="../././~/Tuple.html" class="link td-ref">Tuple</a>&lt;<a href="../././~/Enumerable.html" class="link td-ref">Enumerable</a>&lt;<a href="../././~/Enumerable.html#type_param_t" class="link td-ref">T</a>&gt;<span>, </span><span class="td-ref">N</span>&gt;</span> </span>
+      </code><div class="space-y-7" id=""><div class="markdown"><p>Split into <code>n</code> Enumerables (default 2) that each yield every item. The
+source is read once.</p>
+<p>An item stays in memory until every branch has read it, so branches read
+side by side hold little, and a branch that runs far ahead of another
+makes the items in between pile up. If the source throws, every branch
+throws, after the items before the error. The source is closed once every
+branch has stopped, so read each one, at least to <code>break</code>: a branch that
+is never read keeps the source open and every item in memory.</p>
 </div><section class="section"  id="examples"><div>
       <h2 class="anchorable mb-1"><a href="#examples" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
@@ -173,7 +199,7 @@ Uses buffering internally, so be mindful of memory with large datasets.</p>
   </defs>
 </svg>
 </a>
-Examples</h2></div><div class="space-y-8"><div class="anchorable"><a href="#example_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
+Examples</h2></div><div class="space-y-8"><div class="anchorable" id="example_0"><a href="#example_0" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"
   height="16"
   viewBox="0 0 14 14"
@@ -195,20 +221,24 @@ Examples</h2></div><div class="space-y-8"><div class="anchorable"><a href="#exam
   </defs>
 </svg>
 </a>
-<h3 class="example-header"><div class="markdown"><p>Split into two streams</p>
+<h3 class="example-header"><div class="markdown"><p>Example 1</p>
 </div></h3>
-  <div><div class="markdown"><pre class="highlight"><code class="language-typescript">import { range } from &quot;jsr:@j50n/proc&quot;;
+  <div><div class="markdown"><pre class="highlight"><code class="language-typescript">import { range } from &quot;@j50n/proc&quot;;
 
 const [a, b] = range({ to: 3 }).tee();
-
-const resultA = await a.collect();  // [0, 1, 2]
-const resultB = await b.collect();  // [0, 1, 2]
-</code><button class="copyButton" data-copy="import { range } from &quot;jsr:@j50n/proc&quot;;
+const [sum, count] = await Promise.all([
+  a.reduce((acc, n) =&gt; acc + n, 0),
+  b.count(),
+]);
+// 3, 3
+</code><button class="copyButton" data-copy="import { range } from &quot;@j50n/proc&quot;;
 
 const [a, b] = range({ to: 3 }).tee();
-
-const resultA = await a.collect();  // [0, 1, 2]
-const resultB = await b.collect();  // [0, 1, 2]
+const [sum, count] = await Promise.all([
+  a.reduce((acc, n) =&gt; acc + n, 0),
+  b.count(),
+]);
+// 3, 3
 "><svg
   class="copy"
   width="15"
@@ -291,11 +321,11 @@ Type Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry
   </defs>
 </svg>
 </a>
-<span class="font-bold font-lg">N</span><span class="font-medium text-stone-500 dark:text-stone-200"><span><span> extends </span><span>number</span></span><span><span> = </span><span>2</span></span></span>
+<span class="font-bold font-lg">N</span><span class="font-medium text-stone-500 dark:text-stone-200"><span><span class="td-kw"> extends </span><span class="td-kw">number</span></span><span><span> = </span><span class="td-lit">2</span></span></span>
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -369,11 +399,11 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
   </defs>
 </svg>
 </a>
-<span class="font-bold font-lg">n</span><span class="font-medium text-stone-500 dark:text-stone-200"><span>: <a href="#type_param_N" class="link">N</a></span></span>
+<span class="font-bold font-lg">n</span><span class="font-medium text-stone-500 dark:text-stone-200"><span>: <a href="#type_param_n" class="link td-ref">N</a></span></span>
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -396,7 +426,7 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
   />
 </svg>
 </a>
-</div><div class="max-w-[75ch]"><div class="markdown"><p>The number of identical streams to create (default: 2).</p>
+</div><div class="max-w-[75ch]"><div class="markdown"><p>How many Enumerables to make. Default 2.</p>
 </div></div></div>
 </div></section>
 <section class="section"  id="return-type"><div>
@@ -422,14 +452,14 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
   </defs>
 </svg>
 </a>
-Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function_Enumerable_prototype_tee_0_return">
+Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function_enumerable_prototype_tee_0_return">
 
   <div class="docEntryHeader">
-    <div><code><span class="font-medium text-stone-500 dark:text-stone-200"><span>Tuple</span>&lt;<a href="../././~/Enumerable.html" class="link">Enumerable</a>&lt;<span>T</span>&gt;<span>, </span><a href="#type_param_N" class="link">N</a>&gt;</span>
+    <div><code><span class="font-medium text-stone-500 dark:text-stone-200"><a href="../././~/Tuple.html" class="link td-ref">Tuple</a>&lt;<a href="../././~/Enumerable.html" class="link td-ref">Enumerable</a>&lt;<a href="../././~/Enumerable.html#type_param_t" class="link td-ref">T</a>&gt;<span>, </span><a href="#type_param_n" class="link td-ref">N</a>&gt;</span>
       </code>
     </div><a
   class="sourceButton"
-  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;dev&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
+  href="file:&#x2F;&#x2F;&#x2F;home&#x2F;developer&#x2F;ws&#x2F;deno-proc&#x2F;src&#x2F;enumerable.ts"><svg
   width="14"
   height="14"
   viewBox="0 0 14 14"
@@ -452,8 +482,7 @@ Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function
   />
 </svg>
 </a>
-</div><div class="max-w-[75ch]"><div class="markdown"><p>A tuple of n identical Enumerables.</p>
-</div></div></div>
+</div></div>
 </div></section>
 </div>
 </div></div>
@@ -495,7 +524,7 @@ Return Type</h2></div><div class="space-y-8"><div class=" docEntry" id="function
 </svg>
 </button><code></code></pre>
 </div></div><nav class="documentNavigation">
-          <h3>Document Navigation</h3><ul><li><a href="#examples" title="Examples">Examples</a></li><li><ul><li><a href="#example_0" title="Split into two streams">Split into two streams</a></li></ul></li><li><a href="#type-parameters" title="Type Parameters">Type Parameters</a></li><li><ul><li><a href="#type_param_n" title="N">N</a></li></ul></li><li><a href="#parameters" title="Parameters">Parameters</a></li><li><ul><li><a href="#function_enumerable_prototype_tee_0_parameter_n" title="n">n</a></li></ul></li><li><a href="#return-type" title="Return Type">Return Type</a></li></ul></nav></div>
+          <h3>Document Navigation</h3><ul><li><a href="#examples" title="Examples">Examples</a></li><li><ul><li><a href="#example_0" title="Example 1">Example 1</a></li></ul></li><li><a href="#type-parameters" title="Type Parameters">Type Parameters</a></li><li><ul><li><a href="#type_param_n" title="N">N</a></li></ul></li><li><a href="#parameters" title="Parameters">Parameters</a></li><li><ul><li><a href="#function_enumerable_prototype_tee_0_parameter_n" title="n">n</a></li></ul></li><li><a href="#return-type" title="Return Type">Return Type</a></li></ul></nav></div>
   </div></div>
 </div>
 </div>

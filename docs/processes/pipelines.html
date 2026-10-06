@@ -1,0 +1,457 @@
+<!DOCTYPE HTML>
+<html lang="en" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Pipelines and input - proc</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Run child processes and work with async iterables in Deno—with the fluent Array API you already know.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/custom-318e1af4.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-6286a075.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-bde66083.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">proc</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/j50n/deno-proc" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="pipelines-and-input"><a class="header" href="#pipelines-and-input">Pipelines and input</a></h1>
+<pre><code class="language-typescript">import { run } from "@j50n/proc";
+
+// cut -d " " -f 3 app.log | sort | uniq -c
+const counts = await run("cut", "-d", " ", "-f", "3", "app.log")
+  .run("sort")
+  .run("uniq", "-c")
+  .lines
+  .map((line) =&gt; line.trim())
+  .collect();
+
+console.log(counts);
+</code></pre>
+<pre><code class="language-text">[ "2 ERROR", "4 INFO", "1 WARN" ]
+</code></pre>
+<p><code>.run()</code> on a command’s output starts another command with that output as its
+stdin, as <code>|</code> does in a shell. Every command in the chain runs at the same time,
+and the bytes pass from one to the next in chunks; nothing is collected in
+between unless you collect it. If any command fails, the consumer at the end
+throws; see <a href="./errors.html#which-error-a-pipeline-throws">Errors</a>.</p>
+<h2 id="feeding-a-command-from-an-array"><a class="header" href="#feeding-a-command-from-an-array">Feeding a command from an array</a></h2>
+<pre><code class="language-typescript">import { enumerate } from "@j50n/proc";
+
+const sorted = await enumerate(["pear", "apple", "fig"])
+  .run("sort")
+  .lines
+  .collect();
+console.log(sorted);
+
+// Only text and bytes can be written; turn anything else into strings first.
+const numbers = await enumerate([10, 9, 100])
+  .map((n) =&gt; `${n}`)
+  .run("sort", "-n")
+  .lines
+  .collect();
+console.log(numbers);
+</code></pre>
+<pre><code class="language-text">[ "apple", "fig", "pear" ]
+[ "9", "10", "100" ]
+</code></pre>
+<p><code>.run()</code> works on any <a href="../iterables/enumerable.html">Enumerable</a>, not only on a
+command’s output. <code>enumerate()</code> wraps an array, a <code>Set</code>, a generator, or any
+other iterable or async iterable, and <code>.run()</code> writes its items to the command’s
+stdin.</p>
+<h2 id="feeding-a-command-from-a-file"><a class="header" href="#feeding-a-command-from-a-file">Feeding a command from a file</a></h2>
+<pre><code class="language-typescript">import { read } from "@j50n/proc";
+
+// grep -c ERROR &lt; app.log
+const count = await read("app.log").run("grep", "-c", "ERROR").lines.first;
+
+console.log(count);
+</code></pre>
+<pre><code class="language-text">2
+</code></pre>
+<p><a href="../iterables/files.html"><code>read()</code></a> yields a file’s bytes, and <code>.run()</code> sends them
+to the command unchanged. It is the same as <code>grep -c ERROR &lt; app.log</code>, without
+an extra <code>cat</code> process. The file is opened when reading starts, which is at the
+<code>.run()</code> call. If it is missing, the command sees empty input, and the consumer
+throws with <code>Deno.errors.NotFound</code> as the <code>cause</code>: an <code>UpstreamError</code>, or the
+command’s own <code>ExitCodeError</code> if empty input makes it fail, as it does <code>grep -c</code>
+(which prints <code>0</code> and exits 1).</p>
+<h2 id="how-items-become-stdin"><a class="header" href="#how-items-become-stdin">How items become stdin</a></h2>
+<pre><code class="language-typescript">import { concat, enumerate } from "@j50n/proc";
+
+const decoder = new TextDecoder();
+const encoder = new TextEncoder();
+
+// `cat` echoes its stdin, so this shows exactly what the command received.
+async function received(
+  items: Iterable&lt;string | string[] | Uint8Array | Uint8Array[]&gt;,
+) {
+  const bytes = concat(await enumerate(items).run("cat").collect());
+  return JSON.stringify(decoder.decode(bytes));
+}
+
+console.log(await received(["one", "two"])); // each string is a line
+console.log(await received([["one", "two"], ["three"]])); // so is each element
+console.log(await received([encoder.encode("raw"), encoder.encode("bytes")]));
+</code></pre>
+<pre><code class="language-text">"one\ntwo\n"
+"one\ntwo\nthree\n"
+"rawbytes"
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Item</th><th>Written as</th></tr>
+</thead>
+<tbody>
+<tr><td><code>string</code></td><td>the string and a <code>"\n"</code></td></tr>
+<tr><td><code>string[]</code></td><td>each string as a line</td></tr>
+<tr><td><code>Uint8Array</code></td><td>the bytes as they are, nothing added</td></tr>
+<tr><td><code>Uint8Array[]</code></td><td>each array’s bytes, nothing added</td></tr>
+</tbody>
+</table>
+</div>
+<p>So lines from <code>.lines</code> go back in as lines, and bytes from a command or a file
+go through untouched. For any other item type (numbers, objects), the return
+type of <code>.run()</code> is <code>never</code> and the code doesn’t type-check: turn the items into
+strings with <code>.map()</code> first, as the array example does with numbers.</p>
+<h2 id="lots-of-lines"><a class="header" href="#lots-of-lines">Lots of lines</a></h2>
+<p>Each item written to a command is a write of its own, and each step pays for
+every item it handles. With a few thousand lines that doesn’t matter; with
+millions it does. Work a chunk of lines at a time instead:</p>
+<pre><code class="language-typescript">import { run } from "@j50n/proc";
+
+// Lines arrive in arrays, one per chunk read. A step works on the whole
+// array, and .run() writes each array to the next command in one go.
+const count = await run("seq", "1", "1000000")
+  .chunkedLines
+  .map((lines) =&gt; lines.filter((line) =&gt; !line.endsWith("7")))
+  .run("wc", "-l")
+  .lines
+  .first;
+
+console.log(count);
+</code></pre>
+<pre><code class="language-text">900000
+</code></pre>
+<p><code>.chunkedLines</code> yields the same lines as <code>.lines</code>, in arrays, and <code>.run()</code>
+writes each array in one go. On two million short lines, a filter between two
+commands took 16 seconds a line at a time and 0.3 seconds a chunk at a time.</p>
+<p><code>run({ buffer: true }, ...)</code> is a smaller fix for a source you can’t chunk: it
+collects small items into writes of at least 16 KB, about twice as fast. The
+child sees nothing until 16 KB has collected or the input ends, so leave it off
+for a child that must answer each line as it arrives.</p>
+<h2 id="mixing-commands-and-steps"><a class="header" href="#mixing-commands-and-steps">Mixing commands and steps</a></h2>
+<pre><code class="language-typescript">import { run } from "@j50n/proc";
+
+const messages = await run("cat", "app.log")
+  .lines
+  .filter((line) =&gt; line.includes(" ERROR "))
+  .map((line) =&gt; line.slice(26)) // drop the timestamp and level
+  .run("sort", "-f") // -f: ignore case
+  .lines
+  .collect();
+
+console.log(messages);
+</code></pre>
+<pre><code class="language-text">[ "db: connection refused", "GET /orders/17 500" ]
+</code></pre>
+<p>Any step can sit between two commands: <code>.lines</code> turns the bytes into text,
+<code>.filter()</code> and <code>.map()</code> work on each line, and the next <code>.run()</code> writes the
+strings back out as lines. Use a command where a tool already does the job well
+(<code>sort</code> on data larger than memory, <code>grep</code> on a big file), and a TypeScript step
+where the logic is easier to write and test in code.</p>
+<h2 id="stopping-early"><a class="header" href="#stopping-early">Stopping early</a></h2>
+<pre><code class="language-typescript">import { run } from "@j50n/proc";
+
+// The consumer stops: take(2) closes the pipeline behind it.
+const sevens = await run("seq", "1", "1000000")
+  .run("grep", "7")
+  .lines
+  .take(2)
+  .collect();
+console.log(sevens);
+
+// A command stops: head exits after two lines, and `yes` stops with it.
+const ys = await run("yes").run("head", "-n", "2").lines.collect();
+console.log(ys);
+</code></pre>
+<pre><code class="language-text">[ "7", "17" ]
+[ "y", "y" ]
+</code></pre>
+<p>There are two ways a pipeline stops before its first command runs out, and
+neither is an error:</p>
+<ul>
+<li><strong>The consumer stops</strong> (<code>take</code>, <code>first</code>, <code>find</code>, a <code>break</code> out of
+<code>for await</code>). proc closes the pipeline behind it, and the <code>await</code> returns at
+once. <code>seq</code> and <code>grep</code> die of SIGPIPE at their next write. Their exit codes
+are not checked.</li>
+<li><strong>A command stops reading</strong>, like <code>head</code>. Writing to it ends quietly, and the
+command before it is closed the same way.</li>
+</ul>
+<p>A command that goes quiet instead keeps running after the <code>await</code> has returned,
+until it writes again, exits, or is stopped. That is what lets you start a
+server and wait for its “ready” line. Deno doesn’t exit while a child is still
+running, though, so without <code>main()</code> the script ends only when the server does;
+under <code>main()</code>, the server is stopped when the program ends.</p>
+<p>When a pipeline is cut short, the commands before the cut may or may not have
+finished, so don’t rely on their failures being reported. A command whose output
+proc read to the end has its exit code checked; one that was closed early
+doesn’t. With <code>head</code> in the middle, which of the two happens depends on timing:
+<code>run("sh", "-c", "echo a; echo b; exit 3").run("head", "-n", "1")</code> throws an
+<code>UpstreamError</code> for the exit 3 on some runs, and returns <code>["a"]</code> without one on
+others.</p>
+<h2 id="pipelines-run-for-their-side-effects"><a class="header" href="#pipelines-run-for-their-side-effects">Pipelines run for their side effects</a></h2>
+<pre><code class="language-typescript">import { read, run } from "@j50n/proc";
+
+// Into a file: writeTo is the consumer.
+await read("app.log").run("grep", "WARN").writeTo("warnings.log");
+console.log((await Deno.readTextFile("warnings.log")).trimEnd());
+
+// A command run only for what it does: consume its (empty) output, so a
+// failure throws.
+await run("cp", "warnings.log", "warnings.bak").forEach(() =&gt; {});
+console.log((await Deno.stat("warnings.bak")).isFile);
+</code></pre>
+<pre><code class="language-text">2026-10-05 09:01:14 WARN  retrying db connection
+true
+</code></pre>
+<p>A pipeline that writes a file ends in <code>.writeTo(path)</code>, which is its consumer;
+it takes bytes, which is what a command produces. A command you run only for
+what it does (<code>cp</code>, <code>mkdir</code>, <code>git commit</code>) still needs a consumer, and
+<code>.forEach(() =&gt; {})</code> is the one to use: it reads and discards any output, and
+throws if the command fails. <code>.toStdout()</code> is the other common ending, when the
+output is for the user to see.</p>
+<h2 id="run-starts-at-once"><a class="header" href="#run-starts-at-once"><code>.run()</code> starts at once</a></h2>
+<p>Like <code>run()</code>, <code>.run()</code> starts its command when you call it, and it begins
+reading the items before it into the command’s stdin straight away, whether or
+not anything reads the output yet. Callbacks in the steps before it (a <code>.map()</code>
+that logs, say) run then too. The steps after it are lazy, as usual. Build a
+pipeline only when you are about to consume it, and always consume it: an unread
+pipeline can hang (see
+<a href="./running.html#waiting-for-a-command-you-dont-want-output-from">Waiting for a command</a>).</p>
+<p>To write a child’s stdin a piece at a time, as your program produces the data,
+use <a href="https://jsr.io/@j50n/proc/doc/~/Process"><code>Process</code></a> and its <code>stdin</code>, or
+feed <code>.run()</code> from a <a href="../iterables/writable-iterable.html"><code>WritableIterable</code></a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../processes/running.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../processes/errors.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../processes/running.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../processes/errors.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom-285056d7.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
