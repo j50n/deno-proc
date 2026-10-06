@@ -230,7 +230,8 @@ export function toCsv(
  * A first field starting with U+FEFF would be dropped by a TSV reader as a
  * byte order mark, so it throws as well. Whichever error comes first in the
  * input is the one thrown, so an unclosed quote whose field takes in a line
- * break reports the LF. The output of the
+ * break reports the LF; the exception is that leading U+FEFF, which loses to
+ * a later error in the first 128 KiB of input. The output of the
  * 128 KiB chunks of input before the one holding it has already been passed
  * on, and can end partway through a row. To keep such data, go through rows
  * and replace the characters on the way to `toTsv`.

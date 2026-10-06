@@ -159,6 +159,10 @@ export interface RowBatch {
   bytes: Uint8Array;
   byteEnds: Uint32Array;
   textEnds: Uint32Array;
+  /** `"CSV"` or `"TSV"`, for error messages. */
+  format: string;
+  /** The number of the batch's first row in the stream, counting from 1. */
+  firstRow: number;
 }
 
 /**
@@ -210,6 +214,9 @@ export async function* readRows(
             address(wasm.reader_text_ends(reader)),
             fields,
           ),
+          format,
+          // The feed's first row: one past the rows earlier feeds ended.
+          firstRow: wasm.current_row(reader),
         };
       }, (cause) => tooLarge("row", format, wasm.current_row(reader), cause)),
   );

@@ -37,10 +37,11 @@ const encode = (() => {
  * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work value by value.
  *
  * `T` is only asserted unless you pass a `schema`, whose `parse` result is
- * what you get. A line that isn't JSON
- * throws the `SyntaxError` from `JSON.parse`, whose position counts from the
- * start of that line; it doesn't say which line. Invalid UTF-8 throws a
- * `TypeError`.
+ * what you get. A line that isn't JSON throws a `SyntaxError` naming the line,
+ * counted from 1 with blank lines included, as in
+ * `Invalid JSON at line 4001: Unexpected token ...`. What the schema throws
+ * comes out as it is, so `instanceof` still finds a Zod error. Invalid UTF-8
+ * throws a `TypeError`.
  *
  * @example Read events, checking each one
  * ```ts
@@ -80,11 +81,22 @@ export function fromJsonToRows<T = unknown>(
     const schema = options?.schema;
     const sampleSize = options?.sampleSize ?? Infinity;
 
+    let lineNumber = 0;
+
     for await (const lines of splitText(bytes, "\n")) {
       for (const line of lines) {
+        lineNumber++;
         if (!line.trim()) continue;
 
-        const parsed: unknown = JSON.parse(line);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(line);
+        } catch (cause) {
+          throw new SyntaxError(
+            `Invalid JSON at line ${lineNumber}: ${(cause as Error).message}`,
+            { cause },
+          );
+        }
         const value = schema != null && processedCount < sampleSize
           ? schema.parse(parsed)
           : parsed as T;

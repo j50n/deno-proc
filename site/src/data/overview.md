@@ -125,9 +125,15 @@ quoted field, as in a file with old Mac CR-only line ends, throws an `Error`
 such as `Invalid character (CR) in CSV data at row 1, field 2`, rather than read
 the file as one long row. The CSV parser throws on a quote still open at the end
 of the input, `Unclosed quote in CSV data at row 7, field 3`, rather than make
-the rest of the file one field. Invalid UTF-8 throws a `TypeError` from the
-parser, or, for a LazyRow, when the field is decoded. Batches before the one
-holding the error have already gone down the pipeline.
+the rest of the file one field. Invalid UTF-8 throws a `TypeError` such as
+`Invalid UTF-8 in CSV data at row 3001, field 2` (a file saved as Latin-1 or
+Windows-1252 is the usual cause) from the parser, or, for a LazyRow, when the
+field is decoded. Batches before the one holding the error have already gone
+down the pipeline.
+
+A parser's row numbers count rows, from 1, with the header row included. Blank
+lines are skipped and not counted, and a quoted CSV field can span lines, so a
+row number is the line number only in a file with neither.
 
 The [flatdata CLI](./flatdata.md) converts between the same formats in a
 separate process, with the same checks.

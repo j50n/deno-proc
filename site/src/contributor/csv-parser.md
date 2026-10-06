@@ -2,7 +2,7 @@
 
 The CSV and TSV parsers, `csvToTsv()`, `tsvToCsv()`, and the `flatdata` CLI all
 run on one WebAssembly module, built from Embedded Swift in `swift/`. It is
-about 11 KB and has no imports. This page is the map; the doc comments in
+about 12 KB and has no imports. This page is the map; the doc comments in
 `swift/Sources/` carry the details, and `src/wasm/flatdata.ts` is the TypeScript
 side.
 

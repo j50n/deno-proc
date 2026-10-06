@@ -69,13 +69,15 @@ with code 1, which proc turns into an `ExitCodeError`:
 {{#include ../../examples/data/flatdata-limits.out}}
 ```
 
-Output written before the error stays, and can end partway through a row; here
-there was none. `-d` must be one ASCII character other than `"`, CR, or LF.
+On stdout, output written before the error stays, and can end partway through a
+row; here there was none. `-o` is safer: flatdata writes a new file beside it
+and renames it into place only once the conversion has succeeded, so after an
+error the old file is as it was. That also lets `-o` name the file it reads, by
+`-i` or by `<`, to convert a file in place. `-d` must be one ASCII character
+other than `"`, CR, or LF.
 
-`-o` naming the file it reads, by `-i` or by `<`, is an error before anything is
-written, whatever path or symlink names it: opening the output would empty the
-input. When the reader of its output goes away, as with `| head`, flatdata stops
-and exits with 0, as other commands do.
+When the reader of its output goes away, as with `| head`, flatdata stops and
+exits with 0, as other commands do.
 
 Invalid UTF-8 stops the commands that make rows (`csv2record`, `tsv2record`,
 `record2csv`, `record2tsv`) with a `TypeError`. `csv2tsv` and `tsv2csv` copy

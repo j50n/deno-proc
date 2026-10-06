@@ -1,4 +1,10 @@
-import { assert, assertEquals, assertLess, assertRejects } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertLess,
+  assertRejects,
+  assertThrows,
+} from "@std/assert";
 import {
   enumerate,
   ExitCodeError,
@@ -9,6 +15,13 @@ import {
   UpstreamError,
   WritableIterable,
 } from "../../mod.ts";
+import {
+  fromCsvToLazyRows,
+  fromCsvToRows,
+  fromJsonToRows,
+  fromTsvToRows,
+} from "../../src/transforms/mod.ts";
+import { batchRows } from "../../src/transforms/common.ts";
 
 // Found in the second pre-0.26.0 review.
 
@@ -189,4 +202,57 @@ Deno.test("An fnStderr that throws at once fails the output instead of hanging."
 Deno.test("A NaN timeout is refused, not taken as forever.", async () => {
   await assertRejects(() => terminateAll({ timeoutMs: NaN }), RangeError);
   await assertRejects(() => main(() => 0, { timeoutMs: NaN }), RangeError);
+});
+
+Deno.test("Invalid UTF-8 names its row and field, in every reader and past the first batch.", async () => {
+  const good = "a,b\n".repeat(50_000); // more than one 128 KiB batch
+  const bytes = new Uint8Array([
+    ...new TextEncoder().encode(good + "c,d\ne,"),
+    0xE9, // Latin-1 é: not UTF-8
+    ...new TextEncoder().encode("f\n"),
+  ]);
+  const message = "Invalid UTF-8 in CSV data at row 50002, field 2";
+  await assertRejects(
+    () => enumerate([bytes]).transform(fromCsvToRows()).collect(),
+    TypeError,
+    message,
+  );
+  const rows = await enumerate([bytes]).transform(fromCsvToLazyRows())
+    .flatten().collect();
+  assertEquals(rows[50_001].getField(0), "e");
+  assertThrows(() => rows[50_001].getField(1), TypeError, message);
+  assertThrows(() => rows[50_001].toStringArray(), TypeError, message);
+  await assertRejects(
+    () =>
+      enumerate([bytes.map((b) => b === 0x2C ? 0x09 : b)])
+        .transform(fromTsvToRows()).collect(),
+    TypeError,
+    "Invalid UTF-8 in TSV data at row 50002, field 2",
+  );
+});
+
+Deno.test("Rows too long for one string say so, rather than looking like bad UTF-8.", () => {
+  assertThrows(
+    () =>
+      batchRows({
+        bytes: new Uint8Array([0x1E]),
+        byteEnds: Uint32Array.of(0),
+        textEnds: Uint32Array.of(2 ** 29),
+        format: "CSV",
+        firstRow: 7,
+      }),
+    RangeError,
+    "Rows too long for a JavaScript string in CSV data at row 7",
+  );
+});
+
+Deno.test("A line that isn't JSON is named by its line number.", async () => {
+  const text = '{"a":1}\n\n{"a":2}\n{"a":oops}\n';
+  await assertRejects(
+    () =>
+      enumerate([new TextEncoder().encode(text)]).transform(fromJsonToRows())
+        .collect(),
+    SyntaxError,
+    "Invalid JSON at line 4: ",
+  );
 });

@@ -1,7 +1,7 @@
 /**
  * Claims about how the flatdata CLI fails: with a one-line message and exit
- * code 1, never by emptying its own input, and quietly when its reader goes
- * away.
+ * code 1, never by emptying its input or a file it was replacing, and
+ * quietly when its reader goes away.
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
@@ -32,59 +32,73 @@ async function flatdata(
   };
 }
 
-Deno.test("flatdata refuses -o naming its input, by any path, and leaves the file as it was.", async () => {
+Deno.test("flatdata -o may name its input, by any path: it converts in place.", async () => {
   const dir = await Deno.makeTempDir();
   try {
     const file = `${dir}/data.csv`;
-    await Deno.writeTextFile(file, "a,b\n");
     // With ln rather than Deno.symlink, which needs unscoped permissions.
     await new Deno.Command("ln", { args: ["-s", file, `${dir}/link.csv`] })
       .output();
-    for (
-      const output of [file, `${dir}/./data.csv`, `${dir}/link.csv`]
-    ) {
-      const { code, stderr } = await flatdata([
-        "csv2tsv",
-        "-i",
-        file,
-        "-o",
-        output,
-      ]);
-      assertEquals(code, 1, output);
-      assertStringIncludes(stderr, "are the same file");
-      assertEquals(await Deno.readTextFile(file), "a,b\n", output);
+    for (const output of [file, `${dir}/./data.csv`, `${dir}/link.csv`]) {
+      await Deno.writeTextFile(file, "a,b\n");
+      const { code } = await flatdata(["csv2tsv", "-i", file, "-o", output]);
+      assertEquals(code, 0, output);
+      assertEquals(await Deno.readTextFile(file), "a\tb\n", output);
     }
+    assert((await Deno.lstat(`${dir}/link.csv`)).isSymlink);
+    assertEquals((await Array.fromAsync(Deno.readDir(dir))).length, 2);
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
 });
 
-Deno.test("flatdata refuses -o naming the file stdin reads.", async () => {
+Deno.test("flatdata -o may name the file stdin reads, with only the permissions its install gives.", async () => {
   const dir = await Deno.makeTempDir();
   try {
     const file = `${dir}/data.csv`;
     await Deno.writeTextFile(file, "a,b\n");
     // `< file`, as a shell does it.
-    const { code, stderr } = await new Deno.Command("sh", {
+    const { code } = await new Deno.Command("sh", {
       args: [
         "-c",
-        '"$0" run -A "$1" csv2tsv -o "$2" < "$2"',
+        '"$0" run --allow-read --allow-write "$1" csv2tsv -o "$2" < "$2"',
         Deno.execPath(),
         FLATDATA,
         file,
       ],
-      stderr: "piped",
       env: { NO_COLOR: "1" },
     }).output();
-    assertEquals(code, 1);
-    assertStringIncludes(
-      new TextDecoder().decode(stderr),
-      "flatdata: stdin and",
-    );
-    assertEquals(await Deno.readTextFile(file), "a,b\n");
+    assertEquals(code, 0);
+    assertEquals(await Deno.readTextFile(file), "a\tb\n");
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
+});
+
+Deno.test("After an error, flatdata's -o file is as it was, with nothing left beside it.", async () => {
+  const dir = await Deno.makeTempDir();
+  try {
+    const output = `${dir}/out.tsv`;
+    await Deno.writeTextFile(output, "yesterday\n");
+    const { code } = await flatdata(
+      ["csv2tsv", "-o", output],
+      'a,b\n"c\td",e\n',
+    );
+    assertEquals(code, 1);
+    assertEquals(await Deno.readTextFile(output), "yesterday\n");
+    assertEquals((await Array.fromAsync(Deno.readDir(dir))).length, 1);
+
+    // A new file isn't created at all.
+    await flatdata(["csv2tsv", "-o", `${dir}/new.tsv`], 'a,b\n"c\td",e\n');
+    assertEquals((await Array.fromAsync(Deno.readDir(dir))).length, 1);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("flatdata writes a device such as /dev/null in place.", async () => {
+  const { code } = await flatdata(["csv2tsv", "-o", "/dev/null"], "a,b\n");
+  assertEquals(code, 0);
 });
 
 Deno.test("flatdata reports an error as one line on stderr, with exit code 1.", async () => {

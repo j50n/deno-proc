@@ -35,9 +35,10 @@ checks the values unless you pass a schema.
 | `schema`     | none        | an object whose `parse(value)` returns the value to yield, or throws |
 | `sampleSize` | every value | check only the first `sampleSize` values                             |
 
-Whatever `schema.parse` throws stops the stream and reaches your `catch`. What
-it returns is the value you get, so a Zod schema's defaults and transforms
-apply, and keys it doesn't know are stripped, as with any `parse` call.
+Whatever `schema.parse` throws stops the stream and reaches your `catch` as it
+is, so `instanceof` finds a Zod error. What it returns is the value you get, so
+a Zod schema's defaults and transforms apply, and keys it doesn't know are
+stripped, as with any `parse` call.
 
 With `sampleSize`, only the first `sampleSize` values go through the schema. The
 rest come as `JSON.parse` made them, unchecked and untransformed, though they
@@ -47,9 +48,8 @@ use `sampleSize` only with a schema that checks values without changing them.
 Note that `e1` never printed. A batch is parsed whole before it is yielded, so
 an error stops the stream before any value in the same batch reaches you.
 
-A line that isn't JSON throws the `SyntaxError` from `JSON.parse`. Its position
-counts from the start of that line, and it doesn't say which line. To know,
-parse the lines yourself: `.lines.enum()` gives each line its index.
+A line that isn't JSON throws a `SyntaxError` naming the line, counted from 1
+with blank lines included: `Invalid JSON at line 4001: Unexpected token ...`.
 
 ## Writing
 
@@ -67,11 +67,13 @@ batches, so flatten them first; a batch passed as it is would be written as one
 JSON array on one line.
 
 Inside a value, `JSON.stringify`'s rules apply: a property holding `undefined`
-or a function is left out, and in an array it becomes `null`. An item with no
-JSON form at all (`undefined`, a function, a symbol) throws a `TypeError` naming
-the item, counted from 1, as the second half of the example shows. So does an
-item `JSON.stringify` throws on, such as a `BigInt`. Items before it have
-already been written.
+or a function is left out, and in an array it becomes `null`. `NaN` and
+`Infinity` become `null` too, without an error, so check numbers parsed from
+text (`Number("12,5")` is `NaN`) before they get here. An item with no JSON form
+at all (`undefined`, a function, a symbol) throws a `TypeError` naming the item,
+counted from 1, as the second half of the example shows. So does an item
+`JSON.stringify` throws on, such as a `BigInt`. Items before it have already
+been written.
 
 ## From JSON to rows
 

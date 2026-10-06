@@ -1,6 +1,6 @@
 import type { RowBatch } from "../wasm/flatdata.ts";
+import { decodeBatch, decodeField } from "./decode.ts";
 
-const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 const encoder = new TextEncoder();
 
 /**
@@ -51,7 +51,7 @@ export abstract class LazyRow {
    *
    * @throws {RangeError} If `index` is outside `[0, columnCount)`.
    * @throws {TypeError} If the field's bytes are not valid UTF-8 (rows read
-   *   from CSV or TSV only).
+   *   from CSV or TSV only), naming its row and field.
    */
   abstract getField(index: number): string;
 
@@ -68,7 +68,8 @@ export abstract class LazyRow {
    * All fields, as a new array.
    *
    * @throws {TypeError} On a row read from CSV or TSV, if any row of its
-   *   batch holds invalid UTF-8: the batch is decoded in one call.
+   *   batch holds invalid UTF-8: the batch is decoded in one call. The
+   *   message names the first bad field's row and field.
    */
   abstract toStringArray(): string[];
 
@@ -114,10 +115,12 @@ class StringArrayRow extends LazyRow {
  * The rows of one batch from the reader, copied out of WASM memory so they
  * outlive the next read. Its rows share it.
  */
-class OwnedBatch {
+class OwnedBatch implements RowBatch {
   readonly bytes: Uint8Array;
   readonly byteEnds: Uint32Array;
   readonly textEnds: Uint32Array;
+  readonly format: string;
+  readonly firstRow: number;
   /**
    * The whole batch decoded, once a row is asked for all its fields.
    * Decoding once and slicing is the fast way to get every field; decoding
@@ -129,10 +132,12 @@ class OwnedBatch {
     this.bytes = batch.bytes.slice();
     this.byteEnds = batch.byteEnds.slice();
     this.textEnds = batch.textEnds.slice();
+    this.format = batch.format;
+    this.firstRow = batch.firstRow;
   }
 
   decodeAll(): string {
-    return this.text ??= decoder.decode(this.bytes);
+    return this.text ??= decodeBatch(this);
   }
 }
 
@@ -149,13 +154,11 @@ class BatchRow extends LazyRow {
   getField(index: number): string {
     checkIndex(this, index);
     const j = this.first + index;
-    const { text, textEnds, bytes, byteEnds } = this.batch;
+    const { text, textEnds } = this.batch;
     if (text !== undefined) {
       return text.slice(j === 0 ? 0 : textEnds[j - 1] + 1, textEnds[j]);
     }
-    return decoder.decode(
-      bytes.subarray(j === 0 ? 0 : byteEnds[j - 1] + 1, byteEnds[j]),
-    );
+    return decodeField(this.batch, j);
   }
 
   fieldEquals(index: number, value: string): boolean {

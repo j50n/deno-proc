@@ -71,8 +71,9 @@ the input:
   line shows.
 - A quoted field can hold separators, line breaks (CR included), and doubled
   quotes.
-- Rows may have different numbers of fields. Check `row.length` if yours must
-  match.
+- Rows may have different numbers of fields. Check `row.length` (a LazyRow's
+  `columnCount`) if yours must match: `getField` past the end throws a
+  `RangeError` that can't say which row, so count rows yourself to report one.
 - Spaces around a field are kept. A quote opens a quoted field only at the very
   start of a field, so a quote after a space, or inside an unquoted field, is
   text. Text after a closing quote is kept: `"ab" ,c` reads as `["ab ", "c"]`.
@@ -117,8 +118,9 @@ same input.
 
 ## Other traps
 
-- Invalid UTF-8 throws a `TypeError` from `fromCsvToRows()` as its batch is
-  converted, and from `fromCsvToLazyRows()` only when the bad field is decoded.
+- Invalid UTF-8 throws a `TypeError` naming the row and field, from
+  `fromCsvToRows()` as its batch is converted, and from `fromCsvToLazyRows()`
+  only when the bad field is decoded.
 - Every field is a string. `Number(row[3])` for numbers; an empty field is `""`,
   and `Number("")` is `0`.
 - A row is held whole until it ends, in the WebAssembly module's memory, which

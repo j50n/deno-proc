@@ -27,11 +27,11 @@
  * and exit code 1. TSV can't hold a tab, CR, or LF in a field, and the record
  * format can't hold `\x1E` or `\x1F`. A CR in CSV or TSV input anywhere but
  * before LF (outside quotes) is an error too, and so is a CSV quote still
- * open at the end of the input. Output written before the error stays, and can
- * end partway through a row. `-o` naming the input file (by any path) is
- * refused before anything is written, since opening the output would empty
- * it. When the reader of stdout goes away, as `| head` does, flatdata stops
- * and exits 0.
+ * open at the end of the input. `-o` writes a new file and renames it over the
+ * old one only once the conversion has succeeded, so after an error the old
+ * file is as it was, and `-o` may name the input. On stdout, output written
+ * before the error stays, and can end partway through a row. When the reader
+ * of stdout goes away, as `| head` does, flatdata stops and exits 0.
  *
  * @example
  * ```sh
@@ -61,53 +61,54 @@ import denoJson from "../../deno.json" with { type: "json" };
 // Transform Functions (exported for benchmarks and testing)
 // =============================================================================
 
-/**
- * Throw if `output` is the file `input` names, or stdin is when there is no
- * `input`: opening the output empties it before a byte is read. Paths are
- * compared by device and inode, so another path to the same file, or a
- * symlink to it, counts. Without permission to stat, there is no check.
- */
-async function refuseSameFile(
-  input: string | undefined,
-  output: string | undefined,
-): Promise<void> {
-  if (output === undefined) return;
-  const target = await statOf(output);
-  const source = await statOf(input ?? "/dev/stdin");
-  if (
-    target !== undefined && source !== undefined && target.ino !== null &&
-    target.dev === source.dev && target.ino === source.ino
-  ) {
-    throw new Error(
-      `${input === undefined ? "stdin" : JSON.stringify(input)} and ${
-        JSON.stringify(output)
-      } are the same file; writing would empty it`,
-    );
-  }
-}
-
-async function statOf(path: string): Promise<Deno.FileInfo | undefined> {
-  try {
-    return await Deno.stat(path);
-  } catch {
-    return undefined;
-  }
-}
-
 /** Read `input` (or stdin), transform it, and write `output` (or stdout). */
 async function convert(
   input: string | undefined,
   output: string | undefined,
   transform: TransformerFunction<Uint8Array, Uint8Array>,
 ): Promise<void> {
-  await refuseSameFile(input, output);
   const stream = input
     ? (await Deno.open(input, { read: true })).readable
     : Deno.stdin.readable;
   const converted = enumerate(stream).transform(transform);
-  await (output
-    ? converted.writeTo(output)
-    : converted.writeTo(Deno.stdout.writable, { noclose: true }));
+  if (output === undefined) {
+    await converted.writeTo(Deno.stdout.writable, { noclose: true });
+  } else {
+    await replace(output, (path) => converted.writeTo(path));
+  }
+}
+
+/**
+ * Write a file by way of a new one beside it, renamed over it once `write`
+ * succeeds. On an error the old file is as it was, and the output may be the
+ * input itself (`-i a -o a`, or `-o a < a`): the input is still read from the
+ * old file. A symlink is followed, and the new file takes the old one's mode.
+ * Anything but a regular file, such as /dev/null, is written in place.
+ */
+async function replace(
+  output: string,
+  write: (path: string) => Promise<void>,
+): Promise<void> {
+  const target = await Deno.realPath(output).catch(() => output);
+  const old = await Deno.stat(target).catch(() => undefined);
+  if (old !== undefined && !old.isFile) return await write(output);
+
+  const slash = Math.max(target.lastIndexOf("/"), target.lastIndexOf("\\"));
+  const temp = `${target.slice(0, slash + 1)}.${
+    target.slice(slash + 1)
+  }.flatdata-${crypto.randomUUID().slice(0, 8)}`;
+  try {
+    (await Deno.open(temp, {
+      write: true,
+      createNew: true,
+      mode: old?.mode ?? 0o666,
+    })).close();
+    await write(temp);
+    await Deno.rename(temp, target);
+  } catch (error) {
+    await Deno.remove(temp).catch(() => {});
+    throw error;
+  }
 }
 
 /** Rows through a reader and a writer: one way between any two formats. */

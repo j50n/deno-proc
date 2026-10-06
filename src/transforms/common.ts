@@ -2,6 +2,7 @@
 
 import type { TransformerFunction } from "../transformers.ts";
 import type { RowBatch } from "../wasm/flatdata.ts";
+import { decodeBatch } from "./decode.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
@@ -50,15 +51,13 @@ export async function* splitText(
   if (tail !== "") yield [tail];
 }
 
-const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
-
 /**
  * The rows of a batch from the reader as string arrays: the whole batch
  * decoded with one call, then sliced. Decoding field by field is several
  * times slower.
  */
 export function batchRows(batch: RowBatch): Row[] {
-  const text = decoder.decode(batch.bytes);
+  const text = decodeBatch(batch);
   const ends = batch.textEnds;
   const rows: Row[] = [];
   let row: Row = [];
