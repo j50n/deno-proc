@@ -74,40 +74,7 @@ async function convert(
   if (output === undefined) {
     await converted.writeTo(Deno.stdout.writable, { noclose: true });
   } else {
-    await replace(output, (path) => converted.writeTo(path));
-  }
-}
-
-/**
- * Write a file by way of a new one beside it, renamed over it once `write`
- * succeeds. On an error the old file is as it was, and the output may be the
- * input itself (`-i a -o a`, or `-o a < a`): the input is still read from the
- * old file. A symlink is followed, and the new file takes the old one's mode.
- * Anything but a regular file, such as /dev/null, is written in place.
- */
-async function replace(
-  output: string,
-  write: (path: string) => Promise<void>,
-): Promise<void> {
-  const target = await Deno.realPath(output).catch(() => output);
-  const old = await Deno.stat(target).catch(() => undefined);
-  if (old !== undefined && !old.isFile) return await write(output);
-
-  const slash = Math.max(target.lastIndexOf("/"), target.lastIndexOf("\\"));
-  const temp = `${target.slice(0, slash + 1)}.${
-    target.slice(slash + 1)
-  }.flatdata-${crypto.randomUUID().slice(0, 8)}`;
-  try {
-    (await Deno.open(temp, {
-      write: true,
-      createNew: true,
-      mode: old?.mode ?? 0o666,
-    })).close();
-    await write(temp);
-    await Deno.rename(temp, target);
-  } catch (error) {
-    await Deno.remove(temp).catch(() => {});
-    throw error;
+    await converted.writeTo(output, { atomic: true });
   }
 }
 

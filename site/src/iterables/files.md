@@ -28,7 +28,7 @@ reads the same file (`read(path)` ... `writeTo(path)`) finds it already empty,
 as `cmd < f > f` does in a shell.
 
 To replace a file only once everything has worked, or to rewrite one in place,
-write to a new file beside it and rename that over the old one:
+pass `{ atomic: true }`:
 
 ```typescript
 {{#include ../../examples/iterables/rewrite.ts}}
@@ -38,8 +38,11 @@ write to a new file beside it and rename that over the old one:
 {{#include ../../examples/iterables/rewrite.out}}
 ```
 
-A failure leaves the old file as it was, with the `.tmp` file beside it to
-remove.
+With `atomic`, proc writes a new file beside the old one and renames it into
+place once everything is written. A failure leaves the old file as it was, with
+nothing beside it. A symlink stays a symlink, and the file keeps its mode. It
+needs read permission on the file and write permission on its directory, and the
+result is a new file, so a hard link to the old one still shows the old content.
 
 To add to a file instead of replacing it, open it yourself and pass its
 `writable`:

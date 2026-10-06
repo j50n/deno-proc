@@ -124,8 +124,8 @@ the type is `never`. Strings are lines already, so drop the `.lines`; before a
 ## Wrong results, no error
 
 **The file came out empty.** `writeTo(path)` empties the file before anything is
-read, so a pipeline that reads the same file finds nothing. Write to a new file
-and rename it over the old one; see
+read, so a pipeline that reads the same file finds nothing. Pass
+`{ atomic: true }`, which writes a new file and renames it over the old one; see
 [Files](../iterables/files.md#writing-a-file).
 
 **The second pass finds nothing.** An `Enumerable` is used once; a second

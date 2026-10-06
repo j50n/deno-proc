@@ -14,6 +14,7 @@ import { writeAll } from "./utility.ts";
 import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
 import type { Closer, Writer } from "@std/io/types";
 import { tee } from "./tee.ts";
+import { replaceFile } from "./replace-file.ts";
 
 /**
  * The item type of an iterable or async iterable `T`, or `never` if `T` is
@@ -274,7 +275,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * content is gone, and the error is thrown here. For the same reason,
    * `read(path)` feeding `writeTo(path)` finds the file already empty. To
    * replace a file only once everything has succeeded, or to rewrite it in
-   * place, write to a new file beside it and `Deno.rename` it over the old.
+   * place, pass `{ atomic: true }`.
+   *
+   * With `atomic`, the items go to a new file beside `path`, renamed over it
+   * once they are all written. A failure leaves the old file as it was, with
+   * nothing beside it, and the source may read the file being replaced. A
+   * symlink is followed and stays a symlink, and the new file takes the old
+   * one's mode; a device such as `/dev/null` is written in place. It needs
+   * read permission on `path` as well as write permission on its directory,
+   * and the file is a new one: a hard link to the old file keeps the old
+   * content.
    *
    * @example
    * ```typescript
@@ -288,8 +298,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * ```
    *
    * @param path The file to write.
+   * @param options.atomic Replace the file only once everything is written.
+   *   Default `false`.
    */
-  async writeTo(path: string): Promise<void>;
+  async writeTo(path: string, options?: { atomic?: boolean }): Promise<void>;
 
   /**
    * Write each item to a `WritableStream` or a {@link Writable}, then close
@@ -327,11 +339,25 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   async writeTo(
     writer: Writable<T> | WritableStream<T> | string,
-    options?: { noclose?: boolean },
+    options?: { noclose?: boolean; atomic?: boolean },
   ): Promise<void> {
     // Handle file path. Closing the stream closes the file. Closing the file
     // directly instead drops whatever the stream still buffers (Deno 2.9).
     if (typeof writer === "string") {
+      if (options?.atomic) {
+        let writing = false;
+        try {
+          await replaceFile(writer, (path) => {
+            writing = true;
+            return this.writeTo(path);
+          });
+        } catch (e) {
+          // It failed before reading anything; nothing else will read it.
+          if (!writing) abandon(this.iter);
+          throw e;
+        }
+        return;
+      }
       let file: Deno.FsFile;
       try {
         file = await Deno.open(writer, {

@@ -146,8 +146,8 @@ Consumers:
 - [`.first`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.first): a
   promise of the first item; `RangeError` if there is none. A getter.
 - [`writeTo(path | stream | writable)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeTo):
-  write to a file (bytes, or strings as lines), a `WritableStream`, or a
-  `Writable`.
+  write to a file (bytes, or strings as lines; `{ atomic: true }` replaces it
+  only once everything is written), a `WritableStream`, or a `Writable`.
 - [`writeBytesTo(writer)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeBytesTo):
   write bytes to a `Writer & Closer` such as a `Deno.FsFile`, then close it.
 - [`toStdout()`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.toStdout):
