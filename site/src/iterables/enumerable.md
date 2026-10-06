@@ -145,13 +145,13 @@ await enumerate([1, 2, 3]).forEach((item) => {
 });
 ```
 
-### Get First or Last
+### Get the First or Last Item
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
 const first = await enumerate([1, 2, 3]).first;
-const last = await enumerate([1, 2, 3]).last;
+const last = await enumerate([1, 2, 3]).reduce((_, item) => item);
 ```
 
 ## Lazy Evaluation
@@ -333,7 +333,7 @@ between push-based and pull-based data models:
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-import { WritableIterable } from "jsr:@j50n/proc@{{gitv}}";
+import { enumerate, WritableIterable } from "jsr:@j50n/proc@{{gitv}}";
 
 const writable = new WritableIterable<string>();
 
@@ -344,7 +344,7 @@ await writable.write("item3");
 await writable.close();
 
 // Read from it
-const items = await writable.collect();
+const items = await enumerate(writable).collect();
 // ["item1", "item2", "item3"]
 ```
 

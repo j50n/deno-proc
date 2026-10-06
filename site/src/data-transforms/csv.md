@@ -30,6 +30,7 @@ import { fromCsvToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse CSV into string arrays
 const rows = await read("data.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .collect();
 
 // rows[0] = ["Name", "Age", "City"]        // Header
@@ -45,6 +46,7 @@ import { fromCsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse CSV into optimized LazyRow format
 const lazyRows = await read("data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .collect();
 
 // Efficient field access
@@ -84,69 +86,49 @@ await enumerate(data)
 // Parse semicolon-separated values
 const rows = await read("european.csv")
   .transform(fromCsvToRows({ separator: ";" }))
+  .flatten()
   .collect();
 ```
 
-### Handling Comments
+### Rows of Different Lengths
 
-```typescript
-// Skip lines starting with #
-const rows = await read("data-with-comments.csv")
-  .transform(fromCsvToRows({ comment: "#" }))
-  .collect();
-```
-
-### Flexible Field Counts
-
-```typescript
-// Allow variable number of fields per row
-const rows = await read("irregular.csv")
-  .transform(fromCsvToRows({ fieldsPerRecord: -1 }))
-  .collect();
-```
+Rows don't have to have the same number of fields. Each comes back as it is in
+the file, so check `row.length` if your data needs a fixed width.
 
 ### Complete Options
+
+These are all the options there are:
 
 ```typescript
 interface CsvParseOptions {
   separator?: string; // Field separator (default: ",")
-  comment?: string; // Comment character to ignore lines
-  trimLeadingSpace?: boolean; // Trim leading whitespace
-  lazyQuotes?: boolean; // Allow lazy quotes
-  fieldsPerRecord?: number; // Expected fields per record (-1 for variable)
 }
 
-const rows = await read("complex.csv")
-  .transform(fromCsvToRows({
-    separator: ",",
-    comment: "#",
-    trimLeadingSpace: true,
-    lazyQuotes: false,
-    fieldsPerRecord: 5,
-  }))
-  .collect();
+interface CsvStringifyOptions {
+  separator?: string; // Field separator (default: ",")
+  crlf?: boolean; // End lines with CRLF instead of LF (default: false)
+}
 ```
+
+The separator must be one ASCII character other than a quote, CR, or LF;
+anything else throws a `RangeError` when the transform is created. Lines that
+start with `#` are data like any other, and fields keep their spaces.
 
 ## Advanced Generation Options
 
 ### Custom Output Format
 
 ```typescript
-interface CsvStringifyOptions {
-  separator?: string; // Field separator (default: ",")
-  crlf?: boolean; // Use CRLF line endings (default: true)
-  quote?: string; // Quote character (default: '"')
-  quotedFields?: boolean; // Quote all fields (default: false)
-}
-
 await enumerate(data)
   .transform(toCsv({
     separator: ";",
-    crlf: false, // Use LF only
-    quotedFields: true, // Quote all fields
+    crlf: true, // For tools that expect Windows line endings
   }))
   .writeTo("european.csv");
 ```
+
+Fields are quoted only when they need it: when they hold the separator, a quote,
+CR, or LF.
 
 ### Handling Special Characters
 
@@ -166,7 +148,7 @@ await enumerate(complexData)
 // Output:
 // Product,Description,Price
 // Widget A,"A ""premium"" widget, very nice",$19.99
-// "Widget B","Contains commas, and
+// Widget B,"Contains commas, and
 // newlines",$29.99
 ```
 
@@ -178,6 +160,7 @@ await enumerate(complexData)
 // Clean and validate CSV data
 await read("messy-data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
   .filter((row) => row.columnCount >= 3) // Ensure minimum columns
   .map((row) => [
@@ -198,6 +181,7 @@ import { toJson } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Convert CSV to JSON with headers
 const csvData = await read("employees.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .collect();
 
 const headers = csvData[0].toStringArray();
@@ -223,6 +207,7 @@ let processedCount = 0;
 
 await read("huge-dataset.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
   .filter((row) => {
     const status = row.getField(3);
@@ -255,32 +240,35 @@ const salesData = [
 ];
 
 await enumerate(salesData)
-  .transform(toCsv({
-    crlf: true, // Windows line endings
-    quotedFields: true, // Quote all fields for safety
-  }))
+  .transform(toCsv({ crlf: true })) // Windows line endings
   .writeTo("sales-report.csv");
 ```
 
 ## Error Handling
 
-### Common CSV Errors
+### What the Parser Accepts
+
+The parser is lenient. It doesn't throw on rows of different lengths, on a stray
+quote inside an unquoted field, or on a quoted field left open at the end of the
+input; it keeps what it read. The one thing it rejects is invalid UTF-8, which
+throws a `TypeError`:
 
 ```typescript
 try {
   await read("problematic.csv")
     .transform(fromCsvToRows())
+    .flatten()
     .collect();
 } catch (error) {
-  if (error.message.includes("quote")) {
-    console.error("Malformed quotes in CSV");
-  } else if (error.message.includes("field")) {
-    console.error("Inconsistent field count");
-  } else if (error.message.includes("UTF-8")) {
+  if (error instanceof TypeError) {
     console.error("Invalid character encoding");
+  } else {
+    throw error;
   }
 }
 ```
+
+Check field counts and values yourself, as below.
 
 ### Validation During Processing
 
@@ -288,8 +276,10 @@ try {
 // Validate data during parsing
 await read("data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
-  .map((row, index) => {
+  .enum()
+  .map(([row, index]) => {
     if (row.columnCount !== 3) {
       throw new Error(
         `Row ${index + 2} has ${row.columnCount} fields, expected 3`,
@@ -315,12 +305,14 @@ await read("data.csv")
 // ✅ Efficient - only parse fields you need
 await read("large.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .filter((row) => row.getField(0).startsWith("A")) // Only parse field 0
   .collect();
 
 // ❌ Less efficient - parses all fields upfront
 await read("large.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => row[0].startsWith("A"))
   .collect();
 ```
@@ -334,6 +326,7 @@ let batch: string[][] = [];
 
 await read("huge.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .forEach(async (row) => {
     batch.push(row);
 
@@ -361,6 +354,7 @@ await read("data.csv")
 // Later processing uses the optimized format
 await read("data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .filter((row) => row[1] === "target")
   .collect();
 ```
@@ -411,12 +405,14 @@ import {
 // WASM-powered parsing (batched output)
 const rows = await read("large-file.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .flatMap((batch) => batch) // Flatten batches
   .collect();
 
 // Or with LazyRow
 const lazyRows = await read("large-file.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .flatMap((batch) => batch)
   .collect();
 ```

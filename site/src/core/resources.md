@@ -120,43 +120,52 @@ for await (const line of run("tail", "-f", "log").lines) {
 
 ## Shutting Down Children Before Exit
 
-When Deno exits, proc sends SIGTERM to every child still running. It can't wait
-for them, though, and that matters when a child has its own shutdown work, such
-as a launcher that has to release a cloud resource on the way out. In a
-container, Deno's exit usually ends the container, and the child is killed
-partway through.
+Deno's own behavior is to exit at once and let child processes crash out. On a
+normal host that's usually fine: the children carry on alone and finish their
+own shutdown. In a container it isn't. Deno's exit usually ends the container,
+and every child still running is killed before its cleanup code can run. A
+launcher that has to release a cloud resource on the way out never gets the
+chance.
 
-`terminateAll` signals every running child at once and waits for all of them to
-exit. Call it from code that can still await, before you exit:
+**In a container, wrap your program in `main`:**
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-import { terminateAll } from "jsr:@j50n/proc@{{gitv}}";
+import { main, run } from "jsr:@j50n/proc@{{gitv}}";
 
-Deno.addSignalListener("SIGTERM", async () => {
-  await terminateAll({ timeoutMs: 25_000 });
-  Deno.exit(143);
+await main(async () => {
+  await run("launcher", "--job", "nightly").lines.forEach(console.log);
 });
-
-try {
-  await main();
-} catch (e) {
-  console.error(e);
-  await terminateAll({ timeoutMs: 25_000 });
-  Deno.exit(1);
-}
 ```
 
-The signal listener is required. A container runtime stops a container by
-sending SIGTERM to its main process only, and if Deno isn't listening for it,
-Deno dies on the spot and none of this runs.
+However the program ends, `main` signals every running child at once, waits for
+them to exit, and then exits:
 
-Without `timeoutMs`, `terminateAll` waits as long as it takes. In a container,
-the real deadline is the runtime's SIGKILL at the end of its grace period (10
-seconds by default for `docker stop`, 30 for Kubernetes and ECS), so set
-`timeoutMs` a little under that. Children still running at the timeout are left
-alone, not killed: their shutdown keeps every second it can get.
+| How it ends                                            | Children get | Exit code         |
+| ------------------------------------------------------ | ------------ | ----------------- |
+| The program returns                                    | SIGTERM      | the returned code |
+| The program throws, or an error goes uncaught anywhere | SIGTERM      | 1                 |
+| SIGTERM, SIGINT, or SIGHUP arrives                     | that signal  | 128 + signal      |
+
+A second signal exits at once without waiting.
+
+The wait has a time limit, 30 seconds by default. Children still running then
+are left running, not killed. In a container, the real deadline is the runtime's
+SIGKILL at the end of its grace period (10 seconds by default for `docker stop`,
+30 for Kubernetes and ECS), so set the limit a little under it:
+
+<!-- NOT TESTED: Illustrative example -->
+
+```typescript
+await main(program, { timeoutMs: 25_000 });
+```
+
+If proc gives up first, Deno exits, the container goes with it, and the
+children's cleanup is cut short.
+
+To stop the children without exiting, call `terminateAll`, which takes the same
+time limit.
 
 Two limits are worth knowing:
 

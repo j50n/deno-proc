@@ -130,13 +130,13 @@ await run("ls").lines.forEach(console.log);
 
 ### CSV parsing produces wrong columns
 
-**Cause**: Delimiter mismatch or quoting issues.
+**Cause**: Separator mismatch or quoting issues.
 
 ```typescript
-// Check your delimiter
-fromCsvToRows(); // Comma-delimited
-fromTsvToRows(); // Tab-delimited
-fromCsvToRows({ delimiter: ";" }); // Custom delimiter
+// Check your separator
+fromCsvToRows(); // Comma-separated
+fromTsvToRows(); // Tab-separated
+fromCsvToRows({ separator: ";" }); // Custom separator
 ```
 
 ### Large file causes memory issues
@@ -147,11 +147,13 @@ fromCsvToRows({ delimiter: ";" }); // Custom delimiter
 // ❌ Loads entire file into memory
 const allRows = await read("huge.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .collect();
 
 // ✅ Stream and process one at a time
 await read("huge.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .forEach((row) => processRow(row));
 ```
 
@@ -170,7 +172,7 @@ deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@{{gitv}}/f
 **Possible causes**:
 
 1. **Using CSV when TSV would work** — TSV is 3-5x faster than CSV
-2. **Not using LazyRow** — Enable with `fromCsvToRows({ lazy: true })`
+2. **Not using LazyRow** — Parse with `fromCsvToLazyRows()` instead
 3. **Sequential when parallel would help** — Use `concurrentMap` for I/O-bound
    work
 
@@ -183,13 +185,13 @@ await enumerate(urls)
 
 ### Memory usage grows over time
 
-**Cause**: Caching or collecting when streaming would work.
+**Cause**: Collecting when streaming would work.
 
 ```typescript
-// ❌ Caches everything
-const cached = enumerate(hugeDataset).cache();
+// ❌ Holds everything in memory
+const all = await enumerate(hugeDataset).collect();
 
-// ✅ Stream through without caching
+// ✅ Stream through without holding it
 await enumerate(hugeDataset)
   .filter(predicate)
   .forEach(process);

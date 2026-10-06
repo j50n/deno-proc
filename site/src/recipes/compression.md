@@ -96,6 +96,7 @@ import { fromCsvToRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // CSV → filter → TSV → compress
 await read("sales.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => parseFloat(row[3]) > 1000)
   .transform(toTsv())
   .transform(new CompressionStream("gzip"))
@@ -115,6 +116,7 @@ import { fromCsvToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 const total = await read("sales.csv.gz")
   .transform(new DecompressionStream("gzip"))
   .transform(fromCsvToRows())
+  .flatten()
   .map((row) => parseFloat(row[3]))
   .reduce((sum, val) => sum + val, 0);
 

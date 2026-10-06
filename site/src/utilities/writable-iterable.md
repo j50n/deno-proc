@@ -76,11 +76,10 @@ for await (const item of iterable) {
 await writable.write(item);
 ```
 
-### Backpressure
+### Pacing
 
-`WritableIterable` implements automatic backpressure. If the writer is faster
-than the reader, `.write()` will pause until the reader catches up. This
-prevents unbounded memory growth.
+Items move only as the reader takes them. `.write()` doesn't wait for the
+reader, though: items written faster than they are read wait in the queue.
 
 ## Real-World Examples
 
@@ -260,7 +259,6 @@ new WritableIterable<T>(options?: { onclose?: () => void | Promise<void> })
 
 - Write an item to the stream
 - Throws if already closed
-- Implements backpressure (pauses if reader is slow)
 
 **`.close(error?: Error): Promise<void>`**
 
@@ -325,7 +323,6 @@ console.log(items.length); // 11 (0 through 10)
 - Converting callback-based APIs to AsyncIterable
 - Feeding data to process stdin programmatically
 - Bridging event-driven and stream-based code
-- You need backpressure between producer and consumer
 
 **Don't use it when:**
 
@@ -336,7 +333,6 @@ console.log(items.length); // 11 (0 through 10)
 ## Performance Notes
 
 - Internal queue grows if writer is faster than reader
-- Backpressure prevents unbounded growth
 - Each `.write()` creates a Promise (small overhead)
 - Best for moderate data rates (not millions of items/second)
 
@@ -349,7 +345,7 @@ console.log(items.length); // 11 (0 through 10)
 const data = [1, 2, 3];
 for (const item of data) {}
 
-// WritableIterable: streaming, backpressure
+// WritableIterable: streaming
 const writable = new WritableIterable<number>();
 for await (const item of writable) {}
 ```
@@ -370,7 +366,6 @@ If you're familiar with Go channels or Rust channels, `WritableIterable` is
 similar but:
 
 - Single-consumer (not multi-consumer)
-- Unbuffered by default (backpressure on every write)
 - Integrates with AsyncIterable ecosystem
 
 ## The "Interesting Little Beast"
@@ -378,11 +373,10 @@ similar but:
 What makes `WritableIterable` interesting:
 
 1. **Inverted Control**: Most iterables pull data; this one receives pushes
-2. **Backpressure**: Automatically slows down fast producers
-3. **Bridge Pattern**: Connects imperative (callbacks) to declarative
+2. **Bridge Pattern**: Connects imperative (callbacks) to declarative
    (iteration)
-4. **Error Propagation**: Errors flow naturally through the iteration
-5. **Simple API**: Just `.write()`, `.close()`, and iterate
+3. **Error Propagation**: Errors flow naturally through the iteration
+4. **Simple API**: Just `.write()`, `.close()`, and iterate
 
 It's a small utility that solves a specific problem elegantly: turning
 push-based data sources into pull-based async iterables that work seamlessly

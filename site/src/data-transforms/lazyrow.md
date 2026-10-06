@@ -67,6 +67,7 @@ import { fromCsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 const lazyRows = await read("data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .collect();
 
 // Process efficiently
@@ -90,6 +91,7 @@ import { fromTsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 const lazyRows = await read("logs.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .collect();
 
 // Efficient log processing
@@ -111,6 +113,7 @@ import { fromRecordToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 const lazyRows = await read("data.record")
   .transform(fromRecordToLazyRows())
+  .flatten()
   .collect();
 ```
 
@@ -187,6 +190,7 @@ abstract class LazyRow {
 // ✅ Efficient - only parse needed fields
 await read("large.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .filter((row) => {
     const status = row.getField(5); // Only parse field 5
     return status === "active";
@@ -247,6 +251,7 @@ let totalRequests = 0;
 
 await read("access.log.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .forEach((row) => {
     totalRequests++;
 
@@ -275,8 +280,10 @@ const errors: string[] = [];
 
 await read("users.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
-  .forEach((row, index) => {
+  .enum()
+  .forEach(([row, index]) => {
     const rowNum = index + 2; // Account for header and 0-based index
 
     // Validate required fields exist
@@ -311,6 +318,7 @@ if (errors.length > 0) {
 // Convert CSV to JSON, filtering and transforming data
 await read("products.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
   .filter((row) => {
     const price = parseFloat(row.getField(3));
@@ -341,6 +349,7 @@ const stats = {
 
 await read("sales-data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
   .forEach((row) => {
     stats.totalRows++;
@@ -411,6 +420,7 @@ try {
 // LazyRow → other formats
 await read("data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .map((row) => row.toStringArray()) // Convert when needed
   .transform(toTsv())
   .writeTo("data.tsv");
@@ -429,6 +439,7 @@ const UserSchema = z.object({
 
 await read("users.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .drop(1)
   .map((row) => {
     const user = {

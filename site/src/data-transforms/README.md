@@ -106,6 +106,7 @@ await read("legacy-data.csv")
 // Best for: Fast processing, human-readable data
 await read("logs.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .filter((row) => row[2] === "ERROR")
   .transform(toTsv())
   .writeTo("errors.tsv");
@@ -117,6 +118,7 @@ await read("logs.tsv")
 // Best for: Complex nested data, APIs, configuration
 await read("events.jsonl")
   .transform(fromJsonToRows())
+  .flatten()
   .filter((event) => event.severity === "high")
   .transform(toJson())
   .writeTo("alerts.jsonl");
@@ -128,6 +130,7 @@ await read("events.jsonl")
 // Best for: High-throughput processing, internal formats
 await read("big-data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .map((row) => [row[0], processValue(row[1]), row[2]])
   .transform(toRecord())
   .writeTo("processed.record");
@@ -144,6 +147,7 @@ import { fromCsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse CSV into LazyRow format
 const lazyRows = await read("data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .collect();
 
 // Efficient field access
@@ -171,6 +175,7 @@ for (const row of lazyRows) {
 // Process sales data: CSV → filter → enrich → JSON
 await read("sales.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .filter((row) => parseFloat(row.getField(3)) > 1000) // Amount > $1000
   .map((row) => ({
     id: row.getField(0),
@@ -198,6 +203,7 @@ await read("legacy.csv")
 // Parse structured logs and extract errors
 await read("app.log.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .filter((row) => row[2] === "ERROR")
   .map((row) => ({
     timestamp: row[0],
@@ -217,6 +223,7 @@ All transforms use streaming processing:
 // ✅ Processes 10GB file with constant ~128KB memory usage
 await read("huge-dataset.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => row[0].startsWith("2024"))
   .transform(toTsv())
   .writeTo("filtered.tsv");
@@ -224,6 +231,7 @@ await read("huge-dataset.csv")
 // ❌ Don't do this - loads everything into memory
 const allRows = await read("huge-dataset.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .collect(); // Memory explosion!
 ```
 

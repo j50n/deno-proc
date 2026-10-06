@@ -117,27 +117,27 @@ const result = await run("ls", "-la")
   .first;
 ```
 
-## last
+## The last item
 
-Get last item:
+There is no `last`; reduce to it instead. This reads the whole stream, and
+throws on an empty one:
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-const last = await enumerate([1, 2, 3]).last;
+const last = await enumerate([1, 2, 3]).reduce((_, item) => item);
 // 3
 ```
 
-**Note:** Reads entire stream to find last item.
+## An item at an index
 
-## nth()
-
-Get item at index:
+Drop the items before it, then take the first. `first` throws if the stream is
+too short:
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-const third = await enumerate([1, 2, 3, 4, 5]).nth(2);
+const third = await enumerate([1, 2, 3, 4, 5]).drop(2).first;
 // 3 (zero-indexed)
 ```
 
@@ -175,7 +175,9 @@ const batch = await read("file.txt")
 ```typescript
 // Every 10th item
 const sample = await enumerate(data)
-  .filter((_, i) => i % 10 === 0)
+  .enum()
+  .filter(([, i]) => i % 10 === 0)
+  .map(([item]) => item)
   .collect();
 ```
 
@@ -188,7 +190,8 @@ const sample = await enumerate(data)
 const fifthError = await read("app.log")
   .lines
   .filter((line) => line.includes("ERROR"))
-  .nth(4); // Zero-indexed
+  .drop(4)
+  .first;
 ```
 
 ## Performance Tips

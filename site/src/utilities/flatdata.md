@@ -153,14 +153,18 @@ flatdata csv2tsv -d ';' -i euro.csv -o data.tsv
 
 ### Basic Pipeline
 
+Records end in `\x1E`, not newlines, so read them with `fromRecordToRows` rather
+than `.lines`:
+
 ```typescript
-import { enumerate, run } from "jsr:@j50n/proc";
+import { enumerate } from "jsr:@j50n/proc";
+import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
 
 // Parse CSV in a subprocess, process records in JS
-const results = await run("flatdata", "csv2record")
-  .writeToStdin(csvData)
-  .lines
-  .map((record) => record.split("\x1F")) // Split into fields
+const results = await enumerate([csvData])
+  .run("flatdata", "csv2record")
+  .transform(fromRecordToRows())
+  .flatten()
   .filter((fields) => fields[2] === "active")
   .map((fields) => ({ id: fields[0], name: fields[1] }))
   .collect();
@@ -169,33 +173,31 @@ const results = await run("flatdata", "csv2record")
 ### Processing Large Files
 
 ```typescript
-import { read, run } from "jsr:@j50n/proc";
+import { read } from "jsr:@j50n/proc";
+import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
 
 // Stream a large CSV through flatdata
 await read("huge.csv")
   .run("flatdata", "csv2record")
-  .lines
-  .map((record) => {
-    const fields = record.split("\x1F");
-    return processRow(fields);
-  })
+  .transform(fromRecordToRows())
+  .flatten()
+  .map((fields) => processRow(fields))
   .forEach((result) => console.log(result));
 ```
 
 ### With enumerate for Indexing
 
 ```typescript
-import { enumerate, run } from "jsr:@j50n/proc";
+import { run } from "jsr:@j50n/proc";
+import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
 
 // Number each row
 await run("cat", "data.csv")
   .run("flatdata", "csv2record")
-  .lines
+  .transform(fromRecordToRows())
+  .flatten()
   .enum()
-  .map(([record, index]) => {
-    const fields = record.split("\x1F");
-    return `${index + 1}: ${fields[0]}`;
-  })
+  .map(([fields, index]) => `${index + 1}: ${fields[0]}`)
   .toStdout();
 ```
 
@@ -308,20 +310,13 @@ LazyRow methods:
 
 - `columnCount` - Number of fields (O(1), no parsing)
 - `getField(n)` - Get nth field as string (parses on demand)
-- `toArray()` - Get all fields as string[]
+- `toStringArray()` - Get all fields as string[]
 
 ## European CSV (Semicolon-Delimited)
 
 ```bash
 # Convert European CSV to US CSV
 flatdata csv2record -d ';' -i euro.csv | flatdata record2csv -o us.csv
-```
-
-## Validation
-
-```bash
-# Fail if any row doesn't have exactly 10 columns
-flatdata csv2record --columns 10 --strict -i data.csv > /dev/null
 ```
 
 ## Tips

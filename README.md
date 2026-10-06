@@ -19,6 +19,7 @@ import { fromCsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
 // Transform data between formats - CSV to TSV with filtering
 await read("sales.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => parseFloat(row[3]) > 1000)
   .transform(toTsv())
   .writeTo("high-value.tsv");
@@ -79,8 +80,8 @@ pipelines in sync with the data stream—no race conditions or async error event
 One try-catch at the end handles everything.
 
 **Bridge push and pull** — Convert callback-based APIs (events, WebSockets,
-sensors) into async iterables with WritableIterable. Automatic backpressure,
-natural error propagation, no coordination complexity.
+sensors) into async iterables with WritableIterable. Natural error propagation,
+no coordination complexity.
 
 **WASM-powered data transforms** — Convert between CSV, TSV, JSON, and Record
 formats with WebAssembly-accelerated parsing. For maximum throughput, use the
@@ -101,6 +102,7 @@ guide you toward correct usage.
 - **Chain processes** — Shell-like pipelines with `.run()`
 - **Capture output** — Lines, bytes, or full output
 - **Error handling** — Natural propagation through pipelines
+- **Clean shutdown** — `main()` lets children finish their cleanup before exit
 
 ### 🔄 Async Iterables
 
@@ -163,6 +165,12 @@ don't use parentheses.
 **Error Handling**: Processes that exit with non-zero codes throw
 `ExitCodeError` when you consume their output. Use try-catch to handle failures.
 
+**Shutdown in containers**: Deno exits at once and lets child processes crash
+out, so in a container they are killed before their cleanup can run. Wrap the
+program in `await main(async () => { ... })`, and proc signals the children and
+waits for them before exiting, on return, on an error, or on a signal. See
+[Resource Management](https://j50n.github.io/deno-proc/core/resources.html#shutting-down-children-before-exit).
+
 **Enumeration**: `enumerate()` wraps iterables but doesn't add indices. Call
 `.enum()` on the result to get `[item, index]` tuples.
 
@@ -191,6 +199,7 @@ import { fromCsvToRows, toJson } from "jsr:@j50n/proc/transforms";
 // Convert CSV to JSON Lines with filtering
 await read("sales.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => parseFloat(row[3]) > 1000)
   .map((row) => ({
     id: row[0],

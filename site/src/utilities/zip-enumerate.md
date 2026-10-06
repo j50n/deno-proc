@@ -44,31 +44,24 @@ const numbered = await enumerate(["apple", "banana", "cherry"])
 
 ## zip()
 
-Combine two iterables:
+Pair the items of two async iterables, stopping at the end of the shorter one:
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-import { zip } from "jsr:@j50n/proc@{{gitv}}";
+import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
 
 const names = ["Alice", "Bob", "Charlie"];
 const ages = [25, 30, 35];
 
-const people = await zip(names, ages)
+const people = await enumerate(names)
+  .zip(enumerate(ages))
   .map(([name, age]) => ({ name, age }))
   .collect();
 // [{ name: "Alice", age: 25 }, ...]
 ```
 
-### Multiple Iterables
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const combined = await zip(iter1, iter2)
-  .map(([a, b]) => a + b)
-  .collect();
-```
+`zip` pairs exactly two; zip again to add a third, then flatten the pairs.
 
 ## Real-World Examples
 
@@ -89,10 +82,8 @@ const numbered = await read("file.txt")
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-const merged = await zip(
-  read("names.txt").lines,
-  read("emails.txt").lines,
-)
+const merged = await read("names.txt").lines
+  .zip(read("emails.txt").lines)
   .map(([name, email]) => ({ name, email }))
   .collect();
 ```

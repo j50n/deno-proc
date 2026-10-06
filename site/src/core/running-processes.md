@@ -72,7 +72,7 @@ for await (const line of run("ls", "-la").lines) {
 
 ```typescript
 const first = await run("ls").lines.first;
-const last = await run("ls").lines.last;
+const last = await run("ls").lines.reduce((_, line) => line);
 ```
 
 ### As Raw Bytes

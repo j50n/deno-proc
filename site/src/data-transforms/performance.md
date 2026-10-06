@@ -26,6 +26,7 @@ readability matters.
 // Best practice: Use LazyRow with CSV
 await read("data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .filter((row) => row.getField(0).startsWith("A"))
   .collect();
 ```
@@ -38,6 +39,7 @@ contain tabs or newlines.
 ```typescript
 await read("data.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .filter((row) => row[0].startsWith("A"))
   .collect();
 ```
@@ -60,6 +62,7 @@ human readability.
 ```typescript
 await read("data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .map(processAllFields)
   .collect();
 ```
@@ -72,12 +75,14 @@ await read("data.record")
 // ✅ Good: Constant memory usage
 await read("large-file.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => row[0] === "target")
   .writeTo("filtered.csv");
 
 // ❌ Bad: Loads entire file into memory
 const allData = await read("large-file.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .collect();
 ```
 
@@ -89,6 +94,7 @@ Only parse the fields you actually need:
 // Only parses fields 0 and 5
 await read("wide-data.csv")
   .transform(fromCsvToLazyRows())
+  .flatten()
   .filter((row) => {
     const id = row.getField(0);
     const status = row.getField(5);
@@ -103,6 +109,7 @@ await read("wide-data.csv")
 // ✅ Good: Filter before expensive operations
 await read("data.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => row[0] === "target")
   .map((row) => expensiveProcessing(row))
   .collect();
@@ -123,6 +130,7 @@ await read("data.csv")
 // Subsequent processing is faster
 await read("data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .filter((row) => row[1] === "target")
   .collect();
 ```

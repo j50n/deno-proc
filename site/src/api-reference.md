@@ -21,6 +21,10 @@ The API documentation includes:
 - **[enumerate()](./api-docs/~/enumerate.html){:target="_blank"}** - Wrap an
   iterable
 - **[read()](./api-docs/~/read.html){:target="_blank"}** - Read a file
+- **[main()](./api-docs/~/main.html){:target="_blank"}** - Run a program and
+  shut its children down cleanly before it exits
+- **[terminateAll()](./api-docs/~/terminateAll.html){:target="_blank"}** -
+  Signal every running child and wait for them to exit
 
 ### Classes
 
@@ -40,15 +44,31 @@ The API documentation includes:
 - **[UpstreamError](./api-docs/~/UpstreamError.html){:target="_blank"}** - Error
   from upstream process
 
+### Data Transforms
+
+From `jsr:@j50n/proc/transforms`:
+
+- **[fromCsvToRows()](./api-docs/transforms/~/fromCsvToRows.html){:target="_blank"}**,
+  **[toCsv()](./api-docs/transforms/~/toCsv.html){:target="_blank"}** - CSV
+- **[fromTsvToRows()](./api-docs/transforms/~/fromTsvToRows.html){:target="_blank"}**,
+  **[toTsv()](./api-docs/transforms/~/toTsv.html){:target="_blank"}** - TSV
+- **[fromJsonToRows()](./api-docs/transforms/~/fromJsonToRows.html){:target="_blank"}**,
+  **[toJson()](./api-docs/transforms/~/toJson.html){:target="_blank"}** - JSON
+  lines
+- **[fromRecordToRows()](./api-docs/transforms/~/fromRecordToRows.html){:target="_blank"}**,
+  **[toRecord()](./api-docs/transforms/~/toRecord.html){:target="_blank"}** -
+  Record format
+- **[LazyRow](./api-docs/transforms/~/LazyRow.html){:target="_blank"}** - Rows
+  that parse fields on demand
+
 ### Utilities
 
 - **[range()](./api-docs/~/range.html){:target="_blank"}** - Generate number
   ranges
-- **[zip()](./api-docs/~/zip.html){:target="_blank"}** - Combine iterables
 - **[concat()](./api-docs/~/concat.html){:target="_blank"}** - Concatenate byte
   arrays
-- **[cache()](./api-docs/~/cache.html){:target="_blank"}** - Cache iterable
-  results
+- **[cache()](./api-docs/~/cache.html){:target="_blank"}** - Cache a computed
+  value in Deno KV for a time
 
 ## Using the API Docs
 

@@ -23,6 +23,7 @@ import { fromTsvToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse TSV into string arrays
 const rows = await read("data.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .collect();
 
 // rows[0] = ["Name", "Age", "City"]        // Header
@@ -38,6 +39,7 @@ import { fromTsvToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse TSV into optimized LazyRow format
 const lazyRows = await read("data.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .collect();
 
 // Efficient field access
@@ -96,6 +98,7 @@ await enumerate(data)
 // Process web server access logs
 await read("access.log")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .filter((row) => {
     const statusCode = row.getField(6);
     return statusCode.startsWith("4") || statusCode.startsWith("5");
@@ -117,6 +120,7 @@ await read("access.log")
 // ETL pipeline: TSV → filter → transform → TSV
 await read("raw-data.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
   .filter((row) => {
     const score = parseFloat(row.getField(3));
@@ -144,6 +148,7 @@ await read("data.csv")
 // Later processing is faster
 await read("data.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .filter((row) => row[0].startsWith("A"))
   .collect();
 ```
@@ -158,6 +163,7 @@ const statusCodes = new Map<string, number>();
 
 await read("live-access.log")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .forEach((row) => {
     requestCount++;
 
@@ -185,6 +191,7 @@ await read("live-access.log")
 // ✅ Use LazyRow for selective field access
 await read("wide-data.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .filter((row) => {
     // Only parse fields 0 and 5
     const id = row.getField(0);
@@ -196,6 +203,7 @@ await read("wide-data.tsv")
 // ✅ Use regular parsing for full field access
 await read("data.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .map((row) => {
     // Process all fields
     return processAllFields(row);
@@ -212,6 +220,7 @@ let batch: string[][] = [];
 
 await read("huge-data.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .forEach(async (row) => {
     batch.push(row);
 
@@ -238,7 +247,9 @@ const errors: string[] = [];
 
 await read("data.tsv")
   .transform(fromTsvToRows())
-  .forEach((row, index) => {
+  .flatten()
+  .enum()
+  .forEach(([row, index]) => {
     if (row.length !== expectedFields) {
       errors.push(
         `Row ${
@@ -259,8 +270,10 @@ if (errors.length > 0) {
 // Validate data types during processing
 await read("metrics.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
-  .map((row, index) => {
+  .enum()
+  .map(([row, index]) => {
     const rowNum = index + 2;
 
     // Validate timestamp
@@ -304,6 +317,7 @@ const batchSize = 1000;
 
 await read("users.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .drop(1) // Skip header
   .forEach(async (row) => {
     batch.push(row);
@@ -325,6 +339,7 @@ if (batch.length > 0) {
 // Send TSV data to REST API
 await read("events.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .drop(1) // Skip header
   .map((row) => ({
     eventId: row.getField(0),
@@ -359,6 +374,7 @@ await read("events.tsv")
 try {
   await read("data.tsv")
     .transform(fromTsvToRows())
+    .flatten()
     .collect();
 } catch (error) {
   if (error.message.includes("UTF-8")) {
@@ -378,8 +394,10 @@ let successCount = 0;
 
 await read("data.tsv")
   .transform(fromTsvToLazyRows())
+  .flatten()
   .drop(1)
-  .forEach((row, index) => {
+  .enum()
+  .forEach(([row, index]) => {
     try {
       const processed = processRow(row);
       successCount++;

@@ -350,7 +350,8 @@ const processed = await enumerate(items)
 
 ```typescript
 const batched = await enumerate(items)
-  .map((item, i) => ({
+  .enum()
+  .map(([item, i]) => ({
     ...item,
     batch: Math.floor(i / 100),
   }))

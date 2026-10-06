@@ -57,8 +57,7 @@ output, handle errors gracefully.
 source. Process gigabyte files with constant memory.
 
 **Bridge Push and Pull** — Convert callbacks, events, and WebSockets into async
-iterables with WritableIterable. Automatic backpressure, natural error
-propagation.
+iterables with WritableIterable, with natural error propagation.
 
 **Data Transforms** — Convert between CSV, TSV, JSON, and Record formats with
 streaming support. Or use the WASM-powered flatdata CLI for maximum throughput.

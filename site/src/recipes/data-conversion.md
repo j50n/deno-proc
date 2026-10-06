@@ -27,6 +27,7 @@ import { fromCsvToRows, toJson } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 await read("sales.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .map((row) => ({
     id: row[0],
     customer: row[1],
@@ -46,6 +47,7 @@ import { fromJsonToRows, toCsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 await read("data.jsonl")
   .transform(fromJsonToRows())
+  .flatten()
   .map((obj) => [obj.id, obj.name, obj.email])
   .transform(toCsv())
   .writeTo("data.csv");
@@ -61,6 +63,7 @@ import { fromTsvToRows, toJson } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 await read("data.tsv")
   .transform(fromTsvToRows())
+  .flatten()
   .map((row) => ({
     name: row[0],
     age: parseInt(row[1]),
@@ -82,9 +85,9 @@ import { fromCsvToLazyRows, toTsv } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 await read("large.csv")
   .transform(fromCsvToLazyRows())
-  .filter((row) => row.get(3) === "active") // Only parse field 3
-  .map((row) => row.toRow()) // Convert to array
-  .transform(toTsv())
+  .flatten()
+  .filter((row) => row.getField(3) === "active") // Only parse field 3
+  .transform(toTsv()) // Takes LazyRows as they are
   .writeTo("active.tsv");
 ```
 
@@ -100,6 +103,7 @@ import { fromCsvToRows, toJson } from "jsr:@j50n/proc@{{gitv}}/transforms";
 
 await read("orders.csv")
   .transform(fromCsvToRows())
+  .flatten()
   .filter((row) => parseFloat(row[3]) > 1000) // High-value orders
   .map((row) => ({
     orderId: row[0],
@@ -141,6 +145,7 @@ await enumerate(files)
     const outFile = file.replace(".csv", ".jsonl");
     await read(file)
       .transform(fromCsvToRows())
+      .flatten()
       .map((row) => ({ id: row[0], value: row[1] }))
       .transform(toJson())
       .writeTo(outFile);
@@ -172,6 +177,7 @@ await read("data.csv")
 // Record → process → TSV
 await read("data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .filter((row) => row[0].startsWith("A"))
   .transform(toTsv())
   .writeTo("filtered.tsv");

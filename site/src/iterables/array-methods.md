@@ -141,25 +141,27 @@ const first = await enumerate([1, 2, 3]).first;
 // 1
 ```
 
-### last
+### The last item
 
-Get last item:
+There is no `last`; reduce to it instead. This reads the whole stream, and
+throws on an empty one:
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-const last = await enumerate([1, 2, 3]).last;
+const last = await enumerate([1, 2, 3]).reduce((_, item) => item);
 // 3
 ```
 
-### nth()
+### An item at an index
 
-Get item at index:
+Drop the items before it, then take the first. `first` throws if the stream is
+too short:
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
-const third = await enumerate([1, 2, 3, 4]).nth(2);
+const third = await enumerate([1, 2, 3, 4]).drop(2).first;
 // 3 (zero-indexed)
 ```
 
@@ -191,15 +193,16 @@ const rest = await enumerate([1, 2, 3, 4, 5])
 // [3, 4, 5]
 ```
 
-### slice()
+### A range
 
-Get a range:
+There is no `slice`; `drop` then `take`:
 
 <!-- NOT TESTED: Illustrative example -->
 
 ```typescript
 const middle = await enumerate([1, 2, 3, 4, 5])
-  .slice(1, 4)
+  .drop(1)
+  .take(3)
   .collect();
 // [2, 3, 4]
 ```

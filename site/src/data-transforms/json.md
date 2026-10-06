@@ -25,6 +25,7 @@ import { fromJsonToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse JSONL into objects
 const objects = await read("events.jsonl")
   .transform(fromJsonToRows())
+  .flatten()
   .collect();
 
 // Each object preserves full JSON structure
@@ -102,6 +103,7 @@ const validateEvent = (obj: unknown): obj is Event => {
 
 const events = await read("events.jsonl")
   .transform(fromJsonToRows())
+  .flatten()
   .filter((obj): obj is Event => {
     if (!validateEvent(obj)) {
       console.warn(`Invalid event: ${JSON.stringify(obj)}`);
@@ -369,6 +371,7 @@ await read("event-batches.jsonl")
 try {
   await read("malformed.jsonl")
     .transform(fromJsonToRows())
+    .flatten()
     .collect();
 } catch (error) {
   if (error.message.includes("JSON")) {
@@ -385,6 +388,7 @@ try {
 try {
   await read("events.jsonl")
     .transform(fromJsonToRows({ schema: EventSchema }))
+    .flatten()
     .collect();
 } catch (error) {
   if (error.name === "ZodError") {
@@ -405,7 +409,8 @@ let successCount = 0;
 
 await read("mixed-quality.jsonl")
   .lines
-  .forEach((line, index) => {
+  .enum()
+  .forEach(([line, index]) => {
     try {
       const obj = JSON.parse(line);
       // Process valid JSON
@@ -444,6 +449,7 @@ await read("events.jsonl")
 // ✅ Streaming - constant memory usage
 await read("large-data.jsonl")
   .transform(fromJsonToRows())
+  .flatten()
   .filter((obj) => obj.status === "active")
   .transform(toJson())
   .writeTo("active-data.jsonl");
@@ -451,6 +457,7 @@ await read("large-data.jsonl")
 // ❌ Batch - loads everything into memory
 const allData = await read("large-data.jsonl")
   .transform(fromJsonToRows())
+  .flatten()
   .collect(); // Memory explosion!
 ```
 

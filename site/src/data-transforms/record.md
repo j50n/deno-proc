@@ -50,6 +50,7 @@ import { fromRecordToRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse Record format into string arrays
 const rows = await read("data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .collect();
 
 // rows[0] = ["Alice", "30", "New\nYork"]
@@ -64,6 +65,7 @@ import { fromRecordToLazyRows } from "jsr:@j50n/proc@{{gitv}}/transforms";
 // Parse Record format into optimized LazyRow format
 const lazyRows = await read("data.record")
   .transform(fromRecordToLazyRows())
+  .flatten()
   .collect();
 
 // Efficient field access
@@ -115,6 +117,7 @@ await enumerate(complexData)
 // Perfect round-trip preservation
 const restored = await read("complex.record")
   .transform(fromRecordToRows())
+  .flatten()
   .collect();
 
 // restored === complexData (exact match)
@@ -146,6 +149,7 @@ const startTime = Date.now();
 
 await read("large-dataset.record") // Fast parsing
   .transform(fromRecordToRows())
+  .flatten()
   .filter((row) => row[0].startsWith("A"))
   .transform(toRecord()) // Fast stringify
   .writeTo("filtered.record");
@@ -164,6 +168,7 @@ let processedCount = 0;
 
 await read("raw-data.record")
   .transform(fromRecordToLazyRows())
+  .flatten()
   .filter((row) => {
     const status = row.getField(5);
     return status === "active";
@@ -195,6 +200,7 @@ console.log("Conversion complete.");
 // Later processing benefits from Record format
 await read("fast-data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .filter((row) => row[2] === "target")
   .collect();
 ```
@@ -219,6 +225,7 @@ const stats: ProcessingStats = {
 
 await read("streaming-data.record")
   .transform(fromRecordToLazyRows())
+  .flatten()
   .forEach((row) => {
     stats.totalRecords++;
 
@@ -256,7 +263,7 @@ console.log(
 
 ```typescript
 // Record format compresses well due to regular structure
-import { gzip } from "jsr:@j50n/proc@{{gitv}}/transforms";
+import { gzip } from "jsr:@j50n/proc@{{gitv}}";
 
 // Archive data with compression
 await read("large-dataset.record")
@@ -267,6 +274,7 @@ await read("large-dataset.record")
 await read("archived-data.record.gz")
   .transform(gunzip)
   .transform(fromRecordToRows())
+  .flatten()
   .take(1000) // Sample first 1000 records
   .collect();
 ```
@@ -281,6 +289,7 @@ Record format shows mixed LazyRow performance:
 // ✅ Use LazyRow for selective field access
 await read("wide-data.record")
   .transform(fromRecordToLazyRows())
+  .flatten()
   .filter((row) => {
     // Only parse fields 0 and 10
     const id = row.getField(0);
@@ -292,6 +301,7 @@ await read("wide-data.record")
 // ✅ Use regular parsing for full field processing
 await read("data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .map((row) => {
     // Process all fields efficiently
     return processAllFields(row);
@@ -308,6 +318,7 @@ let batch: string[][] = [];
 
 await read("huge-data.record")
   .transform(fromRecordToRows())
+  .flatten()
   .forEach(async (row) => {
     batch.push(row);
 
@@ -333,6 +344,7 @@ const results = await Promise.all(
   inputFiles.map(async (file, index) => {
     return await read(file)
       .transform(fromRecordToRows())
+      .flatten()
       .filter((row) => row[0].startsWith(`BATCH_${index}`))
       .collect();
   }),
@@ -353,7 +365,9 @@ const errors: string[] = [];
 
 await read("data.record")
   .transform(fromRecordToRows())
-  .forEach((row, index) => {
+  .flatten()
+  .enum()
+  .forEach(([row, index]) => {
     if (row.length !== expectedFields) {
       errors.push(
         `Record ${
@@ -374,7 +388,9 @@ if (errors.length > 0) {
 // Validate data during processing
 await read("transactions.record")
   .transform(fromRecordToLazyRows())
-  .map((row, index) => {
+  .flatten()
+  .enum()
+  .map(([row, index]) => {
     const recordNum = index + 1;
 
     // Validate transaction ID format
@@ -424,6 +440,7 @@ const batchSize = 5000;
 
 await read("users.record")
   .transform(fromRecordToRows())
+  .flatten()
   .forEach(async (row) => {
     batch.push(row);
 
@@ -444,6 +461,7 @@ if (batch.length > 0) {
 // Stream Record data to REST API
 await read("events.record")
   .transform(fromRecordToLazyRows())
+  .flatten()
   .map((row) => ({
     eventId: row.getField(0),
     timestamp: row.getField(1),
@@ -477,6 +495,7 @@ await read("events.record")
 try {
   await read("data.record")
     .transform(fromRecordToRows())
+    .flatten()
     .collect();
 } catch (error) {
   if (error.message.includes("UTF-8")) {
@@ -496,7 +515,9 @@ let successCount = 0;
 
 await read("data.record")
   .transform(fromRecordToLazyRows())
-  .forEach((row, index) => {
+  .flatten()
+  .enum()
+  .forEach(([row, index]) => {
     try {
       const processed = processRecord(row);
       successCount++;
