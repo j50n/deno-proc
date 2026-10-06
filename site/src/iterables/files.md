@@ -67,9 +67,9 @@ closes the file too.
 
 `toStdout()` writes each string with a `"\n"` added, and bytes as they are, and
 leaves stdout open. Use it for a command's output too: `run("ls").toStdout()`.
-When stdout closes before the program is done writing, as when its output is
-piped into `head`, `toStdout()` throws `Deno.errors.BrokenPipe`; see
-[Common mistakes](../reference/mistakes.md#it-throws).
+When stdout's reader goes away before the program is done writing, as when its
+output is piped into `head`, `toStdout()` stops as a consumer that stops early
+does: it closes the source and resolves, without an error.
 
 `writeTo(Deno.stdout.writable)` works, but closes stdout when it finishes unless
 you pass `{ noclose: true }`. After that, every `console.log` in the program

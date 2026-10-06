@@ -68,8 +68,9 @@ which is unstable. Run with `--unstable-kv`, or add `"unstable": ["kv"]` to
 `deno.json`.
 
 **`BrokenPipe: Broken pipe (os error 32)`** when you pipe the script's output
-into `head` or `less` and quit early. `toStdout()` throws when stdout closes;
-`console.log` ignores it. If that is normal for your script, catch it:
+into `head` or `less` and quit early, from a write of your own to `Deno.stdout`.
+`toStdout()` and `writeTo(Deno.stdout.writable)` stop quietly instead, and
+`console.log` ignores it. Use one of those, or catch it:
 `if (!(error instanceof Deno.errors.BrokenPipe)) throw error;`.
 
 **`SyntaxError: Unexpected end of JSON input`** from `jsonParse`. A blank line

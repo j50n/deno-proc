@@ -296,6 +296,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * it.
    *
    * Pass `{ noclose: true }` to leave it open, as for `Deno.stdout.writable`.
+   * If stdout's reader goes away (`| head`), writing to it stops quietly, as
+   * {@link toStdout} does.
    * Writing to a `Writable` stops early if it is closed meanwhile, which for a
    * {@link WritableIterable} includes its reader stopping.
    *
@@ -358,9 +360,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
         throw e;
       }
       let failed = false;
+      // stdout's reader going away (`| head`) is an early stop, as in toStdout.
+      const stdout = writer === Deno.stdout.writable;
+      let readerGone = false;
 
       try {
-        await writeEach(iter, (it) => w.write(it));
+        await writeEach(
+          iter,
+          (it) =>
+            w.write(it).catch((e) => {
+              if (!(stdout && e instanceof Deno.errors.BrokenPipe)) throw e;
+              readerGone = true;
+            }),
+          () => readerGone,
+        );
       } catch (e) {
         failed = true;
         throw e;
@@ -370,7 +383,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
           // After a failure, close what can be closed, but the first error
           // is the one to report.
           const closing = writer.close();
-          await (failed ? closing.catch(() => {}) : closing);
+          await (failed || readerGone ? closing.catch(() => {}) : closing);
         }
       }
     } else {
@@ -1267,9 +1280,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * nothing added. Any other item throws a `TypeError`; the types don't
    * catch it.
    *
-   * If stdout is closed early, as when the program is piped into `head`, it
-   * throws `Deno.errors.BrokenPipe` (unlike `console.log`, which ignores it).
-   * A command-line tool usually catches that and exits quietly.
+   * If the reader closes stdout early, as `head` does, it has what it wanted:
+   * writing stops, the source is closed, and the promise resolves, as when a
+   * consumer stops early.
    *
    * @example
    * ```typescript
@@ -1279,11 +1292,20 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * await run("ls").lines.map((name) => `- ${name}`).toStdout();
    * ```
    */
-  toStdout(): Promise<void> {
+  async toStdout(): Promise<void> {
     const iter = toBytes(
       this.iter as AsyncIterable<string | string[] | Uint8Array | Uint8Array[]>,
     );
-    return writeEach(iter, (buff) => writeAll(buff, Deno.stdout));
+    let readerGone = false;
+    await writeEach(
+      iter,
+      (buff) =>
+        writeAll(buff, Deno.stdout).catch((e) => {
+          if (!(e instanceof Deno.errors.BrokenPipe)) throw e;
+          readerGone = true;
+        }),
+      () => readerGone,
+    );
   }
 
   /**

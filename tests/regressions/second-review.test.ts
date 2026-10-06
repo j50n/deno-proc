@@ -256,3 +256,36 @@ Deno.test("A line that isn't JSON is named by its line number.", async () => {
     "Invalid JSON at line 4: ",
   );
 });
+
+for (
+  const [how, write] of [
+    ["toStdout()", ".toStdout()"],
+    [
+      "writeTo(Deno.stdout.writable)",
+      ".transform(proc.toBytes).writeTo(Deno.stdout.writable, { noclose: true })",
+    ],
+  ]
+) {
+  Deno.test(`${how} piped into head stops quietly, and closes its source.`, async () => {
+    const mod = new URL("../../mod.ts", import.meta.url).href;
+    const script = `import * as proc from "${mod}";
+      const seq = proc.run("seq", "1", "10000000");
+      await seq.lines${write};
+      console.error("seq:", (await seq.status).signal ?? "still running?");`;
+    const { stdout, stderr } = await new Deno.Command("bash", {
+      args: [
+        "-c",
+        `"$0" eval "$1" | head -1; echo "deno exited \${PIPESTATUS[0]}" >&2`,
+        Deno.execPath(),
+        script,
+      ],
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    assertEquals(new TextDecoder().decode(stdout), "1\n");
+    assertEquals(
+      new TextDecoder().decode(stderr),
+      "seq: SIGPIPE\ndeno exited 0\n",
+    );
+  });
+}
