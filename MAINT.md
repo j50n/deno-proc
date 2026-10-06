@@ -38,11 +38,16 @@ the two have to match and the tag has to exist before the docs are built.
 
 1. Set `"version"` in `deno.json`, then commit and push.
 
-2. Tag that commit and push the tag.
+2. Write the release notes: what a user of the last release would notice,
+   checked against `git log <last tag>..HEAD`. They live in one place, the
+   GitHub release, with the same text as the tag's message; there is no
+   changelog file to keep in step. Then tag the commit, push the tag, and make
+   the release.
 
    ```sh
-   git tag -a 0.0.0 -m "comment"
+   git tag -a 0.0.0 -F notes.md
    git push origin 0.0.0
+   gh release create 0.0.0 --verify-tag --title 0.0.0 --notes-file notes.md
    ```
 
 3. Publish. The first run prints a link to authorize in the browser.
