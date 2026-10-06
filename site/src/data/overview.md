@@ -128,13 +128,34 @@ Your numbers will differ; the ratios are what matter.
 
 | Reading                     | MB/s | Writing and converting | MB/s |
 | --------------------------- | ---- | ---------------------- | ---- |
-| `fromCsvToRows()`           | 130  | `toCsv()`              | 90   |
+| `fromCsvToRows()`           | 130  | `toCsv()`              | 85   |
 | `fromCsvToLazyRows()`       | 350  | `toTsv()`              | 90   |
-| filter with `fieldEquals()` | 380  | `toRecord()`           | 85   |
-| `fromTsvToRows()`           | 135  | `toJson()`             | 100  |
-| `fromTsvToLazyRows()`       | 450  | `csvToTsv()`           | 580  |
-| `fromRecordToRows()`        | 95   | `tsvToCsv()`           | 580  |
-| `fromJsonToRows()`          | 100  |                        |      |
+| filter with `fieldEquals()` | 385  | `toRecord()`           | 80   |
+| `fromTsvToRows()`           | 130  | `toJson()`             | 95   |
+| `fromTsvToLazyRows()`       | 440  | `csvToTsv()`           | 610  |
+| `fromRecordToRows()`        | 90   | `tsvToCsv()`           | 640  |
+| `fromJsonToRows()`          | 95   |                        |      |
 
 The LazyRow parsers are fast because they make no strings until asked, and
 converting between CSV and TSV never makes any.
+
+### Against other JavaScript
+
+From `benchmarks/compare.ts`, on the same data. Here every reader keeps all
+2,000,000 fields in memory, as a whole-string parser must, so the figures are
+lower than the table above. The others get their best case, the whole file
+decoded to one string; proc streams it in 64 KB chunks.
+
+| CSV to rows                 | MB/s | Rows to CSV          | MB/s |
+| --------------------------- | ---- | -------------------- | ---- |
+| proc `fromCsvToRows()`      | 75   | proc `toCsv()`       | 75   |
+| Papa Parse                  | 55   | `@std/csv` stringify | 50   |
+| hand-written TypeScript     | 45   | Papa Parse unparse   | 25   |
+| `@std/csv` `CsvParseStream` | 28   | csv-stringify        | 23   |
+| `@std/csv` `parse`          | 19   |                      |      |
+| csv-parse                   | 14   |                      |      |
+
+Converting CSV to TSV, proc's `csvToTsv()` runs at about 450 MB/s here; reading
+with the hand-written parser and joining the rows back runs at 30. Reading TSV,
+proc and a plain `split` on the whole string are close (70 and 62): TSV has no
+quoting to work out, so making the strings is nearly all the work.
