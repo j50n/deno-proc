@@ -202,3 +202,26 @@ Deno.test("Writes after the reader stops go nowhere.", async () => {
 Deno.test("track is not part of the public API.", () => {
   assertEquals("track" in proc, false);
 });
+
+Deno.test("writeBytesTo finishes what was read before a source error, before the error comes out.", async () => {
+  const written: number[] = [];
+  const slowWriter = {
+    async write(bytes: Uint8Array) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      written.push(bytes.length);
+      return bytes.length;
+    },
+    close() {},
+  };
+  async function* source() {
+    yield new Uint8Array(3);
+    throw new Error("source failed");
+  }
+
+  await assertRejects(
+    () => enumerate(source()).writeBytesTo(slowWriter),
+    Error,
+    "source failed",
+  );
+  assertEquals(written, [3]);
+});

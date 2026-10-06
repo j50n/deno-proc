@@ -479,17 +479,13 @@ export class Process<S> implements Closer {
           try {
             let error: Error | undefined;
             try {
-              let status: Deno.CommandStatus;
-              let finished = false;
-              try {
-                yield* process.stdout;
-                finished = true;
-              } finally {
-                status = await process.status;
-                // A consumer that stops early hears nothing, not even that
-                // fnStderr failed.
-                await (finished ? ser : ser?.catch(() => {}));
-              }
+              // A consumer that stops early returns from here: it has its
+              // answer, so it doesn't wait for the child to exit, or for
+              // fnStderr to read to the end, and hears no error from either.
+              yield* process.stdout;
+
+              const status = await process.status;
+              await ser;
 
               const cause = passError();
 

@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { ExitCodeError, Process, run } from "../../mod.ts";
 
 // Found in the pre-0.26.0 review.
@@ -65,4 +65,14 @@ Deno.test("Options proc doesn't define don't reach the child.", async () => {
   const withOption = await run(options, "sh", "-c", "echo $HOME").lines.first;
   const without = await run("sh", "-c", "echo $HOME").lines.first;
   assertEquals(withOption, without);
+});
+
+Deno.test("Stopping early doesn't wait for a quiet child to exit.", async () => {
+  const start = Date.now();
+  const line = await run("sh", "-c", "echo ready; sleep 1").lines.first;
+  assertEquals(line, "ready");
+  assert(
+    Date.now() - start < 500,
+    `returned at once (${Date.now() - start} ms)`,
+  );
 });

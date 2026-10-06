@@ -152,6 +152,31 @@ async function* identity<T>(iter: AsyncIterable<T>): AsyncIterableIterator<T> {
 }
 
 /**
+ * Write each item, overlapping each write with reading the next item. If
+ * reading throws, the write in flight finishes first, so what was read before
+ * the error reaches its destination before the error reaches the caller.
+ * `stop` is checked before each write.
+ */
+async function writeEach<T>(
+  items: AsyncIterable<T>,
+  write: (item: T) => Promise<unknown>,
+  stop?: () => boolean,
+): Promise<void> {
+  let p: Promise<unknown> | undefined;
+  try {
+    for await (const item of items) {
+      await p;
+      if (stop?.()) break;
+      p = handled(write(item));
+    }
+  } catch (e) {
+    await p?.catch(() => {});
+    throw e;
+  }
+  await p;
+}
+
+/**
  * An async sequence with Array-style methods. {@link run}, {@link read},
  * {@link range}, and {@link enumerate} return one.
  *
@@ -318,14 +343,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       let failed = false;
 
       try {
-        let p: undefined | Promise<void>;
-
-        for await (const it of iter) {
-          await p;
-          p = handled(w.write(it));
-        }
-
-        await p;
+        await writeEach(iter, (it) => w.write(it));
       } catch (e) {
         failed = true;
         throw e;
@@ -340,19 +358,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
       }
     } else {
       try {
-        let p: undefined | Promise<void>;
-
-        for await (const it of iter) {
-          await p;
-
-          if (writer.isClosed) {
-            break;
-          }
-
-          p = handled(writer.write(it));
-        }
-
-        await p;
+        await writeEach(
+          iter,
+          (it) => writer.write(it),
+          () => writer.isClosed,
+        );
 
         if (!options?.noclose) {
           await writer.close();
@@ -1259,16 +1269,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     const iter = toBytes(
       this.iter as AsyncIterable<string | string[] | Uint8Array | Uint8Array[]>,
     );
-    async function inner() {
-      let p: undefined | Promise<void>;
-
-      for await (const buff of iter) {
-        await p;
-        p = handled(writeAll(buff, Deno.stdout));
-      }
-      await p;
-    }
-    return inner();
+    return writeEach(iter, (buff) => writeAll(buff, Deno.stdout));
   }
 
   /**
@@ -1294,13 +1295,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
     const iter = this.iter as AsyncIterable<Uint8Array>;
     async function inner() {
       try {
-        let p: undefined | Promise<void>;
-
-        for await (const buff of iter) {
-          await p;
-          p = handled(writeAll(buff, writer));
-        }
-        await p;
+        await writeEach(iter, (buff) => writeAll(buff, writer));
       } finally {
         writer.close();
       }

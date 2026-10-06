@@ -36,9 +36,10 @@ export type Cmd = [string | URL, ...string[]];
  * **Read stdout.** The child writes into a pipe that holds about 64 KB, and
  * once it is full the child blocks until something reads. If nothing reads a
  * child with more output than that, it never exits, so awaiting `.status`
- * hangs and so does your program. Stopping early (`.take(2)`, `break`) is fine
- * and throws nothing; the consumer returns once the child exits, which for
- * most programs is the next time they write and die of SIGPIPE.
+ * hangs and so does your program. Stopping early (`.take(2)`, `break`) is fine:
+ * the consumer returns at once and throws nothing, and the child dies of
+ * SIGPIPE the next time it writes. One that keeps running quietly is stopped
+ * by {@link main} on the way out.
  *
  * **Errors** are thrown where you consume the output, after every line has
  * been delivered. A non-zero exit throws {@link ExitCodeError} (`.code`), and

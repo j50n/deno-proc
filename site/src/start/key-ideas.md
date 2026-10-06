@@ -60,9 +60,10 @@ callbacks throw. One `try` around the consumer covers the whole pipeline. See
 ```
 
 When a consumer stops before the end (`take`, `first`, `find`, a `break` out of
-`for await`), proc closes the pipeline behind it without an error. A command
-that is still writing stops at its next write, and the `await` returns once it
-has exited.
+`for await`), proc closes the pipeline behind it, and the `await` returns at
+once, without an error. A command that is still writing dies at its next write;
+one that runs on quietly, like a server that printed "ready", keeps running
+until it exits, or until `main()` stops it on the way out.
 
 ## 5. An `Enumerable` is used once
 

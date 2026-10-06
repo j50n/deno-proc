@@ -122,14 +122,16 @@ There are two ways a pipeline stops before its first command runs out, and
 neither is an error:
 
 - **The consumer stops** (`take`, `first`, `find`, a `break` out of
-  `for await`). proc closes the pipeline behind it. `seq` and `grep` die of
-  SIGPIPE at their next write, and the `await` returns once they have exited.
-  Their exit codes are not checked.
+  `for await`). proc closes the pipeline behind it, and the `await` returns at
+  once. `seq` and `grep` die of SIGPIPE at their next write. Their exit codes
+  are not checked.
 - **A command stops reading**, like `head`. Writing to it ends quietly, and the
   command before it is closed the same way.
 
-A command that sleeps before it writes again holds the `await` until it wakes
-and finds the pipe closed.
+A command that goes quiet instead keeps running after the `await` has returned,
+until it writes again, exits, or is stopped. That is what lets you start a
+server and wait for its "ready" line: under `main()`, the server is stopped when
+the program ends.
 
 When a pipeline is cut short, the commands before the cut may or may not have
 finished, so don't rely on their failures being reported. A command whose output
