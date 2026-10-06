@@ -7,9 +7,12 @@ const DEFAULT_TIMEOUT_MS = 30_000;
  * The signals `main` handles, and whether to pass each on. A SIGTERM comes to
  * Deno alone (from `docker stop`, systemd, `kill`), so the children hear of it
  * only if `main` forwards it. SIGINT (Ctrl-C) and SIGHUP (the terminal
- * closing) come from the terminal, which sends them to the whole foreground
- * process group, children included: forwarding one would make it their second,
- * which many programs take to mean "quit now, skip the cleanup".
+ * closing) usually come from the terminal, which sends them to the whole
+ * foreground process group, children included: forwarding one would make it
+ * their second, which many programs take to mean "quit now, skip the
+ * cleanup". But they can come to Deno alone too, from Docker's STOPSIGNAL, an
+ * IDE, or `kill -INT`; so after a grace period, children still running get
+ * SIGTERM instead.
  */
 const SIGNALS: { signal: Deno.Signal; code: number; forward: boolean }[] =
   Deno.build.os === "windows"
@@ -47,6 +50,13 @@ let terminalSignalSeen = false;
 
 /** How long `main` gives that signal to arrive. */
 const SIGNAL_GRACE_MS = 500;
+
+/**
+ * How long `main` gives children to act on a SIGINT or SIGHUP before it sends
+ * SIGTERM to those still running: enough for one that got it from the
+ * terminal to exit, so only one sent nothing hears from `main`.
+ */
+const INTERRUPT_GRACE_MS = 1_000;
 
 /**
  * Send `signal` to every running child. One that exits between the lookup and
@@ -148,10 +158,10 @@ async function waitFor(
  * - The program throws, or an error goes uncaught anywhere: report the error,
  *   SIGTERM, then exit 1.
  * - SIGTERM arrives: pass it on, then exit 143, as if killed by it.
- * - SIGINT (Ctrl-C) or SIGHUP (the terminal closing) arrives: wait without
- *   passing it on, since the terminal sent it to the children as well, then
- *   exit 130 or 129. Sent to Deno alone (`kill -INT <pid>`), it doesn't reach
- *   them: to stop a program from another process, send SIGTERM.
+ * - SIGINT (Ctrl-C) or SIGHUP (the terminal closing) arrives: don't pass it
+ *   on, since the terminal sent it to the children as well. Give them a
+ *   second to exit, then SIGTERM any still running (they got nothing if the
+ *   signal came to Deno alone), wait, and exit 130 or 129.
  *
  * A second signal exits at once without waiting. The wait is bounded by
  * `timeoutMs`; set it a little under the container's grace period, or proc
@@ -195,8 +205,14 @@ export async function main(
   const finish = async (code: number, signal = true) => {
     if (finishing) return;
     finishing = true;
-    if (signal) await terminateAll({ timeoutMs });
-    else await waitFor([...running], timeoutMs);
+    if (signal) {
+      await terminateAll({ timeoutMs });
+    } else {
+      const start = Date.now();
+      await waitFor([...running], Math.min(INTERRUPT_GRACE_MS, timeoutMs));
+      const left = Math.max(0, timeoutMs - (Date.now() - start));
+      if (running.size > 0) await terminateAll({ timeoutMs: left });
+    }
     Deno.exit(code);
   };
 

@@ -230,17 +230,20 @@ Deno.test({
 
 Deno.test({
   name:
-    "A SIGINT sent to Deno alone isn't passed on: main waits, up to its timeout, and exits 130.",
+    "A SIGINT sent to Deno alone isn't passed on; after a second, the children get SIGTERM, and main exits 130.",
 
   async fn() {
+    // Docker's STOPSIGNAL SIGINT, an IDE's stop button, `kill -INT <pid>`.
     const run = await runProgram(
-      `await proc.main(async () => { child(); ${FOREVER} }, { timeoutMs: 400 });`,
+      `await proc.main(async () => { child(); ${FOREVER} });`,
       { signals: ["SIGINT"] },
     );
 
     assertEquals(run.status.code, 130);
     assertEquals(run.interruptions, 0, "the child was not sent SIGINT");
-    assert(run.elapsedMs >= 350, `waited for the limit (${run.elapsedMs} ms)`);
+    assert(run.cleaned, "the child got SIGTERM and cleaned up");
+    assert(run.elapsedMs >= 900, `gave the grace first (${run.elapsedMs} ms)`);
+    assert(run.elapsedMs < 5000, `not the 30 s timeout (${run.elapsedMs} ms)`);
   },
 });
 

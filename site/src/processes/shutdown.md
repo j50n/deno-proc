@@ -47,12 +47,12 @@ lock held when Deno was gone. (The program that ran the two then stopped it.)
 children it started are both allowed with the `--allow-run` that starting them
 needed.
 
-| How the program ends                          | `main` sends the children | Exit code         |
-| --------------------------------------------- | ------------------------- | ----------------- |
-| It returns a number, or nothing               | SIGTERM                   | that number, or 0 |
-| It throws, or an error goes uncaught anywhere | SIGTERM                   | 1                 |
-| SIGTERM arrives                               | SIGTERM                   | 143               |
-| SIGINT (Ctrl-C) or SIGHUP (hangup) arrives    | nothing; see below        | 130 or 129        |
+| How the program ends                          | `main` sends the children                              | Exit code         |
+| --------------------------------------------- | ------------------------------------------------------ | ----------------- |
+| It returns a number, or nothing               | SIGTERM                                                | that number, or 0 |
+| It throws, or an error goes uncaught anywhere | SIGTERM                                                | 1                 |
+| SIGTERM arrives                               | SIGTERM                                                | 143               |
+| SIGINT (Ctrl-C) or SIGHUP (hangup) arrives    | SIGTERM after 1 s, if any are still running; see below | 130 or 129        |
 
 - **On return**, any child still running (one you started and never awaited)
   gets SIGTERM, and `main` waits for it as it would on a signal.
@@ -61,12 +61,15 @@ needed.
 - **On SIGTERM**, `main` passes it on and waits. A SIGTERM comes to Deno alone,
   from `docker stop`, Kubernetes, systemd, or `kill`, so the children hear of it
   only through `main`.
-- **On SIGINT or SIGHUP**, `main` waits without passing it on. These come from
+- **On SIGINT or SIGHUP**, `main` doesn't pass it on. These usually come from
   the terminal (Ctrl-C, or the terminal closing), which sends them to the whole
   foreground process group, children included. Forwarding would make it their
   second, and many programs take a second Ctrl-C to mean "quit now, skip the
-  cleanup". The catch: `kill -INT <pid>` aimed at Deno alone doesn't reach the
-  children. To stop a program under `main` from another process, send SIGTERM.
+  cleanup". So `main` gives the children a second to act on the one they got,
+  then sends SIGTERM to any still running and waits. That also covers a SIGINT
+  sent to Deno alone, by Docker's `STOPSIGNAL SIGINT`, systemd's
+  `KillSignal=SIGINT`, an IDE's stop button, or `kill -INT <pid>`: the children
+  got nothing, so after the second they get SIGTERM.
 - **A second signal** exits at once, without waiting, so a person pressing
   Ctrl-C twice always gets out; children still running get SIGTERM on the way
   out.
