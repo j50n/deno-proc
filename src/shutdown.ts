@@ -3,15 +3,22 @@ const running = new Set<Deno.ChildProcess>();
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-const SIGNALS: Deno.Signal[] = Deno.build.os === "windows"
-  ? ["SIGINT"]
-  : ["SIGTERM", "SIGINT", "SIGHUP"];
-
-const SIGNAL_NUMBERS: Partial<Record<Deno.Signal, number>> = {
-  SIGHUP: 1,
-  SIGINT: 2,
-  SIGTERM: 15,
-};
+/*
+ * The signals `main` handles, and whether to pass each on. A SIGTERM comes to
+ * Deno alone (from `docker stop`, systemd, `kill`), so the children hear of it
+ * only if `main` forwards it. SIGINT (Ctrl-C) and SIGHUP (the terminal
+ * closing) come from the terminal, which sends them to the whole foreground
+ * process group, children included: forwarding one would make it their second,
+ * which many programs take to mean "quit now, skip the cleanup".
+ */
+const SIGNALS: { signal: Deno.Signal; code: number; forward: boolean }[] =
+  Deno.build.os === "windows"
+    ? [{ signal: "SIGINT", code: 130, forward: false }]
+    : [
+      { signal: "SIGTERM", code: 143, forward: true },
+      { signal: "SIGINT", code: 130, forward: false },
+      { signal: "SIGHUP", code: 129, forward: false },
+    ];
 
 /**
  * Track a child until it exits.
@@ -68,8 +75,15 @@ export async function terminateAll(
   options?: { signal?: Deno.Signal; timeoutMs?: number },
 ): Promise<void> {
   const children = signalAll(options?.signal ?? "SIGTERM");
+  await waitFor(children, options?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+}
+
+/** Wait until `children` have exited, or `timeoutMs` has passed. */
+async function waitFor(
+  children: Deno.ChildProcess[],
+  timeoutMs: number,
+): Promise<void> {
   const exited = Promise.all(children.map((c) => c.status.catch(() => {})));
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   // setTimeout fires at once for anything past its 32-bit range.
   if (!(timeoutMs < 2 ** 31 - 1)) {
@@ -107,8 +121,11 @@ export async function terminateAll(
  * - The program returns: SIGTERM, then exit with the returned code (default 0).
  * - The program throws, or an error goes uncaught anywhere: report the error,
  *   SIGTERM, then exit 1.
- * - SIGTERM, SIGINT, or SIGHUP arrives: pass that signal on, then exit with
- *   128 plus the signal number (143 for SIGTERM), as if killed by it.
+ * - SIGTERM arrives: pass it on, then exit 143, as if killed by it.
+ * - SIGINT (Ctrl-C) or SIGHUP (the terminal closing) arrives: wait without
+ *   passing it on, since the terminal sent it to the children as well, then
+ *   exit 130 or 129. Sent to Deno alone (`kill -INT <pid>`), it doesn't reach
+ *   them: to stop a program from another process, send SIGTERM.
  *
  * A second signal exits at once without waiting. The wait is bounded by
  * `timeoutMs`; set it a little under the container's grace period, or proc
@@ -136,20 +153,23 @@ export async function main(
   let finishing = false;
   let signalsReceived = 0;
 
-  /** Signal the children, wait, exit. Only the first call does anything. */
-  const finish = async (code: number, signal: Deno.Signal = "SIGTERM") => {
+  /**
+   * Signal the children (unless they have been already), wait, exit. Only the
+   * first call does anything.
+   */
+  const finish = async (code: number, signal = true) => {
     if (finishing) return;
     finishing = true;
-    await terminateAll({ signal, timeoutMs });
+    if (signal) await terminateAll({ timeoutMs });
+    else await waitFor([...running], timeoutMs);
     Deno.exit(code);
   };
 
-  for (const signal of SIGNALS) {
-    const code = 128 + (SIGNAL_NUMBERS[signal] ?? 15);
+  for (const { signal, code, forward } of SIGNALS) {
     Deno.addSignalListener(signal, () => {
       signalsReceived += 1;
       if (signalsReceived > 1) Deno.exit(code);
-      finish(code, signal);
+      finish(code, forward);
     });
   }
 

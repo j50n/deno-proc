@@ -48,25 +48,35 @@ lock held when Deno was gone. (The driver,
 children it started are both allowed with the `--allow-run` that starting them
 needed.
 
-| How the program ends                          | Children get | Exit code                       |
-| --------------------------------------------- | ------------ | ------------------------------- |
-| It returns a number, or nothing               | SIGTERM      | that number, or 0               |
-| It throws, or an error goes uncaught anywhere | SIGTERM      | 1                               |
-| SIGTERM, SIGINT, or SIGHUP arrives            | that signal  | 128 + its number: 143, 130, 129 |
+| How the program ends                          | `main` sends the children | Exit code         |
+| --------------------------------------------- | ------------------------- | ----------------- |
+| It returns a number, or nothing               | SIGTERM                   | that number, or 0 |
+| It throws, or an error goes uncaught anywhere | SIGTERM                   | 1                 |
+| SIGTERM arrives                               | SIGTERM                   | 143               |
+| SIGINT (Ctrl-C) or SIGHUP (hangup) arrives    | nothing; see below        | 130 or 129        |
 
 - **On return**, any child still running (one you started and never awaited)
   gets SIGTERM, and `main` waits for it as it would on a signal.
 - **On an error**, `main` prints it to stderr before it signals the children.
   That includes an unhandled promise rejection or an error thrown in a timer.
-- **On a signal**, `main` passes that signal on and waits. A second signal exits
-  at once, without waiting, so a person pressing Ctrl-C twice always gets out;
-  children still running get SIGTERM on the way out. (In a terminal, Ctrl-C also
-  sends SIGINT straight to the children, which are in the same process group.)
+- **On SIGTERM**, `main` passes it on and waits. A SIGTERM comes to Deno alone,
+  from `docker stop`, Kubernetes, systemd, or `kill`, so the children hear of it
+  only through `main`.
+- **On SIGINT or SIGHUP**, `main` waits without passing it on. These come from
+  the terminal (Ctrl-C, or the terminal closing), which sends them to the whole
+  foreground process group, children included. Forwarding would make it their
+  second, and many programs take a second Ctrl-C to mean "quit now, skip the
+  cleanup". The catch: `kill -INT <pid>` aimed at Deno alone doesn't reach the
+  children. To stop a program under `main` from another process, send SIGTERM.
+- **A second signal** exits at once, without waiting, so a person pressing
+  Ctrl-C twice always gets out; children still running get SIGTERM on the way
+  out.
 - **The first ending wins.** If the program fails and the container's SIGTERM
   arrives while the children are still cleaning up, `main` keeps waiting for
   them and still exits 1.
 
-On Windows, only SIGINT is handled.
+On Windows, only SIGINT is handled. Deno doesn't honor `nohup`: under it, a
+hangup still reaches Deno, and `main` handles it as above.
 
 ## How long it waits
 

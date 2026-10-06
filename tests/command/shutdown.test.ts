@@ -5,7 +5,9 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
  * test is how that process exits. The program starts a child shell that
  * touches `ready` once it is running, takes `cleanupSeconds` to shut down after
  * SIGTERM (touching `cleaned` when done), and otherwise loops until the test
- * touches `stop`. It exits at once on SIGINT, touching `interrupted`.
+ * touches `stop`. On SIGINT it adds a line to `interrupted` and exits soon
+ * after, so a second SIGINT in that time adds another; on SIGHUP it touches
+ * `hungup` and exits.
  */
 
 const MOD = new URL("../../mod.ts", import.meta.url).href;
@@ -15,7 +17,9 @@ interface Run {
   elapsedMs: number;
   stderr: string;
   cleaned: boolean;
-  interrupted: boolean;
+  /** How many SIGINTs the child got. */
+  interruptions: number;
+  hungup: boolean;
 }
 
 async function exists(path: string) {
@@ -40,7 +44,8 @@ async function waitForFile(path: string, ms: number) {
  * Run `body` as a program. `child` is available in it: call it to start the
  * child shell. Once the child is ready, send `signals` (if any) to the
  * program, one every 200 ms, after `signalDelayMs`. Times from when the child
- * is ready.
+ * is ready. With `group`, the program runs in a process group of its own, and
+ * the signals go to the whole group, as a terminal sends them.
  */
 async function runProgram(
   body: string,
@@ -49,12 +54,14 @@ async function runProgram(
     ignoreTerm?: boolean;
     signals?: Deno.Signal[];
     signalDelayMs?: number;
+    group?: boolean;
   } = {},
 ): Promise<Run> {
   const dir = await Deno.makeTempDir();
   const ready = `${dir}/ready`,
     cleaned = `${dir}/cleaned`,
     interrupted = `${dir}/interrupted`,
+    hungup = `${dir}/hungup`,
     stop = `${dir}/stop`;
   const onTerm = options.ignoreTerm
     ? "''"
@@ -65,14 +72,17 @@ async function runProgram(
     const quiet = { stdin: "null", stdout: "null", stderr: "null" };
     const child = () => new proc.Process(quiet, "sh", ["-c",
       "trap ${onTerm.replaceAll('"', '\\"')} TERM; " +
-      "trap 'touch ${interrupted}; exit 0' INT; touch ${ready}; " +
+      "trap 'echo int >> ${interrupted}; sleep 0.3; exit 0' INT; " +
+      "trap 'touch ${hungup}; exit 0' HUP; touch ${ready}; " +
       "while [ ! -e ${stop} ]; do sleep 0.05; done"]);
     ${body}
   `;
 
   try {
-    const program = new Deno.Command("deno", {
-      args: ["eval", script],
+    const deno = ["deno", "eval", script];
+    const [command, ...args] = options.group ? ["setsid", ...deno] : deno;
+    const program = new Deno.Command(command, {
+      args,
       stdout: "null",
       stderr: "piped",
     }).spawn();
@@ -86,7 +96,12 @@ async function runProgram(
     }
     for (const [i, signal] of (options.signals ?? []).entries()) {
       if (i > 0) await new Promise((resolve) => setTimeout(resolve, 200));
-      program.kill(signal);
+      // Deno.kill on a group needs unscoped --allow-run; sh's kill doesn't.
+      if (options.group) {
+        await new Deno.Command("sh", {
+          args: ["-c", `kill -${signal.slice(3)} -- -${program.pid}`],
+        }).output();
+      } else program.kill(signal);
     }
 
     const { success, code, signal, stderr } = await program.output();
@@ -95,7 +110,11 @@ async function runProgram(
       elapsedMs: Date.now() - start,
       stderr: new TextDecoder().decode(stderr),
       cleaned: await exists(cleaned),
-      interrupted: await exists(interrupted),
+      interruptions: await Deno.readTextFile(interrupted).then(
+        (text) => text.split("\n").length - 1,
+        () => 0,
+      ),
+      hungup: await exists(hungup),
     };
   } finally {
     await Deno.writeTextFile(stop, "");
@@ -193,16 +212,50 @@ Deno.test({
 });
 
 Deno.test({
-  name: "On SIGINT, main passes SIGINT on and exits 130.",
+  name:
+    "On Ctrl-C, main waits for the children without signalling them again, and exits 130.",
 
   async fn() {
     const run = await runProgram(
       `await proc.main(async () => { child(); ${FOREVER} });`,
+      { signals: ["SIGINT"], group: true },
+    );
+
+    assertEquals(run.status.code, 130);
+    assertEquals(run.interruptions, 1, "the terminal's SIGINT, and no other");
+    assertEquals(run.cleaned, false, "the child was not sent SIGTERM");
+    assert(run.elapsedMs < 2000, `no timeout involved (${run.elapsedMs} ms)`);
+  },
+});
+
+Deno.test({
+  name:
+    "A SIGINT sent to Deno alone isn't passed on: main waits, up to its timeout, and exits 130.",
+
+  async fn() {
+    const run = await runProgram(
+      `await proc.main(async () => { child(); ${FOREVER} }, { timeoutMs: 400 });`,
       { signals: ["SIGINT"] },
     );
 
     assertEquals(run.status.code, 130);
-    assert(run.interrupted, "the child was sent SIGINT");
+    assertEquals(run.interruptions, 0, "the child was not sent SIGINT");
+    assert(run.elapsedMs >= 350, `waited for the limit (${run.elapsedMs} ms)`);
+  },
+});
+
+Deno.test({
+  name:
+    "When the terminal hangs up, main waits for the children without signalling them again, and exits 129.",
+
+  async fn() {
+    const run = await runProgram(
+      `await proc.main(async () => { child(); ${FOREVER} });`,
+      { signals: ["SIGHUP"], group: true },
+    );
+
+    assertEquals(run.status.code, 129);
+    assert(run.hungup, "the child got the terminal's SIGHUP");
     assertEquals(run.cleaned, false, "the child was not sent SIGTERM");
     assert(run.elapsedMs < 2000, `no timeout involved (${run.elapsedMs} ms)`);
   },

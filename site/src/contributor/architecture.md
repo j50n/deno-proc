@@ -91,11 +91,12 @@ started when the consumer stops or an error is thrown.
 `Process` constructor and removing it when its status resolves. `main()`
 installs listeners for SIGTERM, SIGINT, and SIGHUP (only SIGINT on Windows) and
 for uncaught errors and unhandled rejections, then runs the program. However it
-ends, the first ending wins: it signals every child in the set, waits up to
-`timeoutMs` for them to exit, and calls `Deno.exit` with the code for that
-ending. A second signal exits at once. `terminateAll()` is the signal-and-wait
-half on its own. An `unload` listener sends SIGTERM to the children if the
-program exits some other way, though it can't wait for them.
+ends, the first ending wins: it signals every child in the set (except after
+SIGINT or SIGHUP, which the terminal already sent them), waits up to `timeoutMs`
+for them to exit, and calls `Deno.exit` with the code for that ending. A second
+signal exits at once. `terminateAll()` is the signal-and-wait half on its own.
+An `unload` listener sends SIGTERM to the children if the program exits some
+other way, though it can't wait for them.
 
 ## Small pieces
 
