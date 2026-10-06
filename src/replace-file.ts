@@ -16,14 +16,13 @@ export async function replaceFile(
   write: (path: string) => Promise<void>,
 ): Promise<void> {
   const target = await Deno.realPath(path).catch((error) => {
-    if (error instanceof Deno.errors.NotFound) return path;
+    if (error instanceof Deno.errors.NotFound) return linkedTo(path);
     throw error;
   });
   const old = await Deno.stat(target).catch(() => undefined);
   if (old !== undefined && !old.isFile) return await write(path);
 
-  const slash = Math.max(target.lastIndexOf("/"), target.lastIndexOf("\\"));
-  const temp = `${target.slice(0, slash + 1)}.${target.slice(slash + 1)}.${
+  const temp = `${dirOf(target)}.${target.slice(dirOf(target).length)}.${
     crypto.randomUUID().slice(0, 8)
   }.tmp`;
   try {
@@ -32,10 +31,36 @@ export async function replaceFile(
       createNew: true,
       mode: old?.mode ?? 0o666,
     })).close();
+    // The umask applied to the mode above; the old file's mode is kept whole.
+    if (old?.mode != null && Deno.build.os !== "windows") {
+      await Deno.chmod(temp, old.mode & 0o7777);
+    }
     await write(temp);
     await Deno.rename(temp, target);
   } catch (error) {
     await Deno.remove(temp).catch(() => {});
     throw error;
   }
+}
+
+/** The directory part of `path`, with its trailing separator, or "". */
+function dirOf(path: string): string {
+  return path.slice(
+    0,
+    Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1,
+  );
+}
+
+/**
+ * Where `path` leads when it, or a link it leads to, names a file that doesn't
+ * exist yet: the file to create, so that a link stays a link.
+ */
+async function linkedTo(path: string): Promise<string> {
+  for (let hops = 0; hops < 40; hops++) {
+    const info = await Deno.lstat(path).catch(() => undefined);
+    if (!info?.isSymlink) return path;
+    const link = await Deno.readLink(path);
+    path = /^([/\\]|[A-Za-z]:)/.test(link) ? link : dirOf(path) + link;
+  }
+  return path;
 }

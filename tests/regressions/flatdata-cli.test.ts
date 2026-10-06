@@ -4,7 +4,7 @@
  * quietly when its reader goes away.
  */
 
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 
 const FLATDATA =
   new URL("../../scripts/flatdata/flatdata.ts", import.meta.url).pathname;

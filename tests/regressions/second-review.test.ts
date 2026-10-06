@@ -7,7 +7,7 @@ import {
 } from "@std/assert";
 import {
   enumerate,
-  ExitCodeError,
+  type ExitCodeError,
   main,
   range,
   run,

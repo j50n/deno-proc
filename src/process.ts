@@ -429,11 +429,11 @@ export class Process<S> implements Closer {
     // setTimeout fires at once past its 32-bit range: no timer is the same.
     if (timeoutMs !== undefined && timeoutMs < 2 ** 31 - 1) {
       const timer = setTimeout(() => {
-        this.timedOut = true;
         try {
           this.process.kill("SIGTERM");
+          this.timedOut = true;
         } catch {
-          // It exited as the timer fired.
+          // It exited as the timer fired: it finished in time.
         }
       }, timeoutMs);
       const stop = () => clearTimeout(timer);

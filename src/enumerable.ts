@@ -1356,20 +1356,18 @@ export class Enumerable<T> implements AsyncIterable<T> {
   writeBytesTo(writer: Writer & Closer): ByteSink<T> {
     const iter = this.iter as AsyncIterable<Uint8Array>;
     async function inner() {
-      let failed = false;
       try {
         await writeEach(iter, (buff) => writeAll(buff, writer));
       } catch (e) {
-        failed = true;
-        throw e;
-      } finally {
         // After a failure, the first error is the one to report.
         try {
           writer.close();
-        } catch (e) {
-          if (!failed) throw e;
+        } catch {
+          // Lost behind the first.
         }
+        throw e;
       }
+      writer.close();
     }
 
     return inner() as ByteSink<T>;

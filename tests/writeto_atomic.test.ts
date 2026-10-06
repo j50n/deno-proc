@@ -64,7 +64,8 @@ Deno.test("With atomic, a pipeline can read the file it replaces.", async () => 
 Deno.test("With atomic, a symlink stays a symlink and the file keeps its mode.", async () => {
   await inDir(async (dir) => {
     await Deno.writeTextFile(`${dir}/real.txt`, "old\n");
-    await Deno.chmod(`${dir}/real.txt`, 0o640);
+    // Group- and other-writable, which a umask would take away from a new file.
+    await Deno.chmod(`${dir}/real.txt`, 0o666);
     // With ln rather than Deno.symlink, which needs unscoped permissions.
     await new Deno.Command("ln", {
       args: ["-s", `${dir}/real.txt`, `${dir}/link.txt`],
@@ -72,7 +73,19 @@ Deno.test("With atomic, a symlink stays a symlink and the file keeps its mode.",
     await enumerate(["new"]).writeTo(`${dir}/link.txt`, { atomic: true });
     assert((await Deno.lstat(`${dir}/link.txt`)).isSymlink);
     assertEquals(await Deno.readTextFile(`${dir}/real.txt`), "new\n");
-    assertEquals((await Deno.stat(`${dir}/real.txt`)).mode! & 0o777, 0o640);
+    assertEquals((await Deno.stat(`${dir}/real.txt`)).mode! & 0o777, 0o666);
+  });
+});
+
+Deno.test("With atomic, a link to a file not there yet stays a link.", async () => {
+  await inDir(async (dir) => {
+    await new Deno.Command("ln", {
+      args: ["-s", "later.txt", `${dir}/link.txt`],
+    }).output();
+    await enumerate(["new"]).writeTo(`${dir}/link.txt`, { atomic: true });
+    assert((await Deno.lstat(`${dir}/link.txt`)).isSymlink);
+    assertEquals(await Deno.readTextFile(`${dir}/later.txt`), "new\n");
+    assertEquals(await names(dir), ["later.txt", "link.txt"]);
   });
 });
 
