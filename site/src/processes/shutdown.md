@@ -1,0 +1,152 @@
+# Shutting down cleanly
+
+```typescript
+{{#include ../../examples/processes/shutdown-main.ts}}
+```
+
+```text
+{{#include ../../examples/processes/shutdown-main.out}}
+```
+
+[`main()`](https://jsr.io/@j50n/proc/doc/~/main) runs your program, and however
+it ends, it signals every child process proc started that is still running,
+waits for them to exit, and only then exits. Wrap any program that runs
+long-lived children in it, and always one that runs in a container.
+
+The service here is a stand-in shell script: it holds a lock file while it runs
+and removes it when it gets SIGTERM. Left alone, it finishes by itself, and the
+program behaves as it would without `main`.
+
+## Why it's needed
+
+When Deno gets SIGTERM or SIGINT and nothing handles it, it exits at once, and
+its children are never told. On a normal host they carry on alone, orphaned. In
+a container, Deno is usually the main process, so its exit ends the container,
+and the runtime kills every child still running before its cleanup code can run.
+A child holding a lock, a temp directory, or a cloud resource never gets the
+chance to release it.
+
+This program starts the same service twice, once under `main` and once without,
+and sends SIGTERM to each as soon as the service is ready:
+
+```text
+{{#include ../../examples/processes/shutdown-sigterm.out}}
+```
+
+Under `main`, the service got SIGTERM, removed its lock, and the program exited
+with 143, as a program killed by SIGTERM reports itself. Without `main`, Deno
+died at once; the service never heard anything, and was still running with its
+lock held when Deno was gone. (The driver,
+`site/examples/processes/shutdown-sigterm.ts`, then stopped it.)
+
+## What `main` does
+
+| How the program ends                          | Children get | Exit code                       |
+| --------------------------------------------- | ------------ | ------------------------------- |
+| It returns a number, or nothing               | SIGTERM      | that number, or 0               |
+| It throws, or an error goes uncaught anywhere | SIGTERM      | 1                               |
+| SIGTERM, SIGINT, or SIGHUP arrives            | that signal  | 128 + its number: 143, 130, 129 |
+
+- **On return**, any child still running (one you started and never awaited)
+  gets SIGTERM, and `main` waits for it as it would on a signal.
+- **On an error**, `main` prints it to stderr before it signals the children.
+  That includes an unhandled promise rejection or an error thrown in a timer.
+- **On a signal**, `main` passes that signal on and waits. A second signal exits
+  at once, without waiting, so a person pressing Ctrl-C twice always gets out.
+  (In a terminal, Ctrl-C also sends SIGINT straight to the children, which are
+  in the same process group.)
+- **The first ending wins.** If the program fails and the container's SIGTERM
+  arrives while the children are still cleaning up, `main` keeps waiting for
+  them and still exits 1.
+
+On Windows, only SIGINT is handled.
+
+## How long it waits
+
+`main` waits up to `timeoutMs`, 30 seconds by default. Children still running
+then are left running, not killed, and Deno exits; in a container they die with
+it. In a container, the real deadline is the runtime's: it sends SIGTERM, waits
+a grace period, then sends SIGKILL to everything.
+
+| Runtime    | Default grace period                    | Set by                                                                       |
+| ---------- | --------------------------------------- | ---------------------------------------------------------------------------- |
+| Docker     | 10 s (Linux), 30 s (Windows containers) | `docker stop -t`, `docker run --stop-timeout`, Compose's `stop_grace_period` |
+| Kubernetes | 30 s                                    | the pod's `terminationGracePeriodSeconds`                                    |
+| Amazon ECS | 30 s (at most 120 s on Fargate)         | the container's `stopTimeout`                                                |
+
+These come from the
+[`docker stop`](https://docs.docker.com/reference/cli/docker/container/stop/)
+reference, the Kubernetes
+[Pod API](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/),
+and the ECS
+[task definition parameters](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html).
+In Kubernetes, a `preStop` hook's time counts against the same grace period.
+
+Set `timeoutMs` a little under the grace period, leaving a second or two for
+Deno itself to exit:
+
+```typescript
+{{#include ../../examples/processes/shutdown-timeout.ts}}
+```
+
+Too high, and the SIGKILL arrives first: the children are cut off anyway, and
+your program never gets to exit with its own code. Too low, and `main` gives up
+while the children could still have finished. Under Docker's default 10 seconds,
+the default of 30 is too high; set about `8_000`, or give the container a longer
+stop timeout.
+
+## Stopping the children without exiting
+
+```typescript
+{{#include ../../examples/processes/shutdown-terminate-all.ts}}
+```
+
+```text
+{{#include ../../examples/processes/shutdown-terminate-all.out}}
+```
+
+[`terminateAll()`](https://jsr.io/@j50n/proc/doc/~/terminateAll) is the part of
+`main` that signals and waits, on its own: it sends SIGTERM (or the `signal` you
+pass) to every running child proc started, all at once, and resolves when they
+have exited or `timeoutMs` (default 30 s) has passed. Your program carries on.
+It signals every child, not just one; to stop a single command, stop reading it
+(see [Stopping early](./pipelines.md#stopping-early)) or
+`Deno.kill(p.pid, "SIGTERM")`.
+
+A child that dies of the signal, rather than catching it and exiting cleanly,
+makes its consumer throw `SignalError`; the service above traps SIGTERM and
+exits 0, so nothing is thrown.
+
+## Wrapper scripts must `exec`
+
+proc signals only the processes it started: children of `run()`, `.run()`, and
+`new Process`, not ones started with `Deno.Command` directly, and not their
+children in turn. If a child is a shell script that starts the real program, the
+signal reaches the shell, and the program under it never hears about the
+shutdown. Make the script replace itself with the program:
+
+```sh
+#!/bin/sh
+export APP_ENV=production
+exec java -jar app.jar "$@"
+```
+
+Without `exec`, SIGTERM ends the shell, and `java` carries on, orphaned and
+unaware. proc sees its child exit and stops waiting, so the cleanup never
+happens. Some launchers are such wrappers themselves, so check yours. If a
+script can't `exec`, it has to trap the signal and pass it on
+(`trap 'kill -TERM "$pid"' TERM`, then `wait`).
+
+The same applies to Deno itself in a container. Use the exec form,
+`CMD ["deno", "run", "--allow-run", "main.ts"]`. The shell form of `CMD` or
+`ENTRYPOINT` (`CMD deno run main.ts`) runs Deno under `/bin/sh -c`, which, as
+the [Dockerfile reference](https://docs.docker.com/reference/dockerfile/) warns,
+does not pass signals on, so `main` never sees the SIGTERM.
+
+## What `main` can't do
+
+Nothing runs if Deno is killed outright: by SIGKILL, the out-of-memory killer,
+or a failed node. A call to `Deno.exit()` elsewhere in your code also exits at
+once; proc sends SIGTERM to the children on the way out, but can't wait for
+them. Anything that must be released needs a backstop of its own on the
+resource's side, such as a lease or an idle timeout.

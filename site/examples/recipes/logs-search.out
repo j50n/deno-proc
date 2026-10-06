@@ -1,0 +1,5 @@
+2026-10-03 08:14:02 ERROR db: connection refused
+2026-10-03 17:42:30 ERROR db: query timeout after 30s
+2026-10-04 06:31:41 ERROR db: query timeout after 30s
+2026-10-04 13:48:09 ERROR db: connection refused
+2026-10-05 09:01:13 ERROR db: connection refused

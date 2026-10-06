@@ -15,15 +15,15 @@ Everything below follows from those two readers.
 
 ## What makes a page or a comment good
 
-**It says what the thing is for before how it works.** Lead with the purpose
-and when to reach for it. A reader who knows why a function exists can work out
-most of the details; a reader with only the details misuses it.
+**It says what the thing is for before how it works.** Lead with the purpose and
+when to reach for it. A reader who knows why a function exists can work out most
+of the details; a reader with only the details misuses it.
 
 **It is true, and checked.** The code is the arbiter. Before writing a claim
 about behavior, read the code, and when the code doesn't settle it, run a probe.
 Vague phrases ("handles errors properly", "manages resources automatically")
-hide whether a claim is true; say what actually happens ("throws
-`ExitCodeError` after the last line of output").
+hide whether a claim is true; say what actually happens ("throws `ExitCodeError`
+after the last line of output").
 
 **It names the traps.** Where people go wrong is the most useful thing to write
 down: what happens if they skip a step, and what they see when they do. "If you
@@ -40,8 +40,8 @@ Node streams or other libraries unless a reader needs one to choose.
 
 ## Doc comments
 
-Doc comments are the API reference: they appear in `deno doc`, on the JSR
-pages, and in editors, and an LLM often sees nothing else.
+Doc comments are the API reference: they appear in `deno doc`, on the JSR pages,
+and in editors, and an LLM often sees nothing else.
 
 - The first sentence says what it does, in plain words. It is the summary shown
   in lists, so it stands alone.
@@ -61,15 +61,15 @@ pages, and in editors, and an LLM often sees nothing else.
 ## The book
 
 The book (`site/src`) is for learning the library and for the topics that cross
-many functions: pipelines, errors, shutdown, data formats. It doesn't repeat
-the API reference; it links to it.
+many functions: pipelines, errors, shutdown, data formats. It doesn't repeat the
+API reference; it links to it.
 
 - Each page answers one question a reader has ("How do I pipe one command into
   another?"), and its title says which.
 - Examples come first and carry the explanation. Prose fills in what the code
   can't show.
 - Code that runs lives in `site/examples/` as a file, and the page pulls it in
-  with `{{#include ../../examples/name.ts}}`. `tests/book_examples.test.ts`
+  with `\{{#include ../../examples/name.ts}}`. `tests/book_examples.test.ts`
   checks and runs every file there, so an example can't drift from the code.
 - A fragment that can't stand alone (a deliberate mistake, a sketch) is marked
   as such in the prose.

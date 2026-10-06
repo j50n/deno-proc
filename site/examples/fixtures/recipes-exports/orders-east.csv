@@ -1,0 +1,5 @@
+order,amount,status
+1001,25.00,paid
+1002,13.50,refunded
+1003,99.90,paid
+1004,7.25,paid

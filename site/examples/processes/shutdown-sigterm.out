@@ -1,0 +1,8 @@
+shutdown-main.ts
+  service: ready
+  exited with 143
+  lock file left behind: false
+shutdown-plain.ts
+  service: ready
+  killed by SIGTERM
+  lock file left behind: true

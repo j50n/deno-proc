@@ -1,0 +1,11 @@
+item,note
+"Widget, large","says ""hi"""
+Bolt,"two
+lines"
+Nut, spaces kept 
+--
+item;note
+Widget, large;"says ""hi"""
+Bolt;"two
+lines"
+Nut; spaces kept 

@@ -1,145 +1,58 @@
-# Welcome to proc
+# proc
 
-## The Problem
-
-JavaScript streams are push-based. Producers push data whether consumers are
-ready or not. This creates backpressure—complex coordination between producers
-and consumers to prevent memory exhaustion. And when something goes wrong? You
-need error handlers on every stream in the chain.
+proc runs child processes from Deno the way a shell pipes them, with errors that
+reach one `catch`. It also gives any async iterable the Array methods you
+already know: `map`, `filter`, `reduce`, `take`, and concurrent versions of
+`map`.
 
 ```typescript
-// Traditional streams: backpressure + error handling at every step
-stream1.on("error", handleError);
-stream2.on("error", handleError);
-stream3.on("error", handleError);
-// Plus drain events, pause/resume, pipe coordination...
+{{#include ../examples/intro/taste.ts}}
 ```
 
-## The Solution
-
-proc uses async iterators instead of streams. Consumers pull data when ready. No
-backpressure. No coordination. And errors flow through pipelines naturally—one
-try-catch handles everything.
-
-```typescript
-// proc: no backpressure, errors just work
-try {
-  await run("cat", "data.txt")
-    .run("grep", "error")
-    .run("wc", "-l")
-    .lines
-    .forEach(console.log);
-} catch (error) {
-  // All errors caught here
-}
+```text
+{{#include ../examples/intro/taste.out}}
 ```
 
-## Who This Book Is For
+Each `.run()` pipes the output of one command into the next. `.lines` turns
+bytes into lines of text, and `collect()` gathers them into an array. If any of
+the three commands fails, the `await` throws.
 
-This documentation is for developers who:
+## What it is for
 
-- Run child processes and want better error handling than `Deno.Command`
-  provides
-- Process streaming data (logs, CSV files, API responses) without loading
-  everything into memory
-- Want Array-like methods (`map`, `filter`, `reduce`) for async data
-- Are replacing shell scripts with type-safe, testable code
+- **Scripts that drive other programs**: git, compilers, ffmpeg, cloud CLIs,
+  anything you would otherwise chain in bash, with TypeScript's types and real
+  error handling.
+- **Streaming data**: logs, CSV exports, and compressed files, a line or a row
+  at a time, in constant memory.
+- **Long-running children**: programs that launch other programs and must give
+  them time to shut down, including in containers.
+- **Async iterables in general**: the same methods work on anything you can
+  `for await` over, with or without processes.
 
-You should be comfortable with TypeScript basics and async/await. No prior
-experience with Deno streams or child processes required.
+## What you get
 
-## What You'll Learn
+- [`run()`](./processes/running.md) to start a command, and `.run()` to pipe
+  into the next one.
+- [`enumerate()`](./iterables/enumerable.md) to wrap any iterable in the same
+  methods.
+- [`read()`, `writeTo()`, and `toStdout()`](./iterables/files.md) for files and
+  standard streams.
+- [`main()`](./processes/shutdown.md) to let child processes finish cleaning up
+  before your program exits.
+- [`WritableIterable`](./iterables/writable-iterable.md) to turn callbacks and
+  events into an iterable.
+- [Data transforms](./data/overview.md) between CSV, TSV, JSON lines, and a
+  record format.
 
-**Running Processes** — Execute commands, chain them like shell pipes, capture
-output, handle errors gracefully.
+## When you don't need it
 
-**Async Iterables** — Use `map`, `filter`, `reduce`, and more on any async data
-source. Process gigabyte files with constant memory.
+If you run one command and want all of its output at once,
+`await new Deno.Command("git", { args: ["status"] }).output()` does that, and
+you check `success` yourself. proc earns its place when you pipe commands
+together, read output as it arrives, or want a failed command to throw.
 
-**Bridge Push and Pull** — Convert callbacks, events, and WebSockets into async
-iterables with WritableIterable, with natural error propagation.
+## Next
 
-**Data Transforms** — Convert between CSV, TSV, JSON, and Record formats with
-streaming support. Or use the WASM-powered flatdata CLI for maximum throughput.
-
-## A Taste of proc
-
-Count lines in a compressed file—streaming, constant memory:
-
-```typescript
-import { read } from "jsr:@j50n/proc@{{gitv}}";
-
-const count = await read("logs.txt.gz")
-  .transform(new DecompressionStream("gzip"))
-  .lines
-  .count();
-```
-
-Chain processes like shell pipes:
-
-```typescript
-import { run } from "jsr:@j50n/proc@{{gitv}}";
-
-const errors = await run("cat", "app.log")
-  .run("grep", "ERROR")
-  .run("wc", "-l")
-  .lines.first;
-```
-
-Transform async data with familiar methods:
-
-```typescript
-import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
-
-const results = await enumerate(urls)
-  .concurrentMap(fetch, { concurrency: 5 })
-  .filter((r) => r.ok)
-  .map((r) => r.json())
-  .collect();
-```
-
-Bridge event-driven code to async iteration:
-
-```typescript
-import { WritableIterable } from "jsr:@j50n/proc@{{gitv}}";
-
-const messages = new WritableIterable<string>();
-ws.onmessage = async (e) => await messages.write(e.data);
-ws.onclose = () => messages.close();
-
-for await (const msg of messages) {
-  console.log("Received:", msg);
-}
-```
-
-## Quick Decision Guide
-
-**Need to run shell commands?** →
-[Running Processes](./core/running-processes.md)
-
-**Processing files line by line?** → [File I/O](./utilities/file-io.md)
-
-**Converting CSV/TSV/JSON?** → [Data Transforms](./data-transforms/README.md)
-
-**Have callback/event-based data?** →
-[WritableIterable](./utilities/writable-iterable.md)
-
-**Need maximum throughput?** → [flatdata CLI](./utilities/flatdata.md)
-
-**Working with any async data?** →
-[Understanding Enumerable](./iterables/enumerable.md)
-
-## Getting Started
-
-1. [Installation](./getting-started/installation.md) — Add proc to your project
-2. [Quick Start](./getting-started/quick-start.md) — Your first proc script in 5
-   minutes
-3. [Key Concepts](./getting-started/key-concepts.md) — Essential patterns to
-   understand
-
----
-
-**Version:** {{gitv}} | **License:** MIT | **Status:** Production-ready
-
-[GitHub](https://github.com/j50n/deno-proc) ·
-[Issues](https://github.com/j50n/deno-proc/issues) · [FAQ](./faq.md)
+[Install it and run a first script](./start/install.md), then read
+[Key ideas](./start/key-ideas.md): eight short points that cover how every part
+of proc behaves.

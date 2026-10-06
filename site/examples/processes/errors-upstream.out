@@ -1,0 +1,5 @@
+[ "UpstreamError: thrown by cat", "ExitCodeError: sh exited with 2" ]
+[
+  "ExitCodeError: grep exited with 1",
+  "ExitCodeError: sh exited with 2"
+]
