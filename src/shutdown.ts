@@ -8,6 +8,14 @@ const running = new Map<Deno.ChildProcess, Promise<void>>();
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /*
+ * On Windows, Deno's `kill` ends a child at once (TerminateProcess) whatever
+ * the signal, so proc can't ask a child there to stop; it can only end it.
+ * A Ctrl-C reaches every process on the console, children included, so after
+ * one `main` waits rather than end them partway through their cleanup.
+ */
+const WINDOWS = Deno.build.os === "windows";
+
+/*
  * The signals `main` handles, and whether to pass each on. A SIGTERM comes to
  * Deno alone (from `docker stop`, systemd, `kill`), so the children hear of it
  * only if `main` forwards it. SIGINT (Ctrl-C) and SIGHUP (the terminal
@@ -19,13 +27,11 @@ const DEFAULT_TIMEOUT_MS = 30_000;
  * SIGTERM instead.
  */
 const SIGNALS: { signal: Deno.Signal; code: number; forward: boolean }[] =
-  Deno.build.os === "windows"
-    ? [{ signal: "SIGINT", code: 130, forward: false }]
-    : [
-      { signal: "SIGTERM", code: 143, forward: true },
-      { signal: "SIGINT", code: 130, forward: false },
-      { signal: "SIGHUP", code: 129, forward: false },
-    ];
+  WINDOWS ? [{ signal: "SIGINT", code: 130, forward: false }] : [
+    { signal: "SIGTERM", code: 143, forward: true },
+    { signal: "SIGINT", code: 130, forward: false },
+    { signal: "SIGHUP", code: 129, forward: false },
+  ];
 
 /**
  * Track a child until it is done: it has exited, and `handling`, the work of
@@ -102,6 +108,9 @@ globalThis.addEventListener("unload", () => {
  * {@link main} does this for you on the way out. Call it directly to stop the
  * children without exiting.
  *
+ * On Windows the signal can't be caught: Deno ends the child at once
+ * (TerminateProcess), with exit code 1, whatever `signal` is.
+ *
  * proc signals only the processes it started. A child that is a wrapper script
  * has to `exec` its real program or forward the signal, or the program under
  * it never hears about the shutdown.
@@ -175,6 +184,11 @@ async function waitFor(
  *   second to exit, then SIGTERM any still running (they got nothing if the
  *   signal came to Deno alone), wait, and exit 130 or 129.
  *
+ * On Windows only SIGINT is handled, and after it `main` waits for the
+ * children, up to `timeoutMs`, without ending them: there, proc's signals
+ * can't be caught, and end a child at once. For the same reason, on the other
+ * endings the children are ended rather than asked.
+ *
  * A second signal exits at once without waiting. The wait is bounded by
  * `timeoutMs`; set it a little under the container's grace period, or proc
  * gives up first and the children's cleanup is cut short. Children started
@@ -225,10 +239,10 @@ export async function main(
       const start = Date.now();
       await waitFor(
         [...running.values()],
-        Math.min(INTERRUPT_GRACE_MS, timeoutMs),
+        WINDOWS ? timeoutMs : Math.min(INTERRUPT_GRACE_MS, timeoutMs),
       );
       const left = Math.max(0, timeoutMs - (Date.now() - start));
-      if (running.size > 0) await terminateAll({ timeoutMs: left });
+      if (running.size > 0 && !WINDOWS) await terminateAll({ timeoutMs: left });
     }
     Deno.exit(code);
   };

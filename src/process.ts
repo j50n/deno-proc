@@ -106,8 +106,9 @@ export interface ProcessOptions<S> {
    * reading its output throws {@link TimeoutError} once it has exited,
    * however it exited. The timer starts when the child does and stops when
    * it exits, so it bounds a child you stopped reading early, too. A child
-   * that ignores SIGTERM keeps running; proc never sends SIGKILL. Default:
-   * no limit.
+   * that ignores SIGTERM keeps running; proc never sends SIGKILL. On
+   * Windows, Deno's SIGTERM can't be caught: the child is ended at once.
+   * Default: no limit.
    */
   readonly timeoutMs?: number;
 

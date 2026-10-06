@@ -89,8 +89,27 @@ needed.
 Call `main` once, around the whole program: however it ends, it ends the
 process.
 
-On Windows, only SIGINT is handled. Deno doesn't honor `nohup`: under it, a
-hangup still reaches Deno, and `main` handles it as above.
+Deno doesn't honor `nohup`: under it, a hangup still reaches Deno, and `main`
+handles it as above.
+
+## On Windows
+
+Windows has no signals a child can catch. Deno's `kill` ends a child at once,
+with exit code 1 (`TerminateProcess`), whatever signal it is given. So on
+Windows `main` and `terminateAll` can't ask a child to clean up; they can only
+end it. What still holds:
+
+- **Ctrl-C** reaches every process on the console, the children included, and
+  each can clean up after it. It is the only signal `main` handles there. It
+  then waits for the children, up to `timeoutMs`, without ending them, so their
+  cleanup isn't cut short, and exits 130.
+- **On return or an error**, children still running are ended at once, not
+  asked; Deno would end them as it exits anyway.
+- **`timeoutMs` on a command** ends the child at once.
+
+A child that must clean up on Windows has to be told to stop some other way,
+such as by closing its stdin or with a message of its own, before the program
+returns.
 
 ## How long it waits
 
