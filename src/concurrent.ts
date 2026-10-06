@@ -4,20 +4,25 @@ import { handled } from "./helpers.ts";
 function resolvedConcurrency(concurrency?: number | undefined) {
   if (concurrency === undefined) {
     return navigator.hardwareConcurrency;
-  } else {
-    const c = Math.ceil(concurrency);
-    if (c < 1) {
-      throw new Error(`concurrency must be greater than 0; got ${c}`);
-    }
-    return Math.ceil(concurrency);
   }
+  const c = Math.ceil(concurrency);
+  if (!(c >= 1)) {
+    throw new Error(`concurrency must be at least 1; got ${concurrency}`);
+  }
+  return c;
+}
+
+/** `mapFn(item)` as a promise, even if `mapFn` throws or isn't async. */
+function call<T, U>(mapFn: (item: T) => Promise<U>, item: T): Promise<U> {
+  return handled((async () => await mapFn(item))());
 }
 
 /**
  * Implements `Enumerable.concurrentMap`: up to `concurrency` calls of `mapFn`
- * in flight, results yielded in input order. A slow item holds back the
- * results after it, and while it does, fewer than `concurrency` calls run. A
- * rejection is thrown when its turn to be yielded comes.
+ * in flight, results yielded in input order as soon as each is ready. A slow
+ * item holds back the results after it, and while it does, fewer than
+ * `concurrency` calls run. A rejection is thrown when its turn to be yielded
+ * comes. If the source throws, the calls already started are yielded first.
  */
 export async function* concurrentMap<T, U>(
   items: AsyncIterable<T>,
@@ -25,26 +30,51 @@ export async function* concurrentMap<T, U>(
   concurrency?: number,
 ): AsyncIterableIterator<U> {
   const c = resolvedConcurrency(concurrency);
+  const source = items[Symbol.asyncIterator]();
+  const running: Promise<U>[] = [];
+  let pulling: Promise<IteratorResult<T>> | undefined;
+  let ended = false;
+  let failure: { error: unknown } | undefined;
 
-  const buffer: Promise<U>[] = [];
+  try {
+    while (true) {
+      if (!ended && pulling === undefined && running.length < c) {
+        pulling = source.next();
+      }
+      if (running.length === 0 && pulling === undefined) break;
 
-  for await (const item of items) {
-    if (buffer.length >= c) {
-      yield await buffer.shift()!;
+      // Whichever comes first: the next result in order, or the next item.
+      const next = await Promise.race([
+        ...running.slice(0, 1).map((p) => p.then(head, head)),
+        ...(pulling ? [pulling.then(pulled, pulled)] : []),
+      ]);
+
+      if (next === HEAD) {
+        yield await running.shift()!;
+      } else {
+        try {
+          const result = await pulling!;
+          if (result.done) ended = true;
+          else running.push(call(mapFn, result.value));
+        } catch (error) {
+          ended = true;
+          failure = { error };
+        }
+        pulling = undefined;
+      }
     }
-
-    buffer.push(handled(mapFn(item)));
+  } finally {
+    if (!ended) await close(source, pulling);
   }
 
-  while (buffer.length > 0) {
-    yield await buffer.shift()!;
-  }
+  if (failure) throw failure.error;
 }
 
 /**
- * Implements `Enumerable.concurrentUnorderedMap`: keeps `concurrency` calls of
- * `mapFn` in flight and yields results in the order they finish. A rejection
- * is thrown when it would have been yielded.
+ * Implements `Enumerable.concurrentUnorderedMap`: up to `concurrency` calls of
+ * `mapFn` in flight, results yielded as they finish. A rejection is thrown as
+ * soon as it happens. If the source throws, the calls already started are
+ * yielded first.
  */
 export async function* concurrentUnorderedMap<T, U>(
   items: AsyncIterable<T>,
@@ -52,56 +82,75 @@ export async function* concurrentUnorderedMap<T, U>(
   concurrency?: number,
 ): AsyncIterableIterator<U> {
   const c = resolvedConcurrency(concurrency);
+  const source = items[Symbol.asyncIterator]();
+  const running = new Set<Promise<Settled<U>>>();
+  let pulling: Promise<IteratorResult<T>> | undefined;
+  let ended = false;
+  let failure: { error: unknown } | undefined;
 
-  /*
-   * The same slots go into both queues. Whichever call finishes next fills
-   * the oldest unfilled slot (shift from aft); the consumer takes the oldest
-   * slot (shift from fore). So slots fill in completion order, and the
-   * consumer gets results in that order.
-   */
-  const buffAft: Esimorp<U>[] = [];
-  const buffFore: Esimorp<U>[] = [];
-
-  for await (const item of items) {
-    if (buffFore.length >= c) {
-      yield await buffFore.shift()!.promise;
-    }
-
-    const p: Esimorp<U> = esimorp();
-    buffAft.push(p);
-    buffFore.push(p);
-    handled(p.promise);
-
-    (async () => {
-      try {
-        const transItem = await mapFn(item);
-        buffAft.shift()!.resolve(transItem);
-      } catch (e) {
-        buffAft.shift()!.reject(e);
+  try {
+    while (true) {
+      if (!ended && pulling === undefined && running.size < c) {
+        pulling = source.next();
       }
-    })();
+      if (running.size === 0 && pulling === undefined) break;
+
+      const next = await Promise.race([
+        ...running,
+        ...(pulling ? [pulling.then(pulled, pulled)] : []),
+      ]);
+
+      if (next === PULLED) {
+        try {
+          const result = await pulling!;
+          if (result.done) ended = true;
+          else running.add(settle(call(mapFn, result.value)));
+        } catch (error) {
+          ended = true;
+          failure = { error };
+        }
+        pulling = undefined;
+      } else {
+        running.delete(next.self);
+        if ("error" in next) throw next.error;
+        yield next.value;
+      }
+    }
+  } finally {
+    if (!ended) await close(source, pulling);
   }
 
-  while (buffFore.length > 0) {
-    yield await buffFore.shift()!.promise;
-  }
+  if (failure) throw failure.error;
 }
 
-type Resolve<T> = (value: T) => void;
+/**
+ * Close a source the consumer stopped reading early. With a pull still
+ * pending, the close waits behind it, and the item may never come, so don't
+ * wait for it.
+ */
+async function close<T>(
+  source: AsyncIterator<T>,
+  pulling: Promise<IteratorResult<T>> | undefined,
+): Promise<void> {
+  const closing = source.return?.();
+  if (pulling === undefined) await closing;
+  else handled(closing);
+}
 
-type Reject = (reason?: unknown) => void;
+const HEAD = Symbol("head");
+const PULLED = Symbol("pulled");
+const head = (): typeof HEAD => HEAD;
+const pulled = (): typeof PULLED => PULLED;
 
-type Esimorp<T> = { promise: Promise<T>; resolve: Resolve<T>; reject: Reject };
+type Settled<U> =
+  & { self: Promise<Settled<U>> }
+  & ({ value: U } | { error: unknown });
 
-/** A pending promise with its `resolve` and `reject` (promise backwards). */
-function esimorp<T>(): Esimorp<T> {
-  let rs: Resolve<T>;
-  let rj: Reject;
-
-  const p = new Promise<T>((resolve, reject) => {
-    rs = resolve;
-    rj = reject;
-  });
-
-  return { promise: p, resolve: rs!, reject: rj! };
+/** A promise of `p`'s outcome that knows itself, so it can leave `running`. */
+function settle<U>(p: Promise<U>): Promise<Settled<U>> {
+  const self: Promise<Settled<U>> = p.then(
+    (value) => ({ self, value }),
+    (error) => ({ self, error }),
+  );
+  return self;
 }

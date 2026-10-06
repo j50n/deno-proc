@@ -81,10 +81,16 @@ export type StderrHandler<S> = (it: Enumerable<Uint8Array>) => Promise<S>;
  * ```
  */
 export interface ProcessOptions<S> {
-  /** Working directory for the child. Default: this process's. */
+  /**
+   * Working directory for the child. Default: this process's. A relative
+   * program path such as `"./build.sh"` is found from here, not from this
+   * process's directory.
+   */
   readonly cwd?: string;
   /**
    * Environment variables to add to or override in the inherited environment.
+   * A `PATH` here changes where the program is looked up, so don't build `env`
+   * from untrusted input.
    */
   readonly env?: Record<string, string>;
 
@@ -315,11 +321,20 @@ export class Process<S> implements Closer {
     public readonly cmd: string | URL,
     public readonly args: readonly string[],
   ) {
+    if (options.fnStderr != null && options.stderr !== "piped") {
+      throw new TypeError('fnStderr needs stderr: "piped"');
+    }
+
+    // Only the options proc defines; anything else in `options` stays out.
+    const { cwd, env, stdin, stdout, stderr } = options;
     this.process = new Deno.Command(this.cmd, {
-      ...this.options,
+      cwd,
+      env,
+      stdin,
+      stdout,
+      stderr,
       args: [...this.args],
-    })
-      .spawn();
+    }).spawn();
     track(this.process);
 
     if (options.fnStderr != null) {
@@ -454,41 +469,48 @@ export class Process<S> implements Closer {
       };
 
       const ser = this.stderrResult;
+      let started = false;
       this._stdout = {
         async *[Symbol.asyncIterator]() {
+          // The output and the exit status can be read once.
+          if (started) return;
+          started = true;
+
           try {
             let error: Error | undefined;
             try {
               let status: Deno.CommandStatus;
+              let finished = false;
               try {
                 yield* process.stdout;
+                finished = true;
               } finally {
                 status = await process.status;
-                await ser;
+                // A consumer that stops early hears nothing, not even that
+                // fnStderr failed.
+                await (finished ? ser : ser?.catch(() => {}));
               }
 
               const cause = passError();
 
               if (status.signal != null) {
+                // The program only: arguments can hold secrets, and messages
+                // end up in logs. `command` has the rest.
                 throw new SignalError(
-                  `signal error: ${status.signal}`,
+                  `${cmd[0]} was killed by ${status.signal}`,
                   cmd,
                   status.signal,
                   cause == null ? undefined : { cause },
                 );
               } else if (status.code !== 0) {
                 throw new ExitCodeError(
-                  `exit code: ${status.code}`,
+                  `${cmd[0]} exited with code ${status.code}`,
                   cmd,
                   status.code,
                   cause == null ? undefined : { cause },
                 );
               } else if (cause) {
-                throw new UpstreamError(
-                  cause.message,
-                  cmd,
-                  cause == null ? undefined : { cause },
-                );
+                throw new UpstreamError(cause.message, cmd, { cause });
               }
             } catch (e) {
               error = e as Error | undefined;
@@ -508,7 +530,10 @@ export class Process<S> implements Closer {
    *
    * A string is written as a line (a newline is added), a `string[]` as one
    * line per string, and bytes as they are. `write` doesn't wait for the
-   * child to read. Call `close()` when you are done, or the child waits for
+   * child to read: there is no backpressure, and items queue in memory until
+   * the child takes them. Once the child has exited and its output has been
+   * read, `write` rejects with `Error`. Call `close()` when you are done, or
+   * the child waits for
    * more input; `close(error)` instead makes {@link Process.stdout} throw an
    * {@link UpstreamError} with `error` as its `cause`.
    *
@@ -575,9 +600,6 @@ export class Process<S> implements Closer {
     return (async () => {
       try {
         for await (const it of buffer(bufferInput ? 16384 : 0)(toBytes(iter))) {
-          if (writerIsClosed) {
-            break;
-          }
           await writer.write(it);
         }
       } catch (e) {

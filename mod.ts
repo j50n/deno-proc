@@ -44,8 +44,8 @@
  *
  * 1. **Read the output.** A command starts when you call `run()`. Its stdout is
  *    a pipe: a child that writes more than the pipe holds waits until you read
- *    it, and if you never do, your program hangs. Consume it with `.lines`,
- *    `collect()`, `forEach()`, `toStdout()`, or similar.
+ *    it, and if you never do, your program hangs. Consume it with
+ *    `collect()`, `forEach()`, `toStdout()`, a `for await` loop, or similar.
  * 2. **Errors arrive at the end of the output.** A command that exits non-zero
  *    throws {@link ExitCodeError} after you have read every line it wrote.
  *    Wrap the `await` that consumes the pipeline in one `try`/`catch`.
@@ -53,9 +53,10 @@
  *    `.pid` take no parentheses; most others are methods.
  * 4. **Parsers yield batches.** The transforms in `@j50n/proc/transforms`
  *    yield arrays of rows; add `.flatten()` to work a row at a time.
- * 5. **In a container, wrap the program in `main()`.** Left alone, Deno exits
- *    the moment it is told to stop and the children are killed with it,
- *    without time to clean up.
+ * 5. **Wrap a program that starts children in `main()`.** Left alone, Deno
+ *    exits at once when it is told to stop or an error goes uncaught, and its
+ *    children are killed or orphaned without time to clean up; in a container,
+ *    they are always killed.
  *
  * @example Capture a command's output
  * ```ts
@@ -142,7 +143,7 @@
 
 export * from "./src/utility.ts";
 export * from "./src/process.ts";
-export * from "./src/shutdown.ts";
+export { main, terminateAll } from "./src/shutdown.ts";
 export * from "./src/run.ts";
 export * from "./src/enumerable.ts";
 export * from "./src/transformers.ts";

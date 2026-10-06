@@ -93,10 +93,13 @@ export async function terminateAll(
 /**
  * Run a program, and shut its child processes down before it exits.
  *
- * Deno's own behavior is to exit at once and let child processes crash out. On
- * a normal host they carry on alone, but in a container, Deno's exit usually
- * ends the container, so children are killed before their cleanup can run. In
- * a container, wrap your program in `main`.
+ * Deno's own behavior is to exit at once and let child processes crash out.
+ * Told to stop, it doesn't tell them: on a normal host they carry on alone,
+ * and in a container Deno's exit usually ends the container, so they are
+ * killed before their cleanup can run. An uncaught error is worse, on any
+ * host: Deno kills its children as it exits, without a signal they can
+ * handle. Wrap any program that starts long-lived children in `main`, and
+ * always one that runs in a container.
  *
  * However the program ends, `main` signals every running child, waits for them
  * to exit, then exits:

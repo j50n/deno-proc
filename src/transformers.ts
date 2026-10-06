@@ -38,7 +38,8 @@ export type TransformerFunction<T, U> = (
  * Splits on `\n` and drops a `\r` before it, so CRLF works too; line endings
  * are not included. A last line without a newline is still delivered, and one
  * final newline does not make an extra empty line (`"a\nb\n"` gives `"a"`,
- * `"b"`). Empty input gives no lines.
+ * `"b"`). A `\r` at the very end of input is dropped as well. Empty input
+ * gives no lines.
  *
  * `.lines` on an Enumerable is this; use the function on a plain async
  * iterable, or inside a transformer of your own.
@@ -120,6 +121,10 @@ export async function* toChunkedLines(
   }
 
   if (lines.length !== 0) {
+    // The last line may end in a CR with no LF to follow; drop it too.
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].endsWith("\r")) lines[i] = lines[i].slice(0, -1);
+    }
     yield lines;
   }
 }
@@ -130,8 +135,8 @@ export async function* toChunkedLines(
  *
  * Use it for data that isn't UTF-8, or to skip decoding. Lines split as in
  * {@link toLines}: on `\n`, with a `\r` before it dropped, a last line without
- * a newline delivered, and no extra empty line after a final newline. A `\r`
- * at the very end of input is dropped as well. Lines are views on the input
+ * a newline delivered, no extra empty line after a final newline, and a `\r`
+ * at the very end of input dropped. Lines are views on the input
  * chunks where they can be, not copies.
  *
  * @example
@@ -501,8 +506,11 @@ export function gzip(
  * get a function.
  *
  * A stream works once. Using the same transformer, or the same
- * `TransformStream`, a second time yields nothing and throws nothing; create a
- * new stream for each use.
+ * `TransformStream`, a second time yields nothing, or throws again the error
+ * the first use failed with; create a new stream for each use.
+ *
+ * If the source throws, the stream is aborted, not closed, so a
+ * `CompressionStream` doesn't write a complete-looking end to what it got.
  *
  * @example
  * ```typescript
@@ -524,19 +532,22 @@ export function gzip(
 export function transformerFromTransformStream<IN, OUT>(
   transform: { writable: WritableStream<IN>; readable: ReadableStream<OUT> },
 ): TransformerFunction<IN, OUT> {
-  let error: Error | undefined;
-
-  async function* errorTrap(items: AsyncIterable<IN>): AsyncIterable<IN> {
-    try {
-      yield* items;
-    } catch (e) {
-      error = e as Error | undefined;
-    }
-  }
-
   async function* converter(
     items: AsyncIterable<IN>,
   ): AsyncIterable<OUT> {
+    let error: Error | undefined;
+
+    // Note the source's error and let it abort the stream: closing it instead
+    // would let, say, a CompressionStream finish a complete-looking file.
+    async function* errorTrap(items: AsyncIterable<IN>): AsyncIterable<IN> {
+      try {
+        yield* items;
+      } catch (e) {
+        error = e as Error | undefined;
+        throw e;
+      }
+    }
+
     try {
       yield* ReadableStream
         .from(errorTrap(items))

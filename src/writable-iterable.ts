@@ -45,7 +45,8 @@ export interface Writable<T> {
  *
  * `write()` queues the item and returns at once; it does not wait for a
  * reader. Nothing limits the queue, so if the reader is slower than the
- * writer, or there is no reader, items pile up in memory.
+ * writer, or there is no reader yet, items pile up in memory. Once a reader
+ * has stopped early, written items are dropped.
  *
  * Call `close()` when the data ends, or the reader waits forever after the
  * last item. `close(error)` ends it with an error instead: the reader gets
@@ -53,8 +54,7 @@ export interface Writable<T> {
  * `write()` after `close()` rejects with `Error`; in an event handler, catch
  * it, or an unhandled rejection ends the program.
  *
- * Read it once, with one reader. Iterating it again after it has ended throws
- * a `TypeError`.
+ * Read it once, with one reader: a second throws `TypeError`.
  *
  * @example From events to a loop
  * ```typescript
@@ -97,6 +97,8 @@ export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
   }
 
   private queue: QueueEntry<Some<T> | None>[] = [];
+  private reading = false;
+  private abandoned = false;
 
   /**
    * Create an empty, open queue.
@@ -136,7 +138,8 @@ export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
 
   /**
    * Queue one item for the reader. Resolves at once, without waiting for the
-   * item to be read. Rejects with `Error` after `close()`.
+   * item to be read. Rejects with `Error` after `close()`. Once the reader has
+   * stopped early (a `break`, say), items go nowhere instead of piling up.
    *
    * @param item The item.
    */
@@ -144,6 +147,7 @@ export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
     if (this.isClosed) {
       throw new Error("writable is already closed");
     }
+    if (this.abandoned) return;
 
     this.queue[this.queue.length - 1].resolve(new Some(item));
     this.addEmptyPromiseToQueue();
@@ -153,23 +157,38 @@ export class WritableIterable<T> implements Writable<T>, AsyncIterable<T> {
     }
   }
 
-  /** Read the items written, in order, until `close()`. */
+  /**
+   * Read the items written, in order, until `close()`. It can be read once,
+   * by one reader; a second throws `TypeError`.
+   */
   async *[Symbol.asyncIterator](): AsyncIterator<T> {
-    while (true) {
-      try {
-        const item = await this.queue[0].promise;
-        if (item instanceof Some) {
-          yield item.item;
-        } else {
-          if (item.error != null) {
-            throw item.error;
+    if (this.reading) {
+      throw new TypeError("a WritableIterable can be read only once");
+    }
+    this.reading = true;
+
+    try {
+      while (true) {
+        try {
+          const item = await this.queue[0].promise;
+          if (item instanceof Some) {
+            yield item.item;
           } else {
-            break;
+            if (item.error != null) {
+              throw item.error;
+            } else {
+              break;
+            }
           }
+        } finally {
+          this.queue.shift();
         }
-      } finally {
-        this.queue.shift();
       }
+    } finally {
+      // Nothing will read what is written from now on.
+      this.abandoned = true;
+      this.queue = [];
+      this.addEmptyPromiseToQueue();
     }
   }
 }

@@ -38,7 +38,7 @@ for (const name of ["concurrentMap", "concurrentUnorderedMap"] as const) {
 
 Deno.test({
   name:
-    "map: when the source fails while an item is still mapping, that item's failure is not unhandled.",
+    "map: an item's failure comes before a later source failure, and nothing is left unhandled.",
 
   async fn() {
     await assertRejects(
@@ -48,7 +48,7 @@ Deno.test({
           throw new Error("map failed");
         }).collect(),
       Error,
-      "source failed",
+      "map failed",
     );
     await sleep(50);
   },
@@ -56,7 +56,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "forEach: when the source fails while an item is still being handled, that item's failure is not unhandled.",
+    "forEach: an item's failure comes before a later source failure, and nothing is left unhandled.",
 
   async fn() {
     await assertRejects(
@@ -66,7 +66,7 @@ Deno.test({
           throw new Error("forEach failed");
         }),
       Error,
-      "source failed",
+      "forEach failed",
     );
     await sleep(50);
   },

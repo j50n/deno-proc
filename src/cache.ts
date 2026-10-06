@@ -91,7 +91,10 @@ async function put<T>(key: string | string[], value: T): Promise<void> {
  *
  * Values are kept in Deno KV's default database (`Deno.openKv()` with no
  * path), so they last across runs and are shared with every program that
- * opens the same database. A key of `"x"` is the same as `["x"]`. Age is
+ * opens the same database: with a `deno.json`, every script in the project;
+ * without one, each main script has its own. The database is an unencrypted
+ * file under `DENO_DIR`, so don't cache secrets. A key of `"x"` is the same
+ * as `["x"]`. Age is
  * checked when read, against the `timeout` of that call: an older entry is
  * recomputed and replaced, and nothing is ever deleted.
  *
@@ -103,6 +106,8 @@ async function put<T>(key: string | string[], value: T): Promise<void> {
  * - `null` and `undefined` are not cached; `value` is called every time.
  * - The value must fit in a KV entry: structured-cloneable (no functions) and
  *   at most 64 KiB, or storing it throws `TypeError` (after `value` has run).
+ *   A hit returns a structured clone: a class instance comes back as a plain
+ *   object, whatever `T` says.
  * - Two calls that miss at the same time both call `value`.
  * - An error thrown by `value` comes out of `cache` unchanged, and nothing is
  *   stored.

@@ -3,6 +3,7 @@ import { handled, parseArgs } from "./helpers.ts";
 import type { Cmd } from "./run.ts";
 import type { Writable } from "./writable-iterable.ts";
 import {
+  type StandardData,
   toBytes,
   toChunkedLines,
   toLines,
@@ -12,7 +13,7 @@ import {
 import { writeAll } from "./utility.ts";
 import { concurrentMap, concurrentUnorderedMap } from "./concurrent.ts";
 import type { Closer, Writer } from "@std/io/types";
-import { tee } from "@std/async/tee";
+import { tee } from "./tee.ts";
 
 /**
  * The item type of an iterable or async iterable `T`, or `never` if `T` is
@@ -237,13 +238,14 @@ export class Enumerable<T> implements AsyncIterable<T> {
   }
 
   /**
-   * Write the bytes to a file, creating it or replacing what it held, and
+   * Write the items to a file, creating it or replacing what it held, and
    * close it.
    *
-   * The items must be `Uint8Array`; turn text into bytes first with
-   * `.transform(toBytes)`. Other items fail with a `TypeError` ("Writable
-   * stream is closed or errored"). If the source throws, the file is closed
-   * holding what was written so far, and the error is thrown here.
+   * Items are written as {@link toStdout} writes them: bytes as they are,
+   * each string as a line, an array of either as several. Any other item
+   * throws a `TypeError`. The file is emptied when writing starts, so a
+   * failure leaves it holding only what was written before it: the old
+   * content is gone, and the error is thrown here.
    *
    * @example
    * ```typescript
@@ -303,7 +305,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
         create: true,
         truncate: true,
       });
-      await this.writeTo(file.writable as WritableStream<T>);
+      // Bytes as they are, strings as lines, as toStdout writes them.
+      await enumerate(toBytes(this.iter as AsyncIterable<StandardData>))
+        .writeTo(file.writable);
       return;
     }
 
@@ -311,6 +315,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
     if ("getWriter" in writer) {
       const w = writer.getWriter();
+      let failed = false;
 
       try {
         let p: undefined | Promise<void>;
@@ -321,10 +326,16 @@ export class Enumerable<T> implements AsyncIterable<T> {
         }
 
         await p;
+      } catch (e) {
+        failed = true;
+        throw e;
       } finally {
         w.releaseLock();
         if (!options?.noclose) {
-          await writer.close();
+          // After a failure, close what can be closed, but the first error
+          // is the one to report.
+          const closing = writer.close();
+          await (failed ? closing.catch(() => {}) : closing);
         }
       }
     } else {
@@ -418,19 +429,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
     const iter = this.iter;
     return new Enumerable({
       async *[Symbol.asyncIterator]() {
-        let p: undefined | Promise<U> | U;
-        let first = true;
-
+        // No reading ahead: each result goes out before the next item is
+        // pulled, so it isn't lost if pulling throws, or delayed if the next
+        // item is slow to come.
         for await (const it of iter) {
-          if (first) {
-            first = false;
-          } else {
-            yield await p;
-          }
-          p = handled(mapFn(it));
-        }
-        if (!first) {
-          yield await p;
+          yield await mapFn(it);
         }
       },
     }) as Enumerable<U>;
@@ -487,7 +490,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
 
   /**
    * Like {@link map}, but with up to `concurrency` calls of `mapFn` running at
-   * once. Results come out in input order.
+   * once. Results come out in input order, each as soon as it and the ones
+   * before it are done.
    *
    * Because of the order, a slow item holds back the ones after it: their
    * results wait behind it, and no new call starts until it finishes. When
@@ -495,7 +499,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * busy.
    *
    * An error from `mapFn` is thrown from the consumer when its item's turn
-   * comes. Calls already started keep running.
+   * comes. Calls already started keep running. If the source throws, the
+   * results of the calls already started come out first, then the error.
    *
    * @example
    * ```typescript
@@ -531,7 +536,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * {@link concurrentMap}, or carry the input along in the result.
    *
    * An error from `mapFn` is thrown from the consumer in the order it
-   * happened. Calls already started keep running.
+   * happened. Calls already started keep running. If the source throws, the
+   * results of the calls already started come out first, then the error.
    *
    * @example
    * ```typescript
@@ -810,13 +816,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
   async forEach(
     forEachFn: (item: T) => unknown,
   ): Promise<void> {
-    let p: unknown;
-
     for await (const item of this.iter) {
-      await p;
-      p = handled(forEachFn(item));
+      await forEachFn(item);
     }
-    await p;
   }
 
   /**
@@ -913,17 +915,28 @@ export class Enumerable<T> implements AsyncIterable<T> {
     ...cmd: unknown[]
   ): Run<S, T> {
     const { options, command, args } = parseArgs(cmd);
+    const iter = this.iter;
 
-    const p = new Process(
-      {
-        ...options as ProcessOptions<S>,
-        stdout: "piped",
-        stdin: "piped",
-        stderr: options.fnStderr == null ? "inherit" : "piped",
-      },
-      command,
-      args,
-    );
+    let p: Process<S>;
+    try {
+      p = new Process(
+        {
+          ...options as ProcessOptions<S>,
+          stdout: "piped",
+          stdin: "piped",
+          stderr: options.fnStderr == null ? "inherit" : "piped",
+        },
+        command,
+        args,
+      );
+    } catch (e) {
+      // The command didn't start (NotFound, say), so nothing will read the
+      // source. Close it, or a command upstream waits on its output forever.
+      handled((async () => {
+        for await (const _ of iter) break;
+      })());
+      throw e;
+    }
 
     p.writeToStdin(
       this.iter as AsyncIterable<string | string[] | Uint8Array | Uint8Array[]>,
@@ -936,10 +949,12 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * Split into `n` Enumerables (default 2) that each yield every item. The
    * source is read once.
    *
-   * Every item read stays in memory until all the branches are done with,
-   * even when they are read side by side, so use it on sequences that fit in
-   * memory. If the source throws, only the branch whose read hit the error
-   * throws; the others end early, without an error.
+   * An item stays in memory until every branch has read it, so branches read
+   * side by side hold little, and a branch that runs far ahead of another
+   * makes the items in between pile up. If the source throws, every branch
+   * throws, after the items before the error. The source is closed once every
+   * branch has stopped, so read each one, at least to `break`: a branch that
+   * is never read keeps the source open and every item in memory.
    *
    * @example
    * ```typescript
@@ -956,9 +971,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * @param n How many Enumerables to make. Default 2.
    */
   tee<N extends number = 2>(n?: N): Tuple<Enumerable<T>, N> {
-    return tee(this.iter, n).map((it: AsyncIterable<T>) =>
-      enumerate(it)
-    ) as Tuple<
+    return tee(this.iter, n ?? 2).map((it) => enumerate(it)) as Tuple<
       Enumerable<T>,
       N
     >;
@@ -1020,7 +1033,7 @@ export class Enumerable<T> implements AsyncIterable<T> {
       for await (const item of this.take(1)) {
         return item;
       }
-      throw new RangeError("enumeration missing head");
+      throw new RangeError(".first: the sequence is empty");
     })();
   }
 
@@ -1075,8 +1088,18 @@ export class Enumerable<T> implements AsyncIterable<T> {
     return enumerate(
       {
         async *[Symbol.asyncIterator]() {
-          yield* iter;
-          yield* other;
+          let reached = false;
+          try {
+            yield* iter;
+            reached = true;
+            yield* other;
+          } finally {
+            // Stopped before `other` began: start it so it can be closed. A
+            // command left unread would never exit.
+            if (!reached) {
+              for await (const _ of other) break;
+            }
+          }
         },
       },
     ) as Enumerable<T>;
@@ -1217,6 +1240,10 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * string, and `Uint8Array` or `Uint8Array[]` as the bytes are, with
    * nothing added. Any other item throws a `TypeError`; the types don't
    * catch it.
+   *
+   * If stdout is closed early, as when the program is piped into `head`, it
+   * throws `Deno.errors.BrokenPipe` (unlike `console.log`, which ignores it).
+   * A command-line tool usually catches that and exits quietly.
    *
    * @example
    * ```typescript

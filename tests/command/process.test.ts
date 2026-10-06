@@ -57,7 +57,7 @@ Deno.test({
         }
       },
       ExitCodeError,
-      "exit code: 42",
+      "sh exited with code 42",
       "Process returns lines of data and then exits with an error code. We process the lines then throw an error. Data is consumed directly.",
     );
 
