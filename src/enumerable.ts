@@ -298,7 +298,11 @@ export class Enumerable<T> implements AsyncIterable<T> {
     // Handle file path. Closing the stream closes the file. Closing the file
     // directly instead drops whatever the stream still buffers (Deno 2.9).
     if (typeof writer === "string") {
-      const file = await Deno.create(writer);
+      const file = await Deno.open(writer, {
+        write: true,
+        create: true,
+        truncate: true,
+      });
       await this.writeTo(file.writable as WritableStream<T>);
       return;
     }
@@ -804,9 +808,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * ```
    */
   async forEach(
-    forEachFn: (item: T) => void | Promise<void>,
+    forEachFn: (item: T) => unknown,
   ): Promise<void> {
-    let p: undefined | Promise<void> | void;
+    let p: unknown;
 
     for await (const item of this.iter) {
       await p;

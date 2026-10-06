@@ -71,3 +71,27 @@ Deno.test("toTsv and toRecord handle a stream that mixes rows and batches.", asy
     "c\x1Fd\x1Ea\x1Fb\x1Ee\x1Ff\x1E",
   );
 });
+
+Deno.test("writeTo(path) needs only write permission.", async () => {
+  const dir = await Deno.makeTempDir();
+  try {
+    const mod = new URL("../../mod.ts", import.meta.url).href;
+    const code = `
+      import { enumerate, toBytes } from "${mod}";
+      await enumerate(["a"]).transform(toBytes).writeTo("${dir}/out.txt");`;
+    const { success, stderr } = await new Deno.Command(Deno.execPath(), {
+      args: ["eval", "--no-check", `--allow-write=${dir}`, code],
+    }).output();
+
+    assertEquals(success, true, new TextDecoder().decode(stderr));
+    assertEquals(await Deno.readTextFile(`${dir}/out.txt`), "a\n");
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("forEach takes a callback that returns a value.", async () => {
+  const seen: number[] = [];
+  await enumerate([1, 2]).forEach((n) => seen.push(n));
+  assertEquals(seen, [1, 2]);
+});

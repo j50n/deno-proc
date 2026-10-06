@@ -17,3 +17,6 @@ odin/target/
 odin/wasm/
 
 .idea/
+
+# Claude Code session state and worktrees
+.claude/

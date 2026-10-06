@@ -20,7 +20,8 @@
       "tools/",
       ".vscode/",
       "ols.json",
-      "wasm/"
+      "wasm/",
+      ".claude/"
     ]
   },
   "exports": {
