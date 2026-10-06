@@ -6,6 +6,7 @@
       "**/warandpeace.txt.gz",
       "site/",
       "docs/",
+      "issues/",
       "benchmarks/",
       "coverage/",
       "tests/",
