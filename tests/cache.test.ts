@@ -26,7 +26,7 @@ async function program(
     const file = `${dir}/main.ts`;
     await Deno.writeTextFile(
       file,
-      `import { cache } from "${MOD}";\n${body}`,
+      `import { cache, fetchRecord } from "${MOD}";\n${body}`,
     );
     await Deno.mkdir(`${dir}/deno`);
     // With ln rather than Deno.symlink, which needs unscoped permissions.
@@ -58,6 +58,17 @@ Deno.test("cache calls value once while the stored value is fresh.", async () =>
     console.log(await cache("k", value), await cache("k", value), calls);
   `);
   assertEquals(run.stdout, "42 42 1\n", run.stderr);
+});
+
+Deno.test("A timeout of 0 calls value every time and stores nothing.", async () => {
+  const run = await program(`
+    let calls = 0;
+    const value = () => (calls++, 42);
+    await cache("k", value, { timeout: 0 });
+    await cache("k", value, { timeout: 0 });
+    console.log(calls, (await fetchRecord("k")).value);
+  `);
+  assertEquals(run.stdout, "2 null\n", run.stderr);
 });
 
 Deno.test("A value Deno KV can't hold is returned, uncached, without an error.", async () => {

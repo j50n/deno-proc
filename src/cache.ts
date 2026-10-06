@@ -87,7 +87,8 @@ export async function fetchRecord<T>(
  *
  * - Deno KV is unstable: run with `--unstable-kv` (or `"unstable": ["kv"]` in
  *   `deno.json`). Without it, `cache` throws a `TypeError` saying so.
- * - `null` and `undefined` are not cached; `value` is called every time.
+ * - `null` and `undefined` are not cached; `value` is called every time. Nor
+ *   is anything with a `timeout` of 0.
  * - To be cached, the value must fit in a KV entry: structured-cloneable (no
  *   functions) and at most 64 KiB. One that doesn't is returned uncached, so
  *   `value` runs on every call. A hit returns a structured clone: a class
@@ -134,15 +135,14 @@ export async function cache<T>(
     }
 
     const fresh = await value();
-    if (fresh != null) {
+    // With no time to live, a stored value would never be read.
+    if (fresh != null && timeout > 0) {
       try {
         await kv.set(
           cacheKey(key),
           { timestamp: new Date(), value: fresh },
           // KV deletes the entry once it is this old; reads check age anyway.
-          Number.isFinite(timeout) && timeout > 0
-            ? { expireIn: timeout }
-            : undefined,
+          Number.isFinite(timeout) ? { expireIn: timeout } : undefined,
         );
       } catch {
         // A value KV can't hold (too large, not cloneable) is returned, not
