@@ -1,0 +1,3 @@
+partial
+exit code: 3
+[ "sh", "-c", "echo partial; exit 3" ] 3

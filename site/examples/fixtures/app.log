@@ -1,0 +1,7 @@
+2026-10-05 09:00:01 INFO  server started on :8080
+2026-10-05 09:00:07 INFO  GET /health 200
+2026-10-05 09:01:13 ERROR db: connection refused
+2026-10-05 09:01:14 WARN  retrying db connection
+2026-10-05 09:01:19 INFO  db connected
+2026-10-05 09:02:45 ERROR GET /orders/17 500
+2026-10-05 09:03:02 INFO  GET /orders 200

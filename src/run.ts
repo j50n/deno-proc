@@ -3,108 +3,84 @@ import { parseArgs } from "./helpers.ts";
 import { ProcessEnumerable } from "./enumerable.ts";
 
 /**
- * Command signature: program name/path followed by arguments.
+ * A command and its arguments: the program (a name looked up on `PATH`, a
+ * path, or a file URL), then each argument as a string. No shell is involved,
+ * so arguments need no quoting.
  *
  * @example
  * ```typescript
- * const list: Cmd = ["ls", "-la"];
- * const greet: Cmd = ["echo", "hello"];
+ * import { type Cmd, run } from "@j50n/proc";
+ *
+ * const cmd: Cmd = ["ls", "-la"];
+ * await run(...cmd).lines.forEach(console.log);
  * ```
  */
 export type Cmd = [string | URL, ...string[]];
 
 /**
- * Run a child process with a fluent, composable API.
+ * Start a child process and return its output to iterate: the entry point of
+ * proc.
  *
- * This is the primary entry point for deno-proc. Unlike Deno's built-in `Deno.Command`,
- * this function returns a `ProcessEnumerable` (extends `AsyncIterable`) that makes it trivial to:
- * - Chain processes together with `.run()`
- * - Transform output with `.map()`, `.filter()`, etc.
- * - Parse lines with `.lines` property
- * - Handle errors gracefully
- * - Avoid common pitfalls like deadlocks and resource leaks
+ * `run("ls", "-la")` spawns the child at the call and returns a
+ * {@link ProcessEnumerable}, an async iterable of the child's stdout as bytes
+ * that has the Enumerable methods. Read it as text with `.lines`, pipe it into
+ * another command with `.run(...)`, and consume it with `.collect()`,
+ * `.forEach()`, `.first`, `for await`, and the rest. The methods are lazy; the
+ * process is not.
  *
- * **Why use this instead of `Deno.Command`?**
+ * Options go first: `run({ cwd, env, fnStderr, fnError, buffer }, ...cmd)`
+ * (see {@link ProcessOptions}). The child's stdin is closed (`"null"`), and its
+ * stderr goes to yours unless you pass `fnStderr`. A program that doesn't exist
+ * throws `Deno.errors.NotFound` from `run()` itself.
  *
- * Deno's `Deno.Command` requires manual stream handling, careful resource management,
- * and verbose boilerplate. With deno-proc:
- * - No manual stream reading/writing
- * - Automatic resource cleanup
- * - Composable operations via AsyncIterable
- * - Built-in line parsing and transformations
- * - Proper error propagation
+ * **Read stdout.** The child writes into a pipe that holds about 64 KB, and
+ * once it is full the child blocks until something reads. If nothing reads a
+ * child with more output than that, it never exits, so awaiting `.status`
+ * hangs and so does your program. Stopping early (`.take(2)`, `break`) is fine
+ * and throws nothing; the consumer returns once the child exits, which for
+ * most programs is the next time they write and die of SIGPIPE.
  *
- * **Important: Error Handling**
+ * **Errors** are thrown where you consume the output, after every line has
+ * been delivered. A non-zero exit throws {@link ExitCodeError} (`.code`), and
+ * death by a signal throws {@link SignalError} (`.signal`). In a pipeline, a
+ * process that fails upstream reaches the end as an {@link UpstreamError}, or
+ * as the last process's own `ExitCodeError` if it failed too, with the
+ * upstream error as `cause`. An error from your own callback arrives as is, or
+ * as that `cause` if a `.run()` follows it. So one `try`/`catch` around the
+ * awaited consumer catches everything. To capture stderr, or to change what
+ * is thrown, use `fnStderr` and `fnError`.
  *
- * Processes that exit with non-zero codes throw `ExitCodeError` when you consume their output.
- * You must consume stdout (via `.lines`, `.collect()`, etc.) or the process will leak resources.
+ * In a program whose children must be stopped when it exits, as in a
+ * container, wrap the program in {@link main}.
  *
- * **Important: Resource Management**
- *
- * Always consume the process output or explicitly handle the stream. Unconsumed stdout will
- * cause resource leaks. Use `.lines.collect()`, `.lines.forEach()`, or similar to consume output.
- *
- * @example Basic command execution
+ * @example Read lines, and pipe one command into another
  * ```typescript
- * import { run } from "jsr:@j50n/proc";
+ * import { run } from "@j50n/proc";
  *
- * // Get output as lines - .lines is a property, .collect() is a method
- * const result = await run("echo", "hello").lines.collect();
- * // ["hello"]
- * ```
+ * const files = await run({ cwd: "/tmp" }, "ls", "-1").lines.collect();
  *
- * @example Pipe commands together
- * ```typescript
- * import { run } from "jsr:@j50n/proc";
- *
- * // Chain processes with .run() - .lines is a property, .first is a property
- * const result = await run("echo", "HELLO")
- *   .run("tr", "A-Z", "a-z")
- *   .lines
- *   .first;
+ * const lower = await run("echo", "HELLO").run("tr", "A-Z", "a-z").lines.first;
  * // "hello"
  * ```
  *
- * @example Process and transform output
+ * @example Handle a failed command
  * ```typescript
- * import { run } from "jsr:@j50n/proc";
- *
- * // Map over lines and collect results
- * const numbers = await run("echo", "-e", "1\\n2\\n3")
- *   .lines
- *   .map(line => parseInt(line))
- *   .collect();
- * // [1, 2, 3]
- * ```
- *
- * @example Handle errors from failed processes
- * ```typescript
- * import { run } from "jsr:@j50n/proc";
+ * import { ExitCodeError, run } from "@j50n/proc";
  *
  * try {
- *   await run("false").lines.collect();
+ *   await run("sh", "-c", "echo partial; exit 3").lines.forEach(console.log);
  * } catch (error) {
- *   if (error.code) {
- *     console.error(`Process failed with exit code ${error.code}`);
+ *   if (error instanceof ExitCodeError) {
+ *     console.error(`${error.command.join(" ")} exited with ${error.code}`);
+ *   } else {
+ *     throw error;
  *   }
  * }
  * ```
  *
- * @example Check exit status without throwing
- * ```typescript
- * import { run } from "jsr:@j50n/proc";
- *
- * const p = run("some-command");
- * await p.lines.collect(); // Consume output
- * const status = await p.status; // .status is a property returning Promise<CommandStatus>
- * if (status.code !== 0) {
- *   console.error(`Failed with code ${status.code}`);
- * }
- * ```
- *
- * @param options Process options (optional).
- * @param cmd The command and arguments.
- * @returns A ProcessEnumerable for chaining operations.
+ * @param options How to run the child; see {@link ProcessOptions}.
+ * @param cmd The program and its arguments.
+ * @returns The child's stdout, to iterate or call methods on.
  */
 export function run<S>(
   options: ProcessOptions<S>,
@@ -112,10 +88,16 @@ export function run<S>(
 ): ProcessEnumerable<S>;
 
 /**
- * Run a child process with a fluent, composable API.
+ * Start a child process and return its output to iterate.
  *
- * @param cmd The command and arguments.
- * @returns A ProcessEnumerable for chaining operations.
+ * The child starts at the call. Read its stdout (`.lines.collect()`,
+ * `.forEach()`, ...), or a child with more than about 64 KB of output blocks
+ * and your program hangs. A non-zero exit throws {@link ExitCodeError} after
+ * the last line. Pass options first to set `cwd`, `env`, or stderr handling;
+ * the overload that takes options has the details.
+ *
+ * @param cmd The program and its arguments.
+ * @returns The child's stdout, to iterate or call methods on.
  */
 export function run(...cmd: Cmd): ProcessEnumerable<unknown>;
 

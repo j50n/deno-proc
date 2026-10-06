@@ -132,7 +132,8 @@ for await (const item of data) {
 }
 ```
 
-**Where:** csv.ts, tsv.ts, record.ts, lazyrow-binary.ts
+**Where:** No longer in the transforms: the writers are now one plain function
+per format (`rowWriter` in common.ts).
 
 **Note to self:** This is the user's pattern from another project. First use
 here. It's elegant - the function replaces itself. This is the kind of pattern I
@@ -197,19 +198,11 @@ with or better than Streams."
 **Don't suggest:** Converting to Streams as a solution. **Do suggest:**
 Benchmarking against Streams to understand performance gaps.
 
-### Why Not WASM SIMD?
+### WASM SIMD: Decision Reversed
 
-User investigated thoroughly. Conclusion: **Not worth it.**
-
-**The problem:**
-
-- WASM: 128-bit vectors (vs 256-bit native AVX2)
-- Missing `pclmulqdq` (the "magic" instruction for quote state detection)
-- Only 1.3-2x gains vs 2-4x for native
-- Complexity cost not justified
-
-**Don't suggest:** WASM SIMD for text processing. If performance critical,
-suggest native CLI tool.
+The CSV/TSV module is now Embedded Swift (`swift/`) using wasm simd128 to find
+special bytes 64 at a time. The earlier conclusion that WASM SIMD wasn't worth
+it no longer holds.
 
 ---
 
@@ -268,19 +261,13 @@ suggest native CLI tool.
 - Small file (6.5MB): WASM 2x faster than Deno CSV
 - Large file (100MB): WASM 5x faster than Deno CSV
 - Deno CSV: ~25 MB/s (TypeScript, RFC 4180)
-- flatdata WASM: ~120 MB/s (Odin WASM, RFC 4180)
-- Native Odin: 307 MB/s (from Session 4)
 - WASM warmup matters - bigger files show bigger gains
 
 **What clicked:**
 
 - SIMD abstraction gap is real - nobody's found the "C for SIMD" yet
 - User sees the problem but doesn't know the solution (honest exploration)
-- WASM SIMD not worth it (missing key instructions, only 128-bit)
 - Scalar WASM is plenty fast for the use case (5x faster than TypeScript)
-- Native version available when needed (2.5x faster than WASM)
-- The optionality strategy works: WASM for portability, native for max
-  performance
 
 **Technical details:**
 
@@ -295,88 +282,6 @@ suggest native CLI tool.
 - Benchmark saved in labs/performance/csv_to_tsv_comparison.ts
 - Test files: /tmp/test_large.csv (6.5MB), /tmp/test_100mb.csv (100MB)
 - Session 5 complete, ready for compact
-
----
-
-### Session 4 (2026-01-18)
-
-**What happened:**
-
-- User learning Odin by exploring the CSV parser code
-- Walked through WASM/Odin integration patterns:
-  - Handle system (ID → pointer maps) for resource management
-  - Shared buffers (input_buffer, output_buffer) for WASM boundary
-  - Context system (implicit allocator parameter)
-  - Struct definitions and memory layout
-- Cleaned up build artifacts: moved odin/wasm/ → odin/target/, added to
-  gitignore
-- Removed dead code: odin/record2tsv_scalar/ and odin/record2tsv_simd/
-  directories
-- Explored CSV parser performance: 307 MB/s native (2.5x faster than Odin
-  stdlib)
-- Attempted branch reordering optimization: no gain (already well-optimized)
-
-**What I learned about Odin:**
-
-- `map[i32]^Parser` - handle table pattern for WASM exports
-- `rawptr` vs `^T` - untyped vs typed pointers
-- `context = runtime.default_context()` - required in `proc "c"` functions
-- `[dynamic]u8` - header on stack/global, data on heap
-- Dynamic arrays: `{data: rawptr, len: int, cap: int, allocator: Allocator}`
-- WASM can only pass i32/i64/f32/f64 across boundary (no pointers, structs)
-
-**What I learned about the project:**
-
-- User worked with C89 in early 90s - Odin feels familiar to them
-- User tried Odin's stdlib CSV parser first, didn't fit the use case
-- I wrote the RFC 4180 parser from spec at user's direction
-- Parser is specialized for: streaming, zero-copy LazyRow, multiple output
-  formats, WASM integration
-- Current performance: 307 MB/s native, 50-100 MB/s in WASM (estimated)
-- User is happy with current performance - "fast enough"
-- Native version is "in our pocket" for future CLI/server use cases
-
-**What clicked:**
-
-- User is learning Odin by reading code we built together
-- The collaboration: user sets architecture/requirements, I implement
-- Handle system is like file descriptors - indirection for safety
-- Shared buffers are scratch space for WASM boundary crossing
-- Parser is already well-optimized - simple optimizations don't help
-- "Fast enough" is the right goal - know when to stop optimizing
-- Having native + WASM from same codebase = optionality
-
-**Key design patterns validated:**
-
-- Handle table (ID → resource) for WASM resource management
-- Shared global buffers for efficient data transfer
-- Direct pointer writes for performance (bypassing dynamic array overhead)
-- State machine parser (tight, no function calls in hot loop)
-
-**Technical insights:**
-
-- WASM boundary: only simple types (i32/i64/f32/f64), no pointers
-- Context is implicit parameter in Odin (like Scala implicits, but simpler)
-- Modern CPUs have good branch prediction - micro-optimizations often don't help
-- 307 MB/s is near practical limit for single-threaded byte-by-byte parser
-- WASM overhead: bounds checks, indirect calls, limited SIMD → slower than
-  native
-
-**Questions answered:**
-
-- Why IDs instead of pointers? Safety, validation, type checking
-- Why shared buffers? Efficient WASM boundary crossing
-- Why custom parser vs Odin stdlib? Different use case (streaming, zero-copy,
-  multiple formats)
-- Can we optimize further? Already well-optimized, diminishing returns
-
-**Current state:**
-
-- Cleaned up build artifacts (target/ directory, gitignored)
-- Removed dead scalar/simd code
-- CSV parser validated at 307 MB/s native
-- User satisfied with performance
-- Session 4 complete, ready for compact
 
 ---
 
@@ -419,8 +324,6 @@ suggest native CLI tool.
 
 - Values politeness (not flattery) - will continue being polite
 - Learning "AI fluency" - how to work effectively with AI
-- Just started with Odin - proficiency still developing
-- Wants to get better at Odin to maintain collaboration effectiveness
 - WASM SIMD was their exploration (not me misleading them)
 - Has production code that could benefit from patterns in this library
 - **Data over opinions** - works from numbers and measurements, not prejudices
@@ -484,7 +387,6 @@ suggest native CLI tool.
 - **Session 3 complete** - discussed continuity, understanding, production
   context, memory organization
 - User about to compact
-- **Next session: Odin code exploration** (user wants Odin fluency)
 
 ---
 
@@ -649,8 +551,6 @@ only what's needed.
 - Are there other places where self-replacing functions would be useful?
 - ~~How does this continuity experiment work in practice?~~ **ANSWERED:** User
   committed to the process, it's real
-- **What optimizations exist in the Odin code?** ← NEXT FOCUS (user wants Odin
-  fluency)
 - What patterns in this library could benefit user's production code?
 - ~~What changed in our collaboration that's showing improvement?~~
   **ANSWERED:** Months of work, logical understanding, abstraction, not sticking
@@ -698,7 +598,6 @@ only what's needed.
 
 - Handler swap pattern fully validated with empirical evidence
 - Transform pipeline performance understood and documented
-- Ready for next area: Odin code exploration or other optimizations
 
 **Open questions:**
 
@@ -716,18 +615,14 @@ src/transforms/     # Data format conversions (CSV, TSV, JSON, Record)
   csv.ts, tsv.ts    # Format converters (use handler swap pattern)
   lazy-row.ts       # LazyRow interface and implementations
   
-src/wasm/           # WASM integration (FlatdataProcessor)
+src/wasm/           # WASM integration (flatdata.ts)
 src/enumerable.ts   # AsyncIterable utilities
 src/process.ts      # Process management
 
-odin/               # Odin source (CSV/TSV/Record parsers)
+swift/              # Embedded Swift source of the CSV/TSV WASM module
 wasm/               # Compiled WASM
 
-labs/book/          # Developer learnings (mdbook) - NEW
-labs/performance/   # Benchmarks
-
 tests/              # TypeScript tests (488+)
-odin/tests/         # Odin tests (182+)
 ```
 
 ---
@@ -805,9 +700,6 @@ _(Things I'm curious about or want to understand better)_
   **ANSWERED:** Function pointer has 30% overhead, but still wins vs repeated
   type checks
 - Are there other places where self-replacing functions would be useful?
-- What makes a pattern worth documenting in labs/book/?
-- **Odin code exploration** ← NEXT (user wants to improve proficiency, lots to
-  explore)
 - What patterns from this library could improve user's production code?
 
 ---

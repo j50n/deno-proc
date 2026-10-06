@@ -4,88 +4,86 @@ const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 const encoder = new TextEncoder();
 
 /**
- * A row whose fields are decoded only when they are read.
+ * A row whose fields are decoded only when you read them.
  *
- * Rows from `fromCsvToLazyRows` and `fromTsvToLazyRows` are views of the
- * bytes the reader produced: reading a field decodes just that field, and
- * {@link LazyRow.fieldEquals} compares bytes without making a string at all,
- * which makes it the fastest way to filter rows. Rows from record format and
- * {@link LazyRow.fromStringArray} wrap strings; they work wherever a LazyRow
- * is accepted.
+ * Rows from {@link fromCsvToLazyRows} and {@link fromTsvToLazyRows} are views
+ * of the bytes the parser produced. `getField` decodes just that field, and
+ * {@link LazyRow.fieldEquals} compares bytes without making a string, which
+ * makes it the fastest way to filter rows. Rows from the record parsers and
+ * {@link LazyRow.fromStringArray} wrap a `string[]`. Every writer (`toCsv`,
+ * `toTsv`, `toRecord`) takes either kind.
  *
  * A LazyRow can't be changed. To change a row, take
  * {@link LazyRow.toStringArray} and work on that.
  *
- * A row read from CSV or TSV keeps the bytes of its whole batch (about
- * 128 KB of input) alive. To hold on to a few rows out of a large stream,
- * keep their `toStringArray()` instead.
+ * A row read from CSV or TSV keeps the bytes of its whole batch (the rows of
+ * about 128 KiB of input) alive. To hold on to a few rows out of a large
+ * stream, keep their `toStringArray()` instead.
  *
- * @example Create from string array
- * ```typescript
- * import { LazyRow } from "jsr:@j50n/proc/transforms";
+ * @example Wrap fields
+ * ```ts
+ * import { LazyRow } from "@j50n/proc/transforms";
  *
  * const row = LazyRow.fromStringArray(["Alice", "30", "Engineer"]);
- * console.log(row.getField(0)); // "Alice"
- * console.log(row.columnCount); // 3
+ * row.getField(0); // "Alice"
+ * row.columnCount; // 3
  * ```
  *
  * @example Filter on one field, read another
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromCsvToLazyRows } from "jsr:@j50n/proc/transforms";
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromCsvToLazyRows } from "@j50n/proc/transforms";
  *
- * await read("users.csv")
+ * const names = await read("users.csv")
  *   .transform(fromCsvToLazyRows())
  *   .flatten()
  *   .filter((row) => row.fieldEquals(2, "active"))
  *   .map((row) => row.getField(0))
- *   .forEach((name) => console.log(name));
+ *   .collect();
  * ```
  */
 export abstract class LazyRow {
-  /** Number of fields in this row. */
+  /** The number of fields. */
   abstract readonly columnCount: number;
 
   /**
-   * Get a field by index.
-   * @param index Zero-based field index.
-   * @returns The field value as a string.
-   * @throws RangeError if index is out of bounds.
+   * The field at `index`, counted from 0.
+   *
+   * @throws {RangeError} If `index` is outside `[0, columnCount)`.
+   * @throws {TypeError} If the field's bytes are not valid UTF-8 (rows read
+   *   from CSV or TSV only).
    */
   abstract getField(index: number): string;
 
   /**
-   * Whether a field holds exactly `value`. For rows read from CSV or TSV this
-   * compares bytes and makes no string, so it is much faster than
-   * `getField(index) === value`.
-   * @param index Zero-based field index.
-   * @param value The value to compare with.
-   * @throws RangeError if index is out of bounds.
+   * Whether the field at `index` is exactly `value`. On a row read from CSV
+   * or TSV this compares the field's bytes with `value` encoded as UTF-8 and
+   * makes no string, so it is much faster than `getField(index) === value`.
+   *
+   * @throws {RangeError} If `index` is outside `[0, columnCount)`.
    */
   abstract fieldEquals(index: number, value: string): boolean;
 
   /**
-   * Convert to a string array.
-   * @returns All fields as a new string array.
+   * All fields, as a new array.
+   *
+   * @throws {TypeError} On a row read from CSV or TSV, if any row of its
+   *   batch holds invalid UTF-8: the batch is decoded in one call.
    */
   abstract toStringArray(): string[];
 
-  /**
-   * Create a LazyRow from a string array.
-   *
-   * @param fields Array of field values. The row keeps this array.
-   * @returns A LazyRow wrapping the fields.
-   */
+  /** Wrap `fields` as a LazyRow. The array is not copied. */
   static fromStringArray(fields: string[]): LazyRow {
     return new StringArrayRow(fields);
   }
+}
 
-  protected checkIndex(index: number): void {
-    if (!Number.isInteger(index) || index < 0 || index >= this.columnCount) {
-      throw new RangeError(
-        `Field index ${index} out of range [0, ${this.columnCount})`,
-      );
-    }
+/** Throws the `RangeError` for an index outside `[0, columnCount)`. */
+function checkIndex(row: LazyRow, index: number): void {
+  if (!Number.isInteger(index) || index < 0 || index >= row.columnCount) {
+    throw new RangeError(
+      `Field index ${index} out of range [0, ${row.columnCount})`,
+    );
   }
 }
 
@@ -99,7 +97,7 @@ class StringArrayRow extends LazyRow {
   }
 
   getField(index: number): string {
-    this.checkIndex(index);
+    checkIndex(this, index);
     return this.fields[index];
   }
 
@@ -149,7 +147,7 @@ class BatchRow extends LazyRow {
   }
 
   getField(index: number): string {
-    this.checkIndex(index);
+    checkIndex(this, index);
     const j = this.first + index;
     const { text, textEnds, bytes, byteEnds } = this.batch;
     if (text !== undefined) {
@@ -161,7 +159,7 @@ class BatchRow extends LazyRow {
   }
 
   fieldEquals(index: number, value: string): boolean {
-    this.checkIndex(index);
+    checkIndex(this, index);
     const expected = encoded(value);
     const j = this.first + index;
     const { bytes, byteEnds } = this.batch;

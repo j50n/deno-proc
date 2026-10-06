@@ -1,0 +1,5 @@
+id	note
+[Invalid character (LF) in TSV data at row 2, field 2]
+id,note
+1,"line one
+line two"

@@ -1,6 +1,4 @@
-/**
- * Common constants and utilities for transform functions.
- */
+// Constants and helpers shared by the transforms.
 
 import type { TransformerFunction } from "../transformers.ts";
 import type { RowBatch } from "../wasm/flatdata.ts";
@@ -8,16 +6,18 @@ import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
 /**
- * Target batch size in bytes for optimal async iteration performance.
- * Balances memory usage with async iteration overhead.
+ * About how much input, 128 KiB, makes one batch. The CSV and TSV parsers
+ * read input in chunks of this size and yield the rows each chunk completes;
+ * the record and JSON-lines parsers end a batch once it holds this much text,
+ * so a batch can run over by one row.
  */
-export const BATCH_SIZE_BYTES = 128 * 1024; // 128KB
+export const BATCH_SIZE_BYTES = 128 * 1024;
 
-/**
- * ASCII control characters for Record format.
- */
-export const RECORD_SEPARATOR = "\x1E"; // ASCII 30 - separates records
-export const FIELD_SEPARATOR = "\x1F"; // ASCII 31 - separates fields
+/** Ends each record in the record format: `"\x1E"` (ASCII RS). */
+export const RECORD_SEPARATOR = "\x1E";
+
+/** Separates the fields of a record in the record format: `"\x1F"` (ASCII US). */
+export const FIELD_SEPARATOR = "\x1F";
 
 /**
  * Decode a byte stream and split it on `separator`, yielding the complete
@@ -93,13 +93,17 @@ export function asRows(
 /**
  * A transformer that writes each item of a row stream as text, one line per
  * row from `line`, and encodes once per item: building one string and
- * encoding it is several times faster than encoding row by row.
+ * encoding it is several times faster than encoding row by row. Each item is
+ * normalized on its own, so a stream can mix rows and batches.
  *
  * `line` gets the row's fields and its number in the stream, counting from 1.
  */
 export function rowWriter(
   line: (fields: string[], rowNumber: number) => string,
-): TransformerFunction<Row | Row[] | LazyRow | LazyRow[], Uint8Array> {
+): TransformerFunction<
+  Row | Row[] | LazyRow | LazyRow[],
+  Uint8Array<ArrayBuffer>
+> {
   return async function* (items) {
     const encoder = new TextEncoder();
     let rowNumber = 0;

@@ -1,23 +1,38 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 /**
- * flatdata - Tabular data format converter
+ * `flatdata`, a command-line converter between CSV, TSV, and the record
+ * format.
  *
- * A CLI tool for converting between CSV, TSV and record format, built on the
- * transforms in `@j50n/proc/transforms`. CSV to TSV and back run entirely in
- * WebAssembly.
+ * Use it to take parsing out of your program: put `flatdata csv2record` in
+ * front of it, and it reads records (fields split on `\x1F`, records ended by
+ * `\x1E`) instead of CSV. The parsing runs in WebAssembly, in its own process.
+ * The formats are the ones `@j50n/proc/transforms` reads and writes, and they
+ * are read the same way.
  *
- * Supported formats:
- * - CSV: RFC 4180 comma-separated values (configurable separator)
- * - TSV: Tab-separated values
- * - Record: Text format using \x1F (field) and \x1E (record) separators
+ * ```sh
+ * deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc/flatdata
+ * ```
+ *
+ * Without `--allow-read --allow-write` it still works on stdin and stdout.
+ *
+ * Commands are named `<from>2<to>`: `csv2record`, `csv2tsv`, `tsv2record`,
+ * `tsv2csv`, `record2csv`, `record2tsv`. Each reads stdin and writes stdout,
+ * or `-i <file>` and `-o <file>`. Commands with CSV on one side take
+ * `-d <char>` for the separator (default `,`); `tsv2csv` and `record2csv` also
+ * take `--crlf`. `flatdata <command> --help` lists a command's options.
+ * `csv2tsv` and `tsv2csv` run entirely in WebAssembly, without making rows.
+ *
+ * What to watch for: a field the output format can't hold stops the
+ * conversion with an error on stderr naming its row and field, and exit code
+ * 1. TSV can't hold a tab, CR, or LF in a field, and the record format can't
+ * hold `\x1E` or `\x1F`. A CR in CSV or TSV input anywhere but before LF
+ * (outside quotes) is an error too. Output written before the error stays, and
+ * can end partway through a row.
  *
  * @example
- * ```bash
- * # Convert CSV to record format
- * cat data.csv | flatdata csv2record > data.rec
- *
- * # Pipeline processing
- * flatdata csv2record -i huge.csv | ./process | flatdata record2csv -o results.csv
+ * ```sh
+ * cat data.csv | flatdata csv2record | ./process | flatdata record2csv -o out.csv
+ * flatdata csv2tsv -d ';' -i euro.csv -o data.tsv
  * ```
  *
  * @module
@@ -65,6 +80,10 @@ function viaRows(
   return (bytes) => writer(reader(bytes));
 }
 
+/**
+ * CSV to the record format, as the `csv2record` command does.
+ * Reads `input`, or stdin, and writes `output`, or stdout.
+ */
 export function csv2record(
   input?: string,
   output?: string,
@@ -77,6 +96,10 @@ export function csv2record(
   );
 }
 
+/**
+ * CSV to TSV, as the `csv2tsv` command does.
+ * Reads `input`, or stdin, and writes `output`, or stdout.
+ */
 export function csv2tsv(
   input?: string,
   output?: string,
@@ -85,10 +108,18 @@ export function csv2tsv(
   return convert(input, output, csvToTsv({ separator }));
 }
 
+/**
+ * TSV to the record format, as the `tsv2record` command does.
+ * Reads `input`, or stdin, and writes `output`, or stdout.
+ */
 export function tsv2record(input?: string, output?: string): Promise<void> {
   return convert(input, output, viaRows(fromTsvToRows(), toRecord()));
 }
 
+/**
+ * TSV to CSV, as the `tsv2csv` command does.
+ * Reads `input`, or stdin, and writes `output`, or stdout.
+ */
 export function tsv2csv(
   input?: string,
   output?: string,
@@ -98,6 +129,10 @@ export function tsv2csv(
   return convert(input, output, tsvToCsv({ separator, crlf }));
 }
 
+/**
+ * The record format to CSV, as the `record2csv` command does.
+ * Reads `input`, or stdin, and writes `output`, or stdout.
+ */
 export function record2csv(
   input?: string,
   output?: string,
@@ -111,6 +146,10 @@ export function record2csv(
   );
 }
 
+/**
+ * The record format to TSV, as the `record2tsv` command does.
+ * Reads `input`, or stdin, and writes `output`, or stdout.
+ */
 export function record2tsv(input?: string, output?: string): Promise<void> {
   return convert(input, output, viaRows(fromRecordToRows(), toTsv()));
 }

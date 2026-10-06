@@ -39,25 +39,30 @@ async function* recordBatches<T>(
 }
 
 /**
- * Parse Record format bytes into batches of string arrays.
+ * Parse the record format into batches of rows, each row a `string[]`.
  *
- * Record format uses ASCII control characters (RS=0x1E, US=0x1F) as
- * separators, so a field can hold any text but those two, and nothing is
- * quoted or escaped.
+ * The input is split into records on {@link RECORD_SEPARATOR} (`\x1E`) and
+ * each record into fields on {@link FIELD_SEPARATOR} (`\x1F`). Nothing else is
+ * special: tabs, quotes, and newlines are field text. Text after the last
+ * `\x1E` is a final record. Every piece between separators is a record, so an
+ * empty one reads as `[""]`, and a newline after the last `\x1E` (as `echo`
+ * adds) reads as a row `["\n"]`. Batches close at about 128 KiB of text
+ * ({@link BATCH_SIZE_BYTES}); add `.flatten()` to work row by row.
  *
- * @example Basic Record parsing
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromRecordToRows } from "jsr:@j50n/proc/transforms";
+ * Invalid UTF-8 throws a `TypeError`.
  *
- * const rows = await read("data.record")
+ * @example Read rows another program wrote
+ * ```ts
+ * import { run } from "@j50n/proc";
+ * import { fromRecordToRows } from "@j50n/proc/transforms";
+ *
+ * const rows = await run("./export-users")
  *   .transform(fromRecordToRows())
  *   .flatten()
  *   .collect();
- * // string[][] - each inner array is one row
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromRecordToRows(): TransformerFunction<Uint8Array, Row[]> {
   return (bytes: AsyncIterable<Uint8Array>): AsyncIterable<Row[]> =>
@@ -65,24 +70,26 @@ export function fromRecordToRows(): TransformerFunction<Uint8Array, Row[]> {
 }
 
 /**
- * Parse Record format bytes into batches of LazyRow objects.
+ * Parse the record format into batches of {@link LazyRow}s.
  *
- * Like {@link fromRecordToRows} but returns {@link LazyRow} objects for better
- * performance when accessing only specific fields.
+ * Parsing is the same as in {@link fromRecordToRows}. The rows are
+ * string-backed: each record is decoded and split as it is read, so this is no
+ * faster than {@link fromRecordToRows}. Use it when the code downstream takes
+ * `LazyRow`s.
  *
- * @example Efficient field access
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromRecordToLazyRows } from "jsr:@j50n/proc/transforms";
+ * @example
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromRecordToLazyRows } from "@j50n/proc/transforms";
  *
- * await read("large.record")
+ * await read("data.rec")
  *   .transform(fromRecordToLazyRows())
  *   .flatten()
- *   .filter(row => row.getField(0) === "active")
- *   .forEach(row => console.log(row.getField(1)));
+ *   .filter((row) => row.getField(0) === "active")
+ *   .forEach((row) => console.log(row.getField(1)));
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromRecordToLazyRows(): TransformerFunction<
   Uint8Array,
@@ -93,29 +100,35 @@ export function fromRecordToLazyRows(): TransformerFunction<
 }
 
 /**
- * Convert row data to Record format bytes.
+ * Write rows in the record format: fields joined by {@link FIELD_SEPARATOR}
+ * (`\x1F`), each row ended by {@link RECORD_SEPARATOR} (`\x1E`).
  *
- * Accepts batches of string arrays or LazyRow objects. Produces binary-safe
- * output using ASCII control characters as separators.
+ * A field can hold any text but those two characters. One that holds either
+ * throws an `Error` naming the row and field, counted from 1:
+ * `Invalid character (field separator) in record data at row 2, field 2`.
+ * Items before the one holding it have already been written.
  *
- * @example Write Record file
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromCsvToRows } from "jsr:@j50n/proc/transforms";
- * import { toRecord } from "jsr:@j50n/proc/transforms";
+ * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
+ * and may differ from the one before. Each yields one chunk of bytes.
  *
- * // Convert CSV to faster Record format
- * await read("data.csv")
+ * @example Hand CSV to a program as records
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromCsvToRows, toRecord } from "@j50n/proc/transforms";
+ *
+ * const report = await read("data.csv")
  *   .transform(fromCsvToRows())
  *   .transform(toRecord())
- *   .writeTo("data.record");
+ *   .run("./summarize")
+ *   .lines
+ *   .collect();
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function toRecord(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
-  Uint8Array
+  Uint8Array<ArrayBuffer>
 > {
   return rowWriter((fields, rowNumber) => {
     checkFields(fields, RECORD_FORBIDDEN, "record", rowNumber);

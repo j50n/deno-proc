@@ -1,13 +1,12 @@
 {
   "name": "@j50n/proc",
   "version": "0.25.0",
-  "publish": { 
+  "publish": {
     "exclude": [
       "**/warandpeace.txt.gz",
       "dev/",
       "site/",
       "docs/",
-      "labs/",
       "benchmarks/",
       "coverage/",
       "tests/",
@@ -19,7 +18,8 @@
       "swift/",
       "tools/",
       ".vscode/",
-      "wasm/"
+      "wasm/",
+      ".claude/"
     ]
   },
   "exports": {
@@ -34,10 +34,11 @@
     "@std/async/tee": "jsr:@std/async@1.5.1/tee",
     "@std/assert": "jsr:@std/assert@1.0.19",
     "@std/path": "jsr:@std/path@1.1.6",
+    "@std/fs": "jsr:@std/fs@1.0.24",
     "@cliffy/command": "jsr:@cliffy/command@1.3.1",
     "@std/csv": "jsr:@std/csv@1.0.6",
     "papaparse": "npm:papaparse@5.7.0",
     "csv-parse/sync": "npm:csv-parse@7.0.3/sync",
     "csv-stringify/sync": "npm:csv-stringify@6.9.0/sync"
-  } 
+  }
 }

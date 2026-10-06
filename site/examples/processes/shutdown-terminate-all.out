@@ -1,0 +1,3 @@
+service: ready
+terminateAll returned
+lock file left behind: false

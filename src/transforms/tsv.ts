@@ -8,42 +8,34 @@ const TAB = 0x09;
 const TSV_FORBIDDEN = /[\t\n\r]/;
 
 /**
- * Parse TSV bytes into batches of string arrays.
+ * Parse TSV into batches of rows, each row a `string[]`.
  *
- * Each line is a row and tabs separate its fields. TSV has no quoting and
- * can't hold a tab, LF or CR in a field. Lines end in LF or CRLF, and blank
- * lines are skipped. A UTF-8 byte order mark at the start is dropped. All
- * rows are data; there is no special header handling.
+ * Each line is one row, split on tabs. There is no quoting: quotes are text.
+ * Lines end in LF or CRLF, blank lines are skipped, and the last line needs
+ * no LF. A UTF-8 byte order mark at the start is dropped. There is no header
+ * handling: the first row is data like the rest. The parser runs in
+ * WebAssembly, and each batch holds the rows of about 128 KiB of input; add
+ * `.flatten()` to work row by row.
  *
- * Invalid UTF-8 is an error, and so is a CR anywhere but before LF (a CR-only
- * file, say), naming its row and field. The error comes with the batch that
- * holds it, after the batches before it.
+ * A CR anywhere but right before LF throws an `Error` naming the row and
+ * field, counted from 1: `Invalid character (CR) in TSV data at row 3, field 2`.
+ * So does a CR that ends the input, and so a file with CR-only line ends fails
+ * at its first line. Invalid UTF-8 throws a `TypeError`. Either error comes
+ * after the batches before the one that holds it.
  *
- * The reader is the WebAssembly CSV reader with quoting off; each batch
- * holds the rows of about 128 KB of input.
+ * @example Print the first field of each row whose third is "active"
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromTsvToRows } from "@j50n/proc/transforms";
  *
- * @example Basic TSV parsing
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToRows } from "jsr:@j50n/proc/transforms";
- *
- * const rows = await read("data.tsv")
- *   .transform(fromTsvToRows())
- *   .flatten()
- *   .collect();
- * // string[][] - arrays of field values
- * ```
- *
- * @example Filter by field
- * ```typescript
  * await read("users.tsv")
  *   .transform(fromTsvToRows())
  *   .flatten()
- *   .filter(row => row[2] === "active")
- *   .forEach(row => console.log(row[0]));
+ *   .filter((row) => row[2] === "active")
+ *   .forEach((row) => console.log(row[0]));
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromTsvToRows(): TransformerFunction<Uint8Array, Row[]> {
   return async function* (bytes) {
@@ -54,27 +46,28 @@ export function fromTsvToRows(): TransformerFunction<Uint8Array, Row[]> {
 }
 
 /**
- * Parse TSV bytes into batches of {@link LazyRow} objects.
+ * Parse TSV into batches of {@link LazyRow}s, which decode a field only when
+ * you read it.
  *
- * Reads TSV as {@link fromTsvToRows} does, but leaves each field undecoded
- * until it is read. When a pipeline looks at only a few fields of each row,
- * such as a filter, this is several times faster, especially with
- * {@link LazyRow.fieldEquals}.
+ * Parsing is the same as in {@link fromTsvToRows}, errors included, except
+ * that invalid UTF-8 throws its `TypeError` only when it is decoded, by
+ * `getField` or `toStringArray`. Use this when a pipeline reads a few fields
+ * of each row, such as a filter: `getField` decodes just that field, and
+ * {@link LazyRow.fieldEquals} compares bytes without making a string at all.
  *
- * @example Efficient field access by index
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToLazyRows } from "jsr:@j50n/proc/transforms";
+ * @example
+ * ```ts
+ * import { read } from "@j50n/proc";
+ * import { fromTsvToLazyRows } from "@j50n/proc/transforms";
  *
- * await read("large.tsv")
+ * await read("log.tsv")
  *   .transform(fromTsvToLazyRows())
  *   .flatten()
- *   .drop(1) // Skip header row
  *   .filter((row) => row.fieldEquals(2, "ERROR"))
  *   .forEach((row) => console.log(row.getField(0)));
  * ```
  *
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function fromTsvToLazyRows(): TransformerFunction<
   Uint8Array,
@@ -88,32 +81,33 @@ export function fromTsvToLazyRows(): TransformerFunction<
 }
 
 /**
- * Convert row data to TSV bytes.
+ * Write rows as TSV: fields joined by tabs, each row ended by LF.
  *
- * Accepts batches of row objects or LazyRow objects. Produces tab-separated
- * output without headers (caller should add headers if needed).
+ * TSV has no quoting, so a field can't hold a tab, CR, or LF. One that does
+ * throws an `Error` naming the row and field, counted from 1:
+ * `Invalid character (tab) in TSV data at row 2, field 1`. Items before the
+ * one holding it have already been written. For such data, use {@link toCsv}
+ * or {@link toRecord}.
  *
- * **Important**: TSV format does not support data containing tab (`\t`),
- * carriage return (`\r`), or line feed (`\n`) characters. This function
- * validates input and throws an error if invalid characters are found.
+ * Each item is a row or a batch of rows, as {@link Row}s or {@link LazyRow}s,
+ * and may differ from the one before. Each yields one chunk of bytes. To
+ * turn CSV bytes into TSV, {@link csvToTsv} does it without making rows.
  *
- * @example Write TSV file
- * ```typescript
- * import { read } from "jsr:@j50n/proc";
- * import { fromTsvToRows, toTsv } from "jsr:@j50n/proc/transforms";
+ * @example Write rows built in code
+ * ```ts
+ * import { enumerate } from "@j50n/proc";
+ * import { toTsv } from "@j50n/proc/transforms";
  *
- * await read("input.tsv")
- *   .transform(fromTsvToRows())
+ * await enumerate([["name", "age"], ["Ann", "34"]])
  *   .transform(toTsv())
- *   .writeTo("output.tsv");
+ *   .writeTo("people.tsv");
  * ```
  *
- * @throws {Error} If data contains tab, CR, or LF characters
- * @returns A transformer function for use with `.transform()`.
+ * @returns A transformer for `.transform()`.
  */
 export function toTsv(): TransformerFunction<
   Row | Row[] | LazyRow | LazyRow[],
-  Uint8Array
+  Uint8Array<ArrayBuffer>
 > {
   return rowWriter((fields, rowNumber) => {
     checkFields(fields, TSV_FORBIDDEN, "TSV", rowNumber);

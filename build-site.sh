@@ -5,7 +5,7 @@ set -x
 
 # Update Rust and Cargo
 rustup update 
-cargo install mdbook mdbook-graphviz
+cargo install mdbook
 
 HERE="$(realpath "$(dirname "$0")")"
 
@@ -24,4 +24,10 @@ cd "$HERE/site/" && (
     rm -rf ../docs/
     mkdir ../docs/
     rsync -av ./book/ ../docs/
+)
+
+cd "$HERE" && (
+    # The book for LLMs: an index, and everything in one Markdown file.
+    deno run --allow-read --allow-write --allow-run=git \
+        tools/llms-txt.ts site/src docs
 )

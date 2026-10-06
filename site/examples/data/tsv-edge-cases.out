@@ -1,0 +1,6 @@
+"a\tb\r\nc\td"     [["a","b"],["c","d"]]
+"a\n\nb\n"         [["a"],["b"]]
+"\t\n"             [["",""]]
+"\"a\tb\"\tc\n"    [["\"a","b\"","c"]]
+"a\t\tb\t\n"       [["a","","b",""]]
+"a\tb\rc\n"        Invalid character (CR) in TSV data at row 1, field 2

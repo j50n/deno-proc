@@ -1,0 +1,6 @@
+[
+  { id: "1", customer: "Ada", item: "Widget, large", qty: "2" },
+  { id: "2", customer: "Grace", item: 'Gear "XL"', qty: "1" },
+  { id: "3", customer: "Linus", item: "Bolt", qty: "10" }
+]
+[ 2, 1, 10 ]

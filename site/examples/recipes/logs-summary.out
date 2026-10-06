@@ -1,0 +1,2 @@
+errors per day: { "2026-10-03": 3, "2026-10-04": 4, "2026-10-05": 2 }
+by source: db 5, http 3, disk 1

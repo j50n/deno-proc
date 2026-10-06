@@ -1,0 +1,2 @@
+Failed to spawn 'no-such-program': entity not found
+No such file or directory (os error 2): open 'no-such-file.txt'

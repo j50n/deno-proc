@@ -146,7 +146,7 @@ export async function* convertCsvToTsv(
   bytes: AsyncIterable<Uint8Array>,
   separator: number,
   chunkBytes = BATCH_SIZE_BYTES,
-): AsyncIterable<Uint8Array> {
+): AsyncIterable<Uint8Array<ArrayBuffer>> {
   const wasm = await instantiate();
   const converter = wasm.csv2tsv_new(separator, chunkBytes);
   const output = wasm.csv2tsv_output(converter);
@@ -169,7 +169,7 @@ export async function* convertTsvToCsv(
   separator: number,
   crlf: boolean,
   chunkBytes = BATCH_SIZE_BYTES,
-): AsyncIterable<Uint8Array> {
+): AsyncIterable<Uint8Array<ArrayBuffer>> {
   const wasm = await instantiate();
   const converter = wasm.tsv2csv_new(separator, crlf ? 1 : 0, chunkBytes);
   yield* nonEmpty(feedInChunks(
@@ -187,8 +187,8 @@ export async function* convertTsvToCsv(
 }
 
 async function* nonEmpty(
-  chunks: AsyncIterable<Uint8Array>,
-): AsyncIterable<Uint8Array> {
+  chunks: AsyncIterable<Uint8Array<ArrayBuffer>>,
+): AsyncIterable<Uint8Array<ArrayBuffer>> {
   for await (const chunk of chunks) {
     if (chunk.length > 0) yield chunk;
   }

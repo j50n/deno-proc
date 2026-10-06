@@ -1,0 +1,3 @@
+orders-east.csv rows=4 refunds=1 sha256=4d08cbb7e44c
+orders-north.csv rows=3 refunds=2 sha256=7d787de6f357
+orders-west.csv rows=2 refunds=0 sha256=a6ce666dd7b3

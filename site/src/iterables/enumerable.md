@@ -1,379 +1,175 @@
-# Understanding Enumerable
+# Enumerable and its methods
 
-Enumerable is the core of proc's AsyncIterable support. It wraps any iterable
-and provides Array-like methods for working with async data streams.
-
-## What is Enumerable?
-
-Think of Enumerable as an Array, but for async data. It gives you familiar
-methods like `map`, `filter`, and `reduce`—but for data that arrives over time
-rather than all at once:
-
-<!-- NOT TESTED: Illustrative example -->
+An `Enumerable` is an async sequence with the methods you know from arrays.
+`run()`, `read()`, and `range()` return one, and `enumerate()` wraps anything
+else you can iterate: an array, a Set, a generator, a `ReadableStream`.
 
 ```typescript
-import { enumerate } from "jsr:@j50n/proc@{{gitv}}";
-
-// Wrap any iterable
-const nums = enumerate([1, 2, 3, 4, 5]);
-
-// Use Array methods
-const doubled = await nums
-  .map((n) => n * 2)
-  .filter((n) => n > 5)
-  .collect();
-
-console.log(doubled); // [6, 8, 10]
+{{#include ../../examples/iterables/chain.ts}}
 ```
 
-## The Problem with Traditional Streams
+```text
+{{#include ../../examples/iterables/chain.out}}
+```
 
-JavaScript has Arrays for sync data and Streams for async data, but Streams are
-awkward to work with. They require verbose transformation chains and complex
-error handling:
+Each step returns a new `Enumerable`, and the consumer at the end (`reduce`
+here) pulls the items through and returns a promise. Callbacks may be async;
+each call is awaited before the next one starts. To run several at once, use
+[`concurrentMap`](./concurrency.md). [Key ideas](../start/key-ideas.md) covers
+how sources, steps, and consumers fit together.
 
-<!-- NOT TESTED: Illustrative example -->
+## `enumerate()` is not `.enum()`
 
 ```typescript
-// Streams are verbose
-const stream = readableStream
-  .pipeThrough(
-    new TransformStream({
-      transform(chunk, controller) {
-        controller.enqueue(chunk * 2);
-      },
-    }),
-  )
-  .pipeThrough(
-    new TransformStream({
-      transform(chunk, controller) {
-        if (chunk > 5) controller.enqueue(chunk);
-      },
-    }),
-  );
+{{#include ../../examples/iterables/enumerate-vs-enum.ts}}
 ```
 
-Enumerable makes the same operations clean and readable:
+```text
+{{#include ../../examples/iterables/enumerate-vs-enum.out}}
+```
 
-<!-- NOT TESTED: Illustrative example -->
+`enumerate(iterable)` is a function: it wraps an iterable so you can call the
+methods on it, and leaves the items alone. `.enum()` is a method on an
+`Enumerable`: it numbers the items, turning each into `[item, index]` from 0.
+Python's `enumerate` is proc's `.enum()`.
+
+## The methods
+
+Change items:
+
+| Member                                                                                                            | What it does                                                      |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`map(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.map)                                             | Replace each item with `fn(item)`, one call at a time.            |
+| [`enum()`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.enum)                                             | Number the items: each becomes `[item, index]`.                   |
+| [`concurrentMap(fn, opts)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.concurrentMap)                   | `map` with several calls at once; results in input order.         |
+| [`concurrentUnorderedMap(fn, opts)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.concurrentUnorderedMap) | `map` with several calls at once; results as they finish.         |
+| [`transform(step)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.transform)                               | Pass the whole sequence through a generator or `TransformStream`. |
+
+Filter:
+
+| Member                                                                            | What it does                           |
+| --------------------------------------------------------------------------------- | -------------------------------------- |
+| [`filter(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.filter)       | Keep the items for which `fn` is true. |
+| [`filterNot(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.filterNot) | Drop the items for which `fn` is true. |
+
+Slice:
+
+| Member                                                                 | What it does                                            |
+| ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| [`take(n)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.take) | The first `n` items (default 1); then close the source. |
+| [`drop(n)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.drop) | Skip the first `n` items (default 1).                   |
+
+Combine:
+
+| Member                                                                         | What it does                                               |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| [`concat(other)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.concat) | These items, then `other`'s.                               |
+| [`zip(other)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.zip)       | Pairs `[mine, other's]`, ending with the shorter sequence. |
+| [`flatten()`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.flatten)    | Replace each item, itself iterable, with its items.        |
+| [`flatMap(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.flatMap)  | `map`, then `flatten`.                                     |
+
+Split:
+
+| Member                                                                  | What it does                                                |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [`tee(n)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.tee)    | `n` Enumerables (default 2), each with every item.          |
+| [`unzip()`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.unzip) | Pairs `[a, b]` into two Enumerables, the `a`s and the `b`s. |
+
+Consume (each returns a promise):
+
+| Member                                                                            | What it does                                                    |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| [`collect()`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.collect)       | Every item, in an array. `toArray()` is the same.               |
+| [`forEach(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.forEach)     | Call `fn` on each item.                                         |
+| [`reduce(fn, zero)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.reduce) | Fold into one value, as `Array.prototype.reduce` does.          |
+| [`count(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.count)         | How many items, or how many for which `fn` is true.             |
+| [`first`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.first)             | The first item. A getter; throws `RangeError` if there is none. |
+| [`find(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.find)           | The first item for which `fn` is true, or `undefined`.          |
+| [`some(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.some)           | Whether `fn` is true for any item; stops at the first.          |
+| [`every(fn)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.every)         | Whether `fn` is true for all items; stops at the first false.   |
+
+A `for await` loop is a consumer too.
+
+Text, processes, and output:
+
+| Member                                                                                      | What it does                                                    |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| [`lines`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.lines)                       | Bytes decoded as UTF-8 lines of text. A getter.                 |
+| [`chunkedLines`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.chunkedLines)         | The same lines in arrays, one per chunk read; faster. A getter. |
+| [`run(...cmd)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.run)                   | Pipe the items into a command's stdin; yields its stdout.       |
+| [`writeTo(path)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeTo)             | Write bytes to a file, or items to a `WritableStream`.          |
+| [`writeBytesTo(writer)`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.writeBytesTo) | Write bytes to a `Writer & Closer`, such as a `Deno.FsFile`.    |
+| [`toStdout()`](https://jsr.io/@j50n/proc/doc/~/Enumerable.prototype.toStdout)               | Write lines or bytes to stdout.                                 |
+
+The output of `run()` also has
+[`pid`](https://jsr.io/@j50n/proc/doc/~/ProcessEnumerable.prototype.pid) and
+[`status`](https://jsr.io/@j50n/proc/doc/~/ProcessEnumerable.prototype.status);
+see [Running a command](../processes/running.md). Files and stdout are in
+[Files and standard streams](./files.md).
+
+## Steps to pass to `transform()`
+
+| Function                                                                                                                   | What it does                                                         |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [`toBytes`](https://jsr.io/@j50n/proc/doc/~/toBytes)                                                                       | Lines of text (or bytes) into byte chunks, a `"\n"` after each line. |
+| [`toLines`](https://jsr.io/@j50n/proc/doc/~/toLines)                                                                       | Bytes into lines; what `.lines` uses.                                |
+| [`toChunkedLines`](https://jsr.io/@j50n/proc/doc/~/toChunkedLines)                                                         | Bytes into arrays of lines; what `.chunkedLines` uses.               |
+| [`toByteLines`](https://jsr.io/@j50n/proc/doc/~/toByteLines)                                                               | Bytes split into lines without decoding, in arrays.                  |
+| [`buffer(size)`](https://jsr.io/@j50n/proc/doc/~/buffer)                                                                   | Join small byte chunks into chunks of at least `size` bytes.         |
+| [`gzip`](https://jsr.io/@j50n/proc/doc/~/gzip), [`gunzip`](https://jsr.io/@j50n/proc/doc/~/gunzip)                         | Compress or decompress; take lines or bytes.                         |
+| [`jsonStringify`](https://jsr.io/@j50n/proc/doc/~/jsonStringify), [`jsonParse`](https://jsr.io/@j50n/proc/doc/~/jsonParse) | One JSON value per string, each way.                                 |
+| [`debug`](https://jsr.io/@j50n/proc/doc/~/debug)                                                                           | Print each item as it passes, unchanged.                             |
+
+The data formats (`fromCsvToRows()`, `toTsv()`, ...) are steps too, from
+`@j50n/proc/transforms`; see [Data formats](../data/overview.md). To write your
+own, see [Writing your own steps](./custom-steps.md).
+
+## More examples
 
 ```typescript
-// Enumerable is clean
-const result = await enumerate(asyncIterable)
-  .map((n) => n * 2)
-  .filter((n) => n > 5)
-  .collect();
+{{#include ../../examples/iterables/slice-combine.ts}}
 ```
 
-## Creating Enumerables
+```text
+{{#include ../../examples/iterables/slice-combine.out}}
+```
 
-### From Arrays
-
-<!-- NOT TESTED: Illustrative example -->
+`concat` and `zip` take an async iterable, so wrap an array in `enumerate()`
+first; the types refuse a plain array.
 
 ```typescript
-const nums = enumerate([1, 2, 3]);
+{{#include ../../examples/iterables/consume.ts}}
 ```
 
-### From Async Generators
+```text
+{{#include ../../examples/iterables/consume.out}}
+```
 
-<!-- NOT TESTED: Illustrative example -->
+`numbers()` makes a new `Enumerable` for each line because each one can be read
+only once. `find`, `some`, `every`, and `first` stop reading as soon as they
+have their answer, and close the source.
 
 ```typescript
-async function* generate() {
-  yield 1;
-  yield 2;
-  yield 3;
-}
-
-const nums = enumerate(generate());
+{{#include ../../examples/iterables/tee.ts}}
 ```
 
-### From Process Output
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-import { run } from "jsr:@j50n/proc@{{gitv}}";
-
-const lines = run("ls", "-la").lines;
-// lines is already an Enumerable<string>
+```text
+{{#include ../../examples/iterables/tee.out}}
 ```
 
-### From Files
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-import { read } from "jsr:@j50n/proc@{{gitv}}";
-
-const bytes = read("file.txt");
-// bytes is Enumerable<Uint8Array>
-
-const lines = read("file.txt").lines;
-// lines is Enumerable<string>
-```
-
-## Consuming Enumerables
-
-### Collect to Array
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const array = await enumerate([1, 2, 3]).collect();
-// [1, 2, 3]
-```
-
-### Iterate with for-await
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-for await (const item of enumerate([1, 2, 3])) {
-  console.log(item);
-}
-```
-
-### Process Each Item
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-await enumerate([1, 2, 3]).forEach((item) => {
-  console.log(item);
-});
-```
-
-### Get the First or Last Item
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const first = await enumerate([1, 2, 3]).first;
-const last = await enumerate([1, 2, 3]).reduce((_, item) => item);
-```
-
-## Lazy Evaluation
-
-Enumerables are **lazy**—nothing happens until you consume them:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-// This doesn't run anything yet
-const pipeline = enumerate([1, 2, 3])
-  .map((n) => {
-    console.log(`Processing ${n}`);
-    return n * 2;
-  });
-
-// Now it runs
-const result = await pipeline.collect();
-// Logs: Processing 1, Processing 2, Processing 3
-```
-
-This is powerful for large datasets:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-// Processes one line at a time, never loads entire file
-for await (const line of read("huge-file.txt").lines) {
-  process(line);
-}
-```
-
-## Chaining Operations
-
-Chain as many operations as you want:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const result = await enumerate([1, 2, 3, 4, 5])
-  .map((n) => n * 2) // [2, 4, 6, 8, 10]
-  .filter((n) => n > 5) // [6, 8, 10]
-  .map((n) => n.toString()) // ["6", "8", "10"]
-  .collect();
-```
-
-Each operation returns a new Enumerable, so you can keep chaining.
-
-## Type Safety
-
-Enumerable is fully typed:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const nums: Enumerable<number> = enumerate([1, 2, 3]);
-
-const strings: Enumerable<string> = nums.map((n) => n.toString());
-//    ^-- TypeScript knows this is Enumerable<string>
-
-const result: string[] = await strings.collect();
-//    ^-- TypeScript knows this is string[]
-```
-
-Your IDE will guide you with autocomplete and type errors.
-
-## Common Patterns
-
-### Transform and Collect
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const result = await enumerate(data)
-  .map(transform)
-  .collect();
-```
-
-### Filter and Count
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const count = await enumerate(data)
-  .filter(predicate)
-  .count();
-```
-
-### Find First Match
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const match = await enumerate(data)
-  .find(predicate);
-```
-
-### Check if Any/All
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const hasMatch = await enumerate(data).some(predicate);
-const allMatch = await enumerate(data).every(predicate);
-```
-
-## Performance Characteristics
-
-Enumerable is designed for efficiency and scalability. It processes data in a
-streaming fashion, handling one item at a time rather than loading everything
-into memory. This lazy evaluation means operations only run when you actually
-consume the results, making it possible to work with datasets larger than
-available RAM:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-// This processes a 10GB file using constant memory
-await read("huge-file.txt")
-  .lines
-  .filter((line) => line.includes("ERROR"))
-  .forEach(console.log);
-```
-
-## Enumerable vs Array Comparison
-
-Understanding when to use each approach helps you choose the right tool:
-
-| Feature | Array             | Enumerable        |
-| ------- | ----------------- | ----------------- |
-| Data    | Sync              | Async             |
-| Memory  | All in memory     | Streaming         |
-| Size    | Limited by RAM    | Unlimited         |
-| Methods | map, filter, etc. | map, filter, etc. |
-| Lazy    | No                | Yes               |
-
-Use Arrays for small, synchronous data that fits comfortably in memory. Use
-Enumerable for large datasets, async data sources, or when you need streaming
-processing capabilities.
-
-## Caching Iterables
-
-Sometimes you need to reuse an iterable's results multiple times. Use `cache()`
-to store results for replay, which is particularly useful for expensive
-computations or when you need to iterate over the same data multiple times:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-import { cache, enumerate } from "jsr:@j50n/proc@{{gitv}}";
-
-const expensive = enumerate(data)
-  .map(expensiveOperation);
-
-const cached = cache(expensive);
-
-// First time - runs the operations
-const result1 = await cached.collect();
-
-// Second time - uses cached results, doesn't re-run
-const result2 = await cached.collect();
-```
-
-Caching is ideal for reusing expensive computations, replaying iterables
-multiple times, or sharing results across operations. However, be mindful that
-caching stores all results in memory, so only use it when the dataset is small
-enough to fit in memory, you need to iterate multiple times, and the computation
-is expensive enough to justify the memory usage.
-
-## Writable Iterables
-
-**Need to convert callbacks or events into async iterables?** See the dedicated
-[WritableIterable](../utilities/writable-iterable.md) page for complete
-documentation.
-
-Create async iterables you can write to programmatically, which bridges the gap
-between push-based and pull-based data models:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-import { enumerate, WritableIterable } from "jsr:@j50n/proc@{{gitv}}";
-
-const writable = new WritableIterable<string>();
-
-// Write to it
-await writable.write("item1");
-await writable.write("item2");
-await writable.write("item3");
-await writable.close();
-
-// Read from it
-const items = await enumerate(writable).collect();
-// ["item1", "item2", "item3"]
-```
-
-WritableIterable is perfect for generating data programmatically, bridging
-between push and pull models, creating custom data sources, or implementing
-producer-consumer patterns. Here's an example of event-driven data processing:
-
-<!-- NOT TESTED: Illustrative example -->
-
-```typescript
-const events = new WritableIterable<Event>();
-
-// Producer: write events as they occur
-eventEmitter.on("data", async (event) => {
-  await events.write(event);
-});
-
-eventEmitter.on("end", async () => {
-  await events.close();
-});
-
-// Consumer: process events as they arrive
-for await (const event of events) {
-  processEvent(event);
-}
-```
-
-## Next Steps
-
-- [Array-Like Methods](./array-methods.md) - All the methods available
-- [Transformations](./transformations.md) - map, flatMap, transform
-- [Aggregations](./aggregations.md) - reduce, count, sum
+## Traps
+
+- **An `Enumerable` is read once.** A second `collect()` gets nothing, without
+  an error. Keep the array from the first, or `tee()` the sequence.
+- **`tee()` and `unzip()` hold items in memory** until every branch has read
+  them. If one branch races ahead of another, everything in between is kept. If
+  the source throws, only the branch whose read hit the error throws.
+- **`first` throws on an empty sequence** (`RangeError`), and `reduce` with no
+  starting value throws `TypeError`. `find` returns `undefined` instead.
+- **There is no `sort`.** Sorting needs every item at once, so it isn't a step.
+  Filter first to keep only what you need, `collect()`, and sort the array (or
+  pipe lines through the `sort` command, which handles more than fits in
+  memory).
+- **`flatten()` on strings gives characters**, because a string is iterable.
+- **`lines` and `chunkedLines` are getters**: `.lines`, not `.lines()`. Only an
+  `Enumerable` of bytes has them; on anything else the type is `never`.

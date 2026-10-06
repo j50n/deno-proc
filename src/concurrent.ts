@@ -1,5 +1,6 @@
 import { handled } from "./helpers.ts";
 
+/** `concurrency` rounded up; the CPU count if not given. Throws below 1. */
 function resolvedConcurrency(concurrency?: number | undefined) {
   if (concurrency === undefined) {
     return navigator.hardwareConcurrency;
@@ -13,36 +14,10 @@ function resolvedConcurrency(concurrency?: number | undefined) {
 }
 
 /**
- * Map an async sequence concurrently while preserving order.
- *
- * Processes multiple items simultaneously up to the concurrency limit,
- * but yields results in the original input order. This is useful when
- * you need to maintain order but want parallel processing.
- *
- * **Why use this?**
- * - Process items in parallel for better performance
- * - Maintain original order in results
- * - Control resource usage with concurrency limit
- * - Simpler than managing Promise.all() manually
- *
- * @example Process items concurrently
- * ```typescript
- * import { range } from "jsr:@j50n/proc";
- *
- * const results = await range({ to: 10 })
- *   .concurrentMap(async (n) => {
- *     // Simulate async work
- *     await new Promise(resolve => setTimeout(resolve, 100));
- *     return n * 2;
- *   }, { concurrency: 3 })
- *   .collect();
- * // [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] - in order
- * ```
- *
- * @param items The input sequence.
- * @param mapFn The async mapping function.
- * @param concurrency Max concurrent operations (defaults to CPU count).
- * @returns An ordered iterator of mapped values.
+ * Implements `Enumerable.concurrentMap`: up to `concurrency` calls of `mapFn`
+ * in flight, results yielded in input order. A slow item holds back the
+ * results after it, and while it does, fewer than `concurrency` calls run. A
+ * rejection is thrown when its turn to be yielded comes.
  */
 export async function* concurrentMap<T, U>(
   items: AsyncIterable<T>,
@@ -67,39 +42,9 @@ export async function* concurrentMap<T, U>(
 }
 
 /**
- * Map an async sequence concurrently without preserving order.
- *
- * Processes multiple items simultaneously and yields results as soon as they complete,
- * regardless of input order. This maximizes throughput when order doesn't matter.
- *
- * **Why use this instead of concurrentMap?**
- * - Maximum throughput - no waiting for slower items
- * - Better performance with unbalanced workloads
- * - Use when output order doesn't matter
- *
- * **Why use this instead of Promise.all()?**
- * - Streams results as they complete (lower memory)
- * - Controls concurrency (won't spawn unlimited promises)
- * - Works with AsyncIterables naturally
- *
- * @example Process items for maximum throughput
- * ```typescript
- * import { range } from "jsr:@j50n/proc";
- *
- * const results = await range({ to: 10 })
- *   .concurrentUnorderedMap(async (n) => {
- *     // Simulate variable work time
- *     await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
- *     return n * 2;
- *   }, { concurrency: 3 })
- *   .collect();
- * // Results in completion order, not input order
- * ```
- *
- * @param items The input sequence.
- * @param mapFn The async mapping function.
- * @param concurrency Max concurrent operations (defaults to CPU count).
- * @returns An unordered iterator of mapped values.
+ * Implements `Enumerable.concurrentUnorderedMap`: keeps `concurrency` calls of
+ * `mapFn` in flight and yields results in the order they finish. A rejection
+ * is thrown when it would have been yielded.
  */
 export async function* concurrentUnorderedMap<T, U>(
   items: AsyncIterable<T>,
@@ -109,12 +54,10 @@ export async function* concurrentUnorderedMap<T, U>(
   const c = resolvedConcurrency(concurrency);
 
   /*
-   * Two queues. The same Esimorps are pushed into each in the same order.
-   * The shifts are done at different times - one at the backend (aft) when
-   * a promise is resolved, and one at the frontend (fore) when the result
-   * of that promise can be yielded.
-   *
-   * Kind of hard to see how it works, but it was an "Aha!" moment for me.
+   * The same slots go into both queues. Whichever call finishes next fills
+   * the oldest unfilled slot (shift from aft); the consumer takes the oldest
+   * slot (shift from fore). So slots fill in completion order, and the
+   * consumer gets results in that order.
    */
   const buffAft: Esimorp<U>[] = [];
   const buffFore: Esimorp<U>[] = [];
@@ -150,9 +93,7 @@ type Reject = (reason?: unknown) => void;
 
 type Esimorp<T> = { promise: Promise<T>; resolve: Resolve<T>; reject: Reject };
 
-/**
- * An unresolved/unrejected promise turned inside-out.
- */
+/** A pending promise with its `resolve` and `reject` (promise backwards). */
 function esimorp<T>(): Esimorp<T> {
   let rs: Resolve<T>;
   let rj: Reject;

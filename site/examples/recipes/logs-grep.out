@@ -1,0 +1,5 @@
+timeout: 2 [
+  "2026-10-03 17:42:30 ERROR db: query timeout after 30s",
+  "2026-10-04 06:31:41 ERROR db: query timeout after 30s"
+]
+segfault: 0 []

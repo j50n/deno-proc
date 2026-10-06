@@ -6,22 +6,57 @@ import { concat, concatLines, isString } from "./utility.ts";
 const encoder = new TextEncoder();
 
 /**
- * Standard data, either string, arrays of strings (lines),
- * byte data, or arrays of byte data.
+ * The data {@link toBytes} turns into bytes, and so the data a process's stdin
+ * accepts: a string or array of strings (lines of text), or a `Uint8Array` or
+ * array of them (raw bytes).
  */
 export type StandardData = string | Uint8Array | string[] | Uint8Array[];
 
 /**
- * Type signature of a transformer.
+ * A function from one async iterable to another: what
+ * {@link Enumerable.transform} takes. An `async function*` that loops over its
+ * input and yields is the usual way to write one.
+ *
+ * @example
+ * ```typescript
+ * import { enumerate, type TransformerFunction } from "@j50n/proc";
+ *
+ * const double: TransformerFunction<number, number> = async function* (items) {
+ *   for await (const n of items) yield n * 2;
+ * };
+ *
+ * await enumerate([1, 2]).transform(double).collect(); // [2, 4]
+ * ```
  */
 export type TransformerFunction<T, U> = (
   it: AsyncIterable<T>,
 ) => AsyncIterable<U>;
 
 /**
- * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string>` of lines.
+ * Decode UTF-8 bytes into lines of text.
  *
- * @param buffs The iterable bytes.
+ * Splits on `\n` and drops a `\r` before it, so CRLF works too; line endings
+ * are not included. A last line without a newline is still delivered, and one
+ * final newline does not make an extra empty line (`"a\nb\n"` gives `"a"`,
+ * `"b"`). Empty input gives no lines.
+ *
+ * `.lines` on an Enumerable is this; use the function on a plain async
+ * iterable, or inside a transformer of your own.
+ *
+ * Invalid UTF-8, including a sequence cut off at the end of input, throws
+ * `TypeError`.
+ *
+ * @example
+ * ```typescript
+ * import { toLines } from "@j50n/proc";
+ *
+ * using file = await Deno.open("data.txt");
+ * for await (const line of toLines(file.readable)) {
+ *   console.log(line);
+ * }
+ * ```
+ *
+ * @param buffs The bytes, in chunks of any size.
  */
 export async function* toLines(
   buffs: AsyncIterable<Uint8Array>,
@@ -32,14 +67,27 @@ export async function* toLines(
 }
 
 /**
- * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<string[]>` of lines.
+ * Decode UTF-8 bytes into lines of text, yielded in arrays: each array holds
+ * the lines completed by one input chunk.
  *
- * For larger data sets and very small lines (like broken into one word per line),
- * using this helps keep the data being passed at reasonable sizes and avoids
- * the "small string" problem. Consider using this instead of {@link toLines} in that
- * case.
+ * The lines are the same as {@link toLines} gives. Handing them on an array at
+ * a time costs one async step per chunk instead of one per line, which is
+ * faster when there are many short lines. `.chunkedLines` on an Enumerable is
+ * this; add `.flatten()` to get single lines back.
  *
- * @param buffs The iterable bytes.
+ * Invalid UTF-8 throws `TypeError`.
+ *
+ * @example
+ * ```typescript
+ * import { run } from "@j50n/proc";
+ *
+ * let count = 0;
+ * await run("cat", "words.txt").chunkedLines.forEach((lines) => {
+ *   count += lines.length;
+ * });
+ * ```
+ *
+ * @param buffs The bytes, in chunks of any size.
  */
 export async function* toChunkedLines(
   buffs: AsyncIterable<Uint8Array>,
@@ -77,41 +125,34 @@ export async function* toChunkedLines(
 }
 
 /**
- * Convert an `AsyncIterable<Uint8Array>` into an `AsyncIterable<Uint8Array[]>`
- * (an array of lines chunked together based on buffer size)
- * split on `lf` and also suppressing trailing `cr`.
+ * Split bytes into lines without decoding them, yielded in arrays: each array
+ * holds the lines completed by one input chunk.
  *
- * `lf` and trailing `cr`
- * is removed from the returned lines. As this is line-oriented data, if the
- * last line is empty (the last byte was a line feed, splitting into one extra line),
- * it is suppressed.
+ * Use it for data that isn't UTF-8, or to skip decoding. Lines split as in
+ * {@link toLines}: on `\n`, with a `\r` before it dropped, a last line without
+ * a newline delivered, and no extra empty line after a final newline. A `\r`
+ * at the very end of input is dropped as well. Lines are views on the input
+ * chunks where they can be, not copies.
  *
- * Implementation attempts to minimize object creation.
+ * @example
+ * ```typescript
+ * import { read, toByteLines } from "@j50n/proc";
  *
- * @param buffs The iterable bytes.
+ * const lengths = await read("data.bin")
+ *   .transform(toByteLines)
+ *   .flatten()
+ *   .map((line) => line.length)
+ *   .collect();
+ * ```
+ *
+ * @param buffs The bytes, in chunks of any size.
  */
 export async function* toByteLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<Uint8Array[]> {
-  /*
-   * Performance notes:
-   *
-   * Uint8Array.subarray() returns a lightweight view into the original array.
-   * I can't get away from creating the object for the original array, and
-   * I also end up with disposable subarray objects. Can't be helped. GC pressure.
-   *
-   * The inner loop is looking for '\n' (number 10) in the data and calling that
-   * the end of the line. This is an array index operation, whichs 10x faster than
-   * `for...of`, and I expect it is close to or at C speed.
-   *
-   * The overhead of async operations is relatively about 100x, so the buffer size
-   * matters, and the line size might matter as this data is usually flattened
-   * downstream.
-   *
-   * I think this is as fast as I can make this in pure JavaScript.
-   */
-
-  const completeLines: Uint8Array[] = [];
+  // Lines are subarray views on the input; a line split across chunks is
+  // joined. The indexed loop is much faster than `for...of` here.
+  let completeLines: Uint8Array[] = [];
   const currentLine: Uint8Array[] = [];
 
   function makeCurrentLineComplete() {
@@ -144,7 +185,7 @@ export async function* toByteLines(
 
     if (completeLines.length > 0) {
       yield completeLines;
-      completeLines.length = 0;
+      completeLines = [];
     }
   }
 
@@ -157,12 +198,22 @@ export async function* toByteLines(
   }
 }
 
+/** Bytes in an `ArrayBuffer`, which `CompressionStream` and friends require. */
+type Bytes = Uint8Array<ArrayBuffer>;
+
+/** `bytes` as is, or copied if a view on a `SharedArrayBuffer`. */
+function ownBuffer(bytes: Uint8Array): Bytes {
+  return bytes.buffer instanceof ArrayBuffer
+    ? bytes as Bytes
+    : new Uint8Array(bytes);
+}
+
 function stringPerLineOp(item: string) {
-  return concatLines([encoder.encode(item)]);
+  return concatLines([encoder.encode(item)]) as Bytes;
 }
 
 function uint8arrayPerLineOp(item: Uint8Array) {
-  return item;
+  return ownBuffer(item);
 }
 
 function stringArrayOfLinesOp(item: string[]) {
@@ -172,53 +223,45 @@ function stringArrayOfLinesOp(item: string[]) {
     lines[i] = encoder.encode(item[i]);
   }
 
-  return concatLines(lines);
+  return concatLines(lines) as Bytes;
 }
 
 function uint8arrayArrayOfLinesOp(item: Uint8Array[]) {
-  return concat(item);
+  return ownBuffer(concat(item));
 }
 
 /**
- * Convert strings, string arrays, or byte arrays to Uint8Array chunks.
+ * Turn lines of text, or bytes, into byte chunks: one chunk per item.
  *
- * Conversion rules:
- * - `string`: Converted to UTF-8 bytes with trailing newline
- * - `string[]`: Each string converted to UTF-8 with newline, concatenated
- * - `Uint8Array`: Passed through unchanged
- * - `Uint8Array[]`: Concatenated into single array
+ * - `string`: UTF-8, with `\n` added (strings are lines).
+ * - `string[]`: each string UTF-8 with `\n` added, joined into one chunk.
+ * - `Uint8Array`: unchanged.
+ * - `Uint8Array[]`: joined into one chunk, nothing added.
  *
- * Strings are always treated as lines (newline added). Bytes are treated as binary data.
+ * Items may mix these types. An empty array gives an empty chunk. Anything
+ * else throws `TypeError`; an array is judged by its first element.
  *
- * @example Convert string to bytes
+ * `.run()`, a process's stdin, and `.toStdout()` do this for you. Use it
+ * before anything that wants bytes: `.writeTo()` a file or `WritableStream`,
+ * or a `CompressionStream`.
+ *
+ * @example
  * ```typescript
- * import { enumerate, toBytes } from "jsr:@j50n/proc";
+ * import { enumerate, toBytes } from "@j50n/proc";
  *
- * const bytes = await enumerate(["hello"])
+ * await enumerate(["line 1", "line 2"])
  *   .transform(toBytes)
- *   .collect();
- * // Uint8Array with "hello\n"
+ *   .writeTo("out.txt"); // "line 1\nline 2\n"
  * ```
  *
- * @example Convert string array to bytes
- * ```typescript
- * import { enumerate, toBytes } from "jsr:@j50n/proc";
- *
- * const bytes = await enumerate([["line1", "line2"]])
- *   .transform(toBytes)
- *   .collect();
- * // Uint8Array with "line1\nline2\n"
- * ```
- *
- * @param iter The iterable to convert.
- * @returns An AsyncIterable of Uint8Array chunks.
+ * @param iter The lines or bytes.
  */
 export async function* toBytes(
   iter: AsyncIterable<StandardData>,
-): AsyncIterable<Uint8Array> {
+): AsyncIterable<Uint8Array<ArrayBuffer>> {
   // Pick the op on the first item and keep it while items stay that type; an
   // item of another type picks again.
-  const setupOp: (item: StandardData) => Uint8Array = (
+  const setupOp: (item: StandardData) => Bytes = (
     item: StandardData,
   ) => {
     if (isString(item)) {
@@ -265,11 +308,10 @@ export async function* toBytes(
 }
 
 /**
- * For transformers that need `BufferSource` as input, this will convert
- * the type of the output; otherwise identical to {@link toBytes}.
+ * The same as {@link toBytes}, typed as `BufferSource`.
  *
- * This is needed for working directly with `CompressionStream` and
- * `DecompressionStream`.
+ * @deprecated `toBytes` output already goes straight into `CompressionStream`
+ * and `DecompressionStream`; use it instead.
  *
  * @param iter The iterable.
  */
@@ -280,17 +322,29 @@ export async function* toBufferSource(
 }
 
 /**
- * Transformer that conditionally adds buffering to a `Uint8Array` stream.
+ * Make a transformer that joins small byte chunks into chunks of at least
+ * `size` bytes.
  *
- * This enforces that the size of the passed data is _at least_ `size`. Note that
- * data is never reduced in size. It is either passed through unchanged (if it is
- * big enough already) or held and concatenated with the next data until it there
- * is enough data to write through.
+ * Chunks are held and joined until the total reaches `size`, then passed on
+ * as one; a chunk already that big goes through as is. Chunks are never split,
+ * and whatever is held at the end goes out as a last, smaller chunk. Fewer,
+ * larger writes are cheaper, but held data waits: a child reading interactive
+ * input sees nothing until a chunk fills.
  *
- * If `size` is 0 or negative, the input data is passed through without buffering.
+ * The `buffer: true` process option does this, at 16 KiB, for data piped into
+ * a child's stdin.
  *
- * You do not normally need to use this transform directly as you can turn on
- * input buffering with a parameter to the `run` method or function.
+ * @example
+ * ```typescript
+ * import { buffer, read } from "@j50n/proc";
+ *
+ * await read("small-chunks.bin")
+ *   .transform(buffer(64 * 1024))
+ *   .writeTo("copy.bin");
+ * ```
+ *
+ * @param size The least number of bytes per chunk. At 0 or below (the
+ *   default), chunks pass through unchanged.
  */
 export function buffer(
   size = 0,
@@ -325,24 +379,24 @@ export function buffer(
 }
 
 /**
- * Convert objects to JSON-encoded strings (one per line).
+ * Turn each item into a string of JSON with `JSON.stringify`.
  *
- * Useful for serializing structured data to pass between processes
- * or save to files in JSONL (JSON Lines) format.
+ * The strings have no newline; {@link toBytes} (or `.run()`, or a process's
+ * stdin) adds one to each, which makes JSON Lines. A value JSON can't hold
+ * (a `BigInt`, a circular object) throws `TypeError`. `undefined` or a
+ * function comes out as `undefined`, not a string.
  *
- * @example Serialize objects to JSON
+ * @example
  * ```typescript
- * import { enumerate, jsonStringify } from "jsr:@j50n/proc";
+ * import { enumerate, jsonStringify, toBytes } from "@j50n/proc";
  *
- * const objects = [{ id: 1 }, { id: 2 }];
- * const json = await enumerate(objects)
+ * await enumerate([{ id: 1 }, { id: 2 }])
  *   .transform(jsonStringify)
- *   .collect();
- * // ['{"id":1}', '{"id":2}']
+ *   .transform(toBytes)
+ *   .writeTo("out.jsonl"); // {"id":1}\n{"id":2}\n
  * ```
  *
- * @param items The objects to convert.
- * @returns An AsyncIterable of JSON strings.
+ * @param items The values.
  */
 export async function* jsonStringify<T>(
   items: AsyncIterable<T>,
@@ -353,24 +407,25 @@ export async function* jsonStringify<T>(
 }
 
 /**
- * Parse JSON-encoded strings into objects.
+ * Parse each string as one JSON value with `JSON.parse`: reads JSON Lines
+ * after `.lines`.
  *
- * Useful for deserializing JSONL (JSON Lines) format data.
- * Each line should be a complete JSON object.
+ * A string that isn't JSON throws `SyntaxError`, and that includes an empty
+ * one, so a blank line in the input stops the pipeline; filter blank lines out
+ * first if your data may have them. The type parameter `T` is not checked.
  *
- * @example Parse JSON lines to objects
+ * @example
  * ```typescript
- * import { enumerate, jsonParse } from "jsr:@j50n/proc";
+ * import { jsonParse, read } from "@j50n/proc";
  *
- * const lines = ['{"id":1}', '{"id":2}'];
- * const objects = await enumerate(lines)
- *   .transform(jsonParse)
+ * const events = await read("events.jsonl")
+ *   .lines
+ *   .filter((line) => line.length > 0)
+ *   .transform(jsonParse<{ id: number }>)
  *   .collect();
- * // [{ id: 1 }, { id: 2 }]
  * ```
  *
- * @param items The JSON-encoded strings.
- * @returns An AsyncIterable of parsed objects.
+ * @param items One JSON value per string.
  */
 export async function* jsonParse<T>(
   items: AsyncIterable<string>,
@@ -381,23 +436,24 @@ export async function* jsonParse<T>(
 }
 
 /**
- * Decompress gzip-compressed data.
+ * Decompress gzip data.
  *
- * Works with any StandardData input (strings, bytes, arrays).
- * Useful for reading compressed files or decompressing process output.
+ * Input goes through {@link toBytes} first, so byte arrays work as well as
+ * single chunks. For plain byte chunks, `.transform(new
+ * DecompressionStream("gzip"))` does the same. Data that isn't valid gzip
+ * throws `TypeError`.
  *
- * @example Decompress gzip data
+ * @example
  * ```typescript
- * import { read, gunzip } from "jsr:@j50n/proc";
+ * import { gunzip, read } from "@j50n/proc";
  *
- * const text = await read("data.txt.gz")
+ * const lines = await read("data.txt.gz")
  *   .transform(gunzip)
  *   .lines
  *   .collect();
  * ```
  *
- * @param items The compressed data.
- * @returns An AsyncIterable of decompressed bytes.
+ * @param items The compressed bytes.
  */
 export async function* gunzip(
   items: AsyncIterable<StandardData>,
@@ -405,42 +461,65 @@ export async function* gunzip(
   const s = new DecompressionStream("gzip");
 
   yield* enumerate(items)
-    .transform(toBufferSource)
+    .transform(toBytes)
     .transform({ readable: s.readable, writable: s.writable });
 }
 
 /**
- * Compress data using gzip.
+ * Compress data with gzip.
  *
- * Works with any StandardData input (strings, bytes, arrays).
- * Useful for compressing data before writing to files or sending to processes.
+ * Input goes through {@link toBytes} first, so strings are compressed as lines
+ * (each with `\n` added) and arrays are joined. For plain byte chunks,
+ * `.transform(new CompressionStream("gzip"))` does the same.
  *
- * @example Compress data
+ * @example
  * ```typescript
- * import { enumerate, gzip } from "jsr:@j50n/proc";
+ * import { enumerate, gzip } from "@j50n/proc";
  *
- * const compressed = await enumerate(["data to compress"])
+ * await enumerate(["line 1", "line 2"])
  *   .transform(gzip)
- *   .collect();
+ *   .writeTo("out.txt.gz");
  * ```
  *
- * @param chunks The data to compress.
- * @returns An AsyncIterable of compressed bytes.
+ * @param chunks The lines or bytes to compress.
  */
 export function gzip(
   chunks: AsyncIterable<StandardData>,
 ): AsyncIterable<Uint8Array> {
   return enumerate(chunks)
-    .transform(toBufferSource)
+    .transform(toBytes)
     .transform(new CompressionStream("gzip"));
 }
 
 /**
- * Convert a `TransformStream` into a {@link TransformerFunction}. Errors occurring upstream
- * are correctly propagated through the transformation.
+ * Wrap a `TransformStream` (or any `{ writable, readable }` pair) as a
+ * {@link TransformerFunction}.
  *
- * @param transform A [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream).
- * @returns A transformer.
+ * An error thrown upstream arrives at the consumer unchanged, after the items
+ * before it, rather than as a stream error. `.transform()` accepts a
+ * `TransformStream` and wraps it this way itself, so you need this only to
+ * get a function.
+ *
+ * A stream works once. Using the same transformer, or the same
+ * `TransformStream`, a second time yields nothing and throws nothing; create a
+ * new stream for each use.
+ *
+ * @example
+ * ```typescript
+ * import { enumerate, transformerFromTransformStream } from "@j50n/proc";
+ *
+ * const upper = transformerFromTransformStream(
+ *   new TransformStream<string, string>({
+ *     transform(s, controller) {
+ *       controller.enqueue(s.toUpperCase());
+ *     },
+ *   }),
+ * );
+ *
+ * await enumerate(["a", "b"]).transform(upper).collect(); // ["A", "B"]
+ * ```
+ *
+ * @param transform The stream to wrap.
  */
 export function transformerFromTransformStream<IN, OUT>(
   transform: { writable: WritableStream<IN>; readable: ReadableStream<OUT> },
@@ -477,7 +556,23 @@ export function transformerFromTransformStream<IN, OUT>(
 }
 
 /**
- * Debug output using `console.dir` through {@link Enumerable#transform}.
+ * Log each item as it passes, unchanged, for debugging a pipeline.
+ *
+ * Each item is printed as JSON, in blue, with `console.log`, so it goes to
+ * stdout, mixed into anything else the program writes there. An item
+ * `JSON.stringify` can't handle (a `BigInt`, a circular object) throws
+ * `TypeError` and stops the pipeline.
+ *
+ * @example
+ * ```typescript
+ * import { debug, run } from "@j50n/proc";
+ *
+ * const files = await run("ls")
+ *   .lines
+ *   .transform(debug<string>)
+ *   .filter((f) => f.endsWith(".ts"))
+ *   .collect();
+ * ```
  *
  * @param items The items to log.
  */

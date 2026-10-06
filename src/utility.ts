@@ -4,24 +4,36 @@ import { type Enumerable, enumerate } from "./enumerable.ts";
 const LF = "\n".charCodeAt(0);
 
 /**
- * Open a file for reading as an AsyncIterable of byte chunks.
+ * Read a file as an Enumerable of byte chunks.
  *
- * Returns an Enumerable that can be transformed, piped to processes,
- * or converted to lines. The file is automatically closed when iteration completes.
+ * The file is opened when iteration starts, not at the call, and closed when
+ * iteration ends, including when the consumer stops early. A missing file
+ * throws `Deno.errors.NotFound` from the consumer, at the first read.
  *
- * @example Read a file and process it
+ * Add `.lines` for text, `.transform(gunzip)` for a `.gz` file, or `.run()`
+ * to feed it to a command's stdin.
+ *
+ * @example
  * ```typescript
- * import { read } from "jsr:@j50n/proc";
+ * import { read } from "@j50n/proc";
  *
- * const bytes = await read("data.txt").collect();
- * const text = new TextDecoder().decode(concat(bytes));
+ * const errors = await read("app.log")
+ *   .lines
+ *   .filter((line) => line.includes("ERROR"))
+ *   .collect();
+ * ```
+ *
+ * @example Pipe a file into a command
+ * ```typescript
+ * import { read } from "@j50n/proc";
+ *
+ * const count = await read("data.txt").run("wc", "-l").lines.first;
  * ```
  *
  * @param path The path of the file.
- * @returns An Enumerable of byte chunks.
  */
-export function read(path: string | URL): Enumerable<Uint8Array> {
-  async function* openForRead(): AsyncIterable<Uint8Array> {
+export function read(path: string | URL): Enumerable<Uint8Array<ArrayBuffer>> {
+  async function* openForRead(): AsyncIterable<Uint8Array<ArrayBuffer>> {
     const file = await Deno.open(path);
     yield* file.readable;
   }
@@ -30,56 +42,40 @@ export function read(path: string | URL): Enumerable<Uint8Array> {
 }
 
 /**
- * Read a file as lines of text.
+ * Read a UTF-8 file as lines of text: the same as `read(path).lines`.
  *
- * This is a convenience function equivalent to `read(path).lines`.
- * Useful for developers who expect a direct readLines function.
+ * Line endings (`\n` or `\r\n`) are dropped, and see {@link read} for when
+ * the file is opened and closed. Invalid UTF-8 throws `TypeError`.
  *
- * @example Read file lines
+ * @example
  * ```typescript
- * import { readLines } from "jsr:@j50n/proc";
+ * import { readLines } from "@j50n/proc";
  *
- * const lines = await readLines("data.txt").collect();
- * // Array of strings, one per line
+ * for await (const line of readLines("data.txt")) {
+ *   console.log(line);
+ * }
  * ```
  *
  * @param path The path of the file.
- * @returns An Enumerable of text lines.
  */
 export function readLines(path: string | URL): Enumerable<string> {
   return read(path).lines;
 }
 
 /**
- * Fast-concatenate Uint8Array arrays into a single array.
+ * Join byte arrays into one.
  *
- * Optimized to avoid unnecessary copying:
- * - Returns empty array for empty input
- * - Returns the original array if only one element (no copy)
- * - Otherwise performs efficient concatenation
+ * Given a single array, it returns that same array, not a copy, so writing to
+ * the result writes to the input. Given none, it returns a new empty array.
  *
- * @example Concatenate byte arrays
+ * @example
  * ```typescript
- * import { concat } from "jsr:@j50n/proc";
+ * import { concat, read } from "@j50n/proc";
  *
- * const result = concat([
- *   new Uint8Array([1, 2]),
- *   new Uint8Array([3, 4])
- * ]);
- * // Uint8Array([1, 2, 3, 4])
+ * const bytes = concat(await read("data.bin").collect());
  * ```
  *
- * @example Single array optimization
- * ```typescript
- * import { concat } from "jsr:@j50n/proc";
- *
- * const arr = new Uint8Array([1, 2, 3]);
- * const result = concat([arr]);
- * // Returns arr directly (no copy)
- * ```
- *
- * @param arrays The arrays to concatenate.
- * @returns The concatenated result.
+ * @param arrays The arrays to join.
  */
 export function concat(arrays: Uint8Array[]): Uint8Array {
   const al = arrays.length;
@@ -113,11 +109,10 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
 }
 
 /**
- * Fast-concatenate `Uint8Arrays` arrays together, adding a trailing line feed,
- * returning a single array containing the result.
+ * Join byte arrays into one, with `\n` after each: lines of bytes back into
+ * text. Given none, it returns an empty array.
  *
- * @param arrays The arrays to concatenate together.
- * @returns The result of the concatenation.
+ * @param arrays The lines to join, without their line endings.
  */
 export function concatLines(arrays: Uint8Array[]): Uint8Array {
   if (!arrays.length) {
@@ -144,67 +139,52 @@ export function concatLines(arrays: Uint8Array[]): Uint8Array {
   return result;
 }
 
-/**
- * Options for a `to` range. The `to` range is exclusive.
- */
+/** Options for a {@link range} that stops before `to`. */
 export interface RangeToOptions {
-  /** Starting number inclusive; defaults to 0. */
+  /** The first number. Default 0. */
   from?: number;
-  /** Ending number exclusinve. */
+  /** Stop before reaching this number (exclusive). */
   to: number;
-  /** Step value. Defaults to 1. */
+  /** Added each time; negative counts down. Default 1. */
   step?: number;
 }
 
-/**
- * Options for an `until` range. The `until` value is inclusive.
- */
+/** Options for a {@link range} that may end on `until`. */
 export interface RangeUntilOptions {
-  /** Starting number inclusive; defaults to 0. */
+  /** The first number. Default 0. */
   from?: number;
-  /** Ending number inclusive. */
+  /** Stop after passing this number; it is included if the steps land on it. */
   until: number;
-  /** Step value. Defaults to 1. */
+  /** Added each time; negative counts down. Default 1. */
   step?: number;
 }
 
 /**
- * Lazily generate a range of numbers as an AsyncIterable.
+ * Count from `from` (default 0) by `step` (default 1), as an Enumerable.
  *
- * Two forms available:
- * - **to**: Exclusive upper bound
- * - **until**: Inclusive upper bound
+ * With `to`, it stops before `to`; with `until`, it includes `until` when a
+ * step lands on it. Both are limits, not targets: `{ from: 1, until: 10, step:
+ * 3 }` gives 1, 4, 7, 10, and `{ from: 1, to: 10, step: 3 }` gives 1, 4, 7. A
+ * negative `step` counts down, and the limit is then below `from`. A step
+ * that moves away from the limit gives nothing (`{ from: 5, to: 0 }` is
+ * empty). Numbers are made one at a time as they are read, so `to: Infinity`
+ * works with `.take()`.
  *
- * Supports negative steps for counting down.
+ * Fractional steps add up floating-point error: `{ until: 0.3, step: 0.1 }`
+ * gives 0, 0.1, 0.2, because the fourth value is 0.30000000000000004.
  *
- * @example Exclusive range (to)
+ * A `step` of 0 throws `RangeError` at the call.
+ *
+ * @example
  * ```typescript
- * import { range } from "jsr:@j50n/proc";
+ * import { range } from "@j50n/proc";
  *
- * const result = await range({ to: 3 }).collect();
- * // [0, 1, 2]
+ * await range({ to: 3 }).collect(); // [0, 1, 2]
+ * await range({ from: 1, until: 3 }).collect(); // [1, 2, 3]
+ * await range({ from: 3, until: 1, step: -1 }).collect(); // [3, 2, 1]
  * ```
  *
- * @example Inclusive range (until)
- * ```typescript
- * import { range } from "jsr:@j50n/proc";
- *
- * const result = await range({ from: 1, until: 3 }).collect();
- * // [1, 2, 3]
- * ```
- *
- * @example Negative step
- * ```typescript
- * import { range } from "jsr:@j50n/proc";
- *
- * const result = await range({ from: -1, until: -3, step: -1 }).collect();
- * // [-1, -2, -3]
- * ```
- *
- * @param options Range configuration.
- * @returns An Enumerable of numbers.
- * @see {@link RangeToOptions}
- * @see {@link RangeUntilOptions}
+ * @param options Where to start and stop, and the step.
  */
 export function range(
   options: RangeToOptions | RangeUntilOptions,
@@ -247,25 +227,17 @@ export function range(
 }
 
 /**
- * The `sleep` function is used to pause the execution of the program for a specified amount of
- * time. It returns a Promise that resolves after a set number of milliseconds, effectively causing a
- * delay in the execution of the subsequent code.
+ * Resolve after `delayms` milliseconds, using `setTimeout`. Other work keeps
+ * running while it waits.
  *
- * @param delayms The time in milliseconds for which the execution of the program will be halted.
- * This parameter is required and must be a number.
- *
- * @returns A Promise that resolves after the specified number of milliseconds. It does not return
- * any value upon resolution.
- *
- * ## Example
- *
+ * @example
  * ```typescript
- * console.log("Program starts");
- * await sleep(2000);  // Pauses the execution for 2000 milliseconds
- * console.log("Program resumes after 2 seconds");
+ * import { SECONDS, sleep } from "@j50n/proc";
+ *
+ * await sleep(2 * SECONDS);
  * ```
- * In the above example, the program will print "Program starts", then it will pause for 2 seconds,
- * and then it will print "Program resumes after 2 seconds".
+ *
+ * @param delayms How long to wait, in milliseconds.
  */
 export async function sleep(delayms: number): Promise<void> {
   await new Promise<void>((resolve, _reject) =>
@@ -274,35 +246,39 @@ export async function sleep(delayms: number): Promise<void> {
 }
 
 /**
- * Type guard to check if a value is a string.
+ * Whether `s` is a string primitive (`typeof s === "string"`), as a type
+ * guard. A `String` object is not one.
  *
- * Handles both string primitives and String objects.
- *
- * @example Type narrowing
+ * @example
  * ```typescript
- * import { isString } from "jsr:@j50n/proc";
+ * import { isString } from "@j50n/proc";
  *
  * const value: unknown = "hello";
  * if (isString(value)) {
- *   // TypeScript knows value is string here
  *   console.log(value.toUpperCase());
  * }
  * ```
  *
  * @param s The value to check.
- * @returns True if the value is a string.
  */
 export function isString(s: unknown): s is string {
   return typeof s === "string";
 }
 
 /**
- * Performs an in-place shuffle of an array in linear time.
+ * Shuffle an array in place, in linear time (Fisher-Yates). It returns
+ * nothing; the array you pass is the result. It uses `Math.random`, so it is
+ * not for anything that needs to be unpredictable.
  *
- * This function uses the Fisher-Yates (also known as Knuth) shuffle algorithm to rearrange
- * the elements in the array in a random order. The shuffle is performed in-place, meaning
- * that it modifies the original array instead of creating a new one. The time complexity of
- * the algorithm is `O(n)`, where `n` is the number of elements in the array.
+ * @example
+ * ```typescript
+ * import { shuffle } from "@j50n/proc";
+ *
+ * const cards = ["A", "K", "Q", "J"];
+ * shuffle(cards);
+ * ```
+ *
+ * @param items The array to shuffle.
  */
 export function shuffle<T>(items: T[]) {
   for (let i = 0; i < items.length; i++) {
@@ -314,18 +290,20 @@ export function shuffle<T>(items: T[]) {
 }
 
 /**
- * Low level write without locking, writing in multiple chunks if needed.
+ * Write all of `data` to a `Writer` (such as `Deno.stdout`), calling `write`
+ * again until every byte is written. It does not close the writer, and an
+ * error from `write` is thrown unchanged.
  *
- * Data is written completely. Does not attempt to close the writer.
+ * @example
+ * ```typescript
+ * import { writeAll } from "@j50n/proc";
  *
- * @param data The data to write.
- * @param writer The writer.
+ * await writeAll(new TextEncoder().encode("hello\n"), Deno.stdout);
+ * ```
+ *
+ * @param data The bytes to write.
+ * @param writer Where to write them.
  */
-// DEV NOTE: This uses async write() rather than writeSync(). Performance testing
-// (labs/stdout-async/) showed writeSync() is actually 5-10% faster due to OS kernel
-// buffering, but we use async here to avoid blocking the event loop. The performance
-// difference is negligible in practice (~1026 MB/s vs ~922 MB/s). If maximum throughput
-// becomes critical, consider switching to writeSync().
 export async function writeAll(data: Uint8Array, writer: Writer) {
   const len = data.length;
 

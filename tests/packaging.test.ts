@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { walk } from "jsr:@std/fs@1/walk";
+import { walk } from "@std/fs/walk";
 import config from "../deno.json" with { type: "json" };
 import { FLATDATA_WASM_BASE64 } from "../src/wasm/flatdata-wasm.ts";
 

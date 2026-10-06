@@ -1,6 +1,10 @@
 import { retry } from "@std/async/retry";
 
-/** The number of milliseconds in a second. */
+/**
+ * Milliseconds in a second. The time constants are plain numbers of
+ * milliseconds, for {@link cache}'s `timeout`, {@link sleep}, or anything else
+ * that takes milliseconds: `4 * HOURS`.
+ */
 export const SECONDS = 1000;
 
 /** The number of milliseconds in a minute. */
@@ -24,9 +28,14 @@ function cacheKey(key: string | string[]): string[] {
 }
 
 /**
- * Fetch a record from KV. Use {@link cache} instead; exported for debugging.
- * @param key The cache key.
- * @returns The cached record, or `null`.
+ * Read the raw entry {@link cache} stored under `key`, whether or not it has
+ * expired, for debugging. Use `cache` itself to get values.
+ *
+ * The entry's `value` is `{ timestamp, value }`, with `timestamp` the time it
+ * was stored, or `null` if nothing is stored under the key. Throws as `cache`
+ * does when Deno KV is not enabled.
+ *
+ * @param key The cache key, as given to `cache`.
  */
 export async function fetchRecord<T>(
   key: string | string[],
@@ -77,48 +86,47 @@ async function put<T>(key: string | string[], value: T): Promise<void> {
 }
 
 /**
- * Fetch and cache expensive computations using Deno KV.
+ * Return the value stored under `key` if it is younger than `timeout`;
+ * otherwise call `value`, store what it returns, and return that.
  *
- * Caches the result of an async function call. If the cached value exists and hasn't
- * expired, returns it immediately. Otherwise, calls the function, caches the result,
- * and returns it.
+ * Values are kept in Deno KV's default database (`Deno.openKv()` with no
+ * path), so they last across runs and are shared with every program that
+ * opens the same database. A key of `"x"` is the same as `["x"]`. Age is
+ * checked when read, against the `timeout` of that call: an older entry is
+ * recomputed and replaced, and nothing is ever deleted.
  *
- * **Use cases:**
- * - Cache expensive API calls
- * - Store computed results between runs
- * - Reduce redundant processing
- * - Implement time-based invalidation
+ * Things to know:
  *
- * @example Cache API results
+ * - Deno KV is unstable: run with `--unstable-kv` (or `"unstable": ["kv"]` in
+ *   `deno.json`). Without it, `cache` throws `RetryError` from `@std/async`,
+ *   with the real `TypeError` as its `cause`.
+ * - `null` and `undefined` are not cached; `value` is called every time.
+ * - The value must fit in a KV entry: structured-cloneable (no functions) and
+ *   at most 64 KiB, or storing it throws `TypeError` (after `value` has run).
+ * - Two calls that miss at the same time both call `value`.
+ * - An error thrown by `value` comes out of `cache` unchanged, and nothing is
+ *   stored.
+ *
+ * @example
  * ```typescript
- * import { cache, HOURS } from "jsr:@j50n/proc";
+ * import { cache, HOURS } from "@j50n/proc";
  *
- * const data = await cache(
- *   "api-data",
+ * const release = await cache(
+ *   ["github", "denoland/deno", "latest"],
  *   async () => {
- *     // Expensive operation
- *     const response = await fetch("https://api.example.com/data");
- *     return await response.json();
+ *     const response = await fetch(
+ *       "https://api.github.com/repos/denoland/deno/releases/latest",
+ *     );
+ *     return (await response.json()).tag_name as string;
  *   },
- *   { timeout: 4 * HOURS }
+ *   { timeout: 4 * HOURS },
  * );
  * ```
  *
- * @example Cache with array key
- * ```typescript
- * import { cache } from "jsr:@j50n/proc";
- *
- * const result = await cache(
- *   ["user", userId, "profile"],
- *   async () => await fetchUserProfile(userId),
- *   { timeout: 30 * 60 * 1000 } // 30 minutes
- * );
- * ```
- *
- * @param key Cache key (string or array of strings).
- * @param value Function to compute the value if not cached.
- * @param options Timeout in milliseconds (default: 24 hours).
- * @returns The cached or computed value.
+ * @param key The cache key: a string, or an array of strings.
+ * @param value Computes the value when there is no fresh one stored.
+ * @param options.timeout How old a stored value may be, in milliseconds.
+ *   Default 24 hours.
  */
 export async function cache<T>(
   key: string | string[],

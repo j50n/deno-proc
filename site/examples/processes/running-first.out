@@ -1,0 +1,5 @@
+[
+  "2026-10-05 09:00:01 INFO  server started on :8080",
+  "2026-10-05 09:00:07 INFO  GET /health 200",
+  "2026-10-05 09:01:13 ERROR db: connection refused"
+]
