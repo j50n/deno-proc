@@ -41,6 +41,10 @@ lock held when Deno was gone. (The driver,
 
 ## What `main` does
 
+`main` needs no permissions of its own: listening for signals and signalling the
+children it started are both allowed with the `--allow-run` that starting them
+needed.
+
 | How the program ends                          | Children get | Exit code                       |
 | --------------------------------------------- | ------------ | ------------------------------- |
 | It returns a number, or nothing               | SIGTERM      | that number, or 0               |

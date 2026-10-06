@@ -78,7 +78,13 @@ the example above it went through the filter and into the TSV. Skip it with
 ```
 
 `enum()` pairs each row with its index, counted from 0. Every field is a string;
-convert numbers yourself.
+convert numbers yourself, and turn them back into strings before writing.
+
+To write a header in front of rows, put it first:
+`enumerate([header]).concat(rows)`, where `rows` is any `Enumerable` of rows.
+
+The parsers and writers run in WebAssembly bundled with the package, so they
+need no permissions of their own; only `read()` and `writeTo()` do.
 
 ## What writers refuse
 

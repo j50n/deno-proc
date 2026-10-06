@@ -19,8 +19,9 @@ shorthand for `read(path).lines`.
 ## Writing a file
 
 `writeTo(path)` creates the file, or replaces what it held, and closes it when
-the sequence ends. If the source throws, the file is closed holding what was
-written so far, and the error comes out of `writeTo`.
+the sequence ends. If the source throws, including a command in the pipeline
+that fails, the file is closed holding what was written so far, and the error
+comes out of `writeTo`.
 
 It takes bytes. Lines of text need `.transform(toBytes)` first, which encodes
 each string as UTF-8 and adds a `"\n"`. Without it, `writeTo` fails with
