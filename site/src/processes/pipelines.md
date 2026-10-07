@@ -88,8 +88,8 @@ writes each array in one go. On two million short lines, a filter between two
 commands took 16 seconds a line at a time and 0.3 seconds a chunk at a time.
 
 `run({ buffer: true }, ...)` is a smaller fix for a source you can't chunk: it
-collects small items into writes of at least 16 KB, about twice as fast. The
-child sees nothing until 16 KB has collected or the input ends, so leave it off
+collects small items into writes of at least 16 KiB, about twice as fast. The
+child sees nothing until 16 KiB has collected or the input ends, so leave it off
 for a child that must answer each line as it arrives.
 
 ## Mixing commands and steps

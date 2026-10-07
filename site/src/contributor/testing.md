@@ -22,6 +22,10 @@ tools.
 | `tests/transforms/`                                             | each data format, `LazyRow`, and the WASM module against a TypeScript reference             |
 | `tests/flatdata/`, `tests/flatdata*.test.ts`                    | the `flatdata` CLI                                                                          |
 | `tests/regressions/`                                            | tests for bugs that were found and fixed                                                    |
+| `tests/child-output.test.ts`, `tests/failure.test.ts`           | internal modules through their own interface, without a child process                       |
+| `tests/lines-property.test.ts`                                  | `.lines` against a line-at-a-time reference, on random bytes in random chunks               |
+| `tests/writeto_*.test.ts`, `tests/range.test.ts`                | `writeTo` (files, atomic, transforms) and `range`                                           |
+| `tests/cache.test.ts`                                           | `cache()`, each test in its own Deno with its own Deno KV database                          |
 | `tests/book_examples.test.ts`                                   | every example in this book (below)                                                          |
 | `tests/readme_examples.test.ts`                                 | the README's examples                                                                       |
 | `tests/packaging.test.ts`                                       | the embedded WASM matches `wasm/flatdata.wasm`; every documented import names a real export |

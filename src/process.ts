@@ -127,10 +127,10 @@ export interface ProcessOptions<S> {
 
   /**
    * Collect what proc writes to the child's stdin into chunks of at least
-   * 16 KB before each write. Default `false`.
+   * 16 KiB before each write. Default `false`.
    *
    * It speeds up feeding many small items, as with `.run()` after a
-   * `.map()`. The child sees no input until 16 KB has collected or the input
+   * `.map()`. The child sees no input until 16 KiB has collected or the input
    * ends, so leave it off for a child that must answer each line as it comes.
    * It has no effect on {@link run}, whose child has no stdin.
    */
@@ -628,7 +628,7 @@ export class Process<S> implements Closer {
   /**
    * Write everything `iter` yields to the child's stdin, then close it. Items
    * convert as for {@link Process.stdin}; `buffer: true` collects them into
-   * 16 KB writes.
+   * 16 KiB writes.
    *
    * The promise resolves once the input is written and closed, and never
    * rejects. If `iter` throws, its error reaches the reader of

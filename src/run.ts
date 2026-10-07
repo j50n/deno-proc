@@ -44,8 +44,9 @@ export type Cmd = [string | URL, ...string[]];
  * stops it on the way out.
  *
  * **Errors** are thrown where you consume the output, after every line has
- * been delivered. A non-zero exit throws {@link ExitCodeError} (`.code`), and
- * death by a signal throws {@link SignalError} (`.signal`). In a pipeline, a
+ * been delivered. A non-zero exit throws {@link ExitCodeError} (`.code`),
+ * death by a signal throws {@link SignalError} (`.signal`), and running past
+ * `timeoutMs` throws {@link TimeoutError}. In a pipeline, a
  * process that fails upstream reaches the end as an {@link UpstreamError}, or
  * as the last process's own `ExitCodeError` if it failed too, with the
  * upstream error as `cause`. An error from your own callback arrives as is, or

@@ -998,8 +998,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * threw, an item that isn't text or bytes) stops the input and closes the
    * command's stdin. The command's output is still delivered, and then the
    * consumer throws: {@link UpstreamError} with the source's error as `cause`
-   * if the command succeeded, or the command's own {@link ExitCodeError} or
-   * {@link SignalError}, with the source's error as `cause`, if it failed.
+   * if the command succeeded, or the command's own {@link ExitCodeError},
+   * {@link SignalError} or {@link TimeoutError}, with the source's error as
+   * `cause`, if it failed.
    * A command that exits without reading all its input, like `head -1`, is
    * not an error. A missing command throws `Deno.errors.NotFound` from `run`
    * itself.
@@ -1456,7 +1457,8 @@ export class Enumerable<T> implements AsyncIterable<T> {
  *
  * A non-zero exit throws {@link ExitCodeError} from the consumer once every
  * line of output has been delivered; death by a signal throws
- * {@link SignalError}. Stopping early (`take`, `first`, `break`) closes
+ * {@link SignalError}, and running past `timeoutMs` throws
+ * {@link TimeoutError}. Stopping early (`take`, `first`, `break`) closes
  * stdout, and the exit code is not checked.
  *
  * @example

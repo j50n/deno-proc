@@ -16,12 +16,19 @@ proc is a few small layers over two things Deno already has: async iterables and
 | `src/shutdown.ts`          | `main()`, `terminateAll()`, and the set of running children              |
 | `src/utility.ts`           | `read`, `readLines`, `range`, `sleep`, and small byte helpers            |
 | `src/cache.ts`             | `cache()` over Deno KV, and the time constants                           |
-| `src/helpers.ts`           | internal: argument parsing for `run()`, `handled()`                      |
+| `src/tee.ts`               | `tee`, behind `Enumerable.tee`                                           |
+| `src/replace-file.ts`      | the new file and rename behind `writeTo(path, { atomic: true })`         |
+| `src/split-text.ts`        | decoding bytes and splitting them, for `.lines`, JSON lines and records  |
+| `src/child-output.ts`      | a child's stdout, read once, and read at the exit if nobody is           |
+| `src/failure.ts`           | which error a finished run fails with, and handing it to `fnError`       |
+| `src/helpers.ts`           | small shared pieces: `handled()`, `abandon()`, `closeAll()`, and others  |
 | `src/transforms/`          | the data formats (`@j50n/proc/transforms`)                               |
 | `src/wasm/`                | the loader and wrapper for the WebAssembly module                        |
 
-`mod.ts` re-exports the modules in `src/` but `concurrent.ts` and `helpers.ts`,
-which are internal, and `transforms/` and `wasm/`.
+`mod.ts` re-exports `enumerable.ts`, `run.ts`, `process.ts`, `transformers.ts`,
+`writable-iterable.ts`, `utility.ts` and `cache.ts`, and `main` and
+`terminateAll` from `shutdown.ts`. The rest are internal, and `transforms/` is
+its own export, `@j50n/proc/transforms`.
 
 ## Enumerable
 
@@ -51,14 +58,21 @@ a `Process`, with stdin `"null"`, stdout `"piped"`, and stderr `"inherit"`, or
 `ProcessEnumerable`, an `Enumerable` over `Process.stdout`.
 
 `Process.stdout` is where failures become errors. It is an async generator that
-yields the child's stdout chunks; after the last one, in a `finally`, it awaits
-the exit status and the `fnStderr` promise, and then throws `SignalError` or
-`ExitCodeError` for a failed exit, or `UpstreamError` if the child succeeded but
-its input failed. If there is an `fnError`, the error goes to it instead, and
-whatever it throws is what the consumer sees. Since all of this happens after
-the last chunk, the consumer has every line before the error arrives. If the
-consumer stops early, the generator is closed before the check, so no exit code
-is examined.
+yields the child's stdout chunks, which a `ChildOutput` reads; after the last
+one, it awaits the exit status and the `fnStderr` promise, and `failureOf` in
+`failure.ts` picks the error: `TimeoutError` if `timeoutMs` ran out, whatever
+the exit; else `SignalError` or `ExitCodeError` for a failed exit; else
+`UpstreamError` if the child succeeded but its input failed. If there is an
+`fnError`, `settle` hands the error to it instead, and whatever it throws is
+what the consumer sees. Since all of this happens after the last chunk, the
+consumer has every line before the error arrives. If the consumer stops early,
+the generator is closed before the check, so no exit code is examined.
+
+`ChildOutput` also reads the output when the child exits and nobody has started
+reading it, into memory, so that a child run only for its status doesn't keep
+its pipe open; a reader who comes later gets it from there. After a timeout, it
+ends the output at the first pause once the child has exited, since a program
+the child started may hold the pipe open for good.
 
 ## A pipeline
 
@@ -71,11 +85,12 @@ the output. So `.run()` is the one step that is not lazy.
 When the upstream iterable throws, `writeToStdin` keeps the error as the
 process's "pass error" and closes stdin. The child sees end of input, finishes,
 and exits; `Process.stdout` then attaches the pass error as `cause` to its own
-`ExitCodeError`, or throws an `UpstreamError` around it if the child exited 0.
-That is how an error from the first command in a chain reaches the `catch` after
-the last. A child that exits before reading all its input (`head -1`) makes the
-next write fail with `BrokenPipe`; the loop ignores that error and stops reading
-upstream, which closes it like any early stop.
+`ExitCodeError`, `SignalError` or `TimeoutError`, or throws an `UpstreamError`
+around it if the child exited 0. That is how an error from the first command in
+a chain reaches the `catch` after the last. A child that exits before reading
+all its input (`head -1`) makes the next write fail with `BrokenPipe`; the loop
+ignores that error and stops reading upstream, which closes it like any early
+stop.
 
 ## Concurrency
 
@@ -88,15 +103,19 @@ started when the consumer stops or an error is thrown.
 ## Shutdown
 
 `shutdown.ts` keeps a set of the children proc started, adding each in the
-`Process` constructor and removing it when its status resolves. `main()`
+`Process` constructor and removing it once it has exited and its `fnStderr`, if
+any, has finished. It also keeps the children's outputs being read. `main()`
 installs listeners for SIGTERM, SIGINT, and SIGHUP (only SIGINT on Windows) and
 for uncaught errors and unhandled rejections, then runs the program. However it
-ends, the first ending wins: it signals every child in the set (except after
-SIGINT or SIGHUP, which the terminal already sent them), waits up to `timeoutMs`
-for them to exit, and calls `Deno.exit` with the code for that ending. A second
-signal exits at once. `terminateAll()` is the signal-and-wait half on its own.
-An `unload` listener sends SIGTERM to the children if the program exits some
-other way, though it can't wait for them.
+ends, the first ending wins. On SIGTERM, or when the program ends, it signals
+every child in the set and waits up to `timeoutMs` for them. After SIGINT or
+SIGHUP, which the terminal already sent the children, it gives them a second,
+then sends SIGTERM to any still running. After a signal, it then waits for the
+children's output to be read and up to half a second more for the program, so a
+pipeline writing that output finishes. Then it calls `Deno.exit` with the code
+for that ending. A second signal exits at once. `terminateAll()` is the
+signal-and-wait half on its own. An `unload` listener sends SIGTERM to the
+children if the program exits some other way, though it can't wait for them.
 
 ## Small pieces
 
@@ -107,11 +126,19 @@ other way, though it can't wait for them.
 - **`helpers.handled(promise)`** attaches an empty `catch` to a promise that
   will be awaited later, so that a rejection before then isn't reported as
   unhandled. It is used wherever proc holds a promise while doing something
-  else: `map` and `forEach` read the next item before awaiting the call on the
-  last one, the concurrent maps hold many, and the `fnStderr` reader runs beside
-  stdout.
+  else: the concurrent maps hold many, `writeTo` overlaps a write with reading
+  the next item, `zip` pulls both sides at once, and the `fnStderr` reader runs
+  beside stdout.
+- **`helpers.abandon(source)`** closes a source nothing will read, for a step
+  that fails before it reads (a file that can't be opened, a bad `concurrency`).
+  An async generator ignores `return()` until it has started, so it starts the
+  source, takes at most one item, and stops.
+- **`helpers.closeAll(sources, pending)`** closes sources a consumer stopped
+  reading, in the background when a pull is still pending, since the close would
+  wait behind it.
 - **`cache()`** stores `{ timestamp, value }` under the key in Deno KV's default
-  database and checks the age on read.
+  database, with KV's `expireIn` set from the timeout, and checks the age on
+  read.
 
 ## Data formats and WebAssembly
 
@@ -120,11 +147,11 @@ other way, though it can't wait for them.
 `src/wasm/flatdata.ts` wraps it, compiling it once and making an instance per
 stream. The reader hands back whole rows a batch at a time, with the end of
 every field, and `common.ts` and `lazy-row.ts` turn a batch into string rows or
-LazyRows. The record and JSON-lines parsers are TypeScript: `common.ts` splits
-the input on a separator and groups rows into batches of about 128 KiB. The
-writers are TypeScript too: each builds one string per item and encodes it once,
-which is faster than crossing into WebAssembly when the strings already live in
-JavaScript.
+LazyRows. The record and JSON-lines parsers are TypeScript: `split-text.ts`
+splits the input on a separator, as it does lines for `.lines`, and they group
+rows into batches of about 128 KiB. The writers are TypeScript too: each builds
+one string per item and encodes it once, which is faster than crossing into
+WebAssembly when the strings already live in JavaScript.
 
 The module is built from `swift/` (Embedded Swift, with SIMD classifiers in C)
 into `wasm/flatdata.wasm`. `tools/embed-wasm.ts` writes it, base64-encoded, into
