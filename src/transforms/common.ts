@@ -2,7 +2,7 @@
 
 import type { TransformerFunction } from "../transformers.ts";
 import type { RowBatch } from "../wasm/flatdata.ts";
-import { decodeBatch } from "./decode.ts";
+import { decodeBatch, RS } from "./decode.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
@@ -34,7 +34,7 @@ export function batchRows(batch: RowBatch): Row[] {
   for (let j = 0; j < ends.length; j++) {
     const end = ends[j];
     row.push(text.slice(start, end));
-    if (text.charCodeAt(end) === 0x1E) {
+    if (text.charCodeAt(end) === RS) {
       rows.push(row);
       row = [];
     }

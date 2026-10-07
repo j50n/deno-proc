@@ -1,3 +1,5 @@
+import { checkedTimeout, MAX_TIMER_MS } from "./helpers.ts";
+
 /**
  * Children proc started that aren't done yet, each with a promise that
  * settles when it is: the child has exited, and its `fnStderr`, if any, has
@@ -138,27 +140,20 @@ globalThis.addEventListener("unload", () => {
 export async function terminateAll(
   options?: { signal?: Deno.Signal; timeoutMs?: number },
 ): Promise<void> {
-  const timeoutMs = checkedTimeout(options?.timeoutMs);
+  const timeoutMs = checkedTimeout(options?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   await waitFor(signalAll(options?.signal ?? "SIGTERM"), timeoutMs);
 }
 
 /** `timeoutMs`, or the default; throws unless it is a number of at least 0. */
-function checkedTimeout(timeoutMs: number = DEFAULT_TIMEOUT_MS): number {
-  if (!(timeoutMs >= 0)) {
-    throw new RangeError(`timeoutMs must be at least 0; got ${timeoutMs}`);
-  }
-  return timeoutMs;
-}
-
-/** Wait until `children` are done, or `timeoutMs` has passed. */
+/** Wait until every one of `done` has resolved, or `timeoutMs` has passed. */
 async function waitFor(
-  children: Promise<void>[],
+  done: Promise<void>[],
   timeoutMs: number,
 ): Promise<void> {
-  const exited = Promise.all(children);
+  const exited = Promise.all(done);
 
-  // setTimeout fires at once for anything past its 32-bit range.
-  if (!(timeoutMs < 2 ** 31 - 1)) {
+  // Past what a timer can wait, waiting for `done` is the same.
+  if (!(timeoutMs <= MAX_TIMER_MS)) {
     await exited;
     return;
   }
@@ -245,7 +240,7 @@ export async function main(
   program: () => void | number | Promise<void | number>,
   options?: { timeoutMs?: number },
 ): Promise<never> {
-  const timeoutMs = checkedTimeout(options?.timeoutMs);
+  const timeoutMs = checkedTimeout(options?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   let finishing = false;
   let exitCode = 0;
   let signalsReceived = 0;
@@ -293,12 +288,7 @@ export async function main(
    */
   const end = async (code: number, error?: { error: unknown }) => {
     if (Date.now() - terminalSignalAt < SIGNAL_GRACE_MS) {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      await Promise.race([
-        signalArrived.promise,
-        new Promise((resolve) => timer = setTimeout(resolve, SIGNAL_GRACE_MS)),
-      ]);
-      clearTimeout(timer);
+      await waitFor([signalArrived.promise], SIGNAL_GRACE_MS);
     }
     if (finishing) {
       // Already on the way out. After a signal, errors are its doing.

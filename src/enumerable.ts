@@ -1,5 +1,5 @@
 import { Process, type ProcessOptions } from "./process.ts";
-import { abandon, handled, parseArgs } from "./helpers.ts";
+import { abandon, closeAll, handled, parseArgs } from "./helpers.ts";
 import type { Cmd } from "./run.ts";
 import type { Writable } from "./writable-iterable.ts";
 import {
@@ -1284,12 +1284,9 @@ export class Enumerable<T> implements AsyncIterable<T> {
               yield [a.value, b.value];
             }
           } finally {
-            // Close both without reading on. After one side fails, the
-            // other's pull may still be pending, and its close would wait
-            // behind it.
-            const closing = Promise.all([iterA.return?.(), iterB.return?.()]);
-            if (pending) handled(closing);
-            else await closing;
+            // Close both without reading on. After one side fails or ends,
+            // the other's pull may still be pending.
+            await closeAll([iterA, iterB], pending);
           }
         },
       },

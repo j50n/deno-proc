@@ -1,5 +1,5 @@
 import type { RowBatch } from "../wasm/flatdata.ts";
-import { decodeBatch, decodeField } from "./decode.ts";
+import { decodeBatch, decodeField, RS } from "./decode.ts";
 
 const encoder = new TextEncoder();
 
@@ -205,8 +205,6 @@ function encoded(value: string): Uint8Array | undefined {
   }
   return lastEncoded;
 }
-
-const RS = 0x1E;
 
 /** The rows of a batch from the reader, as LazyRows. */
 export function lazyRows(batch: RowBatch): LazyRow[] {

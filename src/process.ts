@@ -3,7 +3,7 @@ import { type Enumerable, enumerate } from "./enumerable.ts";
 import { buffer, toBytes } from "./transformers.ts";
 import { type Writable, WritableIterable } from "./writable-iterable.ts";
 import { track, trackReading } from "./shutdown.ts";
-import { handled } from "./helpers.ts";
+import { checkedTimeout, handled, MAX_TIMER_MS } from "./helpers.ts";
 
 /** How a child's stdin, stdout, or stderr is connected, as in `Deno.Command`. */
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -281,7 +281,6 @@ export class UpstreamError extends ProcessError {
     options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
-    this.name = this.constructor.name;
     hide(this, "command");
   }
 }
@@ -325,7 +324,6 @@ export class ExitCodeError extends ProcessError {
     options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
-    this.name = this.constructor.name;
     hide(this, "command");
   }
 }
@@ -357,7 +355,6 @@ export class SignalError extends ProcessError {
     options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
-    this.name = this.constructor.name;
     hide(this, "command");
   }
 }
@@ -399,7 +396,6 @@ export class TimeoutError extends ProcessError {
     options?: { cause?: Error },
   ) {
     super(message, { cause: options?.cause });
-    this.name = this.constructor.name;
     hide(this, "command");
   }
 }
@@ -466,9 +462,7 @@ export class Process<S> implements Closer {
     }
 
     const timeoutMs = options.timeoutMs;
-    if (timeoutMs !== undefined && !(timeoutMs >= 0)) {
-      throw new RangeError(`timeoutMs must be at least 0; got ${timeoutMs}`);
-    }
+    if (timeoutMs !== undefined) checkedTimeout(timeoutMs);
 
     // Only the options proc defines; anything else in `options` stays out.
     const { cwd, env, clearEnv, stdin, stdout, stderr } = options;
@@ -489,8 +483,8 @@ export class Process<S> implements Closer {
     }
     track(this.process, this.stderrResult);
 
-    // setTimeout fires at once past its 32-bit range: no timer is the same.
-    if (timeoutMs !== undefined && timeoutMs < 2 ** 31 - 1) {
+    // Past what a timer can wait, no timer is the same.
+    if (timeoutMs !== undefined && timeoutMs <= MAX_TIMER_MS) {
       const timer = setTimeout(() => {
         try {
           this.process.kill("SIGTERM");
@@ -701,7 +695,7 @@ export class Process<S> implements Closer {
                   `${cmd[0]} timed out after ${timeoutMs} ms`,
                   cmd,
                   timeoutMs!,
-                  cause == null ? undefined : { cause },
+                  { cause },
                 );
               } else if (status.signal != null) {
                 // The program only: arguments can hold secrets, and messages
@@ -710,14 +704,14 @@ export class Process<S> implements Closer {
                   `${cmd[0]} was killed by ${status.signal}`,
                   cmd,
                   status.signal,
-                  cause == null ? undefined : { cause },
+                  { cause },
                 );
               } else if (status.code !== 0) {
                 throw new ExitCodeError(
                   `${cmd[0]} exited with code ${status.code}`,
                   cmd,
                   status.code,
-                  cause == null ? undefined : { cause },
+                  { cause },
                 );
               } else if (cause) {
                 throw new UpstreamError(cause.message, cmd, { cause });

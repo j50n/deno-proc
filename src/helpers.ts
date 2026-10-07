@@ -80,3 +80,33 @@ export function abandon(iter: AsyncIterable<unknown>): void {
     for await (const _ of iter) break;
   })());
 }
+
+/** The longest a timer can wait: `setTimeout` fires at once past it. */
+export const MAX_TIMER_MS = 2 ** 31 - 1;
+
+/**
+ * `timeoutMs`, if it is a number of at least 0. NaN or a negative number
+ * would otherwise mean no limit at all, or an immediate one.
+ *
+ * @throws {RangeError} If it isn't.
+ */
+export function checkedTimeout(timeoutMs: number): number {
+  if (!(timeoutMs >= 0)) {
+    throw new RangeError(`timeoutMs must be at least 0; got ${timeoutMs}`);
+  }
+  return timeoutMs;
+}
+
+/**
+ * Close sources a consumer stopped reading. With a pull still `pending`, a
+ * close waits behind it, and that item may never come, so it runs in the
+ * background then.
+ */
+export async function closeAll(
+  sources: AsyncIterator<unknown>[],
+  pending: boolean,
+): Promise<void> {
+  const closing = Promise.all(sources.map((source) => source.return?.()));
+  if (pending) handled(closing);
+  else await closing;
+}

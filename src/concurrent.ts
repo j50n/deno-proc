@@ -1,4 +1,4 @@
-import { abandon, handled } from "./helpers.ts";
+import { abandon, closeAll, handled } from "./helpers.ts";
 
 /**
  * `concurrency` rounded up; the CPU count if not given. Below 1 it throws,
@@ -71,7 +71,7 @@ export async function* concurrentMap<T, U>(
       }
     }
   } finally {
-    if (!ended) await close(source, pulling);
+    if (!ended) await closeAll([source], pulling !== undefined);
   }
 
   if (failure) throw failure.error;
@@ -149,25 +149,11 @@ export async function* concurrentUnorderedMap<T, U>(
     }
   } finally {
     if (!ended) {
-      await close(source, arrived === undefined ? pulling : undefined);
+      await closeAll([source], arrived === undefined && pulling !== undefined);
     }
   }
 
   if (failure) throw failure.error;
-}
-
-/**
- * Close a source the consumer stopped reading early. With a pull still
- * pending, the close waits behind it, and the item may never come, so don't
- * wait for it.
- */
-async function close<T>(
-  source: AsyncIterator<T>,
-  pulling: Promise<IteratorResult<T>> | undefined,
-): Promise<void> {
-  const closing = source.return?.();
-  if (pulling === undefined) await closing;
-  else handled(closing);
 }
 
 const HEAD = Symbol("head");

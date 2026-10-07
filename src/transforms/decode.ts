@@ -7,7 +7,8 @@ const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 /** The longest string V8 can make, in UTF-16 code units. */
 const MAX_STRING_LENGTH = 2 ** 29 - 24;
 
-const RS = 0x1E;
+/** The byte after the last field of a row in a batch from the reader: ASCII RS. */
+export const RS = 0x1E;
 
 /**
  * The whole batch decoded in one call: much faster than field by field when
