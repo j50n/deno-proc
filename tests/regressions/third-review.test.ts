@@ -9,6 +9,7 @@ import {
 import {
   buffer,
   enumerate,
+  Process,
   range,
   run,
   TimeoutError,
@@ -36,11 +37,6 @@ function spy() {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function* failing(...items: string[]) {
-  yield* items;
-  throw new Error("source failed");
-}
 
 /** Run `script` in its own Deno, through bash so it can be redirected. */
 async function deno(script: string, redirect = "") {
@@ -74,19 +70,19 @@ Deno.test("timeoutMs isn't held up by a program the child left holding stdout.",
   assertLess(Date.now() - start, 1500);
 });
 
-Deno.test("writeTo a WritableStream aborts it when the source fails.", async () => {
-  let aborted = false, closed = false;
-  const stream = new WritableStream({
-    abort() {
-      aborted = true;
-    },
-    close() {
-      closed = true;
-    },
-  });
-  await assertRejects(() => enumerate(failing("a")).writeTo(stream));
-  assert(aborted);
-  assertFalse(closed);
+Deno.test("A failing command's output written to a file's writable is kept.", async () => {
+  const dir = await Deno.makeTempDir();
+  try {
+    const path = `${dir}/log.txt`;
+    const file = await Deno.open(path, { write: true, create: true });
+    await assertRejects(() =>
+      run("sh", "-c", "echo one; echo two; exit 1").lines.transform(toBytes)
+        .writeTo(file.writable)
+    );
+    assertEquals(await Deno.readTextFile(path), "one\ntwo\n");
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
 });
 
 Deno.test("writeTo a Writable throws the Writable's own errors.", async () => {
@@ -397,4 +393,16 @@ Deno.test("buffer passes on what it holds before the source's error.", async () 
     "source failed",
   );
   assertEquals(got, [new Uint8Array([1])]);
+});
+
+Deno.test("Reading a Process's process.stdout directly still works when the child exits.", async () => {
+  const p = new Process(
+    { stdin: "null", stdout: "piped", stderr: "inherit" },
+    "sh",
+    ["-c", "echo one; sleep 0.2; echo two"],
+  );
+  const text = new Response(p.process.stdout).text();
+  await p.status;
+  await sleep(50); // When 0.28.0 failed, uncaught, and ended the program.
+  assertEquals(await text, "one\ntwo\n");
 });

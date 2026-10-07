@@ -359,9 +359,12 @@ export class Enumerable<T> implements AsyncIterable<T> {
    * Writing to a `Writable` stops early if it is closed meanwhile, which for a
    * {@link WritableIterable} includes its reader stopping.
    *
-   * If the source throws, a `WritableStream` is aborted (not closed), so
-   * whatever reads it sees a failure rather than a complete-looking end, and
-   * the error is thrown here; with `noclose` it is left as it is. A
+   * If the source throws, a `WritableStream` is closed, not aborted, so what
+   * was written before the error reaches it (an abort throws away what a
+   * stream still holds), and the error is thrown here; with `noclose` it is
+   * left open. Whatever reads the stream sees a normal end, so a destination
+   * that must not take a partial result as complete, such as an upload,
+   * needs the error from here. A
    * `Writable`, such as a {@link WritableIterable}, gets the error through
    * `close(error)` instead, so it reaches whoever reads the `Writable`, and
    * this promise resolves; with `noclose`, the `Writable` stays open and the
@@ -453,10 +456,12 @@ export class Enumerable<T> implements AsyncIterable<T> {
           () => readerGone,
         );
       } catch (e) {
-        // Abort rather than close, so the other end sees a failure, not a
-        // complete-looking end; the first error is the one to report.
-        if (!options?.noclose) await w.abort(e).catch(() => {});
+        // Closed, not aborted: an abort throws away what a stream still
+        // holds, and a file's writable holds up to 64 KiB, so a failing
+        // command's log would come out empty. The first error is the one to
+        // report.
         w.releaseLock();
+        if (!options?.noclose) await writer.close().catch(() => {});
         throw e;
       }
       w.releaseLock();

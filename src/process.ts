@@ -505,7 +505,8 @@ export class Process<S> implements Closer {
 
     if (stdout === "piped") {
       this.process.status.then(() => {
-        if (!this.reading) {
+        // `locked`: something else is reading `process.stdout` directly.
+        if (!this.reading && !this.process.stdout.locked) {
           // Nobody is reading: read what is left now, so the pipe closes. A
           // child run only for its status would otherwise hold a file
           // descriptor for as long as this process runs.
