@@ -188,8 +188,9 @@ SIGPIPE the next time it writes. One that keeps running quietly keeps your
 program from exiting, since Deno waits for running children; <a href="../././~/main.html">main</a>
 stops it on the way out.</p>
 <p><strong>Errors</strong> are thrown where you consume the output, after every line has
-been delivered. A non-zero exit throws <a href="../././~/ExitCodeError.html">ExitCodeError</a> (<code>.code</code>), and
-death by a signal throws <a href="../././~/SignalError.html">SignalError</a> (<code>.signal</code>). In a pipeline, a
+been delivered. A non-zero exit throws <a href="../././~/ExitCodeError.html">ExitCodeError</a> (<code>.code</code>),
+death by a signal throws <a href="../././~/SignalError.html">SignalError</a> (<code>.signal</code>), and running past
+<code>timeoutMs</code> throws <a href="../././~/TimeoutError.html">TimeoutError</a>. In a pipeline, a
 process that fails upstream reaches the end as an <a href="../././~/UpstreamError.html">UpstreamError</a>, or
 as the last process's own <code>ExitCodeError</code> if it failed too, with the
 upstream error as <code>cause</code>. An error from your own callback arrives as is, or

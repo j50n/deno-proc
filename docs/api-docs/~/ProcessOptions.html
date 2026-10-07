@@ -765,9 +765,9 @@ Default: no limit.</p>
 </svg>
 </a>
 </div><div class="max-w-[75ch]"><div class="markdown"><p>Collect what proc writes to the child's stdin into chunks of at least
-16 KB before each write. Default <code>false</code>.</p>
+16 KiB before each write. Default <code>false</code>.</p>
 <p>It speeds up feeding many small items, as with <code>.run()</code> after a
-<code>.map()</code>. The child sees no input until 16 KB has collected or the input
+<code>.map()</code>. The child sees no input until 16 KiB has collected or the input
 ends, so leave it off for a child that must answer each line as it comes.
 It has no effect on <a href="../././~/run.html">run</a>, whose child has no stdin.</p>
 </div></div></div>

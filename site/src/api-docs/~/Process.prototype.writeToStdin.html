@@ -170,7 +170,7 @@
 <span class="font-bold">Process.prototype.writeToStdin</span><span class="font-medium">(<span><span>iter<span>: <span class="td-ref">AsyncIterable</span>&lt;<span><a href="https://deno.land/api@v2.9.7?s=Uint8Array" class="link td-ref">Uint8Array</a><span class="td-op"> | </span><a href="https://deno.land/api@v2.9.7?s=Uint8Array" class="link td-ref">Uint8Array</a>[]<span class="td-op"> | </span><span class="td-kw">string</span><span class="td-op"> | </span><span class="td-kw">string</span>[]</span>&gt;</span></span></span>)<span>: <span class="td-ref">Promise</span>&lt;<span class="td-kw">void</span>&gt;</span> </span>
       </code><div class="space-y-7" id=""><div class="markdown"><p>Write everything <code>iter</code> yields to the child's stdin, then close it. Items
 convert as for Process.stdin; <code>buffer: true</code> collects them into
-16 KB writes.</p>
+16 KiB writes.</p>
 <p>The promise resolves once the input is written and closed, and never
 rejects. If <code>iter</code> throws, its error reaches the reader of
 Process.stdout as the <code>cause</code> of the error thrown there. A child

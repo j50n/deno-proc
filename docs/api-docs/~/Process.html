@@ -1194,7 +1194,7 @@ Iterating Process.stdout calls it when the output ends.</p>
 </a>
 </div><div class="max-w-[75ch]"><div class="markdown"><p>Write everything <code>iter</code> yields to the child's stdin, then close it. Items
 convert as for Process.stdin; <code>buffer: true</code> collects them into
-16 KB writes.</p>
+16 KiB writes.</p>
 <p>The promise resolves once the input is written and closed, and never
 rejects. If <code>iter</code> throws, its error reaches the reader of
 Process.stdout as the <code>cause</code> of the error thrown there. A child

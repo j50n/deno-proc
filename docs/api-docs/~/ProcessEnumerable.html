@@ -153,7 +153,8 @@ and its output must be read: a child that writes more than the pipe holds
 hangs. The output can be read once.</p>
 <p>A non-zero exit throws <a href="../././~/ExitCodeError.html">ExitCodeError</a> from the consumer once every
 line of output has been delivered; death by a signal throws
-<a href="../././~/SignalError.html">SignalError</a>. Stopping early (<code>take</code>, <code>first</code>, <code>break</code>) closes
+<a href="../././~/SignalError.html">SignalError</a>, and running past <code>timeoutMs</code> throws
+<a href="../././~/TimeoutError.html">TimeoutError</a>. Stopping early (<code>take</code>, <code>first</code>, <code>break</code>) closes
 stdout, and the exit code is not checked.</p>
 </div><section class="section"  id="examples"><div>
       <h2 class="anchorable mb-1"><a href="#examples" class="anchor" aria-label="Anchor" tabIndex="-1"><svg

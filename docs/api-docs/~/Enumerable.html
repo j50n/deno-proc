@@ -1774,8 +1774,9 @@ is inherited, or piped to <code>fnStderr</code> when that is given.</p>
 threw, an item that isn't text or bytes) stops the input and closes the
 command's stdin. The command's output is still delivered, and then the
 consumer throws: <a href="../././~/UpstreamError.html">UpstreamError</a> with the source's error as <code>cause</code>
-if the command succeeded, or the command's own <a href="../././~/ExitCodeError.html">ExitCodeError</a> or
-<a href="../././~/SignalError.html">SignalError</a>, with the source's error as <code>cause</code>, if it failed.
+if the command succeeded, or the command's own <a href="../././~/ExitCodeError.html">ExitCodeError</a>,
+<a href="../././~/SignalError.html">SignalError</a> or <a href="../././~/TimeoutError.html">TimeoutError</a>, with the source's error as
+<code>cause</code>, if it failed.
 A command that exits without reading all its input, like <code>head -1</code>, is
 not an error. A missing command throws <code>Deno.errors.NotFound</code> from <code>run</code>
 itself.</p>

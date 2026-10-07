@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7d9f2c9c.js";
+            window.path_to_searchindex_js = "../searchindex-122cfea2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -200,6 +200,10 @@ tools.</p>
 <tr><td><code>tests/transforms/</code></td><td>each data format, <code>LazyRow</code>, and the WASM module against a TypeScript reference</td></tr>
 <tr><td><code>tests/flatdata/</code>, <code>tests/flatdata*.test.ts</code></td><td>the <code>flatdata</code> CLI</td></tr>
 <tr><td><code>tests/regressions/</code></td><td>tests for bugs that were found and fixed</td></tr>
+<tr><td><code>tests/child-output.test.ts</code>, <code>tests/failure.test.ts</code></td><td>internal modules through their own interface, without a child process</td></tr>
+<tr><td><code>tests/lines-property.test.ts</code></td><td><code>.lines</code> against a line-at-a-time reference, on random bytes in random chunks</td></tr>
+<tr><td><code>tests/writeto_*.test.ts</code>, <code>tests/range.test.ts</code></td><td><code>writeTo</code> (files, atomic, transforms) and <code>range</code></td></tr>
+<tr><td><code>tests/cache.test.ts</code></td><td><code>cache()</code>, each test in its own Deno with its own Deno KV database</td></tr>
 <tr><td><code>tests/book_examples.test.ts</code></td><td>every example in this book (below)</td></tr>
 <tr><td><code>tests/readme_examples.test.ts</code></td><td>the README’s examples</td></tr>
 <tr><td><code>tests/packaging.test.ts</code></td><td>the embedded WASM matches <code>wasm/flatdata.wasm</code>; every documented import names a real export</td></tr>

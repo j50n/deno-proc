@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7d9f2c9c.js";
+            window.path_to_searchindex_js = "searchindex-122cfea2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-bde66083.js"></script>
@@ -249,7 +249,7 @@ use them.</p>
 import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 </code></pre>
 <p>For a one-off script without a <code>deno.json</code>, import from JSR directly:
-<code>import { run } from "jsr:@j50n/proc@0.28.1";</code>.</p>
+<code>import { run } from "jsr:@j50n/proc@0.28.2";</code>.</p>
 <h2 id="a-first-script"><a class="header" href="#a-first-script">A first script</a></h2>
 <p>Save this as <code>errors.ts</code>, next to a log file called <code>app.log</code>:</p>
 <pre><code class="language-typescript">import { run } from "@j50n/proc";
@@ -715,8 +715,8 @@ console.log(count);
 writes each array in one go. On two million short lines, a filter between two
 commands took 16 seconds a line at a time and 0.3 seconds a chunk at a time.</p>
 <p><code>run({ buffer: true }, ...)</code> is a smaller fix for a source you can’t chunk: it
-collects small items into writes of at least 16 KB, about twice as fast. The
-child sees nothing until 16 KB has collected or the input ends, so leave it off
+collects small items into writes of at least 16 KiB, about twice as fast. The
+child sees nothing until 16 KiB has collected or the input ends, so leave it off
 for a child that must answer each line as it arrives.</p>
 <h2 id="mixing-commands-and-steps"><a class="header" href="#mixing-commands-and-steps">Mixing commands and steps</a></h2>
 <pre><code class="language-typescript">import { run } from "@j50n/proc";
@@ -3214,11 +3214,11 @@ CSV, with the parsing done in another process.</p>
 <pre><code class="language-sh">cat data.csv | flatdata csv2record | ./process | flatdata record2csv &gt; out.csv
 </code></pre>
 <p>Install it with Deno:</p>
-<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.28.1/flatdata
+<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.28.2/flatdata
 </code></pre>
 <p>The permissions are for <code>-i</code> and <code>-o</code>; without them it still works on stdin and
 stdout. To run it without installing,
-<code>deno run jsr:@j50n/proc@0.28.1/flatdata csv2tsv &lt; data.csv</code>.
+<code>deno run jsr:@j50n/proc@0.28.2/flatdata csv2tsv &lt; data.csv</code>.
 <code>flatdata --help</code> lists the commands, and <code>flatdata &lt;command&gt; --help</code> a
 command’s options.</p>
 <h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
@@ -4332,14 +4332,21 @@ how it is tested.</li>
 <tr><td><code>src/shutdown.ts</code></td><td><code>main()</code>, <code>terminateAll()</code>, and the set of running children</td></tr>
 <tr><td><code>src/utility.ts</code></td><td><code>read</code>, <code>readLines</code>, <code>range</code>, <code>sleep</code>, and small byte helpers</td></tr>
 <tr><td><code>src/cache.ts</code></td><td><code>cache()</code> over Deno KV, and the time constants</td></tr>
-<tr><td><code>src/helpers.ts</code></td><td>internal: argument parsing for <code>run()</code>, <code>handled()</code></td></tr>
+<tr><td><code>src/tee.ts</code></td><td><code>tee</code>, behind <code>Enumerable.tee</code></td></tr>
+<tr><td><code>src/replace-file.ts</code></td><td>the new file and rename behind <code>writeTo(path, { atomic: true })</code></td></tr>
+<tr><td><code>src/split-text.ts</code></td><td>decoding bytes and splitting them, for <code>.lines</code>, JSON lines and records</td></tr>
+<tr><td><code>src/child-output.ts</code></td><td>a child’s stdout, read once, and read at the exit if nobody is</td></tr>
+<tr><td><code>src/failure.ts</code></td><td>which error a finished run fails with, and handing it to <code>fnError</code></td></tr>
+<tr><td><code>src/helpers.ts</code></td><td>small shared pieces: <code>handled()</code>, <code>abandon()</code>, <code>closeAll()</code>, and others</td></tr>
 <tr><td><code>src/transforms/</code></td><td>the data formats (<code>@j50n/proc/transforms</code>)</td></tr>
 <tr><td><code>src/wasm/</code></td><td>the loader and wrapper for the WebAssembly module</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>mod.ts</code> re-exports the modules in <code>src/</code> but <code>concurrent.ts</code> and <code>helpers.ts</code>,
-which are internal, and <code>transforms/</code> and <code>wasm/</code>.</p>
+<p><code>mod.ts</code> re-exports <code>enumerable.ts</code>, <code>run.ts</code>, <code>process.ts</code>, <code>transformers.ts</code>,
+<code>writable-iterable.ts</code>, <code>utility.ts</code> and <code>cache.ts</code>, and <code>main</code> and
+<code>terminateAll</code> from <code>shutdown.ts</code>. The rest are internal, and <code>transforms/</code> is
+its own export, <code>@j50n/proc/transforms</code>.</p>
 <h2 id="enumerable-1"><a class="header" href="#enumerable-1">Enumerable</a></h2>
 <p><code>Enumerable&lt;T&gt;</code> wraps one <code>AsyncIterable&lt;T&gt;</code>. Each step (<code>map</code>, <code>filter</code>,
 <code>take</code>, …) is an async generator over the one before, returned in a new
@@ -4362,14 +4369,20 @@ a <code>Process</code>, with stdin <code>"null"</code>, stdout <code>"piped"</co
 <code>run()</code> itself, and registers the child with <code>shutdown.ts</code>. <code>run()</code> returns a
 <code>ProcessEnumerable</code>, an <code>Enumerable</code> over <code>Process.stdout</code>.</p>
 <p><code>Process.stdout</code> is where failures become errors. It is an async generator that
-yields the child’s stdout chunks; after the last one, in a <code>finally</code>, it awaits
-the exit status and the <code>fnStderr</code> promise, and then throws <code>SignalError</code> or
-<code>ExitCodeError</code> for a failed exit, or <code>UpstreamError</code> if the child succeeded but
-its input failed. If there is an <code>fnError</code>, the error goes to it instead, and
-whatever it throws is what the consumer sees. Since all of this happens after
-the last chunk, the consumer has every line before the error arrives. If the
-consumer stops early, the generator is closed before the check, so no exit code
-is examined.</p>
+yields the child’s stdout chunks, which a <code>ChildOutput</code> reads; after the last
+one, it awaits the exit status and the <code>fnStderr</code> promise, and <code>failureOf</code> in
+<code>failure.ts</code> picks the error: <code>TimeoutError</code> if <code>timeoutMs</code> ran out, whatever
+the exit; else <code>SignalError</code> or <code>ExitCodeError</code> for a failed exit; else
+<code>UpstreamError</code> if the child succeeded but its input failed. If there is an
+<code>fnError</code>, <code>settle</code> hands the error to it instead, and whatever it throws is
+what the consumer sees. Since all of this happens after the last chunk, the
+consumer has every line before the error arrives. If the consumer stops early,
+the generator is closed before the check, so no exit code is examined.</p>
+<p><code>ChildOutput</code> also reads the output when the child exits and nobody has started
+reading it, into memory, so that a child run only for its status doesn’t keep
+its pipe open; a reader who comes later gets it from there. After a timeout, it
+ends the output at the first pause once the child has exited, since a program
+the child started may hold the pipe open for good.</p>
 <h2 id="a-pipeline"><a class="header" href="#a-pipeline">A pipeline</a></h2>
 <p><code>.run(...cmd)</code> on an <code>Enumerable</code> builds a <code>Process</code> with stdin <code>"piped"</code> and
 calls <code>writeToStdin(this)</code> straight away. That starts a loop that reads the
@@ -4379,11 +4392,12 @@ the output. So <code>.run()</code> is the one step that is not lazy.</p>
 <p>When the upstream iterable throws, <code>writeToStdin</code> keeps the error as the
 process’s “pass error” and closes stdin. The child sees end of input, finishes,
 and exits; <code>Process.stdout</code> then attaches the pass error as <code>cause</code> to its own
-<code>ExitCodeError</code>, or throws an <code>UpstreamError</code> around it if the child exited 0.
-That is how an error from the first command in a chain reaches the <code>catch</code> after
-the last. A child that exits before reading all its input (<code>head -1</code>) makes the
-next write fail with <code>BrokenPipe</code>; the loop ignores that error and stops reading
-upstream, which closes it like any early stop.</p>
+<code>ExitCodeError</code>, <code>SignalError</code> or <code>TimeoutError</code>, or throws an <code>UpstreamError</code>
+around it if the child exited 0. That is how an error from the first command in
+a chain reaches the <code>catch</code> after the last. A child that exits before reading
+all its input (<code>head -1</code>) makes the next write fail with <code>BrokenPipe</code>; the loop
+ignores that error and stops reading upstream, which closes it like any early
+stop.</p>
 <h2 id="concurrency"><a class="header" href="#concurrency">Concurrency</a></h2>
 <p><code>concurrentMap</code> and <code>concurrentUnorderedMap</code> in <code>src/concurrent.ts</code> keep up to
 <code>concurrency</code> promises from the mapping function in flight. The ordered one
@@ -4392,15 +4406,19 @@ unordered one yields whichever settles first. Neither cancels calls already
 started when the consumer stops or an error is thrown.</p>
 <h2 id="shutdown"><a class="header" href="#shutdown">Shutdown</a></h2>
 <p><code>shutdown.ts</code> keeps a set of the children proc started, adding each in the
-<code>Process</code> constructor and removing it when its status resolves. <code>main()</code>
+<code>Process</code> constructor and removing it once it has exited and its <code>fnStderr</code>, if
+any, has finished. It also keeps the children’s outputs being read. <code>main()</code>
 installs listeners for SIGTERM, SIGINT, and SIGHUP (only SIGINT on Windows) and
 for uncaught errors and unhandled rejections, then runs the program. However it
-ends, the first ending wins: it signals every child in the set (except after
-SIGINT or SIGHUP, which the terminal already sent them), waits up to <code>timeoutMs</code>
-for them to exit, and calls <code>Deno.exit</code> with the code for that ending. A second
-signal exits at once. <code>terminateAll()</code> is the signal-and-wait half on its own.
-An <code>unload</code> listener sends SIGTERM to the children if the program exits some
-other way, though it can’t wait for them.</p>
+ends, the first ending wins. On SIGTERM, or when the program ends, it signals
+every child in the set and waits up to <code>timeoutMs</code> for them. After SIGINT or
+SIGHUP, which the terminal already sent the children, it gives them a second,
+then sends SIGTERM to any still running. After a signal, it then waits for the
+children’s output to be read and up to half a second more for the program, so a
+pipeline writing that output finishes. Then it calls <code>Deno.exit</code> with the code
+for that ending. A second signal exits at once. <code>terminateAll()</code> is the
+signal-and-wait half on its own. An <code>unload</code> listener sends SIGTERM to the
+children if the program exits some other way, though it can’t wait for them.</p>
 <h2 id="small-pieces"><a class="header" href="#small-pieces">Small pieces</a></h2>
 <ul>
 <li><strong><code>WritableIterable</code></strong> is an unbounded queue of promises: <code>write()</code> resolves
@@ -4410,11 +4428,19 @@ can’t wait anyway. A process’s <code>stdin</code> is one.</li>
 <li><strong><code>helpers.handled(promise)</code></strong> attaches an empty <code>catch</code> to a promise that
 will be awaited later, so that a rejection before then isn’t reported as
 unhandled. It is used wherever proc holds a promise while doing something
-else: <code>map</code> and <code>forEach</code> read the next item before awaiting the call on the
-last one, the concurrent maps hold many, and the <code>fnStderr</code> reader runs beside
-stdout.</li>
+else: the concurrent maps hold many, <code>writeTo</code> overlaps a write with reading
+the next item, <code>zip</code> pulls both sides at once, and the <code>fnStderr</code> reader runs
+beside stdout.</li>
+<li><strong><code>helpers.abandon(source)</code></strong> closes a source nothing will read, for a step
+that fails before it reads (a file that can’t be opened, a bad <code>concurrency</code>).
+An async generator ignores <code>return()</code> until it has started, so it starts the
+source, takes at most one item, and stops.</li>
+<li><strong><code>helpers.closeAll(sources, pending)</code></strong> closes sources a consumer stopped
+reading, in the background when a pull is still pending, since the close would
+wait behind it.</li>
 <li><strong><code>cache()</code></strong> stores <code>{ timestamp, value }</code> under the key in Deno KV’s default
-database and checks the age on read.</li>
+database, with KV’s <code>expireIn</code> set from the timeout, and checks the age on
+read.</li>
 </ul>
 <h2 id="data-formats-and-webassembly"><a class="header" href="#data-formats-and-webassembly">Data formats and WebAssembly</a></h2>
 <p><code>src/transforms/</code> holds one file per format. The CSV and TSV parsers, and
@@ -4422,11 +4448,11 @@ database and checks the age on read.</li>
 <code>src/wasm/flatdata.ts</code> wraps it, compiling it once and making an instance per
 stream. The reader hands back whole rows a batch at a time, with the end of
 every field, and <code>common.ts</code> and <code>lazy-row.ts</code> turn a batch into string rows or
-LazyRows. The record and JSON-lines parsers are TypeScript: <code>common.ts</code> splits
-the input on a separator and groups rows into batches of about 128 KiB. The
-writers are TypeScript too: each builds one string per item and encodes it once,
-which is faster than crossing into WebAssembly when the strings already live in
-JavaScript.</p>
+LazyRows. The record and JSON-lines parsers are TypeScript: <code>split-text.ts</code>
+splits the input on a separator, as it does lines for <code>.lines</code>, and they group
+rows into batches of about 128 KiB. The writers are TypeScript too: each builds
+one string per item and encodes it once, which is faster than crossing into
+WebAssembly when the strings already live in JavaScript.</p>
 <p>The module is built from <code>swift/</code> (Embedded Swift, with SIMD classifiers in C)
 into <code>wasm/flatdata.wasm</code>. <code>tools/embed-wasm.ts</code> writes it, base64-encoded, into
 <code>src/wasm/flatdata-wasm.ts</code>, because a package loaded from JSR has <code>https:</code>
@@ -4614,6 +4640,10 @@ tools.</p>
 <tr><td><code>tests/transforms/</code></td><td>each data format, <code>LazyRow</code>, and the WASM module against a TypeScript reference</td></tr>
 <tr><td><code>tests/flatdata/</code>, <code>tests/flatdata*.test.ts</code></td><td>the <code>flatdata</code> CLI</td></tr>
 <tr><td><code>tests/regressions/</code></td><td>tests for bugs that were found and fixed</td></tr>
+<tr><td><code>tests/child-output.test.ts</code>, <code>tests/failure.test.ts</code></td><td>internal modules through their own interface, without a child process</td></tr>
+<tr><td><code>tests/lines-property.test.ts</code></td><td><code>.lines</code> against a line-at-a-time reference, on random bytes in random chunks</td></tr>
+<tr><td><code>tests/writeto_*.test.ts</code>, <code>tests/range.test.ts</code></td><td><code>writeTo</code> (files, atomic, transforms) and <code>range</code></td></tr>
+<tr><td><code>tests/cache.test.ts</code></td><td><code>cache()</code>, each test in its own Deno with its own Deno KV database</td></tr>
 <tr><td><code>tests/book_examples.test.ts</code></td><td>every example in this book (below)</td></tr>
 <tr><td><code>tests/readme_examples.test.ts</code></td><td>the README’s examples</td></tr>
 <tr><td><code>tests/packaging.test.ts</code></td><td>the embedded WASM matches <code>wasm/flatdata.wasm</code>; every documented import names a real export</td></tr>

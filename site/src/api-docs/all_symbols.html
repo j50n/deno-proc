@@ -826,7 +826,7 @@ Stopping early throws nothing.</p>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;Process.html#method_writetostdin_0">
                   <span>writeToStdin</span><span>(<span><span>iter<span>: <span class="td-ref">AsyncIterable</span>&lt;<span><span class="td-ref">Uint8Array</span><span class="td-op"> | </span><span class="td-ref">Uint8Array</span>[]<span class="td-op"> | </span><span class="td-kw">string</span><span class="td-op"> | </span><span class="td-kw">string</span>[]</span>&gt;</span></span></span>)<span>: <span class="td-ref">Promise</span>&lt;<span class="td-kw">void</span>&gt;</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Write everything <code>iter</code> yields to the child's stdin, then close it. Items
 convert as for Process.stdin; <code>buffer: true</code> collects them into
-16 KB writes.</p>
+16 KiB writes.</p>
 </div></div></li></ul></div>
     </div><div id="namespace_processenumerable" class="namespaceItem" ><div class="docNodeKindIcon"><div class="text-Class bg-Class/15 dark:text-ClassDark dark:bg-ClassDark/15" title="Class">c</div></div>
 <div class="namespaceItemContent">
@@ -1112,7 +1112,7 @@ Enumerable.concurrentUnorderedMap.</p>
 </div></div><ul class="namespaceItemContentSubItems"><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;ProcessOptions.html#property_buffer">
                   <span>buffer</span><span>: <span class="td-kw">boolean</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Collect what proc writes to the child's stdin into chunks of at least
-16 KB before each write. Default <code>false</code>.</p>
+16 KiB before each write. Default <code>false</code>.</p>
 </div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;ProcessOptions.html#property_clearenv">
                   <span>clearEnv</span><span>: <span class="td-kw">boolean</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Start the child with no environment but <code>env</code>, rather than this
