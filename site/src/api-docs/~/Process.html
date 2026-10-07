@@ -874,7 +874,8 @@ well fails with a locked stream.</p>
 </div><div class="max-w-[75ch]"><div class="markdown"><p>Resolves when the child exits, with its exit code or signal. It doesn't
 throw for a failed exit. A child that fills its stdout pipe doesn't exit
 until something reads it, so wait on this alone only when output is
-small or not piped.</p>
+small or not piped. Output nobody has started reading when the child
+exits is kept in memory, and can still be read.</p>
 </div></div></div>
 <div class="anchorable docEntry" id="accessor_stderr">
 
@@ -1054,9 +1055,9 @@ iterable. Use one or the other: the second to start throws <code>TypeError</code
 </svg>
 </a>
 </div><div class="max-w-[75ch]"><div class="markdown"><p>The child's stdout, as bytes. After the last chunk, it throws
-<a href="../././~/ExitCodeError.html">ExitCodeError</a>, <a href="../././~/SignalError.html">SignalError</a>, or <a href="../././~/UpstreamError.html">UpstreamError</a> if
-the process failed, or what <code>fnError</code> decides. Stopping early throws
-nothing.</p>
+<a href="../././~/ExitCodeError.html">ExitCodeError</a>, <a href="../././~/SignalError.html">SignalError</a>, <a href="../././~/TimeoutError.html">TimeoutError</a>, or
+<a href="../././~/UpstreamError.html">UpstreamError</a> if the process failed, or what <code>fnError</code> decides.
+Stopping early throws nothing.</p>
 <p>Iterate it once; a second pass yields nothing.</p>
 </div></div></div>
 </div></section>

@@ -150,9 +150,10 @@
 Catch it to handle any of them.</p>
 <p><code>name</code> is the subclass's name. <code>cause</code> is the earlier error that led to this
 one, if any; <code>options.cause</code> holds the same value.</p>
-<p>Printing one, or <code>JSON.stringify</code>, shows the message, the program and the
-cause, but not <code>command</code>'s arguments, which can hold secrets: read
-<code>command</code> to get them.</p>
+<p>Printing one shows the message, which names the program, and the cause,
+but not <code>command</code>'s arguments, which can hold secrets: read <code>command</code> to
+get them. <code>JSON.stringify</code> gives only <code>name</code> and the numeric fields, such
+as <code>code</code>.</p>
 </div><section class="section"  id="constructors"><div>
       <h2 class="anchorable mb-1"><a href="#constructors" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"

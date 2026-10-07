@@ -808,7 +808,8 @@ well fails with a locked stream.</p>
                   <span>status</span><span>()<span>: <span class="td-ref">Promise</span>&lt;<span class="td-ref">Deno.CommandStatus</span>&gt;</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Resolves when the child exits, with its exit code or signal. It doesn't
 throw for a failed exit. A child that fills its stdout pipe doesn't exit
 until something reads it, so wait on this alone only when output is
-small or not piped.</p>
+small or not piped. Output nobody has started reading when the child
+exits is kept in memory, and can still be read.</p>
 </div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;Process.html#accessor_stderr">
                   <span>stderr</span><span>()<span>: <span class="td-ref">AsyncIterable</span>&lt;<span class="td-ref">Uint8Array</span>&gt;</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>The child's stderr, as bytes.</p>
@@ -818,9 +819,9 @@ small or not piped.</p>
 </div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;Process.html#accessor_stdout">
                   <span>stdout</span><span>()<span>: <span class="td-ref">AsyncIterable</span>&lt;<span class="td-ref">Uint8Array</span>&lt;<span class="td-ref">ArrayBuffer</span>&gt;&gt;</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>The child's stdout, as bytes. After the last chunk, it throws
-ExitCodeError, SignalError, or UpstreamError if
-the process failed, or what <code>fnError</code> decides. Stopping early throws
-nothing.</p>
+ExitCodeError, SignalError, TimeoutError, or
+UpstreamError if the process failed, or what <code>fnError</code> decides.
+Stopping early throws nothing.</p>
 </div></div></li><li>
                 <a href=".&#x2F;.&#x2F;.&#x2F;~&#x2F;Process.html#method_writetostdin_0">
                   <span>writeToStdin</span><span>(<span><span>iter<span>: <span class="td-ref">AsyncIterable</span>&lt;<span><span class="td-ref">Uint8Array</span><span class="td-op"> | </span><span class="td-ref">Uint8Array</span>[]<span class="td-op"> | </span><span class="td-kw">string</span><span class="td-op"> | </span><span class="td-kw">string</span>[]</span>&gt;</span></span></span>)<span>: <span class="td-ref">Promise</span>&lt;<span class="td-kw">void</span>&gt;</span></span></a><div class="namespaceItemContentDoc"><div class="markdown_summary"><p>Write everything <code>iter</code> yields to the child's stdin, then close it. Items
@@ -1144,6 +1145,10 @@ however it exited. The timer starts when the child does and stops when
 it exits, so it bounds a child you stopped reading early, too. A child
 that ignores SIGTERM keeps running; proc never sends SIGKILL. On
 Windows, Deno's SIGTERM can't be caught: the child is ended at once.
+Programs the child started aren't signalled, and may hold its stdout
+open after it exits; once it has, a pause of a tenth of a second in the
+output ends it, so they can't hold up the error. A wrapper script
+should <code>exec</code> its program, so that the program gets the SIGTERM.
 Default: no limit.</p>
 </div></div></li></ul></div>
     </div><div id="namespace_processstreamoptions" class="namespaceItem" ><div class="docNodeKindIcon"><div class="text-Interface bg-Interface/15 dark:text-InterfaceDark dark:bg-InterfaceDark/15" title="Interface">I</div></div>

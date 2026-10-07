@@ -2363,14 +2363,16 @@ content is gone, and the error is thrown here. For the same reason,
 <code>read(path)</code> feeding <code>writeTo(path)</code> finds the file already empty. To
 replace a file only once everything has succeeded, or to rewrite it in
 place, pass <code>{ atomic: true }</code>.</p>
-<p>With <code>atomic</code>, the items go to a new file beside <code>path</code>, renamed over it
-once they are all written. A failure leaves the old file as it was, with
-nothing beside it, and the source may read the file being replaced. A
-symlink is followed and stays a symlink, and the new file takes the old
-one's mode; a device such as <code>/dev/null</code> is written in place. It needs
-read permission on <code>path</code> as well as write permission on its directory,
-and the file is a new one: a hard link to the old file keeps the old
-content.</p>
+<p>With <code>atomic</code>, the items go to a new file beside <code>path</code>, flushed to disk
+and renamed over it once they are all written. A failure leaves the old
+file as it was, with nothing beside it, and the source may read the file
+being replaced; if the process exits partway, under <a href="../././~/main.html">main</a> or by
+<code>Deno.exit</code>, the new file is removed. A symlink is followed and stays a
+symlink, and the new file takes the old one's mode, read-only included.
+A device such as <code>/dev/null</code>, and any path through <code>/dev</code> or <code>/proc</code>
+(<code>/dev/stdout</code>), is written in place. It needs read permission on <code>path</code>
+as well as write permission on its directory, and the file is a new one:
+a hard link to the old file keeps the old content.</p>
 </div></div></div>
 <div class="anchorable docEntry" id="method_writeto_1">
 
@@ -2431,11 +2433,14 @@ If stdout's reader goes away (<code>| head</code>), writing to it stops quietly,
 toStdout does.
 Writing to a <code>Writable</code> stops early if it is closed meanwhile, which for a
 <a href="../././~/WritableIterable.html">WritableIterable</a> includes its reader stopping.</p>
-<p>If the source throws, a <code>WritableStream</code> is closed (not aborted) and the
-error is thrown here. A <code>Writable</code>, such as a <a href="../././~/WritableIterable.html">WritableIterable</a>,
-gets the error through <code>close(error)</code> instead, so it reaches whoever
-reads the <code>Writable</code>, and this promise resolves; with <code>noclose</code>, the
-<code>Writable</code> stays open and the error is thrown here.</p>
+<p>If the source throws, a <code>WritableStream</code> is aborted (not closed), so
+whatever reads it sees a failure rather than a complete-looking end, and
+the error is thrown here; with <code>noclose</code> it is left as it is. A
+<code>Writable</code>, such as a <a href="../././~/WritableIterable.html">WritableIterable</a>, gets the error through
+<code>close(error)</code> instead, so it reaches whoever reads the <code>Writable</code>, and
+this promise resolves; with <code>noclose</code>, the <code>Writable</code> stays open and the
+error is thrown here. An error from the destination itself, writing or
+closing, is thrown here.</p>
 </div></div></div>
 <div class="anchorable docEntry" id="method_zip_0">
 

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-35924963.js";
+            window.path_to_searchindex_js = "../searchindex-b1a8cf4b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -336,11 +336,11 @@ console.log(await enumerate(["four"]).transform(once).collect());
 [ "THREE" ]
 []
 </code></pre>
-<p>A stream works once. Used a second time, it yields nothing and throws nothing,
-so create a new one for each use, as <code>upper()</code> does. An error from upstream of
-the stream reaches the consumer unchanged, and so does one thrown in its
-<code>transform()</code>. A generator is usually simpler to write; use a stream when you
-already have one.</p>
+<p>A stream works once. Used a second time, it yields nothing or throws, and the
+source goes unread, so create a new one for each use, as <code>upper()</code> does. An
+error from upstream of the stream reaches the consumer unchanged, and so does
+one thrown in its <code>transform()</code>. A generator is usually simpler to write; use a
+stream when you already have one.</p>
 
                     </main>
 

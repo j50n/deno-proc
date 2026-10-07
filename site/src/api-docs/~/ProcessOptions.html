@@ -595,6 +595,10 @@ however it exited. The timer starts when the child does and stops when
 it exits, so it bounds a child you stopped reading early, too. A child
 that ignores SIGTERM keeps running; proc never sends SIGKILL. On
 Windows, Deno's SIGTERM can't be caught: the child is ended at once.
+Programs the child started aren't signalled, and may hold its stdout
+open after it exits; once it has, a pause of a tenth of a second in the
+output ends it, so they can't hold up the error. A wrapper script
+should <code>exec</code> its program, so that the program gets the SIGTERM.
 Default: no limit.</p>
 </div></div></div>
 <div class="anchorable docEntry" id="property_fnstderr">

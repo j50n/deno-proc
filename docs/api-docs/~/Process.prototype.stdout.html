@@ -169,9 +169,9 @@
 </a>
 <span class="font-bold">Process.prototype.stdout</span><span class="font-medium">()<span>: <span class="td-ref">AsyncIterable</span>&lt;<a href="https://deno.land/api@v2.9.7?s=Uint8Array" class="link td-ref">Uint8Array</a>&lt;<span class="td-ref">ArrayBuffer</span>&gt;&gt;</span> </span>
       </code><div class="space-y-7" id=""><div class="markdown"><p>The child's stdout, as bytes. After the last chunk, it throws
-<a href="../././~/ExitCodeError.html">ExitCodeError</a>, <a href="../././~/SignalError.html">SignalError</a>, or <a href="../././~/UpstreamError.html">UpstreamError</a> if
-the process failed, or what <code>fnError</code> decides. Stopping early throws
-nothing.</p>
+<a href="../././~/ExitCodeError.html">ExitCodeError</a>, <a href="../././~/SignalError.html">SignalError</a>, <a href="../././~/TimeoutError.html">TimeoutError</a>, or
+<a href="../././~/UpstreamError.html">UpstreamError</a> if the process failed, or what <code>fnError</code> decides.
+Stopping early throws nothing.</p>
 <p>Iterate it once; a second pass yields nothing.</p>
 </div><section class="section"  id="return-type"><div>
       <h2 class="anchorable mb-1"><a href="#return-type" class="anchor" aria-label="Anchor" tabIndex="-1"><svg

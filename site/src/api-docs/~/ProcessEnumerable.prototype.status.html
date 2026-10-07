@@ -175,7 +175,8 @@
 more output than the pipe holds, read the output first or alongside, or
 it never resolves. Reading through a consumer already throws on failure,
 so <code>status</code> is for when you don't want the output, or have set <code>fnError</code>
-to handle failures.</p>
+to handle failures. Output nobody has started reading when the child
+exits is kept in memory, and can still be read.</p>
 </div><section class="section"  id="examples"><div>
       <h2 class="anchorable mb-1"><a href="#examples" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"

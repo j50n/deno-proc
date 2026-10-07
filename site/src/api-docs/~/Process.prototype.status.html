@@ -171,7 +171,8 @@
       </code><div class="space-y-7" id=""><div class="markdown"><p>Resolves when the child exits, with its exit code or signal. It doesn't
 throw for a failed exit. A child that fills its stdout pipe doesn't exit
 until something reads it, so wait on this alone only when output is
-small or not piped.</p>
+small or not piped. Output nobody has started reading when the child
+exits is kept in memory, and can still be read.</p>
 </div><section class="section"  id="return-type"><div>
       <h2 class="anchorable mb-1"><a href="#return-type" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"

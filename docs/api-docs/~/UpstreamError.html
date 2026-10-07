@@ -150,8 +150,8 @@ closed with an error.</p>
 <p><code>cause</code> is that failure, such as the upstream process's
 <a href="../././~/ExitCodeError.html">ExitCodeError</a>, and <code>message</code> is copied from it. <code>command</code> is the
 process that threw, not the one that failed. If this process failed too, it
-throws its own <code>ExitCodeError</code> or <code>SignalError</code> instead, with the same
-<code>cause</code>.</p>
+throws its own <code>ExitCodeError</code>, <code>SignalError</code>, or <code>TimeoutError</code> instead,
+with the same <code>cause</code>.</p>
 </div><section class="section"  id="examples"><div>
       <h2 class="anchorable mb-1"><a href="#examples" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"

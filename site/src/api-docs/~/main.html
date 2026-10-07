@@ -198,9 +198,16 @@ during the wait get SIGTERM at the exit, but aren't waited for.</p>
 the program before the signal reaches <code>main</code>. When a child ends that way,
 <code>main</code> gives the signal half a second to arrive, so the exit is still 130
 and the error it caused isn't reported.</p>
-<p>Call it once, around the whole program: it ends the process. It can't wait
-for output your program is still reading, such as a pipeline writing a
-command's stdout to a file: await that before the program returns.</p>
+<p>After a signal, once the children have exited, <code>main</code> lets the program
+finish with what they printed on the way out: it waits, within
+<code>timeoutMs</code>, for their output to be read to the end, then up to half a
+second for the program to return, so a pipeline writing their output to a
+file gets to finish it. An error the program ends with then isn't
+reported: the signal decides the exit code. A child that ignores SIGTERM is
+still running when <code>main</code> gives up and exits.</p>
+<p>An uncaught error while <code>main</code> is waiting is reported, and turns an exit
+code of 0 into 1.</p>
+<p>Call it once, around the whole program: it ends the process.</p>
 <p><strong>Example</strong></p>
 <pre class="highlight"><code class="language-typescript">import { main, run } from &quot;@j50n/proc&quot;;
 

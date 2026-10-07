@@ -170,7 +170,8 @@
 <code>size</code> bytes.</p>
 <p>Chunks are held and joined until the total reaches <code>size</code>, then passed on
 as one; a chunk already that big goes through as is. Chunks are never split,
-and whatever is held at the end goes out as a last, smaller chunk. Fewer,
+and whatever is held at the end, or when the source throws, goes out as a
+last, smaller chunk before the error. Fewer,
 larger writes are cheaper, but held data waits: a child reading interactive
 input sees nothing until a chunk fills.</p>
 <p>The <code>buffer: true</code> process option does this, at 16 KiB, for data piped into
@@ -343,7 +344,7 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
 </svg>
 </a>
 </div><div class="max-w-[75ch]"><div class="markdown"><p>The least number of bytes per chunk. At 0 or below (the
-default), chunks pass through unchanged.</p>
+default), or NaN, chunks pass through unchanged.</p>
 </div></div></div>
 </div></section>
 <section class="section"  id="return-type"><div>

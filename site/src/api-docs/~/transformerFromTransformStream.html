@@ -173,8 +173,9 @@ before it, rather than as a stream error. <code>.transform()</code> accepts a
 <code>TransformStream</code> and wraps it this way itself, so you need this only to
 get a function.</p>
 <p>A stream works once. Using the same transformer, or the same
-<code>TransformStream</code>, a second time yields nothing, or throws again the error
-the first use failed with; create a new stream for each use.</p>
+<code>TransformStream</code>, a second time yields nothing or throws (a <code>TypeError</code>,
+or the error the first use failed with), and closes the source unread;
+create a new stream for each use.</p>
 <p>If the source throws, the stream is aborted, not closed, so a
 <code>CompressionStream</code> doesn't write a complete-looking end to what it got.</p>
 </div><section class="section"  id="examples"><div>

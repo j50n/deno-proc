@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-35924963.js";
+            window.path_to_searchindex_js = "../searchindex-b1a8cf4b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -248,6 +248,12 @@ That includes an unhandled promise rejection or an error thrown in a timer.</li>
 <li><strong>On SIGTERM</strong>, <code>main</code> passes it on and waits. A SIGTERM comes to Deno alone,
 from <code>docker stop</code>, Kubernetes, systemd, or <code>kill</code>, so the children hear of it
 only through <code>main</code>.</li>
+<li><strong>After a signal</strong>, once the children have exited, <code>main</code> lets the program
+finish with what they printed on the way out: it waits for their output to be
+read to the end, then up to half a second for the program to return, so a
+pipeline writing it to a file completes. A child that dies of the signal makes
+its consumer throw <code>SignalError</code>; <code>main</code> doesn’t print it, since the signal
+decides the exit code.</li>
 <li><strong>On SIGINT or SIGHUP</strong>, <code>main</code> doesn’t pass it on. These usually come from
 the terminal (Ctrl-C, or the terminal closing), which sends them to the whole
 foreground process group, children included. Forwarding would make it their

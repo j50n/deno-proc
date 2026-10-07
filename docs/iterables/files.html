@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-35924963.js";
+            window.path_to_searchindex_js = "../searchindex-b1a8cf4b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-bde66083.js"></script>
@@ -226,11 +226,14 @@ console.log((await Deno.readTextFile("fruit.txt")).trimEnd());
 APPLE
 BANANA
 </code></pre>
-<p>With <code>atomic</code>, proc writes a new file beside the old one and renames it into
-place once everything is written. A failure leaves the old file as it was, with
-nothing beside it. A symlink stays a symlink, and the file keeps its mode. It
-needs read permission on the file and write permission on its directory, and the
-result is a new file, so a hard link to the old one still shows the old content.</p>
+<p>With <code>atomic</code>, proc writes a new file beside the old one, flushes it to disk,
+and renames it into place once everything is written. A failure leaves the old
+file as it was, with nothing beside it, and so does a program that exits partway
+under <code>main</code>. A symlink stays a symlink, and the file keeps its mode. Anything
+reached through <code>/dev</code> or <code>/proc</code>, such as <code>/dev/stdout</code>, is written in place.
+It needs read permission on the file and write permission on its directory, and
+the result is a new file, so a hard link to the old one still shows the old
+content.</p>
 <p>To add to a file instead of replacing it, open it yourself and pass its
 <code>writable</code>:</p>
 <pre><code class="language-typescript">import { enumerate, toBytes } from "@j50n/proc";

@@ -150,9 +150,9 @@ return normally to throw nothing. Set it as <code>fnError</code> in
 <code>error</code>, or <code>stderrData</code> that is not <code>null</code> or <code>undefined</code>. It is not called
 when the consumer stops reading early.</p>
 <ul>
-<li><code>error</code> is the <a href="../././~/ExitCodeError.html">ExitCodeError</a>, <a href="../././~/SignalError.html">SignalError</a>, or
-<a href="../././~/UpstreamError.html">UpstreamError</a> the process would throw, or the error <code>fnStderr</code>
-threw; <code>undefined</code> if the process succeeded.</li>
+<li><code>error</code> is the <a href="../././~/ExitCodeError.html">ExitCodeError</a>, <a href="../././~/SignalError.html">SignalError</a>,
+<a href="../././~/TimeoutError.html">TimeoutError</a>, or <a href="../././~/UpstreamError.html">UpstreamError</a> the process would throw, or
+the error <code>fnStderr</code> threw; <code>undefined</code> if the process succeeded.</li>
 <li><code>stderrData</code> is what <code>fnStderr</code> resolved to; <code>undefined</code> if there is no
 <code>fnStderr</code> or it threw.</li>
 </ul>

@@ -175,7 +175,8 @@ empty). Numbers are made one at a time as they are read, so <code>to: Infinity</
 works with <code>.take()</code>.</p>
 <p>Fractional steps add up floating-point error: <code>{ until: 0.3, step: 0.1 }</code>
 gives 0, 0.1, 0.2, because the fourth value is 0.30000000000000004.</p>
-<p>A <code>step</code> of 0 throws <code>RangeError</code> at the call.</p>
+<p>A <code>step</code> of 0 or NaN throws <code>RangeError</code> at the call, and so does one too
+small to change <code>from</code> (1 from 2⁵³, say), which would count forever.</p>
 </div><section class="section"  id="examples"><div>
       <h2 class="anchorable mb-1"><a href="#examples" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
   width="16"

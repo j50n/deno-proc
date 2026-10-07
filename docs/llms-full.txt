@@ -89,7 +89,7 @@ import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 ```
 
 For a one-off script without a `deno.json`, import from JSR directly:
-`import { run } from "jsr:@j50n/proc@0.27.0";`.
+`import { run } from "jsr:@j50n/proc@0.28.0";`.
 
 ## A first script
 
@@ -1251,6 +1251,12 @@ needed.
 - **On SIGTERM**, `main` passes it on and waits. A SIGTERM comes to Deno alone,
   from `docker stop`, Kubernetes, systemd, or `kill`, so the children hear of it
   only through `main`.
+- **After a signal**, once the children have exited, `main` lets the program
+  finish with what they printed on the way out: it waits for their output to be
+  read to the end, then up to half a second for the program to return, so a
+  pipeline writing it to a file completes. A child that dies of the signal makes
+  its consumer throw `SignalError`; `main` doesn't print it, since the signal
+  decides the exit code.
 - **On SIGINT or SIGHUP**, `main` doesn't pass it on. These usually come from
   the terminal (Ctrl-C, or the terminal closing), which sends them to the whole
   foreground process group, children included. Forwarding would make it their
@@ -1923,11 +1929,14 @@ APPLE
 BANANA
 ```
 
-With `atomic`, proc writes a new file beside the old one and renames it into
-place once everything is written. A failure leaves the old file as it was, with
-nothing beside it. A symlink stays a symlink, and the file keeps its mode. It
-needs read permission on the file and write permission on its directory, and the
-result is a new file, so a hard link to the old one still shows the old content.
+With `atomic`, proc writes a new file beside the old one, flushes it to disk,
+and renames it into place once everything is written. A failure leaves the old
+file as it was, with nothing beside it, and so does a program that exits partway
+under `main`. A symlink stays a symlink, and the file keeps its mode. Anything
+reached through `/dev` or `/proc`, such as `/dev/stdout`, is written in place.
+It needs read permission on the file and write permission on its directory, and
+the result is a new file, so a hard link to the old one still shows the old
+content.
 
 To add to a file instead of replacing it, open it yourself and pass its
 `writable`:
@@ -2406,11 +2415,11 @@ console.log(await enumerate(["four"]).transform(once).collect());
 []
 ```
 
-A stream works once. Used a second time, it yields nothing and throws nothing,
-so create a new one for each use, as `upper()` does. An error from upstream of
-the stream reaches the consumer unchanged, and so does one thrown in its
-`transform()`. A generator is usually simpler to write; use a stream when you
-already have one.
+A stream works once. Used a second time, it yields nothing or throws, and the
+source goes unread, so create a new one for each use, as `upper()` does. An
+error from upstream of the stream reaches the consumer unchanged, and so does
+one thrown in its `transform()`. A generator is usually simpler to write; use a
+stream when you already have one.
 
 <!-- https://j50n.github.io/deno-proc/iterables/utilities.html -->
 
@@ -2544,8 +2553,9 @@ const branches = await cache(
 `null` and `undefined` are never stored, so `compute` runs every time for them.
 A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
 cached; one that doesn't is returned without being stored, so `compute` runs
-every time for it. Each entry is deleted once it is older than the timeout it
-was stored with. Two calls that miss at the same time both compute.
+every time for it. Deno KV deletes each entry once it is older than the timeout
+it was stored with. A timeout of 0 stores nothing. Two calls that miss at the
+same time both compute.
 
 A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still
@@ -2554,9 +2564,9 @@ says it is the class; cache plain data.
 Deno picks which database "default" means. With a `deno.json`, every script in
 that project shares one, so two scripts that both use the key `"config"` get
 each other's values; without one, each main script has its own. The database is
-a SQLite file under Deno's cache directory (`DENO_DIR`), unencrypted, and
-`cache` never deletes an entry, so don't cache secrets such as tokens. See the
-[API reference](https://jsr.io/@j50n/proc/doc/~/cache).
+a SQLite file under Deno's cache directory (`DENO_DIR`), unencrypted, and an
+entry stays in it until it expires, so don't cache secrets such as tokens. See
+the [API reference](https://jsr.io/@j50n/proc/doc/~/cache).
 
 ## `debug`
 
@@ -3105,13 +3115,17 @@ same input.
 - Every field is a string. `Number(row[3])` for numbers; an empty field is `""`,
   and `Number("")` is `0`.
 - A row is held whole until it ends, in the WebAssembly module's memory, which
-  can't pass 4 GiB. A row of around a gigabyte is too large, and throws
+  can't pass 4 GiB. A row takes about its own size plus 8 bytes for each of its
+  fields, and up to twice that while its buffers grow by doubling: about 2 times
+  its size for a row of long fields, and up to 18 times for one of empty fields
+  (`,,,,`). So a row of about a gigabyte of long fields, or about 150 MB of
+  empty ones, is too large, and throws
   `Row too large for the WebAssembly module's memory in CSV data at row 7`.
   `tsvToCsv()` holds the longest field whole instead, with about the same limit.
-  The memory a row took isn't given back until the stream ends, and it grows by
-  doubling, so untrusted input can use about three times its size: a quote
-  opened near the start and never closed holds all the rest before the error.
-  Each open stream also holds a floor of about 1 MiB.
+  The memory a row took isn't given back until the stream ends. A quote opened
+  near the start of untrusted input and never closed holds all the rest before
+  the error, at about twice its size. Each open stream also holds a floor of
+  about 1 MiB.
 
 See [`fromCsvToRows`](https://jsr.io/@j50n/proc/doc/transforms/~/fromCsvToRows),
 [`toCsv`](https://jsr.io/@j50n/proc/doc/transforms/~/toCsv), and
@@ -3588,12 +3602,12 @@ cat data.csv | flatdata csv2record | ./process | flatdata record2csv > out.csv
 Install it with Deno:
 
 ```sh
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.27.0/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.28.0/flatdata
 ```
 
 The permissions are for `-i` and `-o`; without them it still works on stdin and
 stdout. To run it without installing,
-`deno run jsr:@j50n/proc@0.27.0/flatdata csv2tsv < data.csv`.
+`deno run jsr:@j50n/proc@0.28.0/flatdata csv2tsv < data.csv`.
 `flatdata --help` lists the commands, and `flatdata <command> --help` a
 command's options.
 
@@ -5465,11 +5479,14 @@ What bounds the memory is the longest row, not the input: the reader holds a row
 whole, and `TSVToCSV` holds a field whole, in its input and again in its output,
 where it reserves the field's size plus its quotes. The arena grows memory by
 just what an allocation needs, so a stream's memory runs to about 2 times its
-longest row in the reader and 5 to 7 times its longest field in `tsvToCsv()`,
-depending on where the doubling buffers land (measured: a field of 128 MiB took
-896 MiB, one of 512 MiB took 2,561 MiB). Before, the arena doubled memory too
-and `TSVToCSV` reserved three times the field, and the same 128 MiB took 1,536
-MiB. `csvToTsv()` holds nothing back and runs in constant memory.
+longest row in the reader, plus the row's field ends: two `UInt32`s a field, so
+a row of empty fields (`,,,,`) takes about 18 times its size (measured: 16 MiB
+of commas took 287 MiB, 64 MiB took 1,151 MiB). In `tsvToCsv()` it is 5 to 10
+times its longest field, depending on where the doubling buffers land and how
+many quotes need doubling (measured: a field of 128 MiB took 896 MiB, one of 512
+MiB took 2,561 MiB, and 64 MiB of `"` took 640 MiB). Before, the arena doubled
+memory too and `TSVToCSV` reserved three times the field, and the same 128 MiB
+took 1,536 MiB. `csvToTsv()` holds nothing back and runs in constant memory.
 
 A wasm32 memory can't pass 4 GiB. When an allocation can't be made, the arena
 traps: the Embedded Swift runtime doesn't check for a null pointer, and would
@@ -5478,10 +5495,10 @@ write through it into the module's own memory at address 0. Every operation sets
 reads `current_row` and throws
 `Row too large for the WebAssembly module's memory in CSV data at row N` (for
 `tsvToCsv()`, `Field too large ...`), with the `RuntimeError` as its cause. In
-practice that is a row, or a `tsvToCsv()` field, of around a gigabyte. The
-exports return pointers as `i32`, which JavaScript reads as negative past 2 GiB,
-so `src/wasm/flatdata.ts` reads every pointer through `address()`
-(`pointer >>> 0`).
+practice that is a row, or a `tsvToCsv()` field, of around a gigabyte, or a row
+of about 150 MB of empty fields. The exports return pointers as `i32`, which
+JavaScript reads as negative past 2 GiB, so `src/wasm/flatdata.ts` reads every
+pointer through `address()` (`pointer >>> 0`).
 
 ## Tests
 
