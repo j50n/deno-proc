@@ -4,6 +4,7 @@ import { buffer, toBytes } from "./transformers.ts";
 import { type Writable, WritableIterable } from "./writable-iterable.ts";
 import { track, trackReading } from "./shutdown.ts";
 import { checkedTimeout, handled, MAX_TIMER_MS } from "./helpers.ts";
+import { failureOf, settle } from "./failure.ts";
 
 /** How a child's stdin, stdout, or stderr is connected, as in `Deno.Command`. */
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -634,40 +635,8 @@ export class Process<S> implements Closer {
       const cmd = [this.cmd, ...this.args].map((it) => it.toString());
 
       const passError = () => this._passError;
-      const timedOut = () => this.timedOut;
-      const timeoutMs = this.options.timeoutMs;
-
-      const catchHandler = async (error?: Error) => {
-        const errorHandler = this.options.fnError;
-
-        if (errorHandler != null) {
-          const stderrResult = async () => {
-            if (this.stderrResult == null) {
-              return undefined;
-            } else {
-              try {
-                return await this.stderrResult;
-              } catch {
-                /*
-                 * Looks a little weird, but the error is caught earlier
-                 * and passed as the primary error. We just ignore here.
-                 */
-                return undefined;
-              }
-            }
-          };
-
-          const stderrData = await stderrResult();
-
-          if (error != null || stderrData != null) {
-            await errorHandler(error, stderrData);
-          }
-        } else {
-          if (error != null) {
-            throw error;
-          }
-        }
-      };
+      const timedOut = () => this.timedOut ? this.options.timeoutMs : undefined;
+      const fnError = () => this.options.fnError;
 
       const ser = this.stderrResult;
       let started = false;
@@ -688,38 +657,12 @@ export class Process<S> implements Closer {
               const status = await process.status;
               await ser;
 
-              const cause = passError();
-
-              if (timedOut()) {
-                throw new TimeoutError(
-                  `${cmd[0]} timed out after ${timeoutMs} ms`,
-                  cmd,
-                  timeoutMs!,
-                  { cause },
-                );
-              } else if (status.signal != null) {
-                // The program only: arguments can hold secrets, and messages
-                // end up in logs. `command` has the rest.
-                throw new SignalError(
-                  `${cmd[0]} was killed by ${status.signal}`,
-                  cmd,
-                  status.signal,
-                  { cause },
-                );
-              } else if (status.code !== 0) {
-                throw new ExitCodeError(
-                  `${cmd[0]} exited with code ${status.code}`,
-                  cmd,
-                  status.code,
-                  { cause },
-                );
-              } else if (cause) {
-                throw new UpstreamError(cause.message, cmd, { cause });
-              }
+              const failure = failureOf(cmd, status, timedOut(), passError());
+              if (failure) throw failure;
             } catch (e) {
               error = e as Error | undefined;
             }
-            await catchHandler(error as Error | undefined);
+            await settle(error, fnError(), ser);
           } finally {
             await close();
           }
