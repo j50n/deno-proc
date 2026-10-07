@@ -1,5 +1,6 @@
 import type { TransformerFunction } from "../transformers.ts";
-import { BATCH_SIZE_BYTES, splitText } from "./common.ts";
+import { splitText } from "../split-text.ts";
+import { BATCH_SIZE_BYTES } from "./common.ts";
 
 /**
  * Anything with a `parse` method that returns the value when it is valid and

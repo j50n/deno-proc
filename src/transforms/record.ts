@@ -6,8 +6,8 @@ import {
   FIELD_SEPARATOR,
   RECORD_SEPARATOR,
   rowWriter,
-  splitText,
 } from "./common.ts";
+import { splitText } from "../split-text.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 

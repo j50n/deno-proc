@@ -1,11 +1,7 @@
 import { blue } from "@std/fmt/colors";
 import { enumerate } from "./enumerable.ts";
-import {
-  abandon,
-  bestTypeNameOf,
-  lastBytes,
-  textBeforeInvalid,
-} from "./helpers.ts";
+import { abandon, bestTypeNameOf } from "./helpers.ts";
+import { splitText } from "./split-text.ts";
 import { concat, concatLines, isString } from "./utility.ts";
 
 const encoder = new TextEncoder();
@@ -98,61 +94,19 @@ export async function* toLines(
 export async function* toChunkedLines(
   buffs: AsyncIterable<Uint8Array>,
 ): AsyncIterable<string[]> {
-  let leftover: string = "";
-  let count = 0;
-  let recent: Uint8Array = new Uint8Array(0);
-
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  const invalid = () => new TypeError(`Invalid UTF-8 at line ${count + 1}`);
-
-  for await (const buff of buffs) {
-    // Invalid UTF-8: deliver the lines before it, then fail naming the line.
-    let text: string;
-    let failed = false;
-    try {
-      text = decoder.decode(buff, { stream: true });
-    } catch {
-      text = textBeforeInvalid(recent, buff, 0x0A, count === 0 && !leftover);
-      failed = true;
+  // Split on LF alone and drop the CR afterward, since a CRLF can arrive with
+  // the CR at the end of one chunk and the LF at the start of the next. A CR
+  // at the very end, with no LF to follow, goes too.
+  const lines = splitText(
+    buffs,
+    "\n",
+    (line) => `Invalid UTF-8 at line ${line}`,
+  );
+  for await (const chunk of lines) {
+    for (let i = 0; i < chunk.length; i++) {
+      if (chunk[i].endsWith("\r")) chunk[i] = chunk[i].slice(0, -1);
     }
-    recent = lastBytes(recent, buff);
-
-    // Split on LF alone and drop the CR afterward, since a CRLF can arrive
-    // with the CR at the end of one chunk and the LF at the start of the next.
-    const lines = text.split("\n");
-    lines[0] = leftover + lines[0];
-
-    leftover = lines.pop()!;
-
-    if (lines.length !== 0) {
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].endsWith("\r")) lines[i] = lines[i].slice(0, -1);
-      }
-      count += lines.length;
-      yield lines;
-    }
-    if (failed) throw invalid();
-  }
-
-  let end: string;
-  try {
-    end = decoder.decode();
-  } catch {
-    throw invalid();
-  }
-  const lines = end.split("\n");
-  lines[0] = leftover + lines[0];
-
-  if (lines.at(-1)!.length === 0) {
-    lines.pop();
-  }
-
-  if (lines.length !== 0) {
-    // The last line may end in a CR with no LF to follow; drop it too.
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].endsWith("\r")) lines[i] = lines[i].slice(0, -1);
-    }
-    yield lines;
+    yield chunk;
   }
 }
 

@@ -3,7 +3,6 @@
 import type { TransformerFunction } from "../transformers.ts";
 import type { RowBatch } from "../wasm/flatdata.ts";
 import { decodeBatch } from "./decode.ts";
-import { lastBytes, textBeforeInvalid } from "../helpers.ts";
 import { LazyRow } from "./lazy-row.ts";
 import type { Row } from "./types.ts";
 
@@ -20,59 +19,6 @@ export const RECORD_SEPARATOR = "\x1E";
 
 /** Separates the fields of a record in the record format: `"\x1F"` (ASCII US). */
 export const FIELD_SEPARATOR = "\x1F";
-
-/**
- * Decode a byte stream and split it on `separator`, yielding the complete
- * pieces from each chunk. The text after the last separator comes last, if
- * there is any.
- *
- * Each stream gets its own decoder, because a decoder carries a character split
- * across two chunks from one to the next.
- *
- * Invalid UTF-8 is a `TypeError` with the message `invalid` makes from the
- * number of the piece holding it, counting from 1; the pieces before it are
- * yielded first.
- */
-export async function* splitText(
-  bytes: AsyncIterable<Uint8Array>,
-  separator: string,
-  invalid: (piece: number) => string,
-): AsyncIterable<string[]> {
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  let tail = "";
-  let count = 0;
-  let recent: Uint8Array = new Uint8Array(0);
-
-  for await (const chunk of bytes) {
-    let text: string;
-    let failed = false;
-    try {
-      text = decoder.decode(chunk, { stream: true });
-    } catch {
-      const atStart = count === 0 && !tail;
-      text = textBeforeInvalid(recent, chunk, separator.charCodeAt(0), atStart);
-      failed = true;
-    }
-    recent = lastBytes(recent, chunk);
-    // Re-splitting a long unfinished piece on every chunk would be quadratic.
-    if (text.includes(separator)) {
-      const pieces = (tail + text).split(separator);
-      tail = pieces.pop()!;
-      count += pieces.length;
-      yield pieces;
-    } else {
-      tail += text;
-    }
-    if (failed) throw new TypeError(invalid(count + 1));
-  }
-
-  try {
-    tail += decoder.decode();
-  } catch {
-    throw new TypeError(invalid(count + 1));
-  }
-  if (tail !== "") yield [tail];
-}
 
 /**
  * The rows of a batch from the reader as string arrays: the whole batch
