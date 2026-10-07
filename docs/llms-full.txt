@@ -89,7 +89,7 @@ import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 ```
 
 For a one-off script without a `deno.json`, import from JSR directly:
-`import { run } from "jsr:@j50n/proc@0.28.0";`.
+`import { run } from "jsr:@j50n/proc@0.28.1";`.
 
 ## A first script
 
@@ -3602,12 +3602,12 @@ cat data.csv | flatdata csv2record | ./process | flatdata record2csv > out.csv
 Install it with Deno:
 
 ```sh
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.28.0/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.28.1/flatdata
 ```
 
 The permissions are for `-i` and `-o`; without them it still works on stdin and
 stdout. To run it without installing,
-`deno run jsr:@j50n/proc@0.28.0/flatdata csv2tsv < data.csv`.
+`deno run jsr:@j50n/proc@0.28.1/flatdata csv2tsv < data.csv`.
 `flatdata --help` lists the commands, and `flatdata <command> --help` a
 command's options.
 

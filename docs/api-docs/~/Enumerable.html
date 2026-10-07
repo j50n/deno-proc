@@ -2433,9 +2433,12 @@ If stdout's reader goes away (<code>| head</code>), writing to it stops quietly,
 toStdout does.
 Writing to a <code>Writable</code> stops early if it is closed meanwhile, which for a
 <a href="../././~/WritableIterable.html">WritableIterable</a> includes its reader stopping.</p>
-<p>If the source throws, a <code>WritableStream</code> is aborted (not closed), so
-whatever reads it sees a failure rather than a complete-looking end, and
-the error is thrown here; with <code>noclose</code> it is left as it is. A
+<p>If the source throws, a <code>WritableStream</code> is closed, not aborted, so what
+was written before the error reaches it (an abort throws away what a
+stream still holds), and the error is thrown here; with <code>noclose</code> it is
+left open. Whatever reads the stream sees a normal end, so a destination
+that must not take a partial result as complete, such as an upload,
+needs the error from here. A
 <code>Writable</code>, such as a <a href="../././~/WritableIterable.html">WritableIterable</a>, gets the error through
 <code>close(error)</code> instead, so it reaches whoever reads the <code>Writable</code>, and
 this promise resolves; with <code>noclose</code>, the <code>Writable</code> stays open and the

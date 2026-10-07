@@ -2,7 +2,7 @@
 
 > proc runs child processes from Deno the way a shell pipes them, with errors that reach one `catch`. It also gives any async iterable the Array methods you already know: `map`, `filter`, `reduce`, `take`, and concurrent versions of `map`.
 
-Deno library, version 0.28.0, on JSR as `@j50n/proc` (`deno add jsr:@j50n/proc`). Data transforms are a separate entry point, `@j50n/proc/transforms`. Read "Key ideas" first: it covers how every part behaves and the traps.
+Deno library, version 0.28.1, on JSR as `@j50n/proc` (`deno add jsr:@j50n/proc`). Data transforms are a separate entry point, `@j50n/proc/transforms`. Read "Key ideas" first: it covers how every part behaves and the traps.
 
 - [The whole book as one file](https://j50n.github.io/deno-proc/llms-full.txt)
 - [API reference on JSR](https://jsr.io/@j50n/proc/doc)
