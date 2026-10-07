@@ -5,6 +5,7 @@ import { type Writable, WritableIterable } from "./writable-iterable.ts";
 import { track, trackReading } from "./shutdown.ts";
 import { checkedTimeout, handled, MAX_TIMER_MS } from "./helpers.ts";
 import { failureOf, settle } from "./failure.ts";
+import { ChildOutput } from "./child-output.ts";
 
 /** How a child's stdin, stdout, or stderr is connected, as in `Deno.Command`. */
 export type PipeKinds = "piped" | "inherit" | "null";
@@ -183,63 +184,6 @@ export abstract class ProcessError extends Error {
 }
 
 /** Keep `key` out of what printing and `JSON.stringify` show. */
-/** How long a read may wait for data once proc has stopped waiting. */
-const QUIET_MS = 100;
-
-type PipeReader = {
-  chunks: AsyncGenerator<Uint8Array<ArrayBuffer>>;
-  stopWaiting(): void;
-};
-
-/**
- * Read a child's stdout. After `stopWaiting`, a read that waits `QUIET_MS`
- * for data ends the output: the child has exited (or timed out), so whatever
- * still holds the pipe open is a program it started, which may run for good.
- */
-function pipeReader(
-  stream: ReadableStream<Uint8Array<ArrayBuffer>>,
-): PipeReader {
-  const reader = stream.getReader();
-  let waiting = false;
-  let pending = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const giveUp = () => {
-    timer = setTimeout(() => reader.cancel().catch(() => {}), QUIET_MS);
-  };
-
-  async function* chunks() {
-    let done = false;
-    try {
-      while (true) {
-        pending = true;
-        if (waiting) giveUp();
-        const result = await reader.read().finally(() => {
-          pending = false;
-          clearTimeout(timer);
-        });
-        if (result.done) {
-          done = true;
-          return;
-        }
-        yield result.value;
-      }
-    } finally {
-      // Stopped early: closing the pipe tells the child no one is reading.
-      if (!done) await reader.cancel().catch(() => {});
-      reader.releaseLock();
-    }
-  }
-
-  return {
-    chunks: chunks(),
-    stopWaiting() {
-      if (waiting) return;
-      waiting = true;
-      if (pending) giveUp();
-    },
-  };
-}
-
 function hide(error: Error, key: string) {
   Object.defineProperty(error, key, { enumerable: false });
 }
@@ -499,44 +443,24 @@ export class Process<S> implements Closer {
     }
 
     if (stdout === "piped") {
-      this.process.status.then(() => {
-        // `locked`: something else is reading `process.stdout` directly.
-        if (!this.reading && !this.process.stdout.locked) {
-          // Nobody is reading: read what is left now, so the pipe closes. A
-          // child run only for its status would otherwise hold a file
-          // descriptor for as long as this process runs.
-          this.pipe = pipeReader(this.process.stdout);
-          this.pipe.stopWaiting();
-          this.drained = Array.fromAsync(this.pipe.chunks);
-          this.drained.catch(() => {});
-        } else if (this.timedOut) {
-          this.pipe?.stopWaiting();
-        }
-      }, () => {});
+      const output = new ChildOutput(this.process.stdout);
+      this.childOutput = output;
+      this.process.status.then(() => output.exited(this.timedOut), () => {});
     }
   }
 
   /** Whether `timeoutMs` ran out and proc sent the child SIGTERM. */
   private timedOut = false;
 
-  /** Whether reading stdout has begun. */
-  private reading = false;
-  private pipe: PipeReader | undefined;
-  /** The output, read after the child exited because nobody was reading. */
-  private drained: Promise<Uint8Array<ArrayBuffer>[]> | undefined;
+  /** The child's stdout, when it is piped. */
+  private childOutput: ChildOutput | undefined;
 
   /** The child's stdout, as read by the first and only reader. */
   private async *output(): AsyncGenerator<Uint8Array<ArrayBuffer>> {
-    this.reading = true;
     const done = Promise.withResolvers<void>();
     trackReading(done.promise);
     try {
-      if (this.drained != null) {
-        yield* await this.drained;
-      } else {
-        this.pipe ??= pipeReader(this.process.stdout);
-        yield* this.pipe.chunks;
-      }
+      yield* this.childOutput!.read();
     } finally {
       done.resolve();
     }
