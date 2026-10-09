@@ -165,9 +165,10 @@
   </defs>
 </svg>
 </a>
-<span class="font-bold">cache</span><span class="font-medium"><span>&lt;<span><span class="td-tp">T</span></span>&gt;</span>(<div class="ml-4"><div><span>key<span>: <span><span class="td-kw">string</span><span class="td-op"> | </span><span class="td-kw">string</span>[]</span></span></span>,</div><div><span>value<span>: () =&gt; <span><a href="../././~/cache.html#type_param_t" class="link td-ref">T</a><span class="td-op"> | </span><span class="td-ref">Promise</span>&lt;<a href="../././~/cache.html#type_param_t" class="link td-ref">T</a>&gt;</span></span></span>,</div><div><span>options<span class="td-op">?</span><span>: { timeout<span class="td-op">?</span><span>: <span class="td-kw">number</span></span>;  }</span></span></div></div>)<span>: <span class="td-ref">Promise</span>&lt;<a href="../././~/cache.html#type_param_t" class="link td-ref">T</a>&gt;</span> </span>
+<span class="font-bold">cache</span><span class="font-medium"><span>&lt;<span><span class="td-tp">T</span></span>&gt;</span>(<div class="ml-4"><div><span>key<span>: <span><span class="td-kw">string</span><span class="td-op"> | </span><span class="td-kw">string</span>[]</span></span></span>,</div><div><span>value<span>: () =&gt; <span><a href="../././~/cache.html#type_param_t" class="link td-ref">T</a><span class="td-op"> | </span><span class="td-ref">Promise</span>&lt;<a href="../././~/cache.html#type_param_t" class="link td-ref">T</a>&gt;</span></span></span>,</div><div><span>options<span class="td-op">?</span><span>: { timeout<span class="td-op">?</span><span>: <span class="td-kw">number</span></span>; refresh<span class="td-op">?</span><span>: <span class="td-kw">boolean</span></span>;  }</span></span></div></div>)<span>: <span class="td-ref">Promise</span>&lt;<a href="../././~/cache.html#type_param_t" class="link td-ref">T</a>&gt;</span> </span>
       </code><div class="space-y-7" id=""><div class="markdown"><p>Return the value stored under <code>key</code> if it is younger than <code>timeout</code>;
-otherwise call <code>value</code>, store what it returns, and return that.</p>
+otherwise call <code>value</code>, store what it returns, and return that. With
+<code>refresh</code>, call <code>value</code> whatever is stored.</p>
 <p>Values are kept in Deno KV's default database (<code>Deno.openKv()</code> with no
 path), so they last across runs and are shared with every program that
 opens the same database: with a <code>deno.json</code>, every script in the project;
@@ -187,9 +188,14 @@ is anything with a <code>timeout</code> of 0.</li>
 functions) and at most 64 KiB. One that doesn't is returned uncached, so
 <code>value</code> runs on every call. A hit returns a structured clone: a class
 instance comes back as a plain object, whatever <code>T</code> says.</li>
+<li><code>refresh: true</code> and <code>timeout: 0</code> both call <code>value</code> without reading. A
+refresh stores what it returns, kept for <code>timeout</code> like any other value,
+so later calls read it. If that value can't be stored, the refresh
+removes the old entry instead, so no later call gets the value it
+replaced. <code>timeout: 0</code> stores nothing and leaves the old entry as it was.</li>
 <li>Two calls that miss at the same time both call <code>value</code>.</li>
-<li>An error thrown by <code>value</code> comes out of <code>cache</code> unchanged, and nothing is
-stored.</li>
+<li>An error thrown by <code>value</code> comes out of <code>cache</code> unchanged, and the stored
+entry is left as it was, even with <code>refresh</code>.</li>
 </ul>
 </div><section class="section"  id="examples"><div>
       <h2 class="anchorable mb-1"><a href="#examples" class="anchor" aria-label="Anchor" tabIndex="-1"><svg
@@ -530,7 +536,7 @@ Parameters</h2></div><div class="space-y-8"><div class="anchorable docEntry" id=
   </defs>
 </svg>
 </a>
-<span class="font-bold font-lg">options</span><span class="font-medium text-stone-500 dark:text-stone-200"><span>: { timeout<span class="td-op">?</span><span>: <span class="td-kw">number</span></span>;  }</span></span>
+<span class="font-bold font-lg">options</span><span class="font-medium text-stone-500 dark:text-stone-200"><span>: { timeout<span class="td-op">?</span><span>: <span class="td-kw">number</span></span>; refresh<span class="td-op">?</span><span>: <span class="td-kw">boolean</span></span>;  }</span></span>
       </code>
     </div><a
   class="sourceButton"

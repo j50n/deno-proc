@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-122cfea2.js";
+            window.path_to_searchindex_js = "searchindex-ffdf7191.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-bde66083.js"></script>
@@ -249,7 +249,7 @@ use them.</p>
 import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 </code></pre>
 <p>For a one-off script without a <code>deno.json</code>, import from JSR directly:
-<code>import { run } from "jsr:@j50n/proc@0.28.2";</code>.</p>
+<code>import { run } from "jsr:@j50n/proc@0.29.0";</code>.</p>
 <h2 id="a-first-script"><a class="header" href="#a-first-script">A first script</a></h2>
 <p>Save this as <code>errors.ts</code>, next to a log file called <code>app.log</code>:</p>
 <pre><code class="language-typescript">import { run } from "@j50n/proc";
@@ -2310,8 +2310,13 @@ const branches = await cache(
 A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
 cached; one that doesn’t is returned without being stored, so <code>compute</code> runs
 every time for it. Deno KV deletes each entry once it is older than the timeout
-it was stored with. A timeout of 0 stores nothing. Two calls that miss at the
-same time both compute.</p>
+it was stored with. Two calls that miss at the same time both compute.</p>
+<p>To recompute whatever is stored, pass <code>refresh: true</code>: <code>compute</code> runs, and its
+result is stored as on a miss, so later calls read it. A script’s <code>--refresh</code>
+flag maps straight onto it. A timeout of 0 also skips the read, but stores
+nothing: use it for a call that shouldn’t touch the cache at all. A refresh
+whose result can’t be stored removes the old entry, so a later call computes
+again rather than getting the value the refresh replaced.</p>
 <p>A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still
 says it is the class; cache plain data.</p>
@@ -3214,11 +3219,11 @@ CSV, with the parsing done in another process.</p>
 <pre><code class="language-sh">cat data.csv | flatdata csv2record | ./process | flatdata record2csv &gt; out.csv
 </code></pre>
 <p>Install it with Deno:</p>
-<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.28.2/flatdata
+<pre><code class="language-sh">deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.29.0/flatdata
 </code></pre>
 <p>The permissions are for <code>-i</code> and <code>-o</code>; without them it still works on stdin and
 stdout. To run it without installing,
-<code>deno run jsr:@j50n/proc@0.28.2/flatdata csv2tsv &lt; data.csv</code>.
+<code>deno run jsr:@j50n/proc@0.29.0/flatdata csv2tsv &lt; data.csv</code>.
 <code>flatdata --help</code> lists the commands, and <code>flatdata &lt;command&gt; --help</code> a
 command’s options.</p>
 <h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
@@ -3987,7 +3992,7 @@ and a process’s stdin accept: <code>string</code>, <code>string[]</code>, <cod
 <a href="https://jsr.io/@j50n/proc/doc/~/DAYS"><code>DAYS</code></a>,
 <a href="https://jsr.io/@j50n/proc/doc/~/WEEKS"><code>WEEKS</code></a>: milliseconds, for
 <code>sleep(2 * SECONDS)</code> or a cache timeout.</li>
-<li><a href="https://jsr.io/@j50n/proc/doc/~/cache"><code>cache(key, value, { timeout })</code></a>:
+<li><a href="https://jsr.io/@j50n/proc/doc/~/cache"><code>cache(key, value, { timeout, refresh })</code></a>:
 keep a computed value in Deno KV across runs; needs <code>--unstable-kv</code>.</li>
 <li><a href="https://jsr.io/@j50n/proc/doc/~/fetchRecord"><code>fetchRecord(key)</code></a>: read the
 raw cache entry, expired or not, for debugging.</li>

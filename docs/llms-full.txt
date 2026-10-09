@@ -89,7 +89,7 @@ import { fromCsvToRows, toTsv } from "@j50n/proc/transforms";
 ```
 
 For a one-off script without a `deno.json`, import from JSR directly:
-`import { run } from "jsr:@j50n/proc@0.28.2";`.
+`import { run } from "jsr:@j50n/proc@0.29.0";`.
 
 ## A first script
 
@@ -2554,8 +2554,14 @@ const branches = await cache(
 A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
 cached; one that doesn't is returned without being stored, so `compute` runs
 every time for it. Deno KV deletes each entry once it is older than the timeout
-it was stored with. A timeout of 0 stores nothing. Two calls that miss at the
-same time both compute.
+it was stored with. Two calls that miss at the same time both compute.
+
+To recompute whatever is stored, pass `refresh: true`: `compute` runs, and its
+result is stored as on a miss, so later calls read it. A script's `--refresh`
+flag maps straight onto it. A timeout of 0 also skips the read, but stores
+nothing: use it for a call that shouldn't touch the cache at all. A refresh
+whose result can't be stored removes the old entry, so a later call computes
+again rather than getting the value the refresh replaced.
 
 A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still
@@ -3602,12 +3608,12 @@ cat data.csv | flatdata csv2record | ./process | flatdata record2csv > out.csv
 Install it with Deno:
 
 ```sh
-deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.28.2/flatdata
+deno install -g --allow-read --allow-write -n flatdata jsr:@j50n/proc@0.29.0/flatdata
 ```
 
 The permissions are for `-i` and `-o`; without them it still works on stdin and
 stdout. To run it without installing,
-`deno run jsr:@j50n/proc@0.28.2/flatdata csv2tsv < data.csv`.
+`deno run jsr:@j50n/proc@0.29.0/flatdata csv2tsv < data.csv`.
 `flatdata --help` lists the commands, and `flatdata <command> --help` a
 command's options.
 
@@ -4482,7 +4488,7 @@ Functions to pass to `.transform()`.
   [`DAYS`](https://jsr.io/@j50n/proc/doc/~/DAYS),
   [`WEEKS`](https://jsr.io/@j50n/proc/doc/~/WEEKS): milliseconds, for
   `sleep(2 * SECONDS)` or a cache timeout.
-- [`cache(key, value, { timeout })`](https://jsr.io/@j50n/proc/doc/~/cache):
+- [`cache(key, value, { timeout, refresh })`](https://jsr.io/@j50n/proc/doc/~/cache):
   keep a computed value in Deno KV across runs; needs `--unstable-kv`.
 - [`fetchRecord(key)`](https://jsr.io/@j50n/proc/doc/~/fetchRecord): read the
   raw cache entry, expired or not, for debugging.
