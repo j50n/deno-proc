@@ -199,7 +199,7 @@ Functions to pass to `.transform()`.
   [`DAYS`](https://jsr.io/@j50n/proc/doc/~/DAYS),
   [`WEEKS`](https://jsr.io/@j50n/proc/doc/~/WEEKS): milliseconds, for
   `sleep(2 * SECONDS)` or a cache timeout.
-- [`cache(key, value, { timeout })`](https://jsr.io/@j50n/proc/doc/~/cache):
+- [`cache(key, value, { timeout, refresh })`](https://jsr.io/@j50n/proc/doc/~/cache):
   keep a computed value in Deno KV across runs; needs `--unstable-kv`.
 - [`fetchRecord(key)`](https://jsr.io/@j50n/proc/doc/~/fetchRecord): read the
   raw cache entry, expired or not, for debugging.

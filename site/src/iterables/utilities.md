@@ -84,8 +84,14 @@ const branches = await cache(
 A value must fit in a KV entry (structured-cloneable, at most 64 KiB) to be
 cached; one that doesn't is returned without being stored, so `compute` runs
 every time for it. Deno KV deletes each entry once it is older than the timeout
-it was stored with. A timeout of 0 stores nothing. Two calls that miss at the
-same time both compute.
+it was stored with. Two calls that miss at the same time both compute.
+
+To recompute whatever is stored, pass `refresh: true`: `compute` runs, and its
+result is stored as on a miss, so later calls read it. A script's `--refresh`
+flag maps straight onto it. A timeout of 0 also skips the read, but stores
+nothing: use it for a call that shouldn't touch the cache at all. A refresh
+whose result can't be stored removes the old entry, so a later call computes
+again rather than getting the value the refresh replaced.
 
 A value read back from the cache is a structured clone. A class instance comes
 back as a plain object, without its methods or getters, though its type still

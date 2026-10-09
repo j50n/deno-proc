@@ -71,7 +71,8 @@ export async function fetchRecord<T>(
 
 /**
  * Return the value stored under `key` if it is younger than `timeout`;
- * otherwise call `value`, store what it returns, and return that.
+ * otherwise call `value`, store what it returns, and return that. With
+ * `refresh`, call `value` whatever is stored.
  *
  * Values are kept in Deno KV's default database (`Deno.openKv()` with no
  * path), so they last across runs and are shared with every program that
@@ -93,9 +94,14 @@ export async function fetchRecord<T>(
  *   functions) and at most 64 KiB. One that doesn't is returned uncached, so
  *   `value` runs on every call. A hit returns a structured clone: a class
  *   instance comes back as a plain object, whatever `T` says.
+ * - `refresh: true` and `timeout: 0` both call `value` without reading. A
+ *   refresh stores what it returns, kept for `timeout` like any other value,
+ *   so later calls read it. If that value can't be stored, the refresh
+ *   removes the old entry instead, so no later call gets the value it
+ *   replaced. `timeout: 0` stores nothing and leaves the old entry as it was.
  * - Two calls that miss at the same time both call `value`.
- * - An error thrown by `value` comes out of `cache` unchanged, and nothing is
- *   stored.
+ * - An error thrown by `value` comes out of `cache` unchanged, and the stored
+ *   entry is left as it was, even with `refresh`.
  *
  * @example
  * ```typescript
@@ -117,24 +123,29 @@ export async function fetchRecord<T>(
  * @param value Computes the value when there is no fresh one stored.
  * @param options.timeout How old a stored value may be, in milliseconds.
  *   Default 24 hours.
+ * @param options.refresh Call `value` and store what it returns, whatever is
+ *   stored. Default false.
  */
 export async function cache<T>(
   key: string | string[],
   value: () => T | Promise<T>,
-  options?: { timeout?: number },
+  options?: { timeout?: number; refresh?: boolean },
 ): Promise<T> {
   const timeout = options?.timeout ?? DAYS;
   const kv = await openKv();
   try {
-    const stored = await kv.get<Entry<T>>(cacheKey(key));
-    if (
-      stored.value != null &&
-      Date.now() - stored.value.timestamp.getTime() < timeout
-    ) {
-      return stored.value.value;
+    if (!options?.refresh) {
+      const stored = await kv.get<Entry<T>>(cacheKey(key));
+      if (
+        stored.value != null &&
+        Date.now() - stored.value.timestamp.getTime() < timeout
+      ) {
+        return stored.value.value;
+      }
     }
 
     const fresh = await value();
+    let kept = false;
     // With no time to live, a stored value would never be read.
     if (fresh != null && timeout > 0) {
       try {
@@ -146,11 +157,15 @@ export async function cache<T>(
           // well not expire.
           timeout <= 2 ** 52 ? { expireIn: timeout } : undefined,
         );
+        kept = true;
       } catch {
         // A value KV can't hold (too large, not cloneable) is returned, not
         // stored: the call worked, only the caching didn't.
       }
     }
+    // A refresh replaces the entry; one it can't replace must not be left
+    // for a later call to read as if it were the refreshed value.
+    if (options?.refresh && !kept) await kv.delete(cacheKey(key));
     return fresh;
   } finally {
     kv.close();

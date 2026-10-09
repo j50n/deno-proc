@@ -71,6 +71,43 @@ Deno.test("A timeout of 0 calls value every time and stores nothing.", async () 
   assertEquals(run.stdout, "2 null\n", run.stderr);
 });
 
+Deno.test("A refresh calls value even when fresh, and a later call reads what it stored.", async () => {
+  const run = await program(`
+    let calls = 0;
+    const value = () => ++calls;
+    await cache("k", value);
+    const refreshed = await cache("k", value, { refresh: true });
+    console.log(refreshed, await cache("k", value), calls);
+  `);
+  assertEquals(run.stdout, "2 2 2\n", run.stderr);
+});
+
+Deno.test("A refresh that can't store its value removes the old one.", async () => {
+  const run = await program(`
+    const after = async (refreshed: () => unknown, timeout?: number) => {
+      await cache("k", () => "old");
+      await cache("k", refreshed, { refresh: true, timeout });
+      return (await fetchRecord("k")).value;
+    };
+    console.log(
+      await after(() => null),
+      await after(() => "x".repeat(100_000)),
+      await after(() => "new", 0),
+    );
+  `);
+  assertEquals(run.stdout, "null null null\n", run.stderr);
+});
+
+Deno.test("A refresh whose value throws leaves the old entry.", async () => {
+  const run = await program(`
+    await cache("k", () => "old");
+    const fail = () => { throw new Error("no"); };
+    await cache("k", fail, { refresh: true }).catch(() => {});
+    console.log(await cache("k", () => "new"));
+  `);
+  assertEquals(run.stdout, "old\n", run.stderr);
+});
+
 Deno.test("A timeout past what Deno KV can expire still caches.", async () => {
   const run = await program(`
     let calls = 0;
